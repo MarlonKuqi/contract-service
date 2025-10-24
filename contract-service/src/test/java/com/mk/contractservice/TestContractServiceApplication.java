@@ -1,4 +1,4 @@
-package com.mk.contract_service;
+package com.mk.contractservice;
 
 import org.springframework.boot.SpringApplication;
 
