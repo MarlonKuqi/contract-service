@@ -1,4 +1,3 @@
-// application/ClientApplicationService.java (classe concrète, pas besoin d’interface si tu veux alléger)
 package com.mk.contractservice.application;
 
 import com.mk.contractservice.domain.client.Client;
@@ -7,8 +6,8 @@ import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
+import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonName;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -22,17 +21,27 @@ public class ClientApplicationService {
     private final ClientRepository clientRepo;
     private final ContractRepository contractRepo;
 
+    private static final String CLIENT_ALREADY_EXISTS_MSG = "Client already exists";
+
     public ClientApplicationService(ClientRepository clientRepo, ContractRepository contractRepo) {
         this.clientRepo = clientRepo;
         this.contractRepo = contractRepo;
     }
 
     @Transactional
-    public Person createPerson(final Person personClient) {
-        if (clientRepo.existsByEmail(personClient.getEmail())) {
-            throw new ClientAlreadyExistsException("Client already exists", personClient.getEmail().value());
+    public Person createPerson(final String name, final String email, final String phone, final java.time.LocalDate birthDate) {
+        // Check existence with raw string first (performance optimization)
+        if (clientRepo.existsByEmail(email)) {
+            throw new ClientAlreadyExistsException(CLIENT_ALREADY_EXISTS_MSG, email);
         }
-        return (Person) clientRepo.save(personClient);
+
+        final Person person = new Person(
+                ClientName.of(name),
+                Email.of(email),
+                PhoneNumber.of(phone),
+                birthDate
+        );
+        return (Person) clientRepo.save(person);
     }
 
     @Transactional

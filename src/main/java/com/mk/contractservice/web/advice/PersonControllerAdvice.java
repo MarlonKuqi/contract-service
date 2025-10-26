@@ -1,5 +1,7 @@
 package com.mk.contractservice.web.advice;
 
+import com.mk.contractservice.domain.exception.BusinessValidationException;
+import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.web.controller.v1.PersonController;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;

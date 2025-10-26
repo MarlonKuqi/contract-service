@@ -2,7 +2,7 @@ package com.mk.contractservice.domain.client;
 
 
 import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonName;
+import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
@@ -27,8 +27,8 @@ public class Person extends Client {
     @Column(name = "birth_date", nullable = false, updatable = false)
     private LocalDate birthDate;
 
-    public Person(final UUID id, final PersonName name, final Email email, final PhoneNumber phone, final LocalDate birthDate) {
-        super(id, name, email, phone);
+    public Person(final ClientName name, final Email email, final PhoneNumber phone, final LocalDate birthDate) {
+        super(name, email, phone);
         this.birthDate = birthDate;
     }
 }

@@ -3,7 +3,6 @@ package com.mk.contractservice.web.controller.v1;
 import com.mk.contractservice.application.ClientApplicationService;
 import com.mk.contractservice.web.dto.client.CreatePersonRequest;
 import com.mk.contractservice.web.dto.client.CreatePersonResponse;
-import com.mk.contractservice.web.dto.mapper.client.ClientCreateMapper;
 import com.mk.contractservice.web.dto.mapper.client.PersonResponseMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -30,16 +29,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class PersonController {
 
     private final ClientApplicationService clientApplicationService;
-    private final ClientCreateMapper clientCreateMapper;
     private final PersonResponseMapper personResponseMapper;
 
     private static final String PATH_NEW_RESOURCE = "/v1/clients/{id}";
 
     public PersonController(final ClientApplicationService clientApplicationService,
-                            final ClientCreateMapper clientCreateMapper,
                             final PersonResponseMapper personResponseMapper) {
         this.clientApplicationService = clientApplicationService;
-        this.clientCreateMapper = clientCreateMapper;
         this.personResponseMapper = personResponseMapper;
     }
 
@@ -89,8 +85,12 @@ public class PersonController {
             final UriComponentsBuilder uriBuilder,
             final Locale locale
     ) {
-        final var person = clientCreateMapper.toEntity(req);
-        final var personCreated = clientApplicationService.createPerson(person);
+        final var personCreated = clientApplicationService.createPerson(
+                req.name(),
+                req.email(),
+                req.phone(),
+                req.birthDate()
+        );
         final var body = personResponseMapper.toDto(personCreated);
         final var location = uriBuilder
                 .path(PATH_NEW_RESOURCE)
