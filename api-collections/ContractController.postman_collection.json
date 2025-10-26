@@ -1,0 +1,161 @@
+{
+  "info": {
+    "name": "ContractController",
+    "description": "Contract management endpoints (CRUD, filters, aggregations)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "clientId",
+      "value": "REPLACE_WITH_CLIENT_UUID",
+      "type": "string"
+    },
+    {
+      "key": "contractId",
+      "value": "REPLACE_WITH_CONTRACT_UUID",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Create Contract - Default Dates",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"costAmount\": 1500.50\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients", "{{clientId}}", "contracts"]
+        },
+        "description": "Create a contract with default dates. If not provided, startDate defaults to current date and endDate is null (open-ended contract)."
+      }
+    },
+    {
+      "name": "Create Contract - With Dates",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00+01:00\",\n  \"endDate\": \"2025-12-31T23:59:59+01:00\",\n  \"costAmount\": 2500.00\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients", "{{clientId}}", "contracts"]
+        },
+        "description": "Create a contract with specific start and end dates (ISO 8601 format)."
+      }
+    },
+    {
+      "name": "Create Contract - Open Ended",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00+01:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients", "{{clientId}}", "contracts"]
+        },
+        "description": "Create an open-ended contract (no end date)."
+      }
+    },
+    {
+      "name": "Get Active Contracts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients", "{{clientId}}", "contracts"]
+        },
+        "description": "Get all active contracts for a client. Returns only contracts where current date < end date (or endDate is null)."
+      }
+    },
+    {
+      "name": "Get Contracts - Filter By Update Date",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts?updatedSince=2025-10-26T00:00:00Z",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients", "{{clientId}}", "contracts"],
+          "query": [
+            {
+              "key": "updatedSince",
+              "value": "2025-10-26T00:00:00Z",
+              "description": "Filter contracts by lastModifiedDate (ISO 8601 format)"
+            }
+          ]
+        },
+        "description": "Get active contracts updated since a specific date."
+      }
+    },
+    {
+      "name": "Update Contract Cost",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 3000.00\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts/{{contractId}}/cost",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients", "{{clientId}}", "contracts", "{{contractId}}", "cost"]
+        },
+        "description": "Update the cost amount of a contract. Automatically updates lastModifiedDate to current date."
+      }
+    },
+    {
+      "name": "Get Sum of Active Contracts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts/sum",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients", "{{clientId}}", "contracts", "sum"]
+        },
+        "description": "Very performant endpoint using database aggregation. Returns the sum of costAmount for all active contracts of a client."
+      }
+    }
+  ]
+}
+
