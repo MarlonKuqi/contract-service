@@ -1,11 +1,12 @@
 package com.mk.contractservice.web.dto.contract;
 
-import java.math.BigDecimal;
+import com.mk.contractservice.domain.valueobject.ContractCost;
+import com.mk.contractservice.domain.valueobject.ContractPeriod;
+
 import java.time.OffsetDateTime;
 
 public record CreateContractResponse(
-        OffsetDateTime startDate,
-        OffsetDateTime endDate,
-        BigDecimal costAmount
+        ContractPeriod contractPeriod,
+        ContractCost costAmount
 ) {
 }

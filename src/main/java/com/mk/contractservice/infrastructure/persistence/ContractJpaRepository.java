@@ -17,15 +17,15 @@ public interface ContractJpaRepository extends JpaRepository<Contract, UUID> {
     @Query("""
             SELECT c FROM Contract c
             WHERE c.client.id = :clientId
-              AND (c.endDate IS NULL OR c.endDate > :now)
+              AND (c.period.endDate IS NULL OR c.period.endDate > :now)
             """)
     List<Contract> findActiveContracts(@Param("clientId") final UUID clientId, @Param("now") final OffsetDateTime now);
 
     @Query("""
             SELECT c FROM Contract c
             WHERE c.client.id = :clientId
-              AND (c.endDate IS NULL OR c.endDate > :now)
-              AND c.lastModifiedDate >= :updatedSince
+              AND (c.period.endDate IS NULL OR c.period.endDate > :now)
+              AND c.lastModified >= :updatedSince
             """)
     List<Contract> findActiveContractsUpdatedAfter(@Param("clientId") final UUID clientId,
                                                    @Param("now") OffsetDateTime now,
@@ -34,9 +34,9 @@ public interface ContractJpaRepository extends JpaRepository<Contract, UUID> {
     @Modifying
     @Query("""
             UPDATE Contract c
-            SET c.endDate = :now, c.lastModified = :now
+            SET c.period.endDate = :now, c.lastModified = :now
             WHERE c.client.id = :clientId
-              AND (c.endDate IS NULL OR c.endDate > :now)
+              AND (c.period.endDate IS NULL OR c.period.endDate > :now)
             """)
     void closeAllActiveContracts(@Param("clientId") final UUID clientId, @Param("now") final OffsetDateTime now);
 
@@ -44,7 +44,7 @@ public interface ContractJpaRepository extends JpaRepository<Contract, UUID> {
             SELECT COALESCE(SUM(c.costAmount.value), 0)
             FROM Contract c
             WHERE c.client.id = :clientId
-              AND (c.endDate IS NULL OR c.endDate > :now)
+              AND (c.period.endDate IS NULL OR c.period.endDate > :now)
             """)
     BigDecimal sumActiveContracts(@Param("clientId") final UUID clientId, @Param("now") final OffsetDateTime now);
 }

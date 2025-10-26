@@ -4,9 +4,8 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.domain.valueobject.MoneyAmount;
-import com.mk.contractservice.web.dto.contract.ContractResponse;
-import com.mk.contractservice.web.dto.mapper.contract.ContractMapper;
+import com.mk.contractservice.domain.valueobject.ContractCost;
+import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -19,47 +18,40 @@ public class ContractApplicationService {
 
     private final ContractRepository contractRepo;
     private final ClientRepository clientRepo;
-    private final ContractMapper contractMapper;
 
     public ContractApplicationService(ContractRepository contractRepo,
-                                      ClientRepository clientRepo,
-                                      ContractMapper contractMapper) {
+                                      ClientRepository clientRepo) {
         this.contractRepo = contractRepo;
         this.clientRepo = clientRepo;
-        this.contractMapper = contractMapper;
     }
 
     /**
      * Create a contract for a given client.
-     * - If start is null => set to now
-     * - end can be null (active contract)
-     * - costAmount is mandatory (validated en amont par le controller)
+     *
+     * <p>Business rules (enforced by ContractPeriod):
+     * <ul>
+     *   <li>If start is null => defaults to now</li>
+     *   <li>endDate can be null (active contract)</li>
+     *   <li>If endDate is provided, it must be after startDate</li>
+     * </ul>
+     *
+     * @param clientId the client UUID
+     * @param start the start date (null defaults to now)
+     * @param end the end date (null means active contract)
+     * @param amount the cost amount
+     * @return the persisted Contract entity with generated ID and validated period
+     * @throws IllegalArgumentException if client not found or period validation fails
      */
     @Transactional
-    public UUID createForClient(final UUID clientId, OffsetDateTime start, OffsetDateTime end, BigDecimal amount) {
-        // 1) Charger le client (404 si absent)
-        Client client = clientRepo.findById(clientId).orElseThrow(() ->
+    public Contract createForClient(final UUID clientId, final OffsetDateTime start, final OffsetDateTime end, final BigDecimal amount) {
+        final Client client = clientRepo.findById(clientId).orElseThrow(() ->
                 new IllegalArgumentException("Client not found: " + clientId));
 
-        // 2) Normaliser les dates
-        OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime startDate = (start != null) ? start : now;
+        final ContractPeriod period = ContractPeriod.of(start, end);
 
-        // (Optionnel) Garde-fou : start < end si end fourni
-        if (end != null && !end.isAfter(startDate)) {
-            throw new IllegalArgumentException("endDate must be after startDate");
-        }
+        final Contract contract = new Contract(client, period, ContractCost.of(amount));
 
-        // 3) Créer et persister l'entité
-        Contract contract = new Contract(
-                client,
-                startDate,
-                end,
-                MoneyAmount.of(amount)
-        );
-
-        Contract saved = contractRepo.save(contract);
-        return saved.getId();
+        return contractRepo.save(contract);
     }
 
     /**
@@ -69,8 +61,7 @@ public class ContractApplicationService {
     public boolean updateCost(final UUID contractId, BigDecimal newAmount) {
         return contractRepo.findById(contractId)
                 .map(c -> {
-                    c.changeCost(MoneyAmount.of(newAmount));
-                    // JPA dirty checking + @Transactional feront le flush
+                    c.changeCost(ContractCost.of(newAmount));
                     return true;
                 })
                 .orElse(false);
@@ -79,17 +70,18 @@ public class ContractApplicationService {
     /**
      * Return ACTIVE contracts for a client (end is null or in the future).
      * Optional filter on lastModified >= updatedSince.
+     *
+     * @return List of active Contract entities (mapping to DTO is done by the controller)
      */
     @Transactional(readOnly = true)
-    public List<ContractResponse> getActiveContracts(final UUID clientId, OffsetDateTime updatedSince) {
+    public List<Contract> getActiveContracts(final UUID clientId, OffsetDateTime updatedSince) {
         OffsetDateTime now = OffsetDateTime.now();
-        var contracts = contractRepo.findActiveByClientId(clientId, now, updatedSince);
-        return contracts.stream().map(contractMapper::toDto).toList();
+        return contractRepo.findActiveByClientId(clientId, now, updatedSince);
     }
 
     /**
-     * Very performant endpoint (baseline): sum of ACTIVE contracts for a client.
-     * (Si tu ajoutes une materialized view, remplace l’implémentation ici par une lecture de la MV.)
+     * Sum of costAmount for all ACTIVE contracts of a client.
+     * Very performant endpoint (DB aggregation).
      */
     @Transactional(readOnly = true)
     public BigDecimal sumActiveContracts(final UUID clientId) {

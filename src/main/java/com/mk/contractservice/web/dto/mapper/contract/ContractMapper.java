@@ -10,6 +10,5 @@ import org.mapstruct.Mapping;
 public interface ContractMapper {
 
     @Mapping(target = "clientId", expression = "java(c.getClient().getId())")
-    @Mapping(target = "costAmount", expression = "java(c.getCostAmount().value())")
     ContractResponse toDto(Contract c);
 }

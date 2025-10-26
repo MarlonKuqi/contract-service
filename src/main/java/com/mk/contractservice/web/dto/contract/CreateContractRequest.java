@@ -7,8 +7,8 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 public record CreateContractRequest(
-        OffsetDateTime startDate,  // si null => now
-        OffsetDateTime endDate,    // si null => null (actif)
+        OffsetDateTime startDate,
+        OffsetDateTime endDate,
         @NotNull @PositiveOrZero @Digits(integer = 12, fraction = 2) BigDecimal costAmount
 ) {
 }
