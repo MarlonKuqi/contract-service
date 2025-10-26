@@ -35,7 +35,15 @@ public class ClientController {
         this.clientDtoMapper = clientDtoMapper;
     }
 
-    @Operation(summary = "Read a client with all fields")
+    @Operation(
+            summary = "Read a client with all fields",
+            description = "Returns a client (Person or Company) with all its fields. "
+                    + "The response includes a 'type' discriminator field."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Client found"),
+            @ApiResponse(responseCode = "404", description = "Client not found")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<ClientResponse> read(@PathVariable final UUID id) {
         return service.findById(id)
@@ -43,18 +51,34 @@ public class ClientController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Update a client (all fields except birthDate/companyIdentifier)")
+    @Operation(
+            summary = "Update a client (all fields except birthDate/companyIdentifier)",
+            description = "Updates the common fields of a client (name, email, phone). "
+                    + "birthDate and companyIdentifier cannot be updated as per business rules."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Client updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Client not found"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data")
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<ClientResponse> update(@PathVariable final UUID id, @Valid @RequestBody UpdateClientRequest req) {
+    public ResponseEntity<Void> update(@PathVariable final UUID id, @Valid @RequestBody final UpdateClientRequest req) {
         final boolean ok = service.updateCommonFields(
-                id, PersonName.of(req.name()), Email.of(req.email()), PhoneNumber.of(req.phone())
+                id, ClientName.of(req.name()), Email.of(req.email()), PhoneNumber.of(req.phone())
         );
         return ok ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
-    @Operation(summary = "Delete a client (also closes their active contracts with endDate=now)")
+    @Operation(
+            summary = "Delete a client",
+            description = "Deletes a client and automatically closes their active contracts by setting endDate=now"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Client deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Client not found")
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<ClientResponse> delete(@PathVariable final UUID id) {
+    public ResponseEntity<Void> delete(@PathVariable final UUID id) {
         final boolean ok = service.deleteClientAndCloseContracts(id);
         return ok ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }

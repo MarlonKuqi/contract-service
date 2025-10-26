@@ -64,15 +64,23 @@ public class ClientApplicationService {
         return clientRepo.findById(id);
     }
 
+    /**
+     * Updates the common fields of a client (name, email, phone).
+     *
+     * @param id client UUID
+     * @param name new name
+     * @param email new email
+     * @param phone new phone number
+     * @return true if client was found and updated, false if not found
+     */
     @Transactional
-    public boolean updateCommonFields(final UUID id, final PersonName name, final Email email, final PhoneNumber phone) {
-        var opt = clientRepo.findById(id);
-        if (opt.isEmpty()) return false;
-        var c = opt.get();
-        // setters ou recréer un nouvel objet si tu tiens à l’immuabilité stricte
-        // (ici, simple) :
-        // c.setName(name); c.setEmail(email); c.setPhone(phone);
-        // → ajoute ces setters contrôlés dans l’entité si besoin
+    public boolean updateCommonFields(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
+        final Optional<Client> clientOptional = clientRepo.findById(id);
+        if (clientOptional.isEmpty()) {
+            return false;
+        }
+        final Client client = clientOptional.get();
+        client.updateCommonFields(name, email, phone);
         return true;
     }
 
