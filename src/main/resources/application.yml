@@ -10,11 +10,14 @@ spring:
       ddl-auto: validate
     open-in-view: false
     properties:
-      hibernate.format_sql: true
+      hibernate:
+        default_schema: contracts
+        format_sql: true
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    default-schema: contracts
 
 server:
   port: 8080
