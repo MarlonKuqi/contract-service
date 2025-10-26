@@ -5,71 +5,64 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.Locale;
 import java.util.Objects;
 
 /**
- * Value Object representing an email address.
+ * Value Object representing a client's name (Person or Company).
  * Immutable and self-validating.
  *
  * <p>Use {@link #of(String)} factory method to create instances.
  * Direct construction is prevented to ensure validation.</p>
  */
 @Embeddable
-public final class Email {
+public final class ClientName {
 
-    @Column(name = "email", nullable = false, length = 254)
+    @Column(name = "name", nullable = false, length = 200)
     private final String value;
 
     /**
      * JPA no-args constructor.
      * Protected to prevent direct instantiation outside JPA context.
      */
-    protected Email() {
+    protected ClientName() {
         this.value = null;
     }
 
     /**
      * Private constructor to force use of {@link #of(String)} factory method.
      *
-     * @param value the validated and normalized email value
+     * @param value the validated and normalized name value
      */
-    private Email(final String value) {
+    private ClientName(final String value) {
         this.value = value;
     }
 
     /**
-     * Factory method to create a validated Email.
+     * Factory method to create a validated ClientName.
      *
      * <p>Performs validation and normalization:
      * <ul>
      *   <li>Null/blank check</li>
-     *   <li>Trim and lowercase</li>
-     *   <li>Length validation (max 254 chars per RFC 5321)</li>
-     *   <li>Basic format validation</li>
+     *   <li>Trim whitespace</li>
+     *   <li>Length validation (max 200 chars)</li>
      * </ul>
      *
-     * @param rawValue the raw email string
-     * @return a validated Email instance
+     * @param rawValue the raw name string
+     * @return a validated ClientName instance
      * @throws IllegalArgumentException if validation fails
      */
-    public static Email of(final String rawValue) {
+    public static ClientName of(final String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
-            throw new IllegalArgumentException("Email must not be null or blank");
+            throw new IllegalArgumentException("Client name must not be null or blank");
         }
 
-        final String normalizedValue = rawValue.trim().toLowerCase(Locale.ROOT);
+        final String normalized = rawValue.trim();
 
-        if (normalizedValue.length() > 254) {
-            throw new IllegalArgumentException("Email too long (max 254 characters per RFC 5321)");
+        if (normalized.length() > 200) {
+            throw new IllegalArgumentException("Client name too long (max 200 characters)");
         }
 
-        // Basic email format validation (more strict validation done by @Email in DTOs)
-        if (!normalizedValue.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
-            throw new IllegalArgumentException("Invalid email format: " + rawValue);
-        }
-
-        return new Email(normalizedValue);
+        return new ClientName(normalized);
     }
 
     @JsonValue
@@ -77,10 +70,9 @@ public final class Email {
         return value;
     }
 
-
     @Override
     public boolean equals(final Object o) {
-        return this == o || (o instanceof Email other && Objects.equals(value, other.value));
+        return this == o || (o instanceof ClientName other && Objects.equals(value, other.value));
     }
 
     @Override
@@ -93,3 +85,4 @@ public final class Email {
         return value != null ? value : StringUtils.EMPTY;
     }
 }
+
