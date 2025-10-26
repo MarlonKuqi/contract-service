@@ -14,4 +14,6 @@ public interface ClientRepository {
     boolean existsById(final UUID id);
 
     boolean existsByEmail(final Email email);
+
+    boolean existsByEmail(final String email);
 }

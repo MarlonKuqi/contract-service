@@ -45,8 +45,19 @@ public class ClientApplicationService {
     }
 
     @Transactional
-    public Company createCompany(final Company client) {
-        return (Company) clientRepo.save(client);
+    public Company createCompany(final String name, final String email, final String phone, final String companyIdentifier) {
+
+        if (clientRepo.existsByEmail(email)) {
+            throw new ClientAlreadyExistsException(CLIENT_ALREADY_EXISTS_MSG, email);
+        }
+
+        final Company company = new Company(
+                ClientName.of(name),
+                Email.of(email),
+                PhoneNumber.of(phone),
+                companyIdentifier
+        );
+        return (Company) clientRepo.save(company);
     }
 
     public Optional<Client> findById(final UUID id) {

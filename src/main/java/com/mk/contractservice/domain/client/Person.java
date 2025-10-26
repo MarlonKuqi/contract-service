@@ -10,11 +10,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "person")
@@ -22,7 +20,6 @@ import lombok.experimental.SuperBuilder;
 @PrimaryKeyJoinColumn(name = "id")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SuperBuilder(toBuilder = false)
 public class Person extends Client {
     @Column(name = "birth_date", nullable = false, updatable = false)
     private LocalDate birthDate;

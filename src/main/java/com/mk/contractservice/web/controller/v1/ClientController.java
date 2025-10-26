@@ -1,13 +1,16 @@
 package com.mk.contractservice.web.controller.v1;
 
 import com.mk.contractservice.application.ClientApplicationService;
+import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonName;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import com.mk.contractservice.web.dto.client.ClientResponse;
 import com.mk.contractservice.web.dto.client.UpdateClientRequest;
 import com.mk.contractservice.web.dto.mapper.client.ClientDtoMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +22,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Clients", description = "Operations on clients (read, update, delete)")
 @RestController
-@RequestMapping("/clients")
+@RequestMapping("/v1/clients")
 public class ClientController {
 
     private final ClientApplicationService service;

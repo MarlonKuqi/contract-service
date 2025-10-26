@@ -5,6 +5,8 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.mk.contractservice.domain.valueobject.Email;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -33,5 +35,15 @@ public class JpaClientRepository implements ClientRepository {
     @Override
     public boolean existsById(final UUID id) {
         return jpa.existsById(id);
+    }
+
+    @Override
+    public boolean existsByEmail(final Email email) {
+        return jpa.existsByEmail_Value(email.value());
+    }
+
+    @Override
+    public boolean existsByEmail(final String email) {
+        return jpa.existsByEmail_Value(email);
     }
 }

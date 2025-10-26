@@ -5,4 +5,5 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 interface ClientJpaRepository extends JpaRepository<Client, UUID> {
+    boolean existsByEmail_Value(String value);
 }
