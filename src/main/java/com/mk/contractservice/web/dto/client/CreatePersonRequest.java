@@ -2,6 +2,7 @@ package com.mk.contractservice.web.dto.client;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
@@ -10,6 +11,7 @@ public record CreatePersonRequest(
         @NotBlank @Size(max = 200) String name,
         @NotBlank @jakarta.validation.constraints.Email @Size(max = 254) String email,
         @NotBlank @Pattern(regexp = "\\+?[0-9 .()/-]{7,20}") String phone,
-        @NotNull LocalDate birthDate
+        @NotNull @PastOrPresent LocalDate birthDate
 ) {
 }
+
