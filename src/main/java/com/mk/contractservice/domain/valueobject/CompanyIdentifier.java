@@ -10,34 +10,33 @@ import org.apache.commons.lang3.StringUtils;
 
 @Embeddable
 @NoArgsConstructor(access = AccessLevel.PROTECTED, force = true)
-public final class PhoneNumber {
+public final class CompanyIdentifier {
 
-    @Column(name = "phone", nullable = false, length = 32)
+    @Column(name = "company_identifier", nullable = false, updatable = false, unique = true, length = 64)
     private final String value;
 
-    private PhoneNumber(final String value) {
+    private CompanyIdentifier(final String value) {
         this.value = value;
     }
 
-    public static PhoneNumber of(final String rawValue) {
+    public static CompanyIdentifier of(final String rawValue) {
         final String normalized = normalize(rawValue);
-        validate(normalized, rawValue);
-        return new PhoneNumber(normalized);
+        validate(normalized);
+        return new CompanyIdentifier(normalized);
     }
 
     private static String normalize(final String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
-            throw new IllegalArgumentException("Phone number must not be null or blank");
+            throw new IllegalArgumentException("Company identifier must not be null or blank");
         }
         return rawValue.trim();
     }
 
-    private static void validate(final String normalized, final String rawValue) {
-        if (!normalized.matches("\\+?[0-9 .()/-]{7,20}")) {
-            throw new IllegalArgumentException("Invalid phone number format: " + rawValue);
+    private static void validate(final String normalized) {
+        if (normalized.length() > 64) {
+            throw new IllegalArgumentException("Company identifier too long (max 64 characters)");
         }
     }
-
 
     @JsonValue
     public String value() {
@@ -46,7 +45,7 @@ public final class PhoneNumber {
 
     @Override
     public boolean equals(final Object o) {
-        return this == o || (o instanceof PhoneNumber other && Objects.equals(value, other.value));
+        return this == o || (o instanceof CompanyIdentifier other && Objects.equals(value, other.value));
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.contract;
 
 import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.exception.InvalidContractException;
 import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import jakarta.persistence.Column;
@@ -22,13 +23,11 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "contract")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SuperBuilder(toBuilder = false)
 public class Contract {
 
     @Id
@@ -53,23 +52,15 @@ public class Contract {
     @Column(name = "last_modified", nullable = false)
     private OffsetDateTime lastModified;
 
-    /**
-     * Creates a new contract.
-     *
-     * @param client the client (must not be null)
-     * @param period the contract period with validated start and end dates
-     * @param costAmount the cost amount
-     * @throws IllegalArgumentException if client, period, or costAmount is null
-     */
     public Contract(final Client client, final ContractPeriod period, final ContractCost costAmount) {
         if (client == null) {
-            throw new IllegalArgumentException("Client cannot be null for a contract");
+            throw InvalidContractException.forNullClient();
         }
         if (period == null) {
-            throw new IllegalArgumentException("Contract period cannot be null");
+            throw InvalidContractException.forNullPeriod();
         }
         if (costAmount == null) {
-            throw new IllegalArgumentException("Cost amount cannot be null");
+            throw InvalidContractException.forNullCostAmount();
         }
         this.client = client;
         this.period = period;
@@ -83,27 +74,11 @@ public class Contract {
         this.lastModified = OffsetDateTime.now();
     }
 
-    /**
-     * Changes the cost amount of the contract.
-     * Automatically updates lastModified timestamp.
-     *
-     * @param newAmount the new cost amount (must not be null)
-     * @throws IllegalArgumentException if newAmount is null
-     */
     public void changeCost(final ContractCost newAmount) {
         if (newAmount == null) {
-            throw new IllegalArgumentException("New cost amount cannot be null");
+            throw InvalidContractException.forNullNewCostAmount();
         }
         this.costAmount = newAmount;
-        touch();
-    }
-
-    /**
-     * Closes the contract by setting the end date to now.
-     * Creates a new ContractPeriod with the current start date and end date = now.
-     */
-    public void closeNow() {
-        this.period = ContractPeriod.of(this.period.startDate(), OffsetDateTime.now());
         touch();
     }
 }

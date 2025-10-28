@@ -3,80 +3,50 @@ package com.mk.contractservice.domain.valueobject;
 import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.Locale;
 import java.util.Objects;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
-/**
- * Value Object representing an email address.
- * Immutable and self-validating.
- *
- * <p>Use {@link #of(String)} factory method to create instances.
- * Direct construction is prevented to ensure validation.</p>
- */
 @Embeddable
+@NoArgsConstructor(access = AccessLevel.PROTECTED, force = true)
 public final class Email {
 
     @Column(name = "email", nullable = false, length = 254)
     private final String value;
 
-    /**
-     * JPA no-args constructor.
-     * Protected to prevent direct instantiation outside JPA context.
-     */
-    protected Email() {
-        this.value = null;
-    }
-
-    /**
-     * Private constructor to force use of {@link #of(String)} factory method.
-     *
-     * @param value the validated and normalized email value
-     */
     private Email(final String value) {
         this.value = value;
     }
 
-    /**
-     * Factory method to create a validated Email.
-     *
-     * <p>Performs validation and normalization:
-     * <ul>
-     *   <li>Null/blank check</li>
-     *   <li>Trim and lowercase</li>
-     *   <li>Length validation (max 254 chars per RFC 5321)</li>
-     *   <li>Basic format validation</li>
-     * </ul>
-     *
-     * @param rawValue the raw email string
-     * @return a validated Email instance
-     * @throws IllegalArgumentException if validation fails
-     */
     public static Email of(final String rawValue) {
+        final String normalizedValue = normalize(rawValue);
+        validate(normalizedValue, rawValue);
+        return new Email(normalizedValue);
+    }
+
+    private static String normalize(final String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
             throw new IllegalArgumentException("Email must not be null or blank");
         }
+        return rawValue.trim().toLowerCase(Locale.ROOT);
+    }
 
-        final String normalizedValue = rawValue.trim().toLowerCase(Locale.ROOT);
-
+    private static void validate(final String normalizedValue, final String rawValue) {
         if (normalizedValue.length() > 254) {
             throw new IllegalArgumentException("Email too long (max 254 characters per RFC 5321)");
         }
 
-        // Basic email format validation (more strict validation done by @Email in DTOs)
         if (!normalizedValue.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
             throw new IllegalArgumentException("Invalid email format: " + rawValue);
         }
-
-        return new Email(normalizedValue);
     }
 
     @JsonValue
     public String value() {
         return value;
     }
-
 
     @Override
     public boolean equals(final Object o) {

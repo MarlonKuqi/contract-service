@@ -4,12 +4,12 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.valueobject.ClientName;
+import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
 import com.mk.contractservice.domain.valueobject.Email;
+import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
-import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -19,18 +19,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class ClientApplicationService {
 
     private final ClientRepository clientRepo;
-    private final ContractRepository contractRepo;
+    private final ContractApplicationService contractService;
 
     private static final String CLIENT_ALREADY_EXISTS_MSG = "Client already exists";
 
-    public ClientApplicationService(ClientRepository clientRepo, ContractRepository contractRepo) {
+    public ClientApplicationService(ClientRepository clientRepo, ContractApplicationService contractService) {
         this.clientRepo = clientRepo;
-        this.contractRepo = contractRepo;
+        this.contractService = contractService;
     }
 
     @Transactional
     public Person createPerson(final String name, final String email, final String phone, final java.time.LocalDate birthDate) {
-        // Check existence with raw string first (performance optimization)
         if (clientRepo.existsByEmail(email)) {
             throw new ClientAlreadyExistsException(CLIENT_ALREADY_EXISTS_MSG, email);
         }
@@ -39,7 +38,7 @@ public class ClientApplicationService {
                 ClientName.of(name),
                 Email.of(email),
                 PhoneNumber.of(phone),
-                birthDate
+                PersonBirthDate.of(birthDate)
         );
         return (Person) clientRepo.save(person);
     }
@@ -55,7 +54,7 @@ public class ClientApplicationService {
                 ClientName.of(name),
                 Email.of(email),
                 PhoneNumber.of(phone),
-                companyIdentifier
+                CompanyIdentifier.of(companyIdentifier)
         );
         return (Company) clientRepo.save(company);
     }
@@ -87,8 +86,7 @@ public class ClientApplicationService {
     @Transactional
     public boolean deleteClientAndCloseContracts(final UUID id) {
         if (!clientRepo.existsById(id)) return false;
-        final var now = OffsetDateTime.now();
-        contractRepo.closeAllActiveByClientId(id, now);
+        contractService.closeActiveContractsByClientId(id);
         clientRepo.deleteById(id);
         return true;
     }

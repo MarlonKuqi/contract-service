@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import java.math.BigDecimal;
@@ -25,27 +26,10 @@ public class ContractApplicationService {
         this.clientRepo = clientRepo;
     }
 
-    /**
-     * Create a contract for a given client.
-     *
-     * <p>Business rules (enforced by ContractPeriod):
-     * <ul>
-     *   <li>If start is null => defaults to now</li>
-     *   <li>endDate can be null (active contract)</li>
-     *   <li>If endDate is provided, it must be after startDate</li>
-     * </ul>
-     *
-     * @param clientId the client UUID
-     * @param start the start date (null defaults to now)
-     * @param end the end date (null means active contract)
-     * @param amount the cost amount
-     * @return the persisted Contract entity with generated ID and validated period
-     * @throws IllegalArgumentException if client not found or period validation fails
-     */
     @Transactional
     public Contract createForClient(final UUID clientId, final OffsetDateTime start, final OffsetDateTime end, final BigDecimal amount) {
         final Client client = clientRepo.findById(clientId).orElseThrow(() ->
-                new IllegalArgumentException("Client not found: " + clientId));
+                new ClientNotFoundException("Client not found: " + clientId));
 
         final ContractPeriod period = ContractPeriod.of(start, end);
 
@@ -54,9 +38,6 @@ public class ContractApplicationService {
         return contractRepo.save(contract);
     }
 
-    /**
-     * Update only the cost amount; lastModified is updated internally by the entity.
-     */
     @Transactional
     public boolean updateCost(final UUID contractId, BigDecimal newAmount) {
         return contractRepo.findById(contractId)
@@ -67,25 +48,21 @@ public class ContractApplicationService {
                 .orElse(false);
     }
 
-    /**
-     * Return ACTIVE contracts for a client (end is null or in the future).
-     * Optional filter on lastModified >= updatedSince.
-     *
-     * @return List of active Contract entities (mapping to DTO is done by the controller)
-     */
     @Transactional(readOnly = true)
     public List<Contract> getActiveContracts(final UUID clientId, OffsetDateTime updatedSince) {
         OffsetDateTime now = OffsetDateTime.now();
         return contractRepo.findActiveByClientId(clientId, now, updatedSince);
     }
 
-    /**
-     * Sum of costAmount for all ACTIVE contracts of a client.
-     * Very performant endpoint (DB aggregation).
-     */
     @Transactional(readOnly = true)
     public BigDecimal sumActiveContracts(final UUID clientId) {
         OffsetDateTime now = OffsetDateTime.now();
         return contractRepo.sumActiveByClientId(clientId, now);
+    }
+
+    @Transactional
+    public void closeActiveContractsByClientId(final UUID clientId) {
+        final OffsetDateTime now = OffsetDateTime.now();
+        contractRepo.closeAllActiveByClientId(clientId, now);
     }
 }
