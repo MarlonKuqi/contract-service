@@ -1,10 +1,13 @@
 package com.mk.contractservice.domain.valueobject;
 
-import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.time.LocalDate;
+
+import static org.assertj.core.api.Assertions.*;
 
 @DisplayName("PersonBirthDate - Value Object Tests")
 class PersonBirthDateTest {
@@ -87,5 +90,92 @@ class PersonBirthDateTest {
 
         assertThat(birthDate.value()).isEqualTo(oldDate);
     }
-}
 
+    @ParameterizedTest
+    @ValueSource(ints = {1, 7, 30, 365, 1000})
+    @DisplayName("GIVEN various future dates WHEN of() THEN throw exception")
+    void shouldRejectVariousFutureDates(int daysInFuture) {
+        LocalDate futureDate = LocalDate.now().plusDays(daysInFuture);
+
+        assertThatThrownBy(() -> PersonBirthDate.of(futureDate))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Birth date cannot be in the future");
+    }
+
+    @Test
+    @DisplayName("GIVEN leap year date (Feb 29) WHEN of() THEN accept")
+    void shouldAcceptLeapYearDate() {
+        LocalDate leapYearDate = LocalDate.of(2000, 2, 29);
+
+        PersonBirthDate birthDate = PersonBirthDate.of(leapYearDate);
+
+        assertThat(birthDate.value()).isEqualTo(leapYearDate);
+    }
+
+    @Test
+    @DisplayName("GIVEN first day of year WHEN of() THEN accept")
+    void shouldAcceptFirstDayOfYear() {
+        LocalDate firstDay = LocalDate.of(2000, 1, 1);
+
+        PersonBirthDate birthDate = PersonBirthDate.of(firstDay);
+
+        assertThat(birthDate.value()).isEqualTo(firstDay);
+    }
+
+    @Test
+    @DisplayName("GIVEN last day of year WHEN of() THEN accept")
+    void shouldAcceptLastDayOfYear() {
+        LocalDate lastDay = LocalDate.of(2000, 12, 31);
+
+        PersonBirthDate birthDate = PersonBirthDate.of(lastDay);
+
+        assertThat(birthDate.value()).isEqualTo(lastDay);
+    }
+
+    @Test
+    @DisplayName("GIVEN century boundaries WHEN of() THEN accept")
+    void shouldAcceptCenturyBoundaries() {
+        assertThatNoException().isThrownBy(() -> PersonBirthDate.of(LocalDate.of(1900, 1, 1)));
+        assertThatNoException().isThrownBy(() -> PersonBirthDate.of(LocalDate.of(2000, 1, 1)));
+    }
+
+    @Test
+    @DisplayName("GIVEN yesterday WHEN of() THEN accept")
+    void shouldAcceptYesterday() {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+
+        PersonBirthDate birthDate = PersonBirthDate.of(yesterday);
+
+        assertThat(birthDate.value()).isEqualTo(yesterday);
+    }
+
+    @Test
+    @DisplayName("GIVEN 150 years ago WHEN of() THEN accept (edge case for very old person)")
+    void shouldAcceptVeryOldPerson() {
+        LocalDate veryOld = LocalDate.now().minusYears(150);
+
+        PersonBirthDate birthDate = PersonBirthDate.of(veryOld);
+
+        assertThat(birthDate.value()).isEqualTo(veryOld);
+    }
+
+    @Test
+    @DisplayName("GIVEN edge case: exactly today WHEN of() THEN accept (person born today)")
+    void shouldAcceptExactlyToday() {
+        LocalDate today = LocalDate.now();
+
+        PersonBirthDate birthDate = PersonBirthDate.of(today);
+
+        assertThat(birthDate.value()).isEqualTo(today);
+    }
+
+    @Test
+    @DisplayName("GIVEN edge case: tomorrow WHEN of() THEN reject")
+    void shouldRejectTomorrow() {
+        LocalDate tomorrow = LocalDate.now().plusDays(1);
+
+        assertThatThrownBy(() -> PersonBirthDate.of(tomorrow))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Birth date cannot be in the future");
+    }
+}

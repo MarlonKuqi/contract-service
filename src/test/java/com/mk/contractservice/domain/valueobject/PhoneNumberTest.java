@@ -2,6 +2,10 @@ package com.mk.contractservice.domain.valueobject;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -16,26 +20,12 @@ class PhoneNumberTest {
         assertThat(phoneNumber.value()).isEqualTo("+33123456789");
     }
 
-    @Test
-    @DisplayName("GIVEN null phone number WHEN of() THEN throw exception")
-    void shouldRejectNull() {
-        assertThatThrownBy(() -> PhoneNumber.of(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Phone number must not be null or blank");
-    }
-
-    @Test
-    @DisplayName("GIVEN blank phone number WHEN of() THEN throw exception")
-    void shouldRejectBlank() {
-        assertThatThrownBy(() -> PhoneNumber.of("   "))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Phone number must not be null or blank");
-    }
-
-    @Test
-    @DisplayName("GIVEN empty phone number WHEN of() THEN throw exception")
-    void shouldRejectEmpty() {
-        assertThatThrownBy(() -> PhoneNumber.of(""))
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   ", "\t", "\n"})
+    @DisplayName("GIVEN null or blank phone number WHEN of() THEN throw exception")
+    void shouldRejectNullOrBlank(String invalidPhone) {
+        assertThatThrownBy(() -> PhoneNumber.of(invalidPhone))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Phone number must not be null or blank");
     }
@@ -110,6 +100,103 @@ class PhoneNumberTest {
         PhoneNumber phoneNumber = PhoneNumber.of("+33.1.23.45.67.89");
 
         assertThat(phoneNumber.value()).isEqualTo("+33.1.23.45.67.89");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "+33123456789",
+            "+33 1 23 45 67 89",
+            "+33(1)23456789",
+            "+33-1-23-45-67-89",
+            "+33.1.23.45.67.89",
+            "+1234567890",
+            "1234567",
+            "12345678901234567890"
+    })
+    @DisplayName("GIVEN valid phone formats WHEN of() THEN accept")
+    void shouldAcceptValidPhoneFormats(String validPhone) {
+        PhoneNumber phoneNumber = PhoneNumber.of(validPhone);
+
+        assertThat(phoneNumber.value()).isEqualTo(validPhone.trim());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "abc",
+            "12",
+            "123456",
+            "123456789012345678901",
+            "not-a-phone",
+            "++33123456789",
+            "33123456789a"
+    })
+    @DisplayName("GIVEN invalid phone formats WHEN of() THEN throw exception")
+    void shouldRejectInvalidPhoneFormats(String invalidPhone) {
+        assertThatThrownBy(() -> PhoneNumber.of(invalidPhone))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid phone number format");
+    }
+
+    @Test
+    @DisplayName("GIVEN two equal phone numbers WHEN comparing THEN they are equal")
+    void shouldBeEqualWhenSameValue() {
+        PhoneNumber phone1 = PhoneNumber.of("+33123456789");
+        PhoneNumber phone2 = PhoneNumber.of("+33123456789");
+
+        assertThat(phone1).isEqualTo(phone2);
+        assertThat(phone1).hasSameHashCodeAs(phone2);
+    }
+
+    @Test
+    @DisplayName("GIVEN two different phone numbers WHEN comparing THEN they are not equal")
+    void shouldNotBeEqualWhenDifferentValue() {
+        PhoneNumber phone1 = PhoneNumber.of("+33123456789");
+        PhoneNumber phone2 = PhoneNumber.of("+33987654321");
+
+        assertThat(phone1).isNotEqualTo(phone2);
+    }
+
+    @Test
+    @DisplayName("GIVEN phone with leading/trailing spaces WHEN comparing THEN equal after trim")
+    void shouldBeEqualAfterTrim() {
+        PhoneNumber phone1 = PhoneNumber.of("+33123456789");
+        PhoneNumber phone2 = PhoneNumber.of("  +33123456789  ");
+
+        assertThat(phone1).isEqualTo(phone2);
+    }
+
+    @Test
+    @DisplayName("GIVEN phone compared to itself WHEN equals THEN return true")
+    void shouldBeEqualToItself() {
+        PhoneNumber phone = PhoneNumber.of("+33123456789");
+
+        assertThat(phone).isEqualTo(phone);
+    }
+
+    @Test
+    @DisplayName("GIVEN phone compared to null WHEN equals THEN return false")
+    void shouldNotBeEqualToNull() {
+        PhoneNumber phone = PhoneNumber.of("+33123456789");
+
+        assertThat(phone).isNotEqualTo(null);
+    }
+
+    @Test
+    @DisplayName("GIVEN minimum length phone WHEN of() THEN accept")
+    void shouldAcceptMinimumLengthPhone() {
+        PhoneNumber phone = PhoneNumber.of("1234567");
+
+        assertThat(phone.value()).isEqualTo("1234567");
+    }
+
+    @Test
+    @DisplayName("GIVEN maximum length phone WHEN of() THEN accept")
+    void shouldAcceptMaximumLengthPhone() {
+        String maxLengthPhone = "12345678901234567890";
+
+        PhoneNumber phone = PhoneNumber.of(maxLengthPhone);
+
+        assertThat(phone.value()).isEqualTo(maxLengthPhone);
     }
 }
 
