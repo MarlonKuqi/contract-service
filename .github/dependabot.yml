@@ -1,0 +1,40 @@
+version: 2
+
+updates:
+  # Maven dependencies
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "marlo"
+    labels:
+      - "dependencies"
+      - "java"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Ignore les dépendances de test à faible risque
+    ignore:
+      # Ignorer les mises à jour mineures pour les dépendances de test
+      - dependency-name: "org.junit.*"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "org.mockito.*"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "org.assertj.*"
+        update-types: ["version-update:semver-patch"]
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
