@@ -6,7 +6,12 @@ import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
-import com.mk.contractservice.domain.valueobject.*;
+import com.mk.contractservice.domain.valueobject.ClientName;
+import com.mk.contractservice.domain.valueobject.ContractCost;
+import com.mk.contractservice.domain.valueobject.ContractPeriod;
+import com.mk.contractservice.domain.valueobject.Email;
+import com.mk.contractservice.domain.valueobject.PersonBirthDate;
+import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -28,7 +33,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ContractApplicationService - Unit Tests")
@@ -154,6 +161,7 @@ class ContractApplicationServiceTest {
         @Test
         @DisplayName("GIVEN existing contract WHEN updateCost THEN cost is updated")
         void shouldUpdateCostForExistingContract() {
+            UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
             Contract contract = new Contract(
                     testClient,
@@ -164,7 +172,7 @@ class ContractApplicationServiceTest {
 
             when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract));
 
-            boolean result = service.updateCost(contractId, newAmount);
+            boolean result = service.updateCost(clientId, contractId, newAmount);
 
             assertThat(result).isTrue();
             assertThat(contract.getCostAmount().value()).isEqualByComparingTo(newAmount);
@@ -173,10 +181,11 @@ class ContractApplicationServiceTest {
         @Test
         @DisplayName("GIVEN non-existent contract WHEN updateCost THEN return false")
         void shouldReturnFalseWhenContractNotFound() {
+            UUID clientId = UUID.randomUUID();
             UUID nonExistentId = UUID.randomUUID();
             when(contractRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-            boolean result = service.updateCost(nonExistentId, BigDecimal.TEN);
+            boolean result = service.updateCost(clientId, nonExistentId, BigDecimal.TEN);
 
             assertThat(result).isFalse();
         }
@@ -184,6 +193,7 @@ class ContractApplicationServiceTest {
         @Test
         @DisplayName("GIVEN valid new cost WHEN updateCost THEN lastModified is updated")
         void shouldUpdateLastModifiedWhenCostChanged() throws InterruptedException {
+            UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
             Contract contract = new Contract(
                     testClient,
@@ -195,7 +205,7 @@ class ContractApplicationServiceTest {
 
             when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract));
 
-            service.updateCost(contractId, new BigDecimal("250.00"));
+            service.updateCost(clientId, contractId, new BigDecimal("250.00"));
 
             assertThat(contract.getLastModified()).isAfter(initialLastModified);
         }
