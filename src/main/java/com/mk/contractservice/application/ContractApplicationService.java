@@ -7,12 +7,15 @@ import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ContractApplicationService {
@@ -27,6 +30,7 @@ public class ContractApplicationService {
     }
 
     @Transactional
+    @CacheEvict(value = "contractSums", key = "#clientId")
     public Contract createForClient(final UUID clientId, final OffsetDateTime start, final OffsetDateTime end, final BigDecimal amount) {
         final Client client = clientRepo.findById(clientId).orElseThrow(() ->
                 new ClientNotFoundException("Client not found: " + clientId));
@@ -39,14 +43,16 @@ public class ContractApplicationService {
     }
 
     @Transactional
-    public boolean updateCost(final UUID contractId, BigDecimal newAmount) {
+    @CacheEvict(value = "contractSums", key = "#clientId")
+    public boolean updateCost(final UUID clientId, final UUID contractId, BigDecimal newAmount) {
         return contractRepo.findById(contractId)
-                .map(c -> {
-                    c.changeCost(ContractCost.of(newAmount));
+                .map(contract -> {
+                    contract.changeCost(ContractCost.of(newAmount));
                     return true;
                 })
                 .orElse(false);
     }
+
 
     @Transactional(readOnly = true)
     public List<Contract> getActiveContracts(final UUID clientId, OffsetDateTime updatedSince) {
@@ -55,12 +61,14 @@ public class ContractApplicationService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "contractSums", key = "#clientId")
     public BigDecimal sumActiveContracts(final UUID clientId) {
         OffsetDateTime now = OffsetDateTime.now();
         return contractRepo.sumActiveByClientId(clientId, now);
     }
 
     @Transactional
+    @CacheEvict(value = "contractSums", key = "#clientId")
     public void closeActiveContractsByClientId(final UUID clientId) {
         final OffsetDateTime now = OffsetDateTime.now();
         contractRepo.closeAllActiveByClientId(clientId, now);
