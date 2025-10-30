@@ -105,11 +105,11 @@ jobs:
           cache: maven
 
       - name: Start PostgreSQL with docker-compose
-        run: docker-compose -f src/main/resources/docker/docker-compose.dev.yml up -d
+        run: docker compose -f src/main/resources/docker/docker-compose.dev.yml up -d
 
       - name: Wait for PostgreSQL to be ready
         run: |
-          until docker-compose -f src/main/resources/docker/docker-compose.dev.yml exec -T postgres pg_isready -U postgres; do
+          until docker compose -f src/main/resources/docker/docker-compose.dev.yml exec -T postgres pg_isready -U postgres; do
             echo "Waiting for PostgreSQL..."
             sleep 2
           done
@@ -120,7 +120,7 @@ jobs:
 
       - name: Stop PostgreSQL
         if: always()
-        run: docker-compose -f src/main/resources/docker/docker-compose.dev.yml down -v
+        run: docker compose -f src/main/resources/docker/docker-compose.dev.yml down -v
 
       - name: Upload integration test results
         if: always()
