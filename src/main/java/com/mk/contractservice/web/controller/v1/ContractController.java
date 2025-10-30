@@ -12,10 +12,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +23,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
 
 @Tag(name = "Contracts", description = "Operations on contracts (create, read, update cost)")
 @RestController
@@ -93,10 +94,7 @@ public class ContractController {
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime updatedSince
     ) {
-        // Service returns domain entities
         final List<Contract> contracts = contractApplicationService.getActiveContracts(clientId, updatedSince);
-
-        // Controller maps to DTOs
         final List<ContractResponse> response = contracts.stream()
                 .map(contractMapper::toDto)
                 .toList();
@@ -133,7 +131,7 @@ public class ContractController {
             @PathVariable final UUID contractId,
             @Valid @RequestBody final CostUpdateRequest req
     ) {
-        final boolean ok = contractApplicationService.updateCost(contractId, req.amount());
+        final boolean ok = contractApplicationService.updateCost(clientId, contractId, req.amount());
         return ok ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 }
