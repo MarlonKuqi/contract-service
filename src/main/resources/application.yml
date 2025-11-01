@@ -1,10 +1,12 @@
 spring:
   application:
     name: contract-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
-    url: jdbc:postgresql://localhost:5432/contract
-    username: dev
-    password: dev
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/contract}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -12,7 +14,6 @@ spring:
     properties:
       hibernate:
         default_schema: contracts
-        format_sql: true
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -24,3 +25,4 @@ server:
 
 management:
   endpoints.web.exposure.include: health,info,metrics
+
