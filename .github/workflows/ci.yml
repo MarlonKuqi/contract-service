@@ -4,7 +4,7 @@ on:
   push:
     branches: [ '**' ]
   pull_request:
-    branches: [ '**' ]  
+    branches: [ '**' ]
 
 jobs:
   build-and-test:
@@ -185,9 +185,7 @@ jobs:
             -DskipRuntimeScope=false \
             -Dformats=HTML,JSON,SARIF \
             -DprettyPrint=true \
-            -DossindexAnalyzerEnabled=true \
-            -DossindexAnalyzerUser=${{ secrets.OSSINDEX_USER }} \
-            -DossindexAnalyzerPassword=${{ secrets.OSSINDEX_PASSWORD }}
+            ${{ secrets.OSSINDEX_USER && secrets.OSSINDEX_PASSWORD && format('-DossindexAnalyzerEnabled=true -DossindexAnalyzerUser={0} -DossindexAnalyzerPassword={1}', secrets.OSSINDEX_USER, secrets.OSSINDEX_PASSWORD) || '-DossindexAnalyzerEnabled=false' }}
         env:
           MAVEN_OPTS: "--add-modules jdk.incubator.vector"
         continue-on-error: true
