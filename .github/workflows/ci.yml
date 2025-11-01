@@ -184,7 +184,12 @@ jobs:
             -DskipProvidedScope=false \
             -DskipRuntimeScope=false \
             -Dformats=HTML,JSON,SARIF \
-            -DprettyPrint=true
+            -DprettyPrint=true \
+            -DossindexAnalyzerEnabled=true \
+            -DossindexAnalyzerUser=${{ secrets.OSSINDEX_USER }} \
+            -DossindexAnalyzerPassword=${{ secrets.OSSINDEX_PASSWORD }}
+        env:
+          MAVEN_OPTS: "--add-modules jdk.incubator.vector"
         continue-on-error: true
 
       - name: Upload Dependency-Check results to GitHub Security
