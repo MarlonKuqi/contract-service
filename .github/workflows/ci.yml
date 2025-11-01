@@ -179,13 +179,14 @@ jobs:
       - name: Run OWASP Dependency-Check
         run: |
           mvn org.owasp:dependency-check-maven:12.1.8:check \
-            ${{ secrets.NVD_API_KEY && format('-DnvdApiKey={0}', secrets.NVD_API_KEY) || '' }} \
+            -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
             -DfailBuildOnCVSS=6.5 \
             -DskipProvidedScope=false \
             -DskipRuntimeScope=false \
             -Dformats=HTML,JSON,SARIF \
             -DprettyPrint=true \
-            ${{ secrets.OSSINDEX_USER && secrets.OSSINDEX_PASSWORD && format('-DossindexAnalyzerEnabled=true -DossindexAnalyzerUser={0} -DossindexAnalyzerPassword={1}', secrets.OSSINDEX_USER, secrets.OSSINDEX_PASSWORD) || '-DossindexAnalyzerEnabled=false' }}
+            -DossIndexUsername=${{ secrets.OSSINDEX_USER }} \
+            -DossIndexPassword=${{ secrets.OSSINDEX_PASSWORD }}
         env:
           MAVEN_OPTS: "--add-modules jdk.incubator.vector"
         continue-on-error: true
