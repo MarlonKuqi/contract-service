@@ -113,7 +113,7 @@ jobs:
           cache: maven
 
       - name: Start PostgreSQL with docker-compose
-        run: docker-compose up -d postgres
+        run: docker compose up -d postgres
 
       - name: Wait for PostgreSQL to be ready
         run: sleep 2
@@ -123,7 +123,7 @@ jobs:
 
       - name: Stop PostgreSQL
         if: always()
-        run: docker-compose down -v
+        run: docker compose down -v
 
       - name: Upload integration test results
         if: always()
