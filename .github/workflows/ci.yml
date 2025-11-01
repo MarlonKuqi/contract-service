@@ -112,6 +112,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Clean up any existing volumes
+        run: docker compose down -v || true
+
       - name: Start PostgreSQL with docker-compose
         run: docker compose up -d postgres
 
