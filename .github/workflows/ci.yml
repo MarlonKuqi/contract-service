@@ -116,10 +116,14 @@ jobs:
         run: docker compose up -d postgres
 
       - name: Wait for PostgreSQL to be ready
-        run: sleep 2
+        run: |
+          echo "Waiting for PostgreSQL to be ready..."
+          timeout 60 bash -c 'until docker compose exec -T postgres pg_isready -U postgres -d contract; do sleep 1; done'
+          echo "PostgreSQL is ready!"
+          sleep 2
 
       - name: Run integration tests
-        run: mvn test -Dtest=*IT
+        run: mvn test -Dtest=*IT -Dspring.profiles.active=test
 
       - name: Stop PostgreSQL
         if: always()
