@@ -185,7 +185,7 @@ jobs:
             -DskipRuntimeScope=false \
             -Dformats=HTML,JSON,SARIF \
             -DprettyPrint=true \
-            -DossIndexUsername=${{ secrets.OSSINDEX_USER }} \
+            -DossIndexUsername=${{ secrets.OSSINDEX_USERNAME }} \
             -DossIndexPassword=${{ secrets.OSSINDEX_PASSWORD }}
         env:
           MAVEN_OPTS: "--add-modules jdk.incubator.vector"
