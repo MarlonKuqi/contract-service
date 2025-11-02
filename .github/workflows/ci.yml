@@ -112,8 +112,8 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Run integration tests
-        run: mvn verify
+      - name: Run integration tests only
+        run: mvn failsafe:integration-test failsafe:verify
         env:
           TESTCONTAINERS_RYUK_DISABLED: false
 

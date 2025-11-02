@@ -194,20 +194,6 @@
 						<goals>
 							<goal>check</goal>
 						</goals>
-						<configuration>
-							<rules>
-								<rule>
-									<element>PACKAGE</element>
-									<limits>
-										<limit>
-											<counter>LINE</counter>
-											<value>COVEREDRATIO</value>
-											<minimum>0.80</minimum>
-										</limit>
-									</limits>
-								</rule>
-							</rules>
-						</configuration>
 					</execution>
 				</executions>
 				<configuration>
@@ -220,6 +206,18 @@
 						<exclude>**/ContractServiceApplication.class</exclude>
 						<exclude>**/domain/exception/**</exclude>
 					</excludes>
+					<rules>
+						<rule>
+							<element>PACKAGE</element>
+							<limits>
+								<limit>
+									<counter>LINE</counter>
+									<value>COVEREDRATIO</value>
+									<minimum>0.80</minimum>
+								</limit>
+							</limits>
+						</rule>
+					</rules>
 				</configuration>
 			</plugin>
 		</plugins>
