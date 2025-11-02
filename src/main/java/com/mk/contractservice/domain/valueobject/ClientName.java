@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.mk.contractservice.domain.exception.InvalidClientNameException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.util.Objects;
@@ -28,14 +29,14 @@ public final class ClientName {
 
     private static String normalize(final String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
-            throw new IllegalArgumentException("Client name must not be null or blank");
+            throw new InvalidClientNameException("Client name must not be null or blank");
         }
         return rawValue.trim();
     }
 
     private static void validate(final String normalized) {
         if (normalized.length() > 200) {
-            throw new IllegalArgumentException("Client name too long (max 200 characters)");
+            throw new InvalidClientNameException("Client name too long (max 200 characters)");
         }
     }
 

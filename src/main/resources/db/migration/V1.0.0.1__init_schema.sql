@@ -21,7 +21,7 @@ CREATE TABLE contracts.contract (
     client_id      UUID REFERENCES contracts.client(id) ON DELETE SET NULL,
     start_date     TIMESTAMPTZ NOT NULL,
     end_date       TIMESTAMPTZ NULL,
-    cost_amount    NUMERIC(12,2) NOT NULL CHECK (cost_amount >= 0),
+    cost_amount    NUMERIC(12,2) NOT NULL CHECK (cost_amount > 0),
     last_modified  TIMESTAMPTZ   NOT NULL
 );
 

@@ -2,7 +2,9 @@ package com.mk.contractservice.domain.contract;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.domain.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.exception.InvalidContractException;
+import com.mk.contractservice.domain.exception.InvalidContractPeriodException;
 import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
@@ -157,7 +159,7 @@ class ContractTest {
             OffsetDateTime end = start.minusDays(1);
 
             assertThatThrownBy(() -> ContractPeriod.of(start, end))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidContractPeriodException.class)
                     .hasMessageContaining("Contract end date must be after start date");
         }
     }
@@ -177,13 +179,13 @@ class ContractTest {
         }
 
         @Test
-        @DisplayName("GIVEN zero cost WHEN creating cost THEN cost is created")
-        void shouldCreateCostWithZeroAmount() {
+        @DisplayName("GIVEN zero cost WHEN creating cost THEN throw exception")
+        void shouldRejectZeroAmount() {
             BigDecimal amount = BigDecimal.ZERO;
 
-            ContractCost cost = ContractCost.of(amount);
-
-            assertThat(cost.value()).isEqualByComparingTo(amount);
+            assertThatThrownBy(() -> ContractCost.of(amount))
+                    .isInstanceOf(InvalidContractCostException.class)
+                    .hasMessageContaining("must be greater than zero");
         }
 
         @Test
@@ -192,8 +194,8 @@ class ContractTest {
             BigDecimal negativeAmount = new BigDecimal("-100.00");
 
             assertThatThrownBy(() -> ContractCost.of(negativeAmount))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("must not be negative");
+                    .isInstanceOf(InvalidContractCostException.class)
+                    .hasMessageContaining("must be greater than zero");
         }
 
         @Test
@@ -202,7 +204,7 @@ class ContractTest {
             BigDecimal tooManyDecimals = new BigDecimal("100.123");
 
             assertThatThrownBy(() -> ContractCost.of(tooManyDecimals))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidContractCostException.class)
                     .hasMessageContaining("at most 2 decimal places");
         }
 
@@ -210,7 +212,7 @@ class ContractTest {
         @DisplayName("GIVEN null amount WHEN creating cost THEN throw exception")
         void shouldRejectNullAmount() {
             assertThatThrownBy(() -> ContractCost.of(null))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidContractCostException.class)
                     .hasMessageContaining("must not be null");
         }
     }

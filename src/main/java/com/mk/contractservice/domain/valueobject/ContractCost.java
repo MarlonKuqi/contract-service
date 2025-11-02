@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.mk.contractservice.domain.exception.InvalidContractCostException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.math.BigDecimal;
@@ -27,15 +28,15 @@ public final class ContractCost {
 
     private static void validate(final BigDecimal rawValue) {
         if (rawValue == null) {
-            throw new IllegalArgumentException("Contract cost amount must not be null");
+            throw new InvalidContractCostException("Contract cost amount must not be null");
         }
 
-        if (rawValue.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Contract cost amount must not be negative: " + rawValue);
+        if (rawValue.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidContractCostException("Contract cost amount must be greater than zero: " + rawValue);
         }
 
         if (rawValue.scale() > 2) {
-            throw new IllegalArgumentException("Contract cost amount must have at most 2 decimal places: " + rawValue);
+            throw new InvalidContractCostException("Contract cost amount must have at most 2 decimal places: " + rawValue);
         }
     }
 

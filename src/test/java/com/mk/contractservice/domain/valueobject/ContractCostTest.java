@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.valueobject;
 
+import com.mk.contractservice.domain.exception.InvalidContractCostException;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,7 @@ class ContractCostTest {
     @DisplayName("GIVEN null cost WHEN of() THEN throw exception")
     void shouldRejectNull() {
         assertThatThrownBy(() -> ContractCost.of(null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidContractCostException.class)
                 .hasMessageContaining("Contract cost amount must not be null");
     }
 
@@ -29,23 +30,23 @@ class ContractCostTest {
     @DisplayName("GIVEN negative cost WHEN of() THEN throw exception")
     void shouldRejectNegative() {
         assertThatThrownBy(() -> ContractCost.of(new BigDecimal("-10.00")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Contract cost amount must not be negative");
+                .isInstanceOf(InvalidContractCostException.class)
+                .hasMessageContaining("must be greater than zero");
     }
 
     @Test
-    @DisplayName("GIVEN zero cost WHEN of() THEN accept")
-    void shouldAcceptZero() {
-        ContractCost cost = ContractCost.of(BigDecimal.ZERO);
-
-        assertThat(cost.value()).isEqualByComparingTo("0");
+    @DisplayName("GIVEN zero cost WHEN of() THEN throw exception")
+    void shouldRejectZero() {
+        assertThatThrownBy(() -> ContractCost.of(BigDecimal.ZERO))
+                .isInstanceOf(InvalidContractCostException.class)
+                .hasMessageContaining("must be greater than zero");
     }
 
     @Test
     @DisplayName("GIVEN cost with 3 decimal places WHEN of() THEN throw exception")
     void shouldRejectTooManyDecimals() {
         assertThatThrownBy(() -> ContractCost.of(new BigDecimal("100.123")))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidContractCostException.class)
                 .hasMessageContaining("Contract cost amount must have at most 2 decimal places");
     }
 
