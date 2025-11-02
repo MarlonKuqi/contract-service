@@ -113,7 +113,7 @@ jobs:
           cache: maven
 
       - name: Run integration tests only
-        run: mvn failsafe:integration-test failsafe:verify
+        run: mvn test-compile failsafe:integration-test failsafe:verify -DskipUTs
         env:
           TESTCONTAINERS_RYUK_DISABLED: false
 
