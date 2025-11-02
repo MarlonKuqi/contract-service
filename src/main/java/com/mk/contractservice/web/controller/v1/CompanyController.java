@@ -30,6 +30,8 @@ public class CompanyController {
     private final ClientApplicationService clientApplicationService;
     private final CompanyResponseMapper companyResponseMapper;
 
+    private static final String PATH_NEW_RESOURCE = "/v1/clients/{id}";
+
     public CompanyController(final ClientApplicationService clientApplicationService,
                              final CompanyResponseMapper companyResponseMapper) {
         this.clientApplicationService = clientApplicationService;
@@ -78,7 +80,7 @@ public class CompanyController {
         final CreateCompanyResponse body = companyResponseMapper.toDto(created);
 
         final var location = uriBuilder
-                .path("/v1/clients/{id}")
+                .path(PATH_NEW_RESOURCE)
                 .buildAndExpand(created.getId())
                 .toUri();
         

@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.mk.contractservice.domain.exception.InvalidPhoneNumberException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.util.Objects;
@@ -27,14 +28,14 @@ public final class PhoneNumber {
 
     private static String normalize(final String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
-            throw new IllegalArgumentException("Phone number must not be null or blank");
+            throw new InvalidPhoneNumberException("Phone number must not be null or blank");
         }
         return rawValue.trim();
     }
 
     private static void validate(final String normalized, final String rawValue) {
         if (!normalized.matches("\\+?[0-9 .()/-]{7,20}")) {
-            throw new IllegalArgumentException("Invalid phone number format: " + rawValue);
+            throw new InvalidPhoneNumberException("Invalid phone number format: " + rawValue);
         }
     }
 

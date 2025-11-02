@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.valueobject;
 
+import com.mk.contractservice.domain.exception.InvalidContractPeriodException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -68,7 +69,7 @@ class ContractPeriodTest {
         OffsetDateTime end = start.minusDays(1);
 
         assertThatThrownBy(() -> ContractPeriod.of(start, end))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidContractPeriodException.class)
                 .hasMessageContaining("Contract end date must be after start date");
     }
 
@@ -79,7 +80,7 @@ class ContractPeriodTest {
         OffsetDateTime end = start;
 
         assertThatThrownBy(() -> ContractPeriod.of(start, end))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidContractPeriodException.class)
                 .hasMessageContaining("Contract end date must be after start date");
     }
 

@@ -73,8 +73,11 @@ public class ContractController {
                 .toUri();
 
         final CreateContractResponse body = new CreateContractResponse(
-                contract.getPeriod(),
-                contract.getCostAmount()
+                new CreateContractResponse.PeriodResponse(
+                        contract.getPeriod().startDate(),
+                        contract.getPeriod().endDate()
+                ),
+                contract.getCostAmount().value()
         );
         return ResponseEntity.created(location).body(body);
     }

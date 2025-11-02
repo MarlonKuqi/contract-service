@@ -295,7 +295,6 @@ class ContractApplicationServiceTest {
 
             service.sumActiveContracts(testClientId);
 
-            // Verify we're using repository aggregation (performant) not loading all contracts
             verify(contractRepository).sumActiveByClientId(eq(testClientId), any(OffsetDateTime.class));
             verify(contractRepository, never()).findActiveByClientId(any(), any(), any());
         }

@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.valueobject;
 
+import com.mk.contractservice.domain.exception.InvalidPhoneNumberException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,7 +27,7 @@ class PhoneNumberTest {
     @DisplayName("GIVEN null or blank phone number WHEN of() THEN throw exception")
     void shouldRejectNullOrBlank(String invalidPhone) {
         assertThatThrownBy(() -> PhoneNumber.of(invalidPhone))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidPhoneNumberException.class)
                 .hasMessageContaining("Phone number must not be null or blank");
     }
 
@@ -42,7 +43,7 @@ class PhoneNumberTest {
     @DisplayName("GIVEN invalid format WHEN of() THEN throw exception")
     void shouldRejectInvalidFormat() {
         assertThatThrownBy(() -> PhoneNumber.of("abc"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidPhoneNumberException.class)
                 .hasMessageContaining("Invalid phone number format");
     }
 
@@ -50,7 +51,7 @@ class PhoneNumberTest {
     @DisplayName("GIVEN too short phone WHEN of() THEN throw exception")
     void shouldRejectTooShort() {
         assertThatThrownBy(() -> PhoneNumber.of("123"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidPhoneNumberException.class)
                 .hasMessageContaining("Invalid phone number format");
     }
 
@@ -58,7 +59,7 @@ class PhoneNumberTest {
     @DisplayName("GIVEN too long phone WHEN of() THEN throw exception")
     void shouldRejectTooLong() {
         assertThatThrownBy(() -> PhoneNumber.of("123456789012345678901"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidPhoneNumberException.class)
                 .hasMessageContaining("Invalid phone number format");
     }
 
@@ -133,7 +134,7 @@ class PhoneNumberTest {
     @DisplayName("GIVEN invalid phone formats WHEN of() THEN throw exception")
     void shouldRejectInvalidPhoneFormats(String invalidPhone) {
         assertThatThrownBy(() -> PhoneNumber.of(invalidPhone))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidPhoneNumberException.class)
                 .hasMessageContaining("Invalid phone number format");
     }
 

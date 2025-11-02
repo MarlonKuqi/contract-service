@@ -1,6 +1,5 @@
 package com.mk.contractservice.web.advice;
 
-import com.mk.contractservice.domain.exception.BusinessValidationException;
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.web.controller.v1.PersonController;
 import jakarta.validation.ConstraintViolationException;
@@ -42,7 +41,6 @@ public class PersonControllerAdvice {
     public ResponseEntity<ProblemDetail> handleInvalid(MethodArgumentNotValidException ex) {
         var pd = problem(HttpStatus.BAD_REQUEST, "Validation Failed",
                 "Some fields are invalid or missing.", "validationError");
-        // Ajouter les erreurs de champs
         List<Map<String, Object>> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> Map.<String, Object>of(
                         "field", fe.getField(),
@@ -63,32 +61,18 @@ public class PersonControllerAdvice {
         return respond(pd);
     }
 
-    @ExceptionHandler(ClientAlreadyExistsException.class) // crée ta custom exception si pas déjà faite
+    @ExceptionHandler(ClientAlreadyExistsException.class)
     public ResponseEntity<ProblemDetail> handleConflict(ClientAlreadyExistsException ex) {
         var pd = problem(HttpStatus.CONFLICT, "Conflict",
                 "Client already exists.", "clientAlreadyExists");
         return respond(pd);
     }
 
-    // ====== 422: Règles métier non respectées ======
-    @ExceptionHandler(BusinessValidationException.class) // crée ta custom exception
-    public ResponseEntity<ProblemDetail> handleBusiness(BusinessValidationException ex) {
-        var pd = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Business Validation Failed",
-                ex.getMessage() != null ? ex.getMessage() : "Cannot create client due to business rules.",
-                "businessValidationFailed");
-        // Optionnel: détailler les violations métier
-        if (ex.getViolations() != null) {
-            pd.setProperty("errors", ex.getViolations());
-        }
-        return respond(pd);
-    }
 
-    // ====== 500: fallback ======
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleAny(Exception ex, WebRequest request) {
-        // Log interne ici (logger.error(..., ex))
         var pd = problem(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
-                "Unexpected error.", "internalError"); // même code pour 5xx
+                "Unexpected error.", "internalError");
         return respond(pd);
     }
 

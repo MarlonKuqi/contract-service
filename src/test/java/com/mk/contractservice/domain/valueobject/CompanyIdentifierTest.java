@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.valueobject;
 
+import com.mk.contractservice.domain.exception.InvalidCompanyIdentifierException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -40,7 +41,7 @@ class CompanyIdentifierTest {
     @DisplayName("GIVEN blank identifier WHEN creating CompanyIdentifier THEN throw exception")
     void shouldRejectBlankIdentifier() {
         assertThatThrownBy(() -> CompanyIdentifier.of("   "))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCompanyIdentifierException.class)
                 .hasMessageContaining("Company identifier must not be null or blank");
     }
 
@@ -48,7 +49,7 @@ class CompanyIdentifierTest {
     @DisplayName("GIVEN empty identifier WHEN creating CompanyIdentifier THEN throw exception")
     void shouldRejectEmptyIdentifier() {
         assertThatThrownBy(() -> CompanyIdentifier.of(""))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCompanyIdentifierException.class)
                 .hasMessageContaining("Company identifier must not be null or blank");
     }
 
@@ -58,7 +59,7 @@ class CompanyIdentifierTest {
         String tooLong = "a".repeat(65);
 
         assertThatThrownBy(() -> CompanyIdentifier.of(tooLong))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCompanyIdentifierException.class)
                 .hasMessageContaining("Company identifier too long");
     }
 
@@ -172,7 +173,7 @@ class CompanyIdentifierTest {
         String exactly65 = "a".repeat(65);
 
         assertThatThrownBy(() -> CompanyIdentifier.of(exactly65))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCompanyIdentifierException.class)
                 .hasMessageContaining("Company identifier too long");
     }
 }

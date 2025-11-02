@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.valueobject;
 
+import com.mk.contractservice.domain.exception.InvalidEmailException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,8 +51,8 @@ class EmailTest {
     @DisplayName("Should reject null or blank email")
     void shouldRejectNullOrBlank(String invalidEmail) {
         assertThatThrownBy(() -> Email.of(invalidEmail))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Email must not be null or blank");
+                .isInstanceOf(InvalidEmailException.class)
+                .hasMessageContaining("Email must not be");
     }
 
     @Test
@@ -60,7 +61,7 @@ class EmailTest {
         String tooLongEmail = "a".repeat(246) + "@test.com";
 
         assertThatThrownBy(() -> Email.of(tooLongEmail))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidEmailException.class)
                 .hasMessageContaining("Email too long");
     }
 
@@ -77,7 +78,7 @@ class EmailTest {
     @DisplayName("Should reject invalid email formats")
     void shouldRejectInvalidFormat(String invalidEmail) {
         assertThatThrownBy(() -> Email.of(invalidEmail))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidEmailException.class)
                 .hasMessageContaining("Invalid email format");
     }
 
@@ -119,8 +120,8 @@ class EmailTest {
     @DisplayName("Compact constructor should reject null")
     void compactConstructorShouldRejectNull() {
         assertThatThrownBy(() -> Email.of(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Email must not be null or blank");
+                .isInstanceOf(InvalidEmailException.class)
+                .hasMessageContaining("Email must not be");
     }
 
     @Test

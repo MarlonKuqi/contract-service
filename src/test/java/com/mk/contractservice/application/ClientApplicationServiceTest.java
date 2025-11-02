@@ -42,11 +42,11 @@ class ClientApplicationServiceTest {
     private ClientApplicationService service;
 
     @Nested
-    @DisplayName("US1: Create Person")
+    @DisplayName("US1: Create Person - Business Behavior")
     class CreatePersonTests {
 
         @Test
-        @DisplayName("GIVEN valid person data WHEN create THEN person is created with all required fields")
+        @DisplayName("Should create person with all required fields when data is valid")
         void shouldCreatePersonWithAllRequiredFields() {
             String name = "John Doe";
             String email = "john.doe@example.com";
@@ -68,7 +68,7 @@ class ClientApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("GIVEN duplicate email WHEN create THEN fail with ClientAlreadyExistsException")
+        @DisplayName("Should reject duplicate email to ensure unique clients")
         void shouldRejectDuplicateEmail() {
             String email = "existing@example.com";
 
@@ -84,25 +84,7 @@ class ClientApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("GIVEN invalid email format WHEN create THEN fail with IllegalArgumentException")
-        void shouldValidateEmailFormat() {
-            String invalidEmail = "not-an-email";
-
-            assertThatThrownBy(() -> service.createPerson("John", invalidEmail, "+33123456789", LocalDate.of(1990, 1, 1)))
-                    .isInstanceOf(IllegalArgumentException.class);
-        }
-
-        @Test
-        @DisplayName("GIVEN invalid phone format WHEN create THEN fail with IllegalArgumentException")
-        void shouldValidatePhoneFormat() {
-            String invalidPhone = "123";
-
-            assertThatThrownBy(() -> service.createPerson("John", "john@example.com", invalidPhone, LocalDate.of(1990, 1, 1)))
-                    .isInstanceOf(IllegalArgumentException.class);
-        }
-
-        @Test
-        @DisplayName("GIVEN ISO 8601 date WHEN create THEN date is correctly stored")
+        @DisplayName("Should accept ISO 8601 date format as per specification")
         void shouldAcceptISO8601DateFormat() {
             LocalDate isoDate = LocalDate.parse("1990-05-15");
 
@@ -112,33 +94,6 @@ class ClientApplicationServiceTest {
             Person result = service.createPerson("John", "john@example.com", "+33123456789", isoDate);
 
             assertThat(result.getBirthDate().value()).isEqualTo(isoDate);
-        }
-
-        @Test
-        @DisplayName("GIVEN null birthdate WHEN create THEN fail with domain validation error")
-        void shouldRejectNullBirthdate() {
-            assertThatThrownBy(() -> service.createPerson("John", "john@example.com", "+33123456789", null))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Birth date must not be null");
-        }
-
-        @Test
-        @DisplayName("GIVEN future birthdate WHEN create THEN fail with domain validation error")
-        void shouldRejectFutureBirthdate() {
-            LocalDate futureDate = LocalDate.now().plusYears(1);
-
-            assertThatThrownBy(() -> service.createPerson("John", "john@example.com", "+33123456789", futureDate))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Birth date cannot be in the future");
-        }
-
-        @Test
-        @DisplayName("GIVEN empty name WHEN create THEN fail with validation error")
-        void shouldValidateNameNotEmpty() {
-            String emptyName = "";
-
-            assertThatThrownBy(() -> service.createPerson(emptyName, "john@example.com", "+33123456789", LocalDate.of(1990, 1, 1)))
-                    .isInstanceOf(IllegalArgumentException.class);
         }
     }
 
@@ -272,28 +227,8 @@ class ClientApplicationServiceTest {
 
             assertThat(updated).isFalse();
         }
-
-        @Test
-        @DisplayName("GIVEN existing person WHEN update with invalid email THEN fail validation")
-        void shouldValidateEmailOnUpdate() {
-            UUID personId = UUID.randomUUID();
-
-            assertThatThrownBy(() -> service.updateCommonFields(
-                    personId,
-                    ClientName.of("John"),
-                    Email.of("invalid-email"),
-                    PhoneNumber.of("+33111111111")
-            )).isInstanceOf(IllegalArgumentException.class);
-        }
     }
-
-    /**
-     * USER STORY 4 (Subject):
-     * "Delete a client: When a client is deleted the end date of their contracts
-     * should be updated to the current date"
-     * <p>
-     * TDD APPROACH: Ce test capture la règle métier la plus critique de la suppression
-     */
+    
     @Nested
     @DisplayName("US4: Delete Person")
     class DeletePersonTests {

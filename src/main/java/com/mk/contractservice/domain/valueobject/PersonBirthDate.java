@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.mk.contractservice.domain.exception.InvalidPersonBirthDateException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.time.LocalDate;
@@ -27,10 +28,10 @@ public final class PersonBirthDate {
 
     private static void validate(final LocalDate birthDate) {
         if (birthDate == null) {
-            throw new IllegalArgumentException("Birth date must not be null");
+            throw new InvalidPersonBirthDateException("Birth date must not be null");
         }
         if (birthDate.isAfter(LocalDate.now())) {
-            throw new IllegalArgumentException("Birth date cannot be in the future");
+            throw new InvalidPersonBirthDateException("Birth date cannot be in the future");
         }
     }
 

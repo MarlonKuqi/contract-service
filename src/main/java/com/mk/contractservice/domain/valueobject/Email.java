@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.mk.contractservice.domain.exception.InvalidEmailException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.util.Locale;
@@ -28,18 +29,18 @@ public final class Email {
 
     private static String normalize(final String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
-            throw new IllegalArgumentException("Email must not be null or blank");
+            throw InvalidEmailException.forBlank();
         }
         return rawValue.trim().toLowerCase(Locale.ROOT);
     }
 
     private static void validate(final String normalizedValue, final String rawValue) {
         if (normalizedValue.length() > 254) {
-            throw new IllegalArgumentException("Email too long (max 254 characters per RFC 5321)");
+            throw new InvalidEmailException("Email too long (max 254 characters per RFC 5321)");
         }
 
         if (!normalizedValue.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
-            throw new IllegalArgumentException("Invalid email format: " + rawValue);
+            throw InvalidEmailException.forInvalidFormat(rawValue);
         }
     }
 

@@ -1,5 +1,8 @@
 package com.mk.contractservice.domain.exception;
 
+import lombok.Getter;
+
+@Getter
 public class DomainValidationException extends RuntimeException {
 
     private final String code;
@@ -17,8 +20,5 @@ public class DomainValidationException extends RuntimeException {
         this.code = code;
     }
 
-    public String getCode() {
-        return code;
-    }
 }
 

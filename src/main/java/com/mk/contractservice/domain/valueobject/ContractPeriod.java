@@ -2,6 +2,7 @@ package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.mk.contractservice.domain.exception.InvalidContractPeriodException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.time.OffsetDateTime;
@@ -34,7 +35,7 @@ public final class ContractPeriod {
 
     private static void validate(final OffsetDateTime startDate, final OffsetDateTime endDate) {
         if (endDate != null && !endDate.isAfter(startDate)) {
-            throw new IllegalArgumentException(
+            throw new InvalidContractPeriodException(
                     "Contract end date must be after start date. " +
                     "Start: " + startDate + ", End: " + endDate
             );

@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.valueobject;
 
+import com.mk.contractservice.domain.exception.InvalidClientNameException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,7 +27,7 @@ class ClientNameTest {
     @DisplayName("GIVEN null or blank name WHEN of() THEN throw exception")
     void shouldRejectNullOrBlank(String invalidName) {
         assertThatThrownBy(() -> ClientName.of(invalidName))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidClientNameException.class)
                 .hasMessageContaining("Client name must not be null or blank");
     }
 
@@ -44,7 +45,7 @@ class ClientNameTest {
         String tooLongName = "a".repeat(201);
 
         assertThatThrownBy(() -> ClientName.of(tooLongName))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidClientNameException.class)
                 .hasMessageContaining("Client name too long (max 200 characters)");
     }
 

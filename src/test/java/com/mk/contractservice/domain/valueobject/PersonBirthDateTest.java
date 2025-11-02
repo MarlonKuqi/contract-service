@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.valueobject;
 
+import com.mk.contractservice.domain.exception.InvalidPersonBirthDateException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,20 +24,20 @@ class PersonBirthDateTest {
     }
 
     @Test
-    @DisplayName("GIVEN null date WHEN of() THEN throw IllegalArgumentException")
+    @DisplayName("GIVEN null date WHEN of() THEN throw InvalidPersonBirthDateException")
     void shouldRejectNullDate() {
         assertThatThrownBy(() -> PersonBirthDate.of(null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidPersonBirthDateException.class)
                 .hasMessageContaining("Birth date must not be null");
     }
 
     @Test
-    @DisplayName("GIVEN future date WHEN of() THEN throw IllegalArgumentException")
+    @DisplayName("GIVEN future date WHEN of() THEN throw InvalidPersonBirthDateException")
     void shouldRejectFutureDate() {
         LocalDate futureDate = LocalDate.now().plusDays(1);
 
         assertThatThrownBy(() -> PersonBirthDate.of(futureDate))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidPersonBirthDateException.class)
                 .hasMessageContaining("Birth date cannot be in the future");
     }
 
@@ -98,7 +99,7 @@ class PersonBirthDateTest {
         LocalDate futureDate = LocalDate.now().plusDays(daysInFuture);
 
         assertThatThrownBy(() -> PersonBirthDate.of(futureDate))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidPersonBirthDateException.class)
                 .hasMessageContaining("Birth date cannot be in the future");
     }
 
@@ -175,7 +176,7 @@ class PersonBirthDateTest {
         LocalDate tomorrow = LocalDate.now().plusDays(1);
 
         assertThatThrownBy(() -> PersonBirthDate.of(tomorrow))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidPersonBirthDateException.class)
                 .hasMessageContaining("Birth date cannot be in the future");
     }
 }
