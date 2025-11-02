@@ -11,6 +11,7 @@ import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
+import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
@@ -30,6 +32,7 @@ import static org.hamcrest.Matchers.lessThan;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@Import(TestcontainersConfiguration.class)
 @DisplayName("Contract Sum API Tests - RestAssured")
 class ContractSumRestAssuredIT {
 
@@ -51,7 +54,7 @@ class ContractSumRestAssuredIT {
 
         testClient = new Person(
                 ClientName.of("Jean Dupont"),
-                Email.of("jean.dupont." + System.currentTimeMillis() + "@example.com"),
+                Email.of("jean.dupont." + java.util.UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 PhoneNumber.of("+41791234567"),
                 PersonBirthDate.of(LocalDate.of(1990, 5, 15))
         );
@@ -61,7 +64,6 @@ class ContractSumRestAssuredIT {
     @Test
     @DisplayName("GIVEN client with active contracts WHEN GET /sum THEN return correct sum")
     void shouldReturnSumOfActiveContracts() {
-        // GIVEN
         OffsetDateTime now = OffsetDateTime.now();
 
         contractRepository.save(new Contract(
@@ -82,7 +84,6 @@ class ContractSumRestAssuredIT {
                 ContractCost.of(new BigDecimal("3500.75"))
         ));
 
-        // WHEN / THEN
         given()
                 .when()
                 .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
@@ -106,7 +107,6 @@ class ContractSumRestAssuredIT {
     @Test
     @DisplayName("GIVEN client with inactive contracts WHEN GET /sum THEN return zero")
     void shouldReturnZeroForInactiveContracts() {
-        // GIVEN
         OffsetDateTime now = OffsetDateTime.now();
 
         contractRepository.save(new Contract(
@@ -115,7 +115,6 @@ class ContractSumRestAssuredIT {
                 ContractCost.of(new BigDecimal("1000.00"))
         ));
 
-        // WHEN / THEN
         given()
                 .when()
                 .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
@@ -127,7 +126,6 @@ class ContractSumRestAssuredIT {
     @Test
     @DisplayName("GIVEN 100 active contracts WHEN GET /sum THEN respond quickly")
     void shouldHandleLargeNumberOfContractsEfficiently() {
-        // GIVEN
         OffsetDateTime now = OffsetDateTime.now();
         BigDecimal expectedSum = BigDecimal.ZERO;
 
@@ -142,7 +140,6 @@ class ContractSumRestAssuredIT {
             ));
         }
 
-        // WHEN / THEN
         long startTime = System.currentTimeMillis();
 
         given()
@@ -151,8 +148,8 @@ class ContractSumRestAssuredIT {
                 .then()
                 .statusCode(200)
                 .body(equalTo(expectedSum.toString()))
-                .time(lessThan(1000L)); // Should complete in less than 1 second
-
+                .time(lessThan(1000L)); // 1 second max
+        
         long duration = System.currentTimeMillis() - startTime;
         System.out.println("Sum calculation for 100 contracts took: " + duration + "ms");
     }
@@ -160,7 +157,6 @@ class ContractSumRestAssuredIT {
     @Test
     @DisplayName("GIVEN decimal precision amounts WHEN GET /sum THEN return exact sum")
     void shouldHandleDecimalPrecisionCorrectly() {
-        // GIVEN
         OffsetDateTime now = OffsetDateTime.now();
 
         contractRepository.save(new Contract(
@@ -175,7 +171,6 @@ class ContractSumRestAssuredIT {
                 ContractCost.of(new BigDecimal("0.01"))
         ));
 
-        // WHEN / THEN
         given()
                 .when()
                 .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
