@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.mk.contractservice.domain.exception.InvalidCompanyIdentifierException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.util.Objects;
@@ -27,14 +28,14 @@ public final class CompanyIdentifier {
 
     private static String normalize(final String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
-            throw new IllegalArgumentException("Company identifier must not be null or blank");
+            throw new InvalidCompanyIdentifierException("Company identifier must not be null or blank");
         }
         return rawValue.trim();
     }
 
     private static void validate(final String normalized) {
         if (normalized.length() > 64) {
-            throw new IllegalArgumentException("Company identifier too long (max 64 characters)");
+            throw new InvalidCompanyIdentifierException("Company identifier too long (max 64 characters)");
         }
     }
 
