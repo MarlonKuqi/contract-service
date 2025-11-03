@@ -51,7 +51,7 @@ A RESTful API for managing insurance clients (persons and companies) and their c
    ```bash
    # Development/testing (using postgres superuser)
    java -jar contract-service-1.0.0-SNAPSHOT.jar
-   
+
    # Production (recommended: use custom credentials)
    java -jar contract-service-1.0.0-SNAPSHOT.jar \
      --spring.datasource.username=postgres \
@@ -62,7 +62,7 @@ A RESTful API for managing insurance clients (persons and companies) and their c
 - ✅ Create schema `contracts`
 - ✅ Create all tables, indexes, and optimizations
 
-**Important:** 
+**Important:**
 - Default uses `postgres`/`postgres` (superuser)
 - For production: use a strong password or create a dedicated user
 - The postgres user has all necessary privileges
@@ -136,16 +136,16 @@ Generate coverage report:
 
 ## 📋 Requirements Checklist
 
-✅ Create, read, update, delete clients (Person & Company)  
-✅ Validate phone, email, dates (ISO 8601), identifiers  
-✅ Create and update contracts with automatic date management  
-✅ Get active contracts with update date filter  
-✅ Optimized sum endpoint for active contracts (< 1 second)  
-✅ Soft delete - updating contract end dates on client deletion  
-✅ RESTful API with JSON format  
-✅ Spring Boot 3 + Java 21  
-✅ PostgreSQL persistence  
-✅ Descriptive code with clear naming  
+✅ Create, read, update, delete clients (Person & Company)
+✅ Validate phone, email, dates (ISO 8601), identifiers
+✅ Create and update contracts with automatic date management
+✅ Get active contracts with update date filter
+✅ Optimized sum endpoint for active contracts (< 1 second)
+✅ Soft delete - updating contract end dates on client deletion
+✅ RESTful API with JSON format
+✅ Spring Boot 3 + Java 21
+✅ PostgreSQL persistence
+✅ Descriptive code with clear naming
 ✅ Flyway handles ALL database setup (no manual SQL required)
 
 ---
@@ -391,16 +391,16 @@ Generate coverage report:
 
 ## 📋 Requirements Checklist
 
-✅ Create, read, update, delete clients (Person & Company)  
-✅ Validate phone, email, dates (ISO 8601), identifiers  
-✅ Create and update contracts with automatic date management  
-✅ Get active contracts with update date filter  
-✅ Optimized sum endpoint for active contracts (< 1 second)  
-✅ Soft delete - updating contract end dates on client deletion  
-✅ RESTful API with JSON format  
-✅ Spring Boot 3 + Java 21  
-✅ PostgreSQL persistence  
-✅ Descriptive code with clear naming  
+✅ Create, read, update, delete clients (Person & Company)
+✅ Validate phone, email, dates (ISO 8601), identifiers
+✅ Create and update contracts with automatic date management
+✅ Get active contracts with update date filter
+✅ Optimized sum endpoint for active contracts (< 1 second)
+✅ Soft delete - updating contract end dates on client deletion
+✅ RESTful API with JSON format
+✅ Spring Boot 3 + Java 21
+✅ PostgreSQL persistence
+✅ Descriptive code with clear naming
 ✅ Flyway handles ALL database setup (no manual SQL required)
 
 ---
@@ -537,10 +537,10 @@ A RESTful API for managing insurance clients (persons and companies) and their c
    ```sql
    -- Create database
    CREATE DATABASE contract;
-   
+
    -- Option A: Use postgres superuser (dev/testing only)
    -- No additional setup needed
-   
+
    -- Option B: Create dedicated user (production recommended)
    CREATE USER contract_app WITH PASSWORD 'secure_password';
    ALTER USER contract_app CREATEDB; -- Needed for schema creation
@@ -551,7 +551,7 @@ A RESTful API for managing insurance clients (persons and companies) and their c
    ```bash
    # Using postgres superuser (development/testing)
    java -jar contract-service-1.0.0-SNAPSHOT.jar
-   
+
    # Or with dedicated user (production)
    java -jar contract-service-1.0.0-SNAPSHOT.jar \
      --spring.datasource.username=contract_app \
@@ -563,7 +563,7 @@ A RESTful API for managing insurance clients (persons and companies) and their c
 - ✅ Create all tables, indexes, and optimizations
 - ✅ Work with any user that has schema creation privileges
 
-**Important:** 
+**Important:**
 - The database user MUST have schema creation privileges
 - Default config uses `postgres`/`postgres` (superuser, has all privileges)
 - For production: create a dedicated user with `CREATEDB` or make it owner of the database
@@ -637,16 +637,16 @@ Generate coverage report:
 
 ## 📋 Requirements Checklist
 
-✅ Create, read, update, delete clients (Person & Company)  
-✅ Validate phone, email, dates (ISO 8601), identifiers  
-✅ Create and update contracts with automatic date management  
-✅ Get active contracts with update date filter  
-✅ Optimized sum endpoint for active contracts (< 1 second)  
-✅ Soft delete - updating contract end dates on client deletion  
-✅ RESTful API with JSON format  
-✅ Spring Boot 3 + Java 21  
-✅ PostgreSQL persistence  
-✅ Descriptive code with clear naming  
+✅ Create, read, update, delete clients (Person & Company)
+✅ Validate phone, email, dates (ISO 8601), identifiers
+✅ Create and update contracts with automatic date management
+✅ Get active contracts with update date filter
+✅ Optimized sum endpoint for active contracts (< 1 second)
+✅ Soft delete - updating contract end dates on client deletion
+✅ RESTful API with JSON format
+✅ Spring Boot 3 + Java 21
+✅ PostgreSQL persistence
+✅ Descriptive code with clear naming
 ✅ Flyway handles ALL database setup (no manual SQL required)
 
 ---
@@ -791,7 +791,7 @@ A RESTful API for managing insurance clients (persons and companies) and their c
    ```bash
    # Using default postgres user (development)
    java -jar contract-service-1.0.0-SNAPSHOT.jar
-   
+
    # Or with custom credentials (production)
    java -jar contract-service-1.0.0-SNAPSHOT.jar \
      --spring.datasource.username=contract_app \
@@ -874,16 +874,16 @@ Generate coverage report:
 
 ## 📋 Requirements Checklist
 
-✅ Create, read, update, delete clients (Person & Company)  
-✅ Validate phone, email, dates (ISO 8601), identifiers  
-✅ Create and update contracts with automatic date management  
-✅ Get active contracts with update date filter  
-✅ Optimized sum endpoint for active contracts (< 1 second)  
-✅ Soft delete - updating contract end dates on client deletion  
-✅ RESTful API with JSON format  
-✅ Spring Boot 3 + Java 21  
-✅ PostgreSQL persistence  
-✅ Descriptive code with clear naming  
+✅ Create, read, update, delete clients (Person & Company)
+✅ Validate phone, email, dates (ISO 8601), identifiers
+✅ Create and update contracts with automatic date management
+✅ Get active contracts with update date filter
+✅ Optimized sum endpoint for active contracts (< 1 second)
+✅ Soft delete - updating contract end dates on client deletion
+✅ RESTful API with JSON format
+✅ Spring Boot 3 + Java 21
+✅ PostgreSQL persistence
+✅ Descriptive code with clear naming
 ✅ Flyway handles ALL database setup (no manual SQL required)
 
 ---
@@ -1109,16 +1109,16 @@ Generate coverage report:
 
 ## 📋 Requirements Checklist
 
-✅ Create, read, update, delete clients (Person & Company)  
-✅ Validate phone, email, dates (ISO 8601), identifiers  
-✅ Create and update contracts with automatic date management  
-✅ Get active contracts with update date filter  
-✅ Optimized sum endpoint for active contracts (< 1 second)  
-✅ Soft delete - updating contract end dates on client deletion  
-✅ RESTful API with JSON format  
-✅ Spring Boot 3 + Java 21  
-✅ PostgreSQL persistence  
-✅ Descriptive code with clear naming  
+✅ Create, read, update, delete clients (Person & Company)
+✅ Validate phone, email, dates (ISO 8601), identifiers
+✅ Create and update contracts with automatic date management
+✅ Get active contracts with update date filter
+✅ Optimized sum endpoint for active contracts (< 1 second)
+✅ Soft delete - updating contract end dates on client deletion
+✅ RESTful API with JSON format
+✅ Spring Boot 3 + Java 21
+✅ PostgreSQL persistence
+✅ Descriptive code with clear naming
 ✅ Flyway handles ALL database setup (no manual SQL required)
 
 ---
@@ -1243,7 +1243,7 @@ A RESTful API for managing insurance clients (persons and companies) and their c
 **Note:** Uses `postgres` superuser everywhere for simplicity.
 
 **Troubleshooting:**
-- **Error: "port is already allocated"?** 
+- **Error: "port is already allocated"?**
   - Your local PostgreSQL is using port 5432
   - The `docker-compose.yml` is configured to use port 5433 on the host instead
   - PostgreSQL accessible at `localhost:5433` from your machine
@@ -1350,16 +1350,16 @@ Generate coverage report:
 
 ## 📋 Requirements Checklist
 
-✅ Create, read, update, delete clients (Person & Company)  
-✅ Validate phone, email, dates (ISO 8601), identifiers  
-✅ Create and update contracts with automatic date management  
-✅ Get active contracts with update date filter  
-✅ Optimized sum endpoint for active contracts (< 1 second)  
-✅ Soft delete - updating contract end dates on client deletion  
-✅ RESTful API with JSON format  
-✅ Spring Boot 3 + Java 21  
-✅ PostgreSQL persistence  
-✅ Descriptive code with clear naming  
+✅ Create, read, update, delete clients (Person & Company)
+✅ Validate phone, email, dates (ISO 8601), identifiers
+✅ Create and update contracts with automatic date management
+✅ Get active contracts with update date filter
+✅ Optimized sum endpoint for active contracts (< 1 second)
+✅ Soft delete - updating contract end dates on client deletion
+✅ RESTful API with JSON format
+✅ Spring Boot 3 + Java 21
+✅ PostgreSQL persistence
+✅ Descriptive code with clear naming
 ✅ Flyway handles ALL database setup (no manual SQL required)
 
 ---
