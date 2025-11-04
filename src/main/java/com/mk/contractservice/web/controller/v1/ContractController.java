@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -95,7 +95,7 @@ public class ContractController {
     public ResponseEntity<List<ContractResponse>> listActive(
             @PathVariable final UUID clientId,
             @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime updatedSince
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final LocalDateTime updatedSince
     ) {
         final List<Contract> contracts = contractApplicationService.getActiveContracts(clientId, updatedSince);
         final List<ContractResponse> response = contracts.stream()

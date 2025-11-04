@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,7 +31,7 @@ public class ContractApplicationService {
 
     @Transactional
     @CacheEvict(value = "contractSums", key = "#clientId")
-    public Contract createForClient(final UUID clientId, final OffsetDateTime start, final OffsetDateTime end, final BigDecimal amount) {
+    public Contract createForClient(final UUID clientId, final LocalDateTime start, final LocalDateTime end, final BigDecimal amount) {
         final Client client = clientRepo.findById(clientId).orElseThrow(() ->
                 new ClientNotFoundException("Client not found: " + clientId));
 
@@ -55,22 +55,22 @@ public class ContractApplicationService {
 
 
     @Transactional(readOnly = true)
-    public List<Contract> getActiveContracts(final UUID clientId, OffsetDateTime updatedSince) {
-        OffsetDateTime now = OffsetDateTime.now();
+    public List<Contract> getActiveContracts(final UUID clientId, LocalDateTime updatedSince) {
+        LocalDateTime now = LocalDateTime.now();
         return contractRepo.findActiveByClientId(clientId, now, updatedSince);
     }
 
     @Transactional(readOnly = true)
     @Cacheable(value = "contractSums", key = "#clientId")
     public BigDecimal sumActiveContracts(final UUID clientId) {
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         return contractRepo.sumActiveByClientId(clientId, now);
     }
 
     @Transactional
     @CacheEvict(value = "contractSums", key = "#clientId")
     public void closeActiveContractsByClientId(final UUID clientId) {
-        final OffsetDateTime now = OffsetDateTime.now();
+        final LocalDateTime now = LocalDateTime.now();
         contractRepo.closeAllActiveByClientId(clientId, now);
     }
 }

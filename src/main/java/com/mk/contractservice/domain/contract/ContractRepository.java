@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.contract;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,9 +11,9 @@ public interface ContractRepository {
 
     Optional<Contract> findById(final UUID id);
 
-    List<Contract> findActiveByClientId(final UUID clientId, OffsetDateTime now, OffsetDateTime updatedSince);
+    List<Contract> findActiveByClientId(UUID clientId, LocalDateTime now, LocalDateTime updatedSince);
 
-    void closeAllActiveByClientId(final UUID clientId, OffsetDateTime now);
+    void closeAllActiveByClientId(UUID clientId, LocalDateTime now);
 
-    BigDecimal sumActiveByClientId(final UUID clientId, OffsetDateTime now);
+    BigDecimal sumActiveByClientId(UUID clientId, LocalDateTime now);
 }

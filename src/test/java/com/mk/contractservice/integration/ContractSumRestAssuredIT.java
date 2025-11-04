@@ -24,7 +24,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -64,7 +64,7 @@ class ContractSumRestAssuredIT {
     @Test
     @DisplayName("GIVEN client with active contracts WHEN GET /sum THEN return correct sum")
     void shouldReturnSumOfActiveContracts() {
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
 
         contractRepository.save(new Contract(
                 testClient,
@@ -107,7 +107,7 @@ class ContractSumRestAssuredIT {
     @Test
     @DisplayName("GIVEN client with inactive contracts WHEN GET /sum THEN return zero")
     void shouldReturnZeroForInactiveContracts() {
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
 
         contractRepository.save(new Contract(
                 testClient,
@@ -126,7 +126,7 @@ class ContractSumRestAssuredIT {
     @Test
     @DisplayName("GIVEN 100 active contracts WHEN GET /sum THEN respond quickly")
     void shouldHandleLargeNumberOfContractsEfficiently() {
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         BigDecimal expectedSum = BigDecimal.ZERO;
 
         for (int i = 0; i < 100; i++) {
@@ -149,7 +149,7 @@ class ContractSumRestAssuredIT {
                 .statusCode(200)
                 .body(equalTo(expectedSum.toString()))
                 .time(lessThan(1000L)); // 1 second max
-        
+
         long duration = System.currentTimeMillis() - startTime;
         System.out.println("Sum calculation for 100 contracts took: " + duration + "ms");
     }
@@ -157,7 +157,7 @@ class ContractSumRestAssuredIT {
     @Test
     @DisplayName("GIVEN decimal precision amounts WHEN GET /sum THEN return exact sum")
     void shouldHandleDecimalPrecisionCorrectly() {
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
 
         contractRepository.save(new Contract(
                 testClient,
@@ -179,4 +179,5 @@ class ContractSumRestAssuredIT {
                 .body(equalTo("100.00"));
     }
 }
+
 
