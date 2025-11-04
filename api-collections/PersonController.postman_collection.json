@@ -27,7 +27,7 @@
           "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+41791234567\",\n  \"birthDate\": \"1990-01-15\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/persons",
+          "raw": "{{baseUrl}}/v1/clients/persons",
           "host": ["{{baseUrl}}"],
           "path": ["v1", "persons"]
         },
@@ -49,7 +49,7 @@
           "raw": "{\n  \"name\": \"Jane Smith\",\n  \"email\": \"jane.smith@example.com\",\n  \"phone\": \"+41792345678\",\n  \"birthDate\": \"1985-05-20\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/persons",
+          "raw": "{{baseUrl}}/v1/clients/persons",
           "host": ["{{baseUrl}}"],
           "path": ["v1", "persons"]
         }

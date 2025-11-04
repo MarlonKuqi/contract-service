@@ -24,7 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -71,8 +71,8 @@ class ContractApplicationServiceTest {
         @Test
         @DisplayName("GIVEN valid client and contract data WHEN createForClient THEN contract is created")
         void shouldCreateContractForClient() {
-            OffsetDateTime start = OffsetDateTime.now();
-            OffsetDateTime end = start.plusDays(30);
+            LocalDateTime start = LocalDateTime.now();
+            LocalDateTime end = start.plusDays(30);
             BigDecimal amount = new BigDecimal("100.50");
 
             when(clientRepository.findById(testClientId)).thenReturn(Optional.of(testClient));
@@ -93,15 +93,15 @@ class ContractApplicationServiceTest {
         @Test
         @DisplayName("GIVEN null start date WHEN createForClient THEN use current date")
         void shouldUseCurrentDateWhenStartIsNull() {
-            OffsetDateTime before = OffsetDateTime.now().minusSeconds(1);
-            OffsetDateTime end = OffsetDateTime.now().plusDays(30);
+            LocalDateTime before = LocalDateTime.now().minusSeconds(1);
+            LocalDateTime end = LocalDateTime.now().plusDays(30);
             BigDecimal amount = new BigDecimal("100.00");
 
             when(clientRepository.findById(testClientId)).thenReturn(Optional.of(testClient));
             when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             Contract result = service.createForClient(testClientId, null, end, amount);
-            OffsetDateTime after = OffsetDateTime.now().plusSeconds(1);
+            LocalDateTime after = LocalDateTime.now().plusSeconds(1);
 
             assertThat(result.getPeriod().startDate()).isNotNull();
             assertThat(result.getPeriod().startDate()).isBetween(before, after);
@@ -110,7 +110,7 @@ class ContractApplicationServiceTest {
         @Test
         @DisplayName("GIVEN null end date WHEN createForClient THEN create with null end")
         void shouldAcceptNullEndDate() {
-            OffsetDateTime start = OffsetDateTime.now();
+            LocalDateTime start = LocalDateTime.now();
             BigDecimal amount = new BigDecimal("100.00");
 
             when(clientRepository.findById(testClientId)).thenReturn(Optional.of(testClient));
@@ -127,7 +127,7 @@ class ContractApplicationServiceTest {
             UUID nonExistentId = UUID.randomUUID();
             when(clientRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.createForClient(nonExistentId, OffsetDateTime.now(), null, BigDecimal.TEN))
+            assertThatThrownBy(() -> service.createForClient(nonExistentId, LocalDateTime.now(), null, BigDecimal.TEN))
                     .isInstanceOf(ClientNotFoundException.class)
                     .hasMessageContaining("Client not found");
 
@@ -137,7 +137,7 @@ class ContractApplicationServiceTest {
         @Test
         @DisplayName("GIVEN valid data WHEN createForClient THEN contract is saved")
         void shouldSaveContractToRepository() {
-            OffsetDateTime start = OffsetDateTime.now();
+            LocalDateTime start = LocalDateTime.now();
             BigDecimal amount = new BigDecimal("200.00");
 
             when(clientRepository.findById(testClientId)).thenReturn(Optional.of(testClient));
@@ -165,7 +165,7 @@ class ContractApplicationServiceTest {
             UUID contractId = UUID.randomUUID();
             Contract contract = new Contract(
                     testClient,
-                    ContractPeriod.of(OffsetDateTime.now(), null),
+                    ContractPeriod.of(LocalDateTime.now(), null),
                     ContractCost.of(new BigDecimal("100.00"))
             );
             BigDecimal newAmount = new BigDecimal("200.00");
@@ -197,10 +197,10 @@ class ContractApplicationServiceTest {
             UUID contractId = UUID.randomUUID();
             Contract contract = new Contract(
                     testClient,
-                    ContractPeriod.of(OffsetDateTime.now(), null),
+                    ContractPeriod.of(LocalDateTime.now(), null),
                     ContractCost.of(new BigDecimal("100.00"))
             );
-            OffsetDateTime initialLastModified = contract.getLastModified();
+            LocalDateTime initialLastModified = contract.getLastModified();
             Thread.sleep(10);
 
             when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract));
@@ -218,25 +218,25 @@ class ContractApplicationServiceTest {
         @Test
         @DisplayName("GIVEN client with active contracts WHEN getActiveContracts THEN return active contracts")
         void shouldReturnActiveContracts() {
-            OffsetDateTime updatedSince = OffsetDateTime.now().minusDays(7);
+            LocalDateTime updatedSince = LocalDateTime.now().minusDays(7);
             List<Contract> expectedContracts = List.of(
-                    new Contract(testClient, ContractPeriod.of(OffsetDateTime.now(), null), ContractCost.of(BigDecimal.TEN))
+                    new Contract(testClient, ContractPeriod.of(LocalDateTime.now(), null), ContractCost.of(BigDecimal.TEN))
             );
 
-            when(contractRepository.findActiveByClientId(eq(testClientId), any(OffsetDateTime.class), eq(updatedSince)))
+            when(contractRepository.findActiveByClientId(eq(testClientId), any(LocalDateTime.class), eq(updatedSince)))
                     .thenReturn(expectedContracts);
 
             List<Contract> result = service.getActiveContracts(testClientId, updatedSince);
 
             assertThat(result).hasSize(1);
             assertThat(result).isEqualTo(expectedContracts);
-            verify(contractRepository).findActiveByClientId(eq(testClientId), any(OffsetDateTime.class), eq(updatedSince));
+            verify(contractRepository).findActiveByClientId(eq(testClientId), any(LocalDateTime.class), eq(updatedSince));
         }
 
         @Test
         @DisplayName("GIVEN client with no active contracts WHEN getActiveContracts THEN return empty list")
         void shouldReturnEmptyListWhenNoActiveContracts() {
-            when(contractRepository.findActiveByClientId(eq(testClientId), any(OffsetDateTime.class), any()))
+            when(contractRepository.findActiveByClientId(eq(testClientId), any(LocalDateTime.class), any()))
                     .thenReturn(List.of());
 
             List<Contract> result = service.getActiveContracts(testClientId, null);
@@ -247,14 +247,14 @@ class ContractApplicationServiceTest {
         @Test
         @DisplayName("GIVEN filter by update date WHEN getActiveContracts THEN pass filter to repository")
         void shouldFilterByUpdateDate() {
-            OffsetDateTime updatedSince = OffsetDateTime.now().minusDays(30);
+            LocalDateTime updatedSince = LocalDateTime.now().minusDays(30);
 
-            when(contractRepository.findActiveByClientId(eq(testClientId), any(OffsetDateTime.class), eq(updatedSince)))
+            when(contractRepository.findActiveByClientId(eq(testClientId), any(LocalDateTime.class), eq(updatedSince)))
                     .thenReturn(List.of());
 
             service.getActiveContracts(testClientId, updatedSince);
 
-            verify(contractRepository).findActiveByClientId(eq(testClientId), any(OffsetDateTime.class), eq(updatedSince));
+            verify(contractRepository).findActiveByClientId(eq(testClientId), any(LocalDateTime.class), eq(updatedSince));
         }
     }
 
@@ -267,19 +267,19 @@ class ContractApplicationServiceTest {
         void shouldReturnSumOfActiveContracts() {
             BigDecimal expectedSum = new BigDecimal("500.00");
 
-            when(contractRepository.sumActiveByClientId(eq(testClientId), any(OffsetDateTime.class)))
+            when(contractRepository.sumActiveByClientId(eq(testClientId), any(LocalDateTime.class)))
                     .thenReturn(expectedSum);
 
             BigDecimal result = service.sumActiveContracts(testClientId);
 
             assertThat(result).isEqualByComparingTo(expectedSum);
-            verify(contractRepository).sumActiveByClientId(eq(testClientId), any(OffsetDateTime.class));
+            verify(contractRepository).sumActiveByClientId(eq(testClientId), any(LocalDateTime.class));
         }
 
         @Test
         @DisplayName("GIVEN client with no active contracts WHEN sumActiveContracts THEN return zero")
         void shouldReturnZeroWhenNoActiveContracts() {
-            when(contractRepository.sumActiveByClientId(eq(testClientId), any(OffsetDateTime.class)))
+            when(contractRepository.sumActiveByClientId(eq(testClientId), any(LocalDateTime.class)))
                     .thenReturn(BigDecimal.ZERO);
 
             BigDecimal result = service.sumActiveContracts(testClientId);
@@ -290,12 +290,12 @@ class ContractApplicationServiceTest {
         @Test
         @DisplayName("GIVEN performant endpoint requirement WHEN sumActiveContracts THEN use repository aggregation")
         void shouldUseDatabaseAggregationForPerformance() {
-            when(contractRepository.sumActiveByClientId(eq(testClientId), any(OffsetDateTime.class)))
+            when(contractRepository.sumActiveByClientId(eq(testClientId), any(LocalDateTime.class)))
                     .thenReturn(new BigDecimal("1000.00"));
 
             service.sumActiveContracts(testClientId);
 
-            verify(contractRepository).sumActiveByClientId(eq(testClientId), any(OffsetDateTime.class));
+            verify(contractRepository).sumActiveByClientId(eq(testClientId), any(LocalDateTime.class));
             verify(contractRepository, never()).findActiveByClientId(any(), any(), any());
         }
     }
@@ -309,23 +309,25 @@ class ContractApplicationServiceTest {
         void shouldCloseAllActiveContractsForClient() {
             service.closeActiveContractsByClientId(testClientId);
 
-            verify(contractRepository).closeAllActiveByClientId(eq(testClientId), any(OffsetDateTime.class));
+            verify(contractRepository).closeAllActiveByClientId(eq(testClientId), any(LocalDateTime.class));
         }
 
         @Test
         @DisplayName("GIVEN client deletion WHEN closeActiveContractsByClientId THEN use current date as end date")
         void shouldUseCurrentDateAsEndDate() {
-            OffsetDateTime before = OffsetDateTime.now().minusSeconds(1);
+            LocalDateTime before = LocalDateTime.now().minusSeconds(1);
 
             service.closeActiveContractsByClientId(testClientId);
-            OffsetDateTime after = OffsetDateTime.now().plusSeconds(1);
+            LocalDateTime after = LocalDateTime.now().plusSeconds(1);
 
-            ArgumentCaptor<OffsetDateTime> captor = ArgumentCaptor.forClass(OffsetDateTime.class);
+            ArgumentCaptor<LocalDateTime> captor = ArgumentCaptor.forClass(LocalDateTime.class);
             verify(contractRepository).closeAllActiveByClientId(eq(testClientId), captor.capture());
 
-            OffsetDateTime usedDate = captor.getValue();
+            LocalDateTime usedDate = captor.getValue();
             assertThat(usedDate).isBetween(before, after);
         }
     }
 }
+
+
 

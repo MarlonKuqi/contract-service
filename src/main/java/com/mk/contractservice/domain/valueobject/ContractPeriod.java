@@ -1,64 +1,62 @@
 package com.mk.contractservice.domain.valueobject;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mk.contractservice.domain.exception.InvalidContractPeriodException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import java.time.OffsetDateTime;
+
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Embeddable
 public final class ContractPeriod {
 
     @Column(name = "start_date", nullable = false)
-    private final OffsetDateTime startDate;
+    private final LocalDateTime startDate;
 
     @Column(name = "end_date")
-    private final OffsetDateTime endDate;
+    private final LocalDateTime endDate;
 
     protected ContractPeriod() {
         this.startDate = null;
         this.endDate = null;
     }
 
-    private ContractPeriod(final OffsetDateTime startDate, final OffsetDateTime endDate) {
+    private ContractPeriod(final LocalDateTime startDate, final LocalDateTime endDate) {
         this.startDate = startDate;
         this.endDate = endDate;
     }
 
-    public static ContractPeriod of(final OffsetDateTime startDate, final OffsetDateTime endDate) {
-        final OffsetDateTime normalizedStart = (startDate != null) ? startDate : OffsetDateTime.now();
+    public static ContractPeriod of(final LocalDateTime startDate, final LocalDateTime endDate) {
+        final LocalDateTime normalizedStart = (startDate != null) ? startDate : LocalDateTime.now();
         validate(normalizedStart, endDate);
         return new ContractPeriod(normalizedStart, endDate);
     }
 
-    private static void validate(final OffsetDateTime startDate, final OffsetDateTime endDate) {
+    private static void validate(final LocalDateTime startDate, final LocalDateTime endDate) {
         if (endDate != null && !endDate.isAfter(startDate)) {
             throw new InvalidContractPeriodException(
                     "Contract end date must be after start date. " +
-                    "Start: " + startDate + ", End: " + endDate
+                            "Start: " + startDate + ", End: " + endDate
             );
         }
     }
 
-    public boolean isActiveAt(final OffsetDateTime referenceDate) {
+    public boolean isActiveAt(final LocalDateTime referenceDate) {
         return endDate == null || referenceDate.isBefore(endDate);
     }
 
     public boolean isActive() {
-        return isActiveAt(OffsetDateTime.now());
+        return isActiveAt(LocalDateTime.now());
     }
 
     @JsonProperty("startDate")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-    public OffsetDateTime startDate() {
+    public LocalDateTime startDate() {
         return startDate;
     }
 
     @JsonProperty("endDate")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-    public OffsetDateTime endDate() {
+    public LocalDateTime endDate() {
         return endDate;
     }
 

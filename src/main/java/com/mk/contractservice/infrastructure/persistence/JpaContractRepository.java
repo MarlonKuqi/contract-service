@@ -2,12 +2,13 @@ package com.mk.contractservice.infrastructure.persistence;
 
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import org.springframework.stereotype.Repository;
+
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.stereotype.Repository;
 
 @Repository
 public class JpaContractRepository implements ContractRepository {
@@ -29,7 +30,7 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    public List<Contract> findActiveByClientId(final UUID clientId, final OffsetDateTime now, final OffsetDateTime updatedSince) {
+    public List<Contract> findActiveByClientId(final UUID clientId, final LocalDateTime now, final LocalDateTime updatedSince) {
         if (updatedSince == null) {
             return springDataRepo.findActiveContracts(clientId, now);
         }
@@ -37,12 +38,12 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    public void closeAllActiveByClientId(final UUID clientId, final OffsetDateTime now) {
+    public void closeAllActiveByClientId(final UUID clientId, final LocalDateTime now) {
         springDataRepo.closeAllActiveContracts(clientId, now);
     }
 
     @Override
-    public BigDecimal sumActiveByClientId(final UUID clientId, final OffsetDateTime now) {
+    public BigDecimal sumActiveByClientId(final UUID clientId, final LocalDateTime now) {
         return springDataRepo.sumActiveContracts(clientId, now);
     }
 }

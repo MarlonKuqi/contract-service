@@ -197,7 +197,7 @@ class CompanyLifecycleIT {
                 .statusCode(201)
                 .extract().path("id");
 
-        java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
         String contractPayload = String.format("""
             {
                 "startDate": "%s",
@@ -302,7 +302,7 @@ class CompanyLifecycleIT {
                 .statusCode(201)
                 .extract().path("id");
 
-        java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
         String contract1 = String.format("""
             {
                 "startDate": "%s",
@@ -420,7 +420,7 @@ class CompanyLifecycleIT {
                 .statusCode(201)
                 .extract().path("id");
 
-        java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
         String contractPayload = String.format("""
             {
                 "startDate": "%s",

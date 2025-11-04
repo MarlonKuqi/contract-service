@@ -18,11 +18,12 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import java.time.OffsetDateTime;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "contract")
@@ -50,7 +51,7 @@ public class Contract {
     private ContractCost costAmount;
 
     @Column(name = "last_modified", nullable = false)
-    private OffsetDateTime lastModified;
+    private LocalDateTime lastModified;
 
     public Contract(final Client client, final ContractPeriod period, final ContractCost costAmount) {
         if (client == null) {
@@ -65,13 +66,13 @@ public class Contract {
         this.client = client;
         this.period = period;
         this.costAmount = costAmount;
-        this.lastModified = OffsetDateTime.now();
+        this.lastModified = LocalDateTime.now();
     }
 
     @PrePersist
     @PreUpdate
     void touch() {
-        this.lastModified = OffsetDateTime.now();
+        this.lastModified = LocalDateTime.now();
     }
 
     public void changeCost(final ContractCost newAmount) {
@@ -82,3 +83,4 @@ public class Contract {
         touch();
     }
 }
+

@@ -4,7 +4,13 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.valueobject.*;
+import com.mk.contractservice.domain.valueobject.ClientName;
+import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
+import com.mk.contractservice.domain.valueobject.ContractCost;
+import com.mk.contractservice.domain.valueobject.ContractPeriod;
+import com.mk.contractservice.domain.valueobject.Email;
+import com.mk.contractservice.domain.valueobject.PersonBirthDate;
+import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
@@ -21,11 +27,15 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -131,12 +141,12 @@ class ClientCrudIT {
 
         // WHEN: Updating common fields
         String updatePayload = """
-            {
-                "name": "Alice After",
-                "email": "alice.after.%s@example.com",
-                "phone": "+41792222222"
-            }
-            """.formatted(java.util.UUID.randomUUID().toString().substring(0, 8));
+                {
+                    "name": "Alice After",
+                    "email": "alice.after.%s@example.com",
+                    "phone": "+41792222222"
+                }
+                """.formatted(java.util.UUID.randomUUID().toString().substring(0, 8));
 
         given()
                 .contentType(ContentType.JSON)
@@ -175,12 +185,12 @@ class ClientCrudIT {
 
         // WHEN: Updating common fields
         String updatePayload = """
-            {
-                "name": "New Corp",
-                "email": "new.%s@example.com",
-                "phone": "+41793333333"
-            }
-            """.formatted(java.util.UUID.randomUUID().toString().substring(0, 8));
+                {
+                    "name": "New Corp",
+                    "email": "new.%s@example.com",
+                    "phone": "+41793333333"
+                }
+                """.formatted(java.util.UUID.randomUUID().toString().substring(0, 8));
 
         given()
                 .contentType(ContentType.JSON)
@@ -215,12 +225,12 @@ class ClientCrudIT {
 
         // WHEN: Updating with invalid email
         String invalidPayload = """
-            {
-                "name": "Test Person",
-                "email": "invalid-email-format",
-                "phone": "+41791234567"
-            }
-            """;
+                {
+                    "name": "Test Person",
+                    "email": "invalid-email-format",
+                    "phone": "+41791234567"
+                }
+                """;
 
         given()
                 .contentType(ContentType.JSON)
@@ -237,12 +247,12 @@ class ClientCrudIT {
         UUID fakeId = UUID.randomUUID();
 
         String updatePayload = """
-            {
-                "name": "Ghost Client",
-                "email": "ghost@example.com",
-                "phone": "+41791234567"
-            }
-            """;
+                {
+                    "name": "Ghost Client",
+                    "email": "ghost@example.com",
+                    "phone": "+41791234567"
+                }
+                """;
 
         given()
                 .contentType(ContentType.JSON)
@@ -290,7 +300,7 @@ class ClientCrudIT {
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
 
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         Contract contract1 = new Contract(
                 client,
                 ContractPeriod.of(now.minusDays(30), null),
@@ -362,12 +372,12 @@ class ClientCrudIT {
 
         // WHEN: Update the person
         String updatePayload = """
-            {
-                "name": "Updated Person",
-                "email": "updated.person.%s@example.com",
-                "phone": "+41792222222"
-            }
-            """.formatted(java.util.UUID.randomUUID().toString().substring(0, 8));
+                {
+                    "name": "Updated Person",
+                    "email": "updated.person.%s@example.com",
+                    "phone": "+41792222222"
+                }
+                """.formatted(java.util.UUID.randomUUID().toString().substring(0, 8));
 
         given()
                 .contentType(ContentType.JSON)
@@ -405,12 +415,12 @@ class ClientCrudIT {
 
         // WHEN: Update the company
         String updatePayload = """
-            {
-                "name": "Updated Company",
-                "email": "updated.company.%s@example.com",
-                "phone": "+41793333333"
-            }
-            """.formatted(java.util.UUID.randomUUID().toString().substring(0, 8));
+                {
+                    "name": "Updated Company",
+                    "email": "updated.company.%s@example.com",
+                    "phone": "+41793333333"
+                }
+                """.formatted(java.util.UUID.randomUUID().toString().substring(0, 8));
 
         given()
                 .contentType(ContentType.JSON)
@@ -444,20 +454,20 @@ class ClientCrudIT {
 
         // WHEN: Multiple updates in quick succession
         String update1 = """
-            {
-                "name": "Update 1",
-                "email": "update1.%s@example.com",
-                "phone": "+41791111111"
-            }
-            """.formatted(java.util.UUID.randomUUID().toString().substring(0, 8));
+                {
+                    "name": "Update 1",
+                    "email": "update1.%s@example.com",
+                    "phone": "+41791111111"
+                }
+                """.formatted(java.util.UUID.randomUUID().toString().substring(0, 8));
 
         String update2 = """
-            {
-                "name": "Update 2",
-                "email": "update2.%s@example.com",
-                "phone": "+41792222222"
-            }
-            """.formatted(java.util.UUID.randomUUID().toString().substring(0, 8));
+                {
+                    "name": "Update 2",
+                    "email": "update2.%s@example.com",
+                    "phone": "+41792222222"
+                }
+                """.formatted(java.util.UUID.randomUUID().toString().substring(0, 8));
 
         given()
                 .contentType(ContentType.JSON)

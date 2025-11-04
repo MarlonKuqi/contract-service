@@ -13,7 +13,7 @@ import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -43,8 +43,8 @@ class ContractTest {
         @Test
         @DisplayName("GIVEN all required fields WHEN creating contract THEN contract is created with lastModified set")
         void shouldCreateContractWithAllFields() {
-            OffsetDateTime startDate = OffsetDateTime.now().minusDays(10);
-            OffsetDateTime endDate = OffsetDateTime.now().plusDays(20);
+            LocalDateTime startDate = LocalDateTime.now().minusDays(10);
+            LocalDateTime endDate = LocalDateTime.now().plusDays(20);
             ContractPeriod period = ContractPeriod.of(startDate, endDate);
             ContractCost cost = ContractCost.of(new BigDecimal("100.50"));
 
@@ -59,7 +59,7 @@ class ContractTest {
         @Test
         @DisplayName("GIVEN null client WHEN creating contract THEN throw exception")
         void shouldRejectNullClient() {
-            ContractPeriod period = ContractPeriod.of(OffsetDateTime.now(), OffsetDateTime.now().plusDays(30));
+            ContractPeriod period = ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusDays(30));
             ContractCost cost = ContractCost.of(new BigDecimal("100.00"));
 
             assertThatThrownBy(() -> new Contract(null, period, cost))
@@ -80,7 +80,7 @@ class ContractTest {
         @Test
         @DisplayName("GIVEN null cost WHEN creating contract THEN throw exception")
         void shouldRejectNullCost() {
-            ContractPeriod period = ContractPeriod.of(OffsetDateTime.now(), OffsetDateTime.now().plusDays(30));
+            ContractPeriod period = ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusDays(30));
 
             assertThatThrownBy(() -> new Contract(testClient, period, null))
                     .isInstanceOf(InvalidContractException.class)
@@ -95,11 +95,11 @@ class ContractTest {
         @Test
         @DisplayName("GIVEN valid new cost WHEN changing cost THEN cost is updated and lastModified is refreshed")
         void shouldUpdateCostAndLastModified() throws InterruptedException {
-            ContractPeriod period = ContractPeriod.of(OffsetDateTime.now(), OffsetDateTime.now().plusDays(30));
+            ContractPeriod period = ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusDays(30));
             ContractCost initialCost = ContractCost.of(new BigDecimal("100.00"));
             Contract contract = new Contract(testClient, period, initialCost);
 
-            OffsetDateTime initialLastModified = contract.getLastModified();
+            LocalDateTime initialLastModified = contract.getLastModified();
             Thread.sleep(10);
 
             ContractCost newCost = ContractCost.of(new BigDecimal("250.75"));
@@ -112,7 +112,7 @@ class ContractTest {
         @Test
         @DisplayName("GIVEN null cost WHEN changing cost THEN throw exception")
         void shouldRejectNullCostOnUpdate() {
-            ContractPeriod period = ContractPeriod.of(OffsetDateTime.now(), OffsetDateTime.now().plusDays(30));
+            ContractPeriod period = ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusDays(30));
             ContractCost initialCost = ContractCost.of(new BigDecimal("100.00"));
             Contract contract = new Contract(testClient, period, initialCost);
 
@@ -132,8 +132,8 @@ class ContractTest {
         @Test
         @DisplayName("GIVEN start and end dates WHEN creating period THEN period is created")
         void shouldCreatePeriodWithBothDates() {
-            OffsetDateTime start = OffsetDateTime.now();
-            OffsetDateTime end = OffsetDateTime.now().plusDays(30);
+            LocalDateTime start = LocalDateTime.now();
+            LocalDateTime end = LocalDateTime.now().plusDays(30);
 
             ContractPeriod period = ContractPeriod.of(start, end);
 
@@ -144,7 +144,7 @@ class ContractTest {
         @Test
         @DisplayName("GIVEN null end date WHEN creating period THEN period is created with null end")
         void shouldCreatePeriodWithNullEndDate() {
-            OffsetDateTime start = OffsetDateTime.now();
+            LocalDateTime start = LocalDateTime.now();
 
             ContractPeriod period = ContractPeriod.of(start, null);
 
@@ -155,8 +155,8 @@ class ContractTest {
         @Test
         @DisplayName("GIVEN end before start WHEN creating period THEN throw exception")
         void shouldRejectEndBeforeStart() {
-            OffsetDateTime start = OffsetDateTime.now();
-            OffsetDateTime end = start.minusDays(1);
+            LocalDateTime start = LocalDateTime.now();
+            LocalDateTime end = start.minusDays(1);
 
             assertThatThrownBy(() -> ContractPeriod.of(start, end))
                     .isInstanceOf(InvalidContractPeriodException.class)
@@ -217,4 +217,6 @@ class ContractTest {
         }
     }
 }
+
+
 
