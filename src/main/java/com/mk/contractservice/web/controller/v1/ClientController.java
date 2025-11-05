@@ -12,7 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.UUID;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Locale;
+import java.util.UUID;
 
 @Tag(name = "Clients", description = "Operations on clients (read, update, delete)")
 @RestController
@@ -45,9 +48,11 @@ public class ClientController {
             @ApiResponse(responseCode = "404", description = "Client not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ClientResponse> read(@PathVariable final UUID id) {
+    public ResponseEntity<ClientResponse> read(@PathVariable final UUID id, final Locale locale) {
         return service.findById(id)
-                .map(c -> ResponseEntity.ok(clientDtoMapper.toResponse(c)))
+                .map(c -> ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
+                        .body(clientDtoMapper.toResponse(c)))
                 .orElse(ResponseEntity.notFound().build());
     }
 

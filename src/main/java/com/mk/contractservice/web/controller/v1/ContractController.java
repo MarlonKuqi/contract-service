@@ -6,13 +6,18 @@ import com.mk.contractservice.web.dto.contract.ContractResponse;
 import com.mk.contractservice.web.dto.contract.CostUpdateRequest;
 import com.mk.contractservice.web.dto.contract.CreateContractRequest;
 import com.mk.contractservice.web.dto.contract.CreateContractResponse;
+import com.mk.contractservice.web.dto.contract.PagedContractResponse;
 import com.mk.contractservice.web.dto.mapper.contract.ContractMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -25,8 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.UUID;
 
 @Tag(name = "Contracts", description = "Operations on contracts (create, read, update cost)")
@@ -58,7 +63,8 @@ public class ContractController {
     public ResponseEntity<CreateContractResponse> create(
             @PathVariable final UUID clientId,
             @Valid @RequestBody final CreateContractRequest req,
-            final UriComponentsBuilder uriBuilder
+            final UriComponentsBuilder uriBuilder,
+            final Locale locale
     ) {
         final Contract contract = contractApplicationService.createForClient(
                 clientId,
@@ -79,30 +85,46 @@ public class ContractController {
                 ),
                 contract.getCostAmount().value()
         );
-        return ResponseEntity.created(location).body(body);
+
+        return ResponseEntity.created(location)
+                .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
+                .body(body);
     }
 
     @Operation(
-            summary = "Get all ACTIVE contracts for a client",
+            summary = "Get all ACTIVE contracts for a client (paginated)",
             description = "Returns all active contracts (current date < end date or endDate = null). "
-                    + "Can be filtered by lastModified >= updatedSince."
+                    + "Can be filtered by lastModified >= updatedSince. "
+                    + "Supports pagination with default page size of 20."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "List of active contracts"),
+            @ApiResponse(responseCode = "200", description = "List of active contracts (paginated)"),
             @ApiResponse(responseCode = "404", description = "Client not found")
     })
     @GetMapping
-    public ResponseEntity<List<ContractResponse>> listActive(
+    public ResponseEntity<PagedContractResponse> listActive(
             @PathVariable final UUID clientId,
             @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime updatedSince
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final LocalDateTime updatedSince,
+            @PageableDefault(size = 20, sort = "lastModified") final Pageable pageable,
+            final Locale locale
     ) {
-        final List<Contract> contracts = contractApplicationService.getActiveContracts(clientId, updatedSince);
-        final List<ContractResponse> response = contracts.stream()
-                .map(contractMapper::toDto)
-                .toList();
+        final Page<Contract> contracts = contractApplicationService.getActiveContractsPageable(clientId, updatedSince, pageable);
+        final Page<ContractResponse> responsePage = contracts.map(contractMapper::toDto);
 
-        return ResponseEntity.ok(response);
+        final PagedContractResponse response = new PagedContractResponse(
+                responsePage.getContent(),
+                responsePage.getNumber(),
+                responsePage.getSize(),
+                responsePage.getTotalElements(),
+                responsePage.getTotalPages(),
+                responsePage.isFirst(),
+                responsePage.isLast()
+        );
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
+                .body(response);
     }
 
     @Operation(
@@ -114,9 +136,15 @@ public class ContractController {
             @ApiResponse(responseCode = "404", description = "Client not found")
     })
     @GetMapping("/sum")
-    public ResponseEntity<BigDecimal> sumActive(@PathVariable final UUID clientId) {
+    public ResponseEntity<BigDecimal> sumActive(
+            @PathVariable final UUID clientId,
+            final Locale locale
+    ) {
         final BigDecimal sum = contractApplicationService.sumActiveContracts(clientId);
-        return ResponseEntity.ok(sum);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
+                .body(sum);
     }
 
     @Operation(

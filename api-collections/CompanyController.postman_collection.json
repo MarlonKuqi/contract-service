@@ -27,7 +27,7 @@
           "raw": "{\n  \"name\": \"Acme Corporation\",\n  \"email\": \"contact@acme.com\",\n  \"phone\": \"+41223334455\",\n  \"companyIdentifier\": \"CHE-123.456.789\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/companies",
+          "raw": "{{baseUrl}}/v1/clients/companies",
           "host": ["{{baseUrl}}"],
           "path": ["v1", "companies"]
         },
@@ -49,7 +49,7 @@
           "raw": "{\n  \"name\": \"Tech Solutions SA\",\n  \"email\": \"info@techsolutions.ch\",\n  \"phone\": \"+41224445566\",\n  \"companyIdentifier\": \"CHE-987.654.321\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/companies",
+          "raw": "{{baseUrl}}/v1/clients/companies",
           "host": ["{{baseUrl}}"],
           "path": ["v1", "companies"]
         }

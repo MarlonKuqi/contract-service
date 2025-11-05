@@ -1,19 +1,21 @@
 package com.mk.contractservice.domain.contract;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface ContractRepository {
     Contract save(Contract contract);
 
-    Optional<Contract> findById(final UUID id);
+    Optional<Contract> findById(UUID contractId);
 
-    List<Contract> findActiveByClientId(final UUID clientId, OffsetDateTime now, OffsetDateTime updatedSince);
+    Page<Contract> findActiveByClientIdPageable(UUID clientId, LocalDateTime now, LocalDateTime updatedSince, Pageable pageable);
 
-    void closeAllActiveByClientId(final UUID clientId, OffsetDateTime now);
+    void closeAllActiveByClientId(UUID clientId, LocalDateTime now);
 
-    BigDecimal sumActiveByClientId(final UUID clientId, OffsetDateTime now);
+    BigDecimal sumActiveByClientId(UUID clientId, LocalDateTime now);
 }

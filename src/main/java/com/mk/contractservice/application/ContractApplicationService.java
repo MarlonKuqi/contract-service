@@ -9,12 +9,13 @@ import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.List;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -31,7 +32,7 @@ public class ContractApplicationService {
 
     @Transactional
     @CacheEvict(value = "contractSums", key = "#clientId")
-    public Contract createForClient(final UUID clientId, final OffsetDateTime start, final OffsetDateTime end, final BigDecimal amount) {
+    public Contract createForClient(final UUID clientId, final LocalDateTime start, final LocalDateTime end, final BigDecimal amount) {
         final Client client = clientRepo.findById(clientId).orElseThrow(() ->
                 new ClientNotFoundException("Client not found: " + clientId));
 
@@ -53,24 +54,23 @@ public class ContractApplicationService {
                 .orElse(false);
     }
 
-
     @Transactional(readOnly = true)
-    public List<Contract> getActiveContracts(final UUID clientId, OffsetDateTime updatedSince) {
-        OffsetDateTime now = OffsetDateTime.now();
-        return contractRepo.findActiveByClientId(clientId, now, updatedSince);
+    public Page<Contract> getActiveContractsPageable(final UUID clientId, LocalDateTime updatedSince, Pageable pageable) {
+        LocalDateTime now = LocalDateTime.now();
+        return contractRepo.findActiveByClientIdPageable(clientId, now, updatedSince, pageable);
     }
 
     @Transactional(readOnly = true)
     @Cacheable(value = "contractSums", key = "#clientId")
     public BigDecimal sumActiveContracts(final UUID clientId) {
-        OffsetDateTime now = OffsetDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         return contractRepo.sumActiveByClientId(clientId, now);
     }
 
     @Transactional
     @CacheEvict(value = "contractSums", key = "#clientId")
     public void closeActiveContractsByClientId(final UUID clientId) {
-        final OffsetDateTime now = OffsetDateTime.now();
+        final LocalDateTime now = LocalDateTime.now();
         contractRepo.closeAllActiveByClientId(clientId, now);
     }
 }

@@ -1,14 +1,7 @@
 package com.mk.contractservice.web.advice;
 
-import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.web.controller.v1.PersonController;
 import jakarta.validation.ConstraintViolationException;
-import java.net.URI;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,7 +13,13 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
+
+import java.net.URI;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @RestControllerAdvice(assignableTypes = PersonController.class)
 public class PersonControllerAdvice {
@@ -61,27 +60,13 @@ public class PersonControllerAdvice {
         return respond(pd);
     }
 
-    @ExceptionHandler(ClientAlreadyExistsException.class)
-    public ResponseEntity<ProblemDetail> handleConflict(ClientAlreadyExistsException ex) {
-        var pd = problem(HttpStatus.CONFLICT, "Conflict",
-                "Client already exists.", "clientAlreadyExists");
-        return respond(pd);
-    }
-
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ProblemDetail> handleAny(Exception ex, WebRequest request) {
-        var pd = problem(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
-                "Unexpected error.", "internalError");
-        return respond(pd);
-    }
 
     private static ProblemDetail problem(HttpStatus status, String title, String detail, String code) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
         pd.setTitle(title);
         pd.setType(URI.create("about:blank"));
         pd.setProperty("code", code);
-        pd.setProperty("timestamp", OffsetDateTime.now());
+        pd.setProperty("timestamp", LocalDateTime.now());
         pd.setProperty("traceId", UUID.randomUUID().toString());
         return pd;
     }
