@@ -1,0 +1,86 @@
+package com.mk.contractservice.web.advice;
+
+import com.mk.contractservice.web.controller.v1.PersonController;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.net.URI;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+@RestControllerAdvice(assignableTypes = PersonController.class)
+public class PersonControllerAdvice {
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ProblemDetail> handleNotReadable(final HttpMessageNotReadableException ex) {
+        final var dataProblem = problem(HttpStatus.BAD_REQUEST, "Bad Request",
+                "Malformed JSON or invalid payload.", "badRequest");
+        return respond(dataProblem);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<String> handlePersonSpecific(final IllegalStateException e) {
+        return ResponseEntity.badRequest().body("Person error: " + e.getMessage());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ProblemDetail> handleInvalid(MethodArgumentNotValidException ex) {
+        var pd = problem(HttpStatus.BAD_REQUEST, "Validation Failed",
+                "Some fields are invalid or missing.", "validationError");
+        List<Map<String, Object>> errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> Map.<String, Object>of(
+                        "field", fe.getField(),
+                        "message", messageOf(fe),
+                        "rejectedValue", fe.getRejectedValue()))
+                .toList();
+        pd.setProperty("errors", errors);
+        return respond(pd);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ProblemDetail> handleConstraintViolation(ConstraintViolationException ex) {
+        var pd = problem(HttpStatus.BAD_REQUEST, "Constraint Violation",
+                "One or more parameters are invalid.", "constraintViolation");
+        pd.setProperty("errors", ex.getConstraintViolations().stream()
+                .map(cv -> Map.of("param", cv.getPropertyPath().toString(), "message", cv.getMessage()))
+                .toList());
+        return respond(pd);
+    }
+
+
+    private static ProblemDetail problem(HttpStatus status, String title, String detail, String code) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
+        pd.setTitle(title);
+        pd.setType(URI.create("about:blank"));
+        pd.setProperty("code", code);
+        pd.setProperty("timestamp", LocalDateTime.now());
+        pd.setProperty("traceId", UUID.randomUUID().toString());
+        return pd;
+    }
+
+    private static ResponseEntity<ProblemDetail> respond(final ProblemDetail problemDetail) {
+        final String lang = LocaleContextHolder.getLocale().toLanguageTag();
+        return ResponseEntity
+                .status(problemDetail.getStatus())
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PROBLEM_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_LANGUAGE, lang)
+                .body(problemDetail);
+    }
+
+    private static String messageOf(FieldError fe) {
+        return Optional.ofNullable(fe.getDefaultMessage()).orElse("Invalid value");
+    }
+}
