@@ -14,8 +14,16 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.UUID;
+
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.startsWith;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -43,15 +51,15 @@ class CompanyLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Create company client with all valid data")
     void shouldCreateCompanyClientSuccessfully() {
-        String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         String createPayload = String.format("""
-            {
-                "name": "Acme Corporation",
-                "email": "contact.acme.%s@example.com",
-                "phone": "+41791234567",
-                "companyIdentifier": "CHE-%s.456.789"
-            }
-            """, uniqueId, uniqueId.substring(0, 6));
+                {
+                    "name": "Acme Corporation",
+                    "email": "contact.acme.%s@example.com",
+                    "phone": "+41791234567",
+                    "companyIdentifier": "CHE-%s.456.789"
+                }
+                """, uniqueId, uniqueId.substring(0, 6));
 
         String clientId = given()
                 .contentType(ContentType.JSON)
@@ -82,15 +90,15 @@ class CompanyLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Invalid company identifier format should be rejected")
     void shouldRejectInvalidCompanyIdentifier() {
-        String uniqueEmail = "bad." + java.util.UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        String uniqueEmail = "bad." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         String invalidIdentifierPayload = String.format("""
-            {
-                "name": "Bad Company",
-                "email": "%s",
-                "phone": "+41791234567",
-                "companyIdentifier": ""
-            }
-            """, uniqueEmail);
+                {
+                    "name": "Bad Company",
+                    "email": "%s",
+                    "phone": "+41791234567",
+                    "companyIdentifier": ""
+                }
+                """, uniqueEmail);
 
         given()
                 .contentType(ContentType.JSON)
@@ -104,14 +112,14 @@ class CompanyLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Missing required company identifier should be rejected")
     void shouldRejectMissingCompanyIdentifier() {
-        String uniqueEmail = "incomplete." + java.util.UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        String uniqueEmail = "incomplete." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         String missingIdentifierPayload = String.format("""
-            {
-                "name": "Incomplete Company",
-                "email": "%s",
-                "phone": "+41791234567"
-            }
-            """, uniqueEmail);
+                {
+                    "name": "Incomplete Company",
+                    "email": "%s",
+                    "phone": "+41791234567"
+                }
+                """, uniqueEmail);
 
         given()
                 .contentType(ContentType.JSON)
@@ -119,22 +127,22 @@ class CompanyLifecycleIT {
                 .when()
                 .post("/v1/clients/companies")
                 .then()
-                .statusCode(400);
+                .statusCode(422);
     }
 
     @Test
     @DisplayName("SCENARIO: Update company client common fields (companyIdentifier remains unchanged)")
     void shouldUpdateCompanyCommonFieldsButNotIdentifier() {
-        String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         String companyIdPart = uniqueId.substring(0, 6);
         String createPayload = String.format("""
-            {
-                "name": "Original Tech SA",
-                "email": "original.tech.%s@example.com",
-                "phone": "+41791111111",
-                "companyIdentifier": "CHE-%s.222.333"
-            }
-            """, uniqueId, companyIdPart);
+                {
+                    "name": "Original Tech SA",
+                    "email": "original.tech.%s@example.com",
+                    "phone": "+41791111111",
+                    "companyIdentifier": "CHE-%s.222.333"
+                }
+                """, uniqueId, companyIdPart);
 
         String clientId = given()
                 .contentType(ContentType.JSON)
@@ -147,14 +155,14 @@ class CompanyLifecycleIT {
 
         String originalIdentifier = String.format("CHE-%s.222.333", companyIdPart);
 
-        String updateUniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String updateUniqueId = UUID.randomUUID().toString().substring(0, 8);
         String updatePayload = String.format("""
-            {
-                "name": "Updated Tech SA",
-                "email": "updated.tech.%s@example.com",
-                "phone": "+41792222222"
-            }
-            """, updateUniqueId);
+                {
+                    "name": "Updated Tech SA",
+                    "email": "updated.tech.%s@example.com",
+                    "phone": "+41792222222"
+                }
+                """, updateUniqueId);
 
         given()
                 .contentType(ContentType.JSON)
@@ -178,15 +186,15 @@ class CompanyLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Delete company and verify contracts are closed")
     void shouldDeleteCompanyAndCloseContracts() {
-        String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         String companyPayload = String.format("""
-            {
-                "name": "Delete Me Inc",
-                "email": "deleteme.%s@example.com",
-                "phone": "+41791234567",
-                "companyIdentifier": "CHE-%s.888.777"
-            }
-            """, uniqueId, uniqueId.substring(0, 6));
+                {
+                    "name": "Delete Me Inc",
+                    "email": "deleteme.%s@example.com",
+                    "phone": "+41791234567",
+                    "companyIdentifier": "CHE-%s.888.777"
+                }
+                """, uniqueId, uniqueId.substring(0, 6));
 
         String clientId = given()
                 .contentType(ContentType.JSON)
@@ -199,12 +207,12 @@ class CompanyLifecycleIT {
 
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         String contractPayload = String.format("""
-            {
-                "startDate": "%s",
-                "endDate": null,
-                "costAmount": "10000.00"
-            }
-            """, now.minusDays(5));
+                {
+                    "startDate": "%s",
+                    "endDate": null,
+                    "costAmount": "10000.00"
+                }
+                """, now.minusDays(5));
 
         given()
                 .contentType(ContentType.JSON)
@@ -228,22 +236,60 @@ class CompanyLifecycleIT {
     }
 
     @Test
+    @DisplayName("SCENARIO: Duplicate email should be handled gracefully")
+    void shouldHandleDuplicateEmail() {
+        String uniqueEmail = "duplicate.company.test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+
+        String firstPayload = String.format("""
+                {
+                    "name": "First Company",
+                    "email": "%s",
+                    "phone": "+41791111111",
+                    "companyIdentifier": "CHE-%s.111.111"
+                }
+                """, uniqueEmail, UUID.randomUUID().toString().substring(0, 6));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(firstPayload)
+                .when()
+                .post("/v1/clients/companies")
+                .then()
+                .statusCode(201);
+
+        String secondPayload = String.format("""
+                {
+                    "name": "Second Company",
+                    "email": "%s",
+                    "phone": "+41792222222",
+                    "companyIdentifier": "CHE-%s.222.222"
+                }
+                """, uniqueEmail, UUID.randomUUID().toString().substring(0, 6));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(secondPayload)
+                .when()
+                .post("/v1/clients/companies")
+                .then()
+                .statusCode(anyOf(is(409), is(400), is(422), is(500)));
+    }
+
+    @Test
     @DisplayName("SCENARIO: Duplicate company identifier should be handled")
     void shouldHandleDuplicateCompanyIdentifier() {
-        // Note: This test validates that duplicate company identifiers are rejected.
-        // We use unique identifiers per test run but reuse within the same test.
-        String uniqueTestRunId = java.util.UUID.randomUUID().toString();
+        String uniqueTestRunId = UUID.randomUUID().toString();
         String sharedIdentifier = String.format("CHE-DUP-%s", uniqueTestRunId);
 
-        String firstUniqueEmail = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String firstUniqueEmail = UUID.randomUUID().toString().substring(0, 8);
         String firstPayload = String.format("""
-            {
-                "name": "First Company",
-                "email": "first.%s@example.com",
-                "phone": "+41791111111",
-                "companyIdentifier": "%s"
-            }
-            """, firstUniqueEmail, sharedIdentifier);
+                {
+                    "name": "First Company",
+                    "email": "first.%s@example.com",
+                    "phone": "+41791111111",
+                    "companyIdentifier": "%s"
+                }
+                """, firstUniqueEmail, sharedIdentifier);
 
         String firstClientId = given()
                 .contentType(ContentType.JSON)
@@ -254,17 +300,15 @@ class CompanyLifecycleIT {
                 .statusCode(201)
                 .extract().path("id");
 
-        String secondUniqueEmail = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String secondUniqueEmail = UUID.randomUUID().toString().substring(0, 8);
         String secondPayload = String.format("""
-            {
-                "name": "Second Company",
-                "email": "second.%s@example.com",
-                "phone": "+41792222222",
-                "companyIdentifier": "%s"
-            }
-            """, secondUniqueEmail, sharedIdentifier);
-
-        // THEN: Should fail with conflict or validation error
+                {
+                    "name": "Second Company",
+                    "email": "second.%s@example.com",
+                    "phone": "+41792222222",
+                    "companyIdentifier": "%s"
+                }
+                """, secondUniqueEmail, sharedIdentifier);
         given()
                 .contentType(ContentType.JSON)
                 .body(secondPayload)
@@ -272,7 +316,6 @@ class CompanyLifecycleIT {
                 .post("/v1/clients/companies")
                 .then()
                 .statusCode(anyOf(is(409), is(400), is(422), is(500)));
-
         given()
                 .when()
                 .delete("/v1/clients/{id}", firstClientId)
@@ -283,15 +326,15 @@ class CompanyLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Company with contracts calculates sum correctly")
     void shouldCalculateSumForCompanyContracts() {
-        String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         String companyPayload = String.format("""
-            {
-                "name": "Big Enterprise LLC",
-                "email": "bigenterprise.%s@example.com",
-                "phone": "+41791234567",
-                "companyIdentifier": "CHE-%s.666.777"
-            }
-            """, uniqueId, uniqueId.substring(0, 6));
+                {
+                    "name": "Big Enterprise LLC",
+                    "email": "bigenterprise.%s@example.com",
+                    "phone": "+41791234567",
+                    "companyIdentifier": "CHE-%s.666.777"
+                }
+                """, uniqueId, uniqueId.substring(0, 6));
 
         String clientId = given()
                 .contentType(ContentType.JSON)
@@ -304,20 +347,20 @@ class CompanyLifecycleIT {
 
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         String contract1 = String.format("""
-            {
-                "startDate": "%s",
-                "endDate": "%s",
-                "costAmount": "5000.00"
-            }
-            """, now.minusDays(30), now.plusMonths(12));
+                {
+                    "startDate": "%s",
+                    "endDate": "%s",
+                    "costAmount": "5000.00"
+                }
+                """, now.minusDays(30), now.plusMonths(12));
 
         String contract2 = String.format("""
-            {
-                "startDate": "%s",
-                "endDate": null,
-                "costAmount": "7500.50"
-            }
-            """, now.minusDays(10));
+                {
+                    "startDate": "%s",
+                    "endDate": null,
+                    "costAmount": "7500.50"
+                }
+                """, now.minusDays(10));
 
         given().contentType(ContentType.JSON).body(contract1).post("/v1/clients/{clientId}/contracts", clientId).then().statusCode(201);
         given().contentType(ContentType.JSON).body(contract2).post("/v1/clients/{clientId}/contracts", clientId).then().statusCode(201);
@@ -333,15 +376,15 @@ class CompanyLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Company email validation should follow RFC standards")
     void shouldValidateCompanyEmailFormat() {
-        String uniqueId1 = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String uniqueId1 = UUID.randomUUID().toString().substring(0, 8);
         String validPayload = String.format("""
-            {
-                "name": "Valid Email Company",
-                "email": "contact+sales@company-name.co.uk",
-                "phone": "+41791234567",
-                "companyIdentifier": "CHE-%s.456.789"
-            }
-            """, uniqueId1);
+                {
+                    "name": "Valid Email Company",
+                    "email": "contact+sales@company-name.co.uk",
+                    "phone": "+41791234567",
+                    "companyIdentifier": "CHE-%s.456.789"
+                }
+                """, uniqueId1);
 
         given()
                 .contentType(ContentType.JSON)
@@ -359,15 +402,15 @@ class CompanyLifecycleIT {
         };
 
         for (String invalidEmail : invalidEmails) {
-            String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
+            String uniqueId = UUID.randomUUID().toString().substring(0, 8);
             String invalidPayload = String.format("""
-                {
-                    "name": "Invalid Email Company",
-                    "email": "%s",
-                    "phone": "+41791234567",
-                    "companyIdentifier": "CHE-%s.888.777"
-                }
-                """, invalidEmail, uniqueId);
+                    {
+                        "name": "Invalid Email Company",
+                        "email": "%s",
+                        "phone": "+41791234567",
+                        "companyIdentifier": "CHE-%s.888.777"
+                    }
+                    """, invalidEmail, uniqueId);
 
             given()
                     .contentType(ContentType.JSON)
@@ -375,32 +418,32 @@ class CompanyLifecycleIT {
                     .when()
                     .post("/v1/clients/companies")
                     .then()
-                    .statusCode(400);
+                    .statusCode(422);
         }
     }
 
     @Test
     @DisplayName("SCENARIO: Create multiple companies and verify independence")
     void shouldCreateMultipleIndependentCompanies() {
-        String uniqueId1 = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String uniqueId1 = UUID.randomUUID().toString().substring(0, 8);
         String company1Payload = String.format("""
-            {
-                "name": "Company Alpha",
-                "email": "alpha.%s@example.com",
-                "phone": "+41791111111",
-                "companyIdentifier": "CHE-%s.111.111"
-            }
-            """, uniqueId1, uniqueId1.substring(0, 6));
+                {
+                    "name": "Company Alpha",
+                    "email": "alpha.%s@example.com",
+                    "phone": "+41791111111",
+                    "companyIdentifier": "CHE-%s.111.111"
+                }
+                """, uniqueId1, uniqueId1.substring(0, 6));
 
-        String uniqueId2 = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String uniqueId2 = UUID.randomUUID().toString().substring(0, 8);
         String company2Payload = String.format("""
-            {
-                "name": "Company Beta",
-                "email": "beta.%s@example.com",
-                "phone": "+41792222222",
-                "companyIdentifier": "CHE-%s.222.222"
-            }
-            """, uniqueId2, uniqueId2.substring(0, 6));
+                {
+                    "name": "Company Beta",
+                    "email": "beta.%s@example.com",
+                    "phone": "+41792222222",
+                    "companyIdentifier": "CHE-%s.222.222"
+                }
+                """, uniqueId2, uniqueId2.substring(0, 6));
 
         String id1 = given()
                 .contentType(ContentType.JSON)
@@ -422,12 +465,12 @@ class CompanyLifecycleIT {
 
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         String contractPayload = String.format("""
-            {
-                "startDate": "%s",
-                "endDate": null,
-                "costAmount": "1000.00"
-            }
-            """, now.minusDays(5));
+                {
+                    "startDate": "%s",
+                    "endDate": null,
+                    "costAmount": "1000.00"
+                }
+                """, now.minusDays(5));
 
         given()
                 .contentType(ContentType.JSON)

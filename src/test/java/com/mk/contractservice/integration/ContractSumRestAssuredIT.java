@@ -16,6 +16,8 @@ import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -25,8 +27,10 @@ import org.springframework.test.context.ActiveProfiles;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.lessThan;
 
@@ -35,6 +39,9 @@ import static org.hamcrest.Matchers.lessThan;
 @Import(TestcontainersConfiguration.class)
 @DisplayName("Contract Sum API Tests - RestAssured")
 class ContractSumRestAssuredIT {
+
+    private static final Logger log = LoggerFactory.getLogger(ContractSumRestAssuredIT.class);
+    private static final long MAX_CACHE_RESPONSE_TIME_MS = 50L;
 
     @LocalServerPort
     private int port;
@@ -45,7 +52,11 @@ class ContractSumRestAssuredIT {
     @Autowired
     private ContractRepository contractRepository;
 
+    @Autowired
+    private com.mk.contractservice.application.ContractApplicationService contractApplicationService;
+
     private Client testClient;
+
 
     @BeforeEach
     void setUp() {
@@ -54,7 +65,7 @@ class ContractSumRestAssuredIT {
 
         testClient = new Person(
                 ClientName.of("Jean Dupont"),
-                Email.of("jean.dupont." + java.util.UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                Email.of("jean.dupont." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 PhoneNumber.of("+41791234567"),
                 PersonBirthDate.of(LocalDate.of(1990, 5, 15))
         );
@@ -141,6 +152,17 @@ class ContractSumRestAssuredIT {
         }
 
         long startTime = System.currentTimeMillis();
+        given()
+                .when()
+                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .then()
+                .statusCode(200)
+                .body(equalTo(expectedSum.toString()))
+                .time(lessThan(300L));
+        long firstCallDuration = System.currentTimeMillis() - startTime;
+        log.info("First call (cache MISS) for 100 contracts took: {}ms", firstCallDuration);
+
+        startTime = System.currentTimeMillis();
 
         given()
                 .when()
@@ -148,10 +170,53 @@ class ContractSumRestAssuredIT {
                 .then()
                 .statusCode(200)
                 .body(equalTo(expectedSum.toString()))
-                .time(lessThan(1000L)); // 1 second max
+                .time(lessThan(MAX_CACHE_RESPONSE_TIME_MS));
 
-        long duration = System.currentTimeMillis() - startTime;
-        System.out.println("Sum calculation for 100 contracts took: " + duration + "ms");
+        long secondCallDuration = System.currentTimeMillis() - startTime;
+        log.info("Second call (cache HIT) for 100 contracts took: {}ms", secondCallDuration);
+
+        startTime = System.currentTimeMillis();
+
+        given()
+                .when()
+                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .then()
+                .statusCode(200)
+                .body(equalTo(expectedSum.toString()))
+                .time(lessThan(MAX_CACHE_RESPONSE_TIME_MS));
+
+        long thirdCallDuration = System.currentTimeMillis() - startTime;
+        log.info("Third call (cache HIT) for 100 contracts took: {}ms", thirdCallDuration);
+
+        long totalCachedTime = 0;
+        for (int i = 0; i < 20; i++) {
+            startTime = System.currentTimeMillis();
+
+            given()
+                    .when()
+                    .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                    .then()
+                    .statusCode(200)
+                    .body(equalTo(expectedSum.toString()))
+                    .time(lessThan(MAX_CACHE_RESPONSE_TIME_MS));
+
+            long callDuration = System.currentTimeMillis() - startTime;
+            totalCachedTime += callDuration;
+            log.debug("Call #{} (cache HIT) took: {}ms", i + 4, callDuration);
+        }
+
+        long averageCachedTime = totalCachedTime / 20;
+        log.info("\n=== Cache Performance Summary ===");
+        log.info("First call (MISS): {}ms", firstCallDuration);
+        log.info("Average cached calls (20 calls): {}ms", averageCachedTime);
+        log.info("Performance improvement: {}%", (100 - (averageCachedTime * 100 / firstCallDuration)));
+
+        assertThat("Second call should be faster than first call (cache hit)",
+                secondCallDuration, lessThan(firstCallDuration));
+        assertThat("Third call should be faster than first call (cache hit)",
+                thirdCallDuration, lessThan(firstCallDuration));
+        assertThat("Average of cached calls should be faster than first call",
+                averageCachedTime, lessThan(firstCallDuration));
     }
 
     @Test
@@ -178,6 +243,53 @@ class ContractSumRestAssuredIT {
                 .statusCode(200)
                 .body(equalTo("100.00"));
     }
-}
 
+    @Test
+    @DisplayName("GIVEN cached sum WHEN contract created THEN cache invalidated and sum updated")
+    void shouldInvalidateCacheWhenContractCreated() {
+        LocalDateTime now = LocalDateTime.now();
+
+        contractApplicationService.createForClient(
+                testClient.getId(),
+                now.minusDays(10),
+                now.plusDays(30),
+                new BigDecimal("500.00")
+        );
+        given()
+                .when()
+                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .then()
+                .statusCode(200)
+                .body(equalTo("500.00"));
+
+        given()
+                .when()
+                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .then()
+                .statusCode(200)
+                .body(equalTo("500.00"))
+                .time(lessThan(MAX_CACHE_RESPONSE_TIME_MS));
+
+        contractApplicationService.createForClient(
+                testClient.getId(),
+                now.minusDays(5),
+                now.plusDays(60),
+                new BigDecimal("300.00")
+        );
+        given()
+                .when()
+                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .then()
+                .statusCode(200)
+                .body(equalTo("800.00"));
+
+        given()
+                .when()
+                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .then()
+                .statusCode(200)
+                .body(equalTo("800.00"))
+                .time(lessThan(MAX_CACHE_RESPONSE_TIME_MS));
+    }
+}
 

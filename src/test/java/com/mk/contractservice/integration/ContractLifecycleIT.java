@@ -59,7 +59,7 @@ class ContractLifecycleIT {
 
         testClient = new Person(
                 ClientName.of("Marie Durand"),
-                Email.of("marie.durand." + java.util.UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                Email.of("marie.durand." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 PhoneNumber.of("+41791234567"),
                 PersonBirthDate.of(LocalDate.of(1985, 3, 20))
         );
@@ -93,7 +93,6 @@ class ContractLifecycleIT {
 
         String contractId = location.substring(location.lastIndexOf('/') + 1);
 
-        // THEN: Update the cost
         String updatePayload = """
                 {
                     "amount": "7500.50"
@@ -108,19 +107,17 @@ class ContractLifecycleIT {
                 .then()
                 .statusCode(204);
 
-        // VERIFY: Check the contract list shows updated cost
         given()
                 .when()
                 .get("/v1/clients/{clientId}/contracts", testClient.getId())
                 .then()
                 .statusCode(200)
-                .body("size()", greaterThan(0));
+                .body("content.size()", greaterThan(0));
     }
 
     @Test
     @DisplayName("SCENARIO: Client signs multiple contracts, sum calculation reflects all active ones")
     void shouldTrackMultipleContractsForSameClient() {
-        // GIVEN: Client signs 3 contracts at different times (all with future end dates)
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
 
         String contract1 = String.format("""
@@ -151,7 +148,6 @@ class ContractLifecycleIT {
         given().contentType(ContentType.JSON).body(contract2).post("/v1/clients/{clientId}/contracts", testClient.getId()).then().statusCode(201);
         given().contentType(ContentType.JSON).body(contract3).post("/v1/clients/{clientId}/contracts", testClient.getId()).then().statusCode(201);
 
-        // WHEN: Calculating total contract value
         given()
                 .when()
                 .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
@@ -159,19 +155,17 @@ class ContractLifecycleIT {
                 .statusCode(200)
                 .body(equalTo("4250.50"));
 
-        // THEN: List all contracts for client
         given()
                 .when()
                 .get("/v1/clients/{clientId}/contracts", testClient.getId())
                 .then()
                 .statusCode(200)
-                .body("size()", equalTo(3));
+                .body("content.size()", equalTo(3));
     }
 
     @Test
     @DisplayName("SCENARIO: Contract expiration affects sum calculation")
     void shouldExcludeExpiredContractsFromSum() {
-        // GIVEN: One expired contract and one active contract
         String expiredContract = """
                 {
                     "startDate": "2024-01-01T00:00:00Z",
@@ -191,28 +185,25 @@ class ContractLifecycleIT {
         given().contentType(ContentType.JSON).body(expiredContract).post("/v1/clients/{clientId}/contracts", testClient.getId()).then().statusCode(201);
         given().contentType(ContentType.JSON).body(activeContract).post("/v1/clients/{clientId}/contracts", testClient.getId()).then().statusCode(201);
 
-        // WHEN: Calculating sum (only active contracts)
         given()
                 .when()
                 .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
                 .then()
                 .statusCode(200)
-                .body(equalTo("5000.00")); // Only active contract counted
+                .body(equalTo("5000.00"));
 
-        // WHEN: Listing active contracts (should only return the active one)
         given()
                 .when()
                 .get("/v1/clients/{clientId}/contracts", testClient.getId())
                 .then()
                 .statusCode(200)
-                .body("size()", equalTo(1))
-                .body("[0].costAmount", equalTo(5000.00f));
+                .body("content.size()", equalTo(1))
+                .body("content[0].costAmount", equalTo(5000.00f));
     }
 
     @Test
     @DisplayName("SCENARIO: Invalid contract creation should fail with validation errors")
     void shouldRejectInvalidContractData() {
-        // GIVEN: Invalid payload (negative amount)
         String invalidPayload = """
                 {
                     "startDate": "2025-01-01T00:00:00Z",
@@ -221,7 +212,6 @@ class ContractLifecycleIT {
                 }
                 """;
 
-        // WHEN/THEN: Creation should fail with 400 Bad Request
         given()
                 .contentType(ContentType.JSON)
                 .body(invalidPayload)
@@ -230,7 +220,6 @@ class ContractLifecycleIT {
                 .then()
                 .statusCode(anyOf(is(400), is(422)));
 
-        // GIVEN: Invalid date range (end before start)
         java.time.LocalDateTime testNow = java.time.LocalDateTime.now();
         String invalidDateRange = String.format("""
                 {
@@ -274,7 +263,6 @@ class ContractLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Filter contracts by update date")
     void shouldFilterContractsByUpdateDate() {
-        // GIVEN: Create contract
         String contractPayload = """
                 {
                     "startDate": "2025-01-01T00:00:00Z",
@@ -294,7 +282,6 @@ class ContractLifecycleIT {
 
         String contractId = location.substring(location.lastIndexOf('/') + 1);
 
-        // WHEN: Update the cost (triggers lastModified update)
         String updatePayload = """
                 {
                     "amount": "2000.00"
@@ -309,7 +296,6 @@ class ContractLifecycleIT {
                 .then()
                 .statusCode(204);
 
-        // THEN: Filter by updatedSince should show contracts modified after a certain date
         String updatedSince = "2025-01-01T00:00:00Z";
         given()
                 .queryParam("updatedSince", updatedSince)
@@ -317,13 +303,12 @@ class ContractLifecycleIT {
                 .get("/v1/clients/{clientId}/contracts", testClient.getId())
                 .then()
                 .statusCode(200)
-                .body("size()", greaterThanOrEqualTo(1));
+                .body("content.size()", greaterThanOrEqualTo(1));
     }
 
     @Test
     @DisplayName("SCENARIO: Contract without endDate is considered active indefinitely")
     void shouldTreatNullEndDateAsIndefinitelyActive() {
-        // GIVEN: Create contract without end date
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         String contractPayload = String.format("""
                 {
@@ -341,16 +326,14 @@ class ContractLifecycleIT {
                 .then()
                 .statusCode(201);
 
-        // WHEN: Getting active contracts
         given()
                 .when()
                 .get("/v1/clients/{clientId}/contracts", testClient.getId())
                 .then()
                 .statusCode(200)
-                .body("size()", equalTo(1))
-                .body("[0].period.endDate", nullValue());
+                .body("content.size()", equalTo(1))
+                .body("content[0].period.endDate", nullValue());
 
-        // AND: Sum should include this contract
         given()
                 .when()
                 .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())

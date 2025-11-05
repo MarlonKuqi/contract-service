@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import java.util.Locale;
 
 @Tag(name = "Clients - Companies", description = "Create company clients")
 @RestController
@@ -66,10 +68,11 @@ public class CompanyController {
                             schema = @Schema(implementation = ProblemDetail.class))
             )
     })
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping
     public ResponseEntity<CreateCompanyResponse> create(
             @Valid @RequestBody final CreateCompanyRequest req,
-            final UriComponentsBuilder uriBuilder
+            final UriComponentsBuilder uriBuilder,
+            final Locale locale
     ) {
         final Company created = clientApplicationService.createCompany(
                 req.name(),
@@ -83,7 +86,9 @@ public class CompanyController {
                 .path(PATH_NEW_RESOURCE)
                 .buildAndExpand(created.getId())
                 .toUri();
-        
-        return ResponseEntity.created(location).body(body);
+
+        return ResponseEntity.created(location)
+                .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
+                .body(body);
     }
 }
