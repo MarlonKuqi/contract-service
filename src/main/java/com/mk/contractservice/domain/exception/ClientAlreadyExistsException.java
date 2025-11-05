@@ -2,9 +2,6 @@ package com.mk.contractservice.domain.exception;
 
 import org.springframework.http.HttpStatus;
 
-/**
- * Raised when trying to create a client that already exists (same business key).
- */
 public class ClientAlreadyExistsException extends RuntimeException {
 
     private final String businessKey;

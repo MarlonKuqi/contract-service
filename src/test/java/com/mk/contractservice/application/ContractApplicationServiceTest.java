@@ -21,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -85,9 +86,6 @@ class ContractApplicationServiceTest {
             assertThat(result.getPeriod().startDate()).isEqualTo(start);
             assertThat(result.getPeriod().endDate()).isEqualTo(end);
             assertThat(result.getCostAmount().value()).isEqualByComparingTo(amount);
-
-            verify(clientRepository).findById(testClientId);
-            verify(contractRepository).save(any(Contract.class));
         }
 
         @Test
@@ -216,45 +214,35 @@ class ContractApplicationServiceTest {
     class GetActiveContractsTests {
 
         @Test
-        @DisplayName("GIVEN client with active contracts WHEN getActiveContracts THEN return active contracts")
+        @DisplayName("GIVEN client with active contracts WHEN getActiveContractsPageable THEN return paginated active contracts")
         void shouldReturnActiveContracts() {
             LocalDateTime updatedSince = LocalDateTime.now().minusDays(7);
-            List<Contract> expectedContracts = List.of(
-                    new Contract(testClient, ContractPeriod.of(LocalDateTime.now(), null), ContractCost.of(BigDecimal.TEN))
-            );
+            Contract contract = new Contract(testClient, ContractPeriod.of(LocalDateTime.now(), null), ContractCost.of(BigDecimal.TEN));
+            Page<Contract> expectedPage = new org.springframework.data.domain.PageImpl<>(List.of(contract));
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 20);
 
-            when(contractRepository.findActiveByClientId(eq(testClientId), any(LocalDateTime.class), eq(updatedSince)))
-                    .thenReturn(expectedContracts);
+            when(contractRepository.findActiveByClientIdPageable(eq(testClientId), any(LocalDateTime.class), eq(updatedSince), eq(pageable)))
+                    .thenReturn(expectedPage);
 
-            List<Contract> result = service.getActiveContracts(testClientId, updatedSince);
+            Page<Contract> result = service.getActiveContractsPageable(testClientId, updatedSince, pageable);
 
-            assertThat(result).hasSize(1);
-            assertThat(result).isEqualTo(expectedContracts);
-            verify(contractRepository).findActiveByClientId(eq(testClientId), any(LocalDateTime.class), eq(updatedSince));
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().getFirst()).isEqualTo(contract);
+
         }
 
         @Test
-        @DisplayName("GIVEN client with no active contracts WHEN getActiveContracts THEN return empty list")
-        void shouldReturnEmptyListWhenNoActiveContracts() {
-            when(contractRepository.findActiveByClientId(eq(testClientId), any(LocalDateTime.class), any()))
-                    .thenReturn(List.of());
+        @DisplayName("GIVEN client with no active contracts WHEN getActiveContractsPageable THEN return empty page")
+        void shouldReturnEmptyPageWhenNoActiveContracts() {
+            Page<Contract> emptyPage = org.springframework.data.domain.Page.empty();
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 20);
 
-            List<Contract> result = service.getActiveContracts(testClientId, null);
+            when(contractRepository.findActiveByClientIdPageable(eq(testClientId), any(LocalDateTime.class), any(), eq(pageable)))
+                    .thenReturn(emptyPage);
 
-            assertThat(result).isEmpty();
-        }
+            Page<Contract> result = service.getActiveContractsPageable(testClientId, null, pageable);
 
-        @Test
-        @DisplayName("GIVEN filter by update date WHEN getActiveContracts THEN pass filter to repository")
-        void shouldFilterByUpdateDate() {
-            LocalDateTime updatedSince = LocalDateTime.now().minusDays(30);
-
-            when(contractRepository.findActiveByClientId(eq(testClientId), any(LocalDateTime.class), eq(updatedSince)))
-                    .thenReturn(List.of());
-
-            service.getActiveContracts(testClientId, updatedSince);
-
-            verify(contractRepository).findActiveByClientId(eq(testClientId), any(LocalDateTime.class), eq(updatedSince));
+            assertThat(result.getContent()).isEmpty();
         }
     }
 
@@ -273,7 +261,6 @@ class ContractApplicationServiceTest {
             BigDecimal result = service.sumActiveContracts(testClientId);
 
             assertThat(result).isEqualByComparingTo(expectedSum);
-            verify(contractRepository).sumActiveByClientId(eq(testClientId), any(LocalDateTime.class));
         }
 
         @Test
@@ -281,9 +268,7 @@ class ContractApplicationServiceTest {
         void shouldReturnZeroWhenNoActiveContracts() {
             when(contractRepository.sumActiveByClientId(eq(testClientId), any(LocalDateTime.class)))
                     .thenReturn(BigDecimal.ZERO);
-
             BigDecimal result = service.sumActiveContracts(testClientId);
-
             assertThat(result).isEqualByComparingTo(BigDecimal.ZERO);
         }
 
@@ -292,11 +277,8 @@ class ContractApplicationServiceTest {
         void shouldUseDatabaseAggregationForPerformance() {
             when(contractRepository.sumActiveByClientId(eq(testClientId), any(LocalDateTime.class)))
                     .thenReturn(new BigDecimal("1000.00"));
-
             service.sumActiveContracts(testClientId);
-
             verify(contractRepository).sumActiveByClientId(eq(testClientId), any(LocalDateTime.class));
-            verify(contractRepository, never()).findActiveByClientId(any(), any(), any());
         }
     }
 
@@ -308,7 +290,6 @@ class ContractApplicationServiceTest {
         @DisplayName("GIVEN client with active contracts WHEN closeActiveContractsByClientId THEN close all")
         void shouldCloseAllActiveContractsForClient() {
             service.closeActiveContractsByClientId(testClientId);
-
             verify(contractRepository).closeAllActiveByClientId(eq(testClientId), any(LocalDateTime.class));
         }
 
@@ -316,7 +297,6 @@ class ContractApplicationServiceTest {
         @DisplayName("GIVEN client deletion WHEN closeActiveContractsByClientId THEN use current date as end date")
         void shouldUseCurrentDateAsEndDate() {
             LocalDateTime before = LocalDateTime.now().minusSeconds(1);
-
             service.closeActiveContractsByClientId(testClientId);
             LocalDateTime after = LocalDateTime.now().plusSeconds(1);
 

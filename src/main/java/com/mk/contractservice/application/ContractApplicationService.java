@@ -9,12 +9,13 @@ import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -53,11 +54,10 @@ public class ContractApplicationService {
                 .orElse(false);
     }
 
-
     @Transactional(readOnly = true)
-    public List<Contract> getActiveContracts(final UUID clientId, LocalDateTime updatedSince) {
+    public Page<Contract> getActiveContractsPageable(final UUID clientId, LocalDateTime updatedSince, Pageable pageable) {
         LocalDateTime now = LocalDateTime.now();
-        return contractRepo.findActiveByClientId(clientId, now, updatedSince);
+        return contractRepo.findActiveByClientIdPageable(clientId, now, updatedSince, pageable);
     }
 
     @Transactional(readOnly = true)

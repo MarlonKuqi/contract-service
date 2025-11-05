@@ -116,7 +116,7 @@ class PerformanceAndEdgeCasesIT {
                 .get("/v1/clients/{clientId}/contracts", client.getId())
                 .then()
                 .statusCode(200)
-                .body("size()", equalTo(0));
+                .body("content.size()", equalTo(0));
     }
 
     @Test
@@ -147,7 +147,6 @@ class PerformanceAndEdgeCasesIT {
                 .statusCode(201)
                 .body("costAmount", equalTo(999999999.99f));
 
-        // THEN: Sum should calculate correctly
         given()
                 .when()
                 .get("/v1/clients/{clientId}/contracts/sum", client.getId())
@@ -279,7 +278,7 @@ class PerformanceAndEdgeCasesIT {
                 .get("/v1/clients/{clientId}/contracts", client.getId())
                 .then()
                 .statusCode(200)
-                .body("size()", greaterThanOrEqualTo(1));
+                .body("content.size()", greaterThanOrEqualTo(1));
     }
 
     @Test
@@ -316,7 +315,7 @@ class PerformanceAndEdgeCasesIT {
                 .get("/v1/clients/{clientId}/contracts", client.getId())
                 .then()
                 .statusCode(200)
-                .body("size()", equalTo(5));
+                .body("content.size()", equalTo(5));
 
         given()
                 .when()

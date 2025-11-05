@@ -94,11 +94,28 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts",
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts?page=0&size=20&sort=lastModified,desc",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}", "contracts"]
+          "path": ["v1", "clients", "{{clientId}}", "contracts"],
+          "query": [
+            {
+              "key": "page",
+              "value": "0",
+              "description": "Page number (starts at 0)"
+            },
+            {
+              "key": "size",
+              "value": "20",
+              "description": "Number of items per page (default: 20)"
+            },
+            {
+              "key": "sort",
+              "value": "lastModified,desc",
+              "description": "Sort order (field,direction)"
+            }
+          ]
         },
-        "description": "Get all active contracts for a client. Returns only contracts where current date < end date (or endDate is null)."
+        "description": "Get all active contracts for a client (paginated). Returns only contracts where current date < end date (or endDate is null). Default page size is 20. Response format: {content: [...], pageNumber, pageSize, totalElements, totalPages, first, last}"
       }
     },
     {
@@ -107,18 +124,28 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts?updatedSince=2025-10-26T00:00:00Z",
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts?updatedSince=2025-10-26T00:00:00&page=0&size=20",
           "host": ["{{baseUrl}}"],
           "path": ["v1", "clients", "{{clientId}}", "contracts"],
           "query": [
             {
               "key": "updatedSince",
-              "value": "2025-10-26T00:00:00Z",
-              "description": "Filter contracts by lastModifiedDate (ISO 8601 format)"
+              "value": "2025-10-26T00:00:00",
+              "description": "Filter contracts by lastModifiedDate (ISO 8601 format without timezone - Swiss time assumed)"
+            },
+            {
+              "key": "page",
+              "value": "0",
+              "description": "Page number (starts at 0)"
+            },
+            {
+              "key": "size",
+              "value": "20",
+              "description": "Number of items per page"
             }
           ]
         },
-        "description": "Get active contracts updated since a specific date."
+        "description": "Get active contracts updated since a specific date (Swiss time assumed), with pagination support."
       }
     },
     {

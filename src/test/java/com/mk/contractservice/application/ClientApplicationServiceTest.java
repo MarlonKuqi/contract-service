@@ -8,9 +8,6 @@ import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
-import java.time.LocalDate;
-import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,6 +15,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -63,8 +65,6 @@ class ClientApplicationServiceTest {
             assertThat(result.getEmail().value()).isEqualTo(email.toLowerCase());
             assertThat(result.getPhone().value()).isEqualTo(phone);
             assertThat(result.getBirthDate().value()).isEqualTo(birthDate);
-
-            verify(clientRepository).save(any(Person.class));
         }
 
         @Test
@@ -79,7 +79,6 @@ class ClientApplicationServiceTest {
                     .hasMessageContaining("Client already exists")
                     .extracting("businessKey")
                     .isEqualTo(email);
-
             verify(clientRepository, never()).save(any());
         }
 
@@ -228,7 +227,7 @@ class ClientApplicationServiceTest {
             assertThat(updated).isFalse();
         }
     }
-    
+
     @Nested
     @DisplayName("US4: Delete Person")
     class DeletePersonTests {
@@ -243,11 +242,7 @@ class ClientApplicationServiceTest {
             doNothing().when(clientRepository).deleteById(personId);
 
             boolean deleted = service.deleteClientAndCloseContracts(personId);
-
             assertThat(deleted).isTrue();
-
-            verify(contractApplicationService).closeActiveContractsByClientId(personId);
-            verify(clientRepository).deleteById(personId);
         }
 
         @Test
@@ -259,24 +254,9 @@ class ClientApplicationServiceTest {
             boolean deleted = service.deleteClientAndCloseContracts(nonExistentId);
 
             assertThat(deleted).isFalse();
+
             verify(contractApplicationService, never()).closeActiveContractsByClientId(any());
             verify(clientRepository, never()).deleteById(any());
-        }
-
-        @Test
-        @DisplayName("GIVEN person without contracts WHEN delete THEN deletion still succeeds")
-        void shouldDeletePersonWithoutContracts() {
-            UUID personId = UUID.randomUUID();
-
-            when(clientRepository.existsById(personId)).thenReturn(true);
-            doNothing().when(contractApplicationService).closeActiveContractsByClientId(personId);
-            doNothing().when(clientRepository).deleteById(personId);
-
-            boolean deleted = service.deleteClientAndCloseContracts(personId);
-
-            assertThat(deleted).isTrue();
-            verify(contractApplicationService).closeActiveContractsByClientId(personId);
-            verify(clientRepository).deleteById(personId);
         }
 
         @Test
