@@ -43,12 +43,12 @@ public class CompanyController {
     @Operation(
             summary = "Create a company client",
             description = "Creates a new company client and returns its representation. "
-                    + "On success returns 201 Created with Location header."
+                    + "On success returns 201 Created with Location header to /v1/clients/{id}."
     )
     @ApiResponses({
             @ApiResponse(
                     responseCode = "201",
-                    description = "Company created",
+                    description = "Company created successfully",
                     headers = {
                             @Header(name = "Location", description = "URI of the created client resource")
                     },
@@ -57,13 +57,25 @@ public class CompanyController {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid input data",
+                    description = "Malformed JSON / invalid syntax",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class))
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "Conflict - Email already exists",
+                    description = "Conflict - Email or company identifier already exists",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "422",
+                    description = "Business validation failed (e.g., invalid email, phone, or company identifier format)",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Unexpected server error",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class))
             )
