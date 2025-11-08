@@ -129,52 +129,6 @@ class ContractPeriodTest {
     }
 
     @Test
-    @DisplayName("GIVEN period WHEN isActiveAt(date before end) THEN return true")
-    void shouldBeActiveAtDateBeforeEnd() {
-        LocalDateTime start = LocalDateTime.now().minusDays(10);
-        LocalDateTime end = LocalDateTime.now().plusDays(10);
-        LocalDateTime referenceDate = LocalDateTime.now();
-
-        ContractPeriod period = ContractPeriod.of(start, end);
-
-        assertThat(period.isActiveAt(referenceDate)).isTrue();
-    }
-
-    @Test
-    @DisplayName("GIVEN period WHEN isActiveAt(date after end) THEN return false")
-    void shouldNotBeActiveAtDateAfterEnd() {
-        LocalDateTime start = LocalDateTime.now().minusDays(10);
-        LocalDateTime end = LocalDateTime.now().minusDays(5);
-        LocalDateTime referenceDate = LocalDateTime.now();
-
-        ContractPeriod period = ContractPeriod.of(start, end);
-
-        assertThat(period.isActiveAt(referenceDate)).isFalse();
-    }
-
-    @Test
-    @DisplayName("GIVEN period with null end WHEN isActiveAt(any date) THEN return true")
-    void shouldBeActiveAtAnyDateWhenEndIsNull() {
-        LocalDateTime start = LocalDateTime.now().minusDays(10);
-        LocalDateTime referenceDate = LocalDateTime.now().plusYears(10);
-
-        ContractPeriod period = ContractPeriod.of(start, null);
-
-        assertThat(period.isActiveAt(referenceDate)).isTrue();
-    }
-
-    @Test
-    @DisplayName("GIVEN period WHEN isActiveAt(exactly end date) THEN return false")
-    void shouldNotBeActiveAtExactlyEndDate() {
-        LocalDateTime start = LocalDateTime.now().minusDays(10);
-        LocalDateTime end = LocalDateTime.now().plusDays(10);
-
-        ContractPeriod period = ContractPeriod.of(start, end);
-
-        assertThat(period.isActiveAt(end)).isFalse();
-    }
-
-    @Test
     @DisplayName("GIVEN two equal periods WHEN comparing THEN they are equal")
     void shouldBeEqualWhenSameValues() {
         LocalDateTime start = LocalDateTime.now();

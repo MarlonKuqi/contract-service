@@ -4,38 +4,64 @@ import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
 import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
-import jakarta.persistence.PrimaryKeyJoinColumn;
-import jakarta.persistence.Table;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "company")
-@DiscriminatorValue("COMPANY")
-@PrimaryKeyJoinColumn(name = "id")
+import java.util.UUID;
+
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED, force = true)
-public class Company extends Client {
+public final class Company extends Client {
 
     private static final String COMPANY_IDENTIFIER_NULL_MESSAGE = "Company identifier must not be null";
 
-    @Embedded
-    @NotNull(message = COMPANY_IDENTIFIER_NULL_MESSAGE)
-    @Valid
     private final CompanyIdentifier companyIdentifier;
 
-    public Company(final ClientName name, final Email email, final PhoneNumber phone, final CompanyIdentifier companyIdentifier) {
-        super(name, email, phone);
+    private Company(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final CompanyIdentifier companyIdentifier) {
+        super(id, name, email, phone);
         if (companyIdentifier == null) {
             throw new IllegalArgumentException(COMPANY_IDENTIFIER_NULL_MESSAGE);
         }
         this.companyIdentifier = companyIdentifier;
     }
-}
 
+
+    public static CompanyBuilder builder() {
+        return new CompanyBuilder();
+    }
+
+    public static class CompanyBuilder {
+        private UUID id;
+        private ClientName name;
+        private Email email;
+        private PhoneNumber phone;
+        private CompanyIdentifier companyIdentifier;
+
+        public CompanyBuilder id(final UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public CompanyBuilder name(final ClientName name) {
+            this.name = name;
+            return this;
+        }
+
+        public CompanyBuilder email(final Email email) {
+            this.email = email;
+            return this;
+        }
+
+        public CompanyBuilder phone(final PhoneNumber phone) {
+            this.phone = phone;
+            return this;
+        }
+
+        public CompanyBuilder companyIdentifier(final CompanyIdentifier companyIdentifier) {
+            this.companyIdentifier = companyIdentifier;
+            return this;
+        }
+
+        public Company build() {
+            return new Company(id, name, email, phone, companyIdentifier);
+        }
+    }
+}

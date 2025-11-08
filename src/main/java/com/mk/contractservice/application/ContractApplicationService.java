@@ -5,6 +5,9 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.exception.ContractNotFoundException;
+import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
+import com.mk.contractservice.domain.exception.ExpiredContractException;
 import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import org.springframework.cache.annotation.CacheEvict;
@@ -38,20 +41,29 @@ public class ContractApplicationService {
 
         final ContractPeriod period = ContractPeriod.of(start, end);
 
-        final Contract contract = new Contract(client, period, ContractCost.of(amount));
+        final Contract contract = Contract.builder()
+                .client(client)
+                .period(period)
+                .costAmount(ContractCost.of(amount))
+                .build();
 
         return contractRepo.save(contract);
     }
 
     @Transactional
     @CacheEvict(value = "contractSums", key = "#clientId")
-    public boolean updateCost(final UUID clientId, final UUID contractId, BigDecimal newAmount) {
-        return contractRepo.findById(contractId)
-                .map(contract -> {
-                    contract.changeCost(ContractCost.of(newAmount));
-                    return true;
-                })
-                .orElse(false);
+    public void updateCost(final UUID clientId, final UUID contractId, BigDecimal newAmount) {
+        final Contract contract = contractRepo.findById(contractId)
+                .orElseThrow(() -> new ContractNotFoundException(contractId));
+
+        if (!contract.getClient().getId().equals(clientId)) {
+            throw new ContractNotOwnedByClientException(contractId, clientId);
+        }
+        if (!contract.isActive()) {
+            throw new ExpiredContractException(contractId);
+        }
+        contract.changeCost(ContractCost.of(newAmount));
+        contractRepo.save(contract);
     }
 
     @Transactional(readOnly = true)

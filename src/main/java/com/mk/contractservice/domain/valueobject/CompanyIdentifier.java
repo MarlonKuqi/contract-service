@@ -2,18 +2,12 @@ package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.mk.contractservice.domain.exception.InvalidCompanyIdentifierException;
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import java.util.Objects;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
-@Embeddable
-@NoArgsConstructor(access = AccessLevel.PROTECTED, force = true)
+import java.util.Objects;
+
 public final class CompanyIdentifier {
 
-    @Column(name = "company_identifier", nullable = false, updatable = false, unique = true, length = 64)
     private final String value;
 
     private CompanyIdentifier(final String value) {

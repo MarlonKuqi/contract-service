@@ -11,10 +11,11 @@ import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
 import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
-import java.util.Optional;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class ClientApplicationService {
@@ -35,12 +36,12 @@ public class ClientApplicationService {
             throw new ClientAlreadyExistsException(CLIENT_ALREADY_EXISTS_MSG, email);
         }
 
-        final Person person = new Person(
-                ClientName.of(name),
-                Email.of(email),
-                PhoneNumber.of(phone),
-                PersonBirthDate.of(birthDate)
-        );
+        final Person person = Person.builder()
+                .name(ClientName.of(name))
+                .email(Email.of(email))
+                .phone(PhoneNumber.of(phone))
+                .birthDate(PersonBirthDate.of(birthDate))
+                .build();
         return (Person) clientRepo.save(person);
     }
 
@@ -58,12 +59,12 @@ public class ClientApplicationService {
             );
         }
 
-        final Company company = new Company(
-                ClientName.of(name),
-                Email.of(email),
-                PhoneNumber.of(phone),
-                CompanyIdentifier.of(companyIdentifier)
-        );
+        final Company company = Company.builder()
+                .name(ClientName.of(name))
+                .email(Email.of(email))
+                .phone(PhoneNumber.of(phone))
+                .companyIdentifier(CompanyIdentifier.of(companyIdentifier))
+                .build();
         return (Company) clientRepo.save(company);
     }
 
@@ -79,6 +80,7 @@ public class ClientApplicationService {
         }
         final Client client = clientOptional.get();
         client.updateCommonFields(name, email, phone);
+        clientRepo.save(client);
         return true;
     }
 

@@ -27,7 +27,6 @@ public interface ClientDtoMapper {
                     co.getPhone(),
                     co.getCompanyIdentifier()
             );
-            default -> throw new IllegalStateException("Unknown client subtype");
         };
     }
 }

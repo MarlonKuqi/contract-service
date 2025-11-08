@@ -4,11 +4,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-/**
- * Response DTO for reading a client (GET /v1/clients/{id}).
- * Polymorphic: can be PersonResponse or CompanyResponse.
- * Jackson adds a "type" discriminator field automatically.
- */
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.PROPERTY,
