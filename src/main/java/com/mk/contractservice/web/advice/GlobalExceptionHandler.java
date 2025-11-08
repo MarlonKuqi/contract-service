@@ -5,6 +5,7 @@ import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
 import com.mk.contractservice.domain.exception.DomainValidationException;
+import com.mk.contractservice.domain.exception.ExpiredContractException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -98,6 +99,15 @@ public class GlobalExceptionHandler {
 
         ProblemDetail problemDetail = problem(HttpStatus.FORBIDDEN, "Access Denied",
                 "You do not have permission to access this contract", "contractAccessDenied");
+        return respond(problemDetail);
+    }
+
+    @ExceptionHandler(ExpiredContractException.class)
+    public ResponseEntity<ProblemDetail> handleExpiredContract(ExpiredContractException ex) {
+        log.warn("Business rule violation: {}", ex.getMessage());
+
+        ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Contract Expired",
+                ex.getMessage(), "contractExpired");
         return respond(problemDetail);
     }
 

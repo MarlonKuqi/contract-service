@@ -150,6 +150,53 @@ class ContractTest {
         }
     }
 
+    @Nested
+    @DisplayName("isActive - Subject requirement: Determine if contract is currently active")
+    class IsActiveValidation {
+
+        @Test
+        @DisplayName("GIVEN contract with null endDate WHEN checking isActive THEN should be active")
+        void shouldBeActiveWhenEndDateIsNull() {
+            LocalDateTime now = LocalDateTime.now();
+            ContractPeriod period = ContractPeriod.of(now.minusDays(10), null);
+            Contract contract = Contract.builder()
+                    .client(testClient)
+                    .period(period)
+                    .costAmount(ContractCost.of(BigDecimal.valueOf(1000)))
+                    .build();
+
+            assertThat(contract.isActive()).isTrue();
+        }
+
+        @Test
+        @DisplayName("GIVEN contract with future endDate WHEN checking isActive THEN should be active")
+        void shouldBeActiveWhenEndDateIsInFuture() {
+            LocalDateTime now = LocalDateTime.now();
+            ContractPeriod period = ContractPeriod.of(now.minusDays(10), now.plusDays(30));
+            Contract contract = Contract.builder()
+                    .client(testClient)
+                    .period(period)
+                    .costAmount(ContractCost.of(BigDecimal.valueOf(1000)))
+                    .build();
+
+            assertThat(contract.isActive()).isTrue();
+        }
+
+        @Test
+        @DisplayName("GIVEN contract with past endDate WHEN checking isActive THEN should NOT be active")
+        void shouldNotBeActiveWhenEndDateIsInPast() {
+            LocalDateTime now = LocalDateTime.now();
+            ContractPeriod period = ContractPeriod.of(now.minusDays(100), now.minusDays(1));
+            Contract contract = Contract.builder()
+                    .client(testClient)
+                    .period(period)
+                    .costAmount(ContractCost.of(BigDecimal.valueOf(1000)))
+                    .build();
+
+            assertThat(contract.isActive()).isFalse();
+        }
+    }
+
 
     @Nested
     @DisplayName("ContractPeriod - Subject requirement: Start/end dates, null end date allowed")

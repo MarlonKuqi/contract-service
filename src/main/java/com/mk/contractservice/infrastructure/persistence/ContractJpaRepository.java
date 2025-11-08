@@ -28,7 +28,6 @@ public interface ContractJpaRepository extends JpaRepository<ContractJpaEntity, 
                                                         @Param("now") LocalDateTime now,
                                                         Pageable pageable);
 
-
     @Query("""
             SELECT c FROM ContractJpaEntity c
             JOIN FETCH c.client

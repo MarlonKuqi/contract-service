@@ -13,10 +13,6 @@ import com.mk.contractservice.infrastructure.persistence.entity.CompanyJpaEntity
 import com.mk.contractservice.infrastructure.persistence.entity.PersonJpaEntity;
 import org.springframework.stereotype.Component;
 
-/**
- * Assembler for converting between Client domain objects and JPA entities.
- * This is an Anti-Corruption Layer (ACL) that protects the domain from infrastructure concerns.
- */
 @Component
 public class ClientAssembler {
 

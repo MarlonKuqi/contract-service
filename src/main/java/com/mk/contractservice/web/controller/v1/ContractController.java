@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -95,7 +94,8 @@ public class ContractController {
             summary = "Get all ACTIVE contracts for a client (paginated)",
             description = "Returns all active contracts (current date < end date or endDate = null). "
                     + "Can be filtered by lastModified >= updatedSince. "
-                    + "Supports pagination with default page size of 20."
+                    + "Supports pagination (default size: 20, max: 100). "
+                    + "Use query params: ?page=0&size=20&sort=lastModified,desc"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "List of active contracts (paginated)"),
@@ -106,7 +106,7 @@ public class ContractController {
             @PathVariable final UUID clientId,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final LocalDateTime updatedSince,
-            @PageableDefault(size = 20, sort = "lastModified") final Pageable pageable,
+            final Pageable pageable,
             final Locale locale
     ) {
         final Page<Contract> contracts = contractApplicationService.getActiveContractsPageable(clientId, updatedSince, pageable);
@@ -149,13 +149,15 @@ public class ContractController {
 
     @Operation(
             summary = "Update the cost amount of a contract",
-            description = "Updates only the costAmount field. The lastModified field is automatically updated internally."
+            description = "Updates only the costAmount field. The lastModified field is automatically updated internally. "
+                    + "Business rule: Only active contracts (not expired) can be updated."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Cost updated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "403", description = "Contract does not belong to this client"),
-            @ApiResponse(responseCode = "404", description = "Contract not found")
+            @ApiResponse(responseCode = "404", description = "Contract not found"),
+            @ApiResponse(responseCode = "422", description = "Contract is expired and cannot be modified")
     })
     @PatchMapping("/{contractId}/cost")
     public ResponseEntity<Void> updateCost(

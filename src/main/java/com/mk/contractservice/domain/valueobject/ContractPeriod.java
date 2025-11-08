@@ -33,12 +33,9 @@ public final class ContractPeriod {
         }
     }
 
-    public boolean isActiveAt(final LocalDateTime referenceDate) {
-        return endDate == null || referenceDate.isBefore(endDate);
-    }
-
     public boolean isActive() {
-        return isActiveAt(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        return endDate == null || now.isBefore(endDate);
     }
 
     @JsonProperty("startDate")

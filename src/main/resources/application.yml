@@ -38,3 +38,7 @@ info:
     version: '@project.version@'
     description: Contract Management Service
 
+app:
+  pagination:
+    default-page-size: 20
+    max-page-size: 100

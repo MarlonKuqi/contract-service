@@ -48,6 +48,10 @@ public class Contract {
         this.lastModified = LocalDateTime.now();
     }
 
+    public boolean isActive() {
+        return period.isActive();
+    }
+
     public void changeCost(final ContractCost newAmount) {
         if (newAmount == null) {
             throw InvalidContractException.forNullNewCostAmount();

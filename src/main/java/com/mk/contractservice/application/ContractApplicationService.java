@@ -7,6 +7,7 @@ import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
+import com.mk.contractservice.domain.exception.ExpiredContractException;
 import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import org.springframework.cache.annotation.CacheEvict;
@@ -54,8 +55,12 @@ public class ContractApplicationService {
     public void updateCost(final UUID clientId, final UUID contractId, BigDecimal newAmount) {
         final Contract contract = contractRepo.findById(contractId)
                 .orElseThrow(() -> new ContractNotFoundException(contractId));
+
         if (!contract.getClient().getId().equals(clientId)) {
             throw new ContractNotOwnedByClientException(contractId, clientId);
+        }
+        if (!contract.isActive()) {
+            throw new ExpiredContractException(contractId);
         }
         contract.changeCost(ContractCost.of(newAmount));
         contractRepo.save(contract);

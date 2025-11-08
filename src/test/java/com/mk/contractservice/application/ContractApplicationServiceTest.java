@@ -8,6 +8,7 @@ import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
+import com.mk.contractservice.domain.exception.ExpiredContractException;
 import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
@@ -229,9 +230,27 @@ class ContractApplicationServiceTest {
                     .isInstanceOf(ContractNotOwnedByClientException.class)
                     .hasMessageContaining(contractId.toString())
                     .hasMessageContaining(differentClientId.toString());
-
-            // Verify cost was NOT updated
             assertThat(contract.getCostAmount().value()).isEqualByComparingTo(new BigDecimal("100.00"));
+        }
+
+        @Test
+        @DisplayName("GIVEN expired contract WHEN updateCost THEN throw ExpiredContractException")
+        void shouldThrowExceptionWhenContractIsExpired() {
+            UUID contractId = UUID.randomUUID();
+            LocalDateTime now = LocalDateTime.now();
+            Contract expiredContract = Contract.builder()
+                    .client(testClient)
+                    .period(ContractPeriod.of(now.minusDays(100), now.minusDays(1)))  // Expired yesterday
+                    .costAmount(ContractCost.of(new BigDecimal("100.00")))
+                    .build();
+
+            when(contractRepository.findById(contractId)).thenReturn(Optional.of(expiredContract));
+
+            assertThatThrownBy(() -> service.updateCost(JOHN_DOE_CLIENT_ID, contractId, new BigDecimal("200.00")))
+                    .isInstanceOf(ExpiredContractException.class)
+                    .hasMessageContaining(contractId.toString());
+
+            assertThat(expiredContract.getCostAmount().value()).isEqualByComparingTo(new BigDecimal("100.00"));
         }
     }
 

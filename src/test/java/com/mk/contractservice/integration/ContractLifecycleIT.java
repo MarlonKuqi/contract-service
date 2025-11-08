@@ -350,7 +350,6 @@ class ContractLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Updating cost with wrong clientId returns 403 Forbidden (authorization)")
     void shouldReturn403WhenUpdatingCostWithWrongClientId() {
-        // Create a contract for testClient
         String contractPayload = """
                 {
                     "startDate": "2025-01-01T00:00:00",
@@ -370,7 +369,6 @@ class ContractLifecycleIT {
 
         String contractId = location.substring(location.lastIndexOf('/') + 1);
 
-        // Try to update the cost using a different (random) clientId
         UUID wrongClientId = UUID.randomUUID();
         String updatePayload = """
                 {
