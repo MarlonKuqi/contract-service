@@ -255,6 +255,60 @@ class ContractApplicationServiceTest {
     }
 
     @Nested
+    @DisplayName("Get Contract By ID")
+    class GetContractByIdTests {
+
+        @Test
+        @DisplayName("GIVEN existing contract belonging to client WHEN getContractById THEN return contract")
+        void shouldReturnContractWhenFoundAndBelongsToClient() {
+            UUID contractId = UUID.randomUUID();
+            Contract contract = Contract.builder()
+                    .client(testClient)
+                    .period(ContractPeriod.of(LocalDateTime.now(), null))
+                    .costAmount(ContractCost.of(BigDecimal.valueOf(1000)))
+                    .build();
+
+            when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract));
+
+            Contract result = service.getContractById(JOHN_DOE_CLIENT_ID, contractId);
+
+            assertThat(result).isEqualTo(contract);
+            verify(contractRepository).findById(contractId);
+        }
+
+        @Test
+        @DisplayName("GIVEN non-existent contract WHEN getContractById THEN throw ContractNotFoundException")
+        void shouldThrowExceptionWhenContractNotFound() {
+            UUID contractId = UUID.randomUUID();
+
+            when(contractRepository.findById(contractId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.getContractById(JOHN_DOE_CLIENT_ID, contractId))
+                    .isInstanceOf(ContractNotFoundException.class)
+                    .hasMessageContaining(contractId.toString());
+        }
+
+        @Test
+        @DisplayName("GIVEN contract belonging to different client WHEN getContractById THEN throw ContractNotOwnedByClientException")
+        void shouldThrowExceptionWhenContractBelongsToDifferentClient() {
+            UUID contractId = UUID.randomUUID();
+            UUID differentClientId = UUID.randomUUID();
+            Contract contract = Contract.builder()
+                    .client(testClient)
+                    .period(ContractPeriod.of(LocalDateTime.now(), null))
+                    .costAmount(ContractCost.of(BigDecimal.valueOf(1000)))
+                    .build();
+
+            when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract));
+
+            assertThatThrownBy(() -> service.getContractById(differentClientId, contractId))
+                    .isInstanceOf(ContractNotOwnedByClientException.class)
+                    .hasMessageContaining(contractId.toString())
+                    .hasMessageContaining(differentClientId.toString());
+        }
+    }
+
+    @Nested
     @DisplayName("Get Active Contracts")
     class GetActiveContractsTests {
 

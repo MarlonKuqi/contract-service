@@ -184,6 +184,30 @@ public class ContractController {
     }
 
     @Operation(
+            summary = "Get a specific contract by ID",
+            description = "Retrieves a single contract by its ID. "
+                    + "Validates that the contract belongs to the specified client."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Contract found"),
+            @ApiResponse(responseCode = "403", description = "Contract does not belong to this client"),
+            @ApiResponse(responseCode = "404", description = "Contract not found")
+    })
+    @GetMapping("/{contractId}")
+    public ResponseEntity<ContractResponse> getById(
+            @PathVariable final UUID clientId,
+            @PathVariable final UUID contractId,
+            final Locale locale
+    ) {
+        final Contract contract = contractApplicationService.getContractById(clientId, contractId);
+        final ContractResponse response = contractMapper.toDto(contract);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
+                .body(response);
+    }
+
+    @Operation(
             summary = "Sum of costAmount of ACTIVE contracts for a client",
             description = "Returns the sum of costAmount for all active contracts of a client. "
                     + "Returns 0.00 if no active contracts exist."
