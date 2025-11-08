@@ -1,6 +1,7 @@
 package com.mk.contractservice.integration;
 
 import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.Email;
@@ -21,6 +22,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -43,10 +45,13 @@ class ContractLifecycleIT {
     private int port;
 
     @Autowired
-    private ClientJpaRepository clientRepository;
+    private ClientRepository clientRepository;
 
     @Autowired
-    private ContractJpaRepository contractRepository;
+    private ClientJpaRepository clientJpaRepository;
+
+    @Autowired
+    private ContractJpaRepository contractJpaRepository;
 
     private Client testClient;
 
@@ -54,29 +59,29 @@ class ContractLifecycleIT {
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
-        contractRepository.deleteAll();
-        clientRepository.deleteAll();
+        contractJpaRepository.deleteAll();
+        clientJpaRepository.deleteAll();
 
-        testClient = new Person(
-                ClientName.of("Marie Durand"),
-                Email.of("marie.durand." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                PhoneNumber.of("+41791234567"),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20))
-        );
+        testClient = Person.builder()
+                .name(ClientName.of("Marie Durand"))
+                .email(Email.of("marie.durand." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
+                .phone(PhoneNumber.of("+41791234567"))
+                .birthDate(PersonBirthDate.of(LocalDate.of(1985, 3, 20)))
+                .build();
         testClient = clientRepository.save(testClient);
     }
 
     @Test
     @DisplayName("SCENARIO: Create contract, retrieve it, update cost, verify changes")
     void shouldCompleteContractLifecycle() {
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         String createPayload = String.format("""
                 {
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "5000.00"
                 }
-                """, now.toString(), now.plusMonths(12).toString());
+                """, now, now.plusMonths(12));
 
         String location = given()
                 .contentType(ContentType.JSON)
@@ -118,7 +123,7 @@ class ContractLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Client signs multiple contracts, sum calculation reflects all active ones")
     void shouldTrackMultipleContractsForSameClient() {
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
 
         String contract1 = String.format("""
                 {
@@ -220,7 +225,7 @@ class ContractLifecycleIT {
                 .then()
                 .statusCode(anyOf(is(400), is(422)));
 
-        java.time.LocalDateTime testNow = java.time.LocalDateTime.now();
+        LocalDateTime testNow = LocalDateTime.now();
         String invalidDateRange = String.format("""
                 {
                     "startDate": "%s",
@@ -309,7 +314,7 @@ class ContractLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Contract without endDate is considered active indefinitely")
     void shouldTreatNullEndDateAsIndefinitelyActive() {
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         String contractPayload = String.format("""
                 {
                     "startDate": "%s",
@@ -340,6 +345,48 @@ class ContractLifecycleIT {
                 .then()
                 .statusCode(200)
                 .body(equalTo("1500.00"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Updating cost with wrong clientId returns 403 Forbidden (authorization)")
+    void shouldReturn403WhenUpdatingCostWithWrongClientId() {
+        // Create a contract for testClient
+        String contractPayload = """
+                {
+                    "startDate": "2025-01-01T00:00:00",
+                    "endDate": null,
+                    "costAmount": "1000.00"
+                }
+                """;
+
+        String location = given()
+                .contentType(ContentType.JSON)
+                .body(contractPayload)
+                .when()
+                .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                .then()
+                .statusCode(201)
+                .extract().header("Location");
+
+        String contractId = location.substring(location.lastIndexOf('/') + 1);
+
+        // Try to update the cost using a different (random) clientId
+        UUID wrongClientId = UUID.randomUUID();
+        String updatePayload = """
+                {
+                    "amount": "2000.00"
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(updatePayload)
+                .when()
+                .patch("/v1/clients/{clientId}/contracts/{contractId}/cost", wrongClientId, contractId)
+                .then()
+                .statusCode(403)
+                .body("title", equalTo("Access Denied"))
+                .body("code", equalTo("contractAccessDenied"));
     }
 }
 

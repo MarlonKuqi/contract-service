@@ -2,6 +2,8 @@ package com.mk.contractservice.web.advice;
 
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.exception.ContractNotFoundException;
+import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
 import com.mk.contractservice.domain.exception.DomainValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +80,24 @@ public class GlobalExceptionHandler {
 
         ProblemDetail problemDetail = problem(HttpStatus.NOT_FOUND, "Client Not Found",
                 ex.getMessage(), "clientNotFound");
+        return respond(problemDetail);
+    }
+
+    @ExceptionHandler(ContractNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleContractNotFound(ContractNotFoundException ex) {
+        log.debug("Contract not found: {}", ex.getMessage());
+
+        ProblemDetail problemDetail = problem(HttpStatus.NOT_FOUND, "Contract Not Found",
+                ex.getMessage(), "contractNotFound");
+        return respond(problemDetail);
+    }
+
+    @ExceptionHandler(ContractNotOwnedByClientException.class)
+    public ResponseEntity<ProblemDetail> handleContractNotOwnedByClient(ContractNotOwnedByClientException ex) {
+        log.warn("Security: Attempt to access contract not owned by client: {}", ex.getMessage());
+
+        ProblemDetail problemDetail = problem(HttpStatus.FORBIDDEN, "Access Denied",
+                "You do not have permission to access this contract", "contractAccessDenied");
         return respond(problemDetail);
     }
 

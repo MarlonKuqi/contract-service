@@ -2,25 +2,16 @@ package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mk.contractservice.domain.exception.InvalidContractPeriodException;
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-@Embeddable
 public final class ContractPeriod {
 
-    @Column(name = "start_date", nullable = false)
     private final LocalDateTime startDate;
 
-    @Column(name = "end_date")
     private final LocalDateTime endDate;
 
-    protected ContractPeriod() {
-        this.startDate = null;
-        this.endDate = null;
-    }
 
     private ContractPeriod(final LocalDateTime startDate, final LocalDateTime endDate) {
         this.startDate = startDate;

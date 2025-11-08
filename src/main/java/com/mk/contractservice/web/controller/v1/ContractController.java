@@ -154,6 +154,7 @@ public class ContractController {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Cost updated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "403", description = "Contract does not belong to this client"),
             @ApiResponse(responseCode = "404", description = "Contract not found")
     })
     @PatchMapping("/{contractId}/cost")
@@ -162,7 +163,7 @@ public class ContractController {
             @PathVariable final UUID contractId,
             @Valid @RequestBody final CostUpdateRequest req
     ) {
-        final boolean ok = contractApplicationService.updateCost(clientId, contractId, req.amount());
-        return ok ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        contractApplicationService.updateCost(clientId, contractId, req.amount());
+        return ResponseEntity.noContent().build();
     }
 }

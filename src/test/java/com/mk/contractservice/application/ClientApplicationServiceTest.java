@@ -104,12 +104,12 @@ class ClientApplicationServiceTest {
         @DisplayName("GIVEN existing person WHEN findById THEN return person with ALL fields")
         void shouldReturnPersonWithAllFields() {
             UUID personId = UUID.randomUUID();
-            Person person = new Person(
-                    ClientName.of("John Doe"),
-                    Email.of("john@example.com"),
-                    PhoneNumber.of("+33123456789"),
-                    PersonBirthDate.of(LocalDate.of(1990, 5, 15))
-            );
+            Person person = Person.builder()
+                    .name(ClientName.of("John Doe"))
+                    .email(Email.of("john@example.com"))
+                    .phone(PhoneNumber.of("+33123456789"))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 5, 15)))
+                    .build();
 
             when(clientRepository.findById(personId)).thenReturn(Optional.of(person));
 
@@ -138,12 +138,12 @@ class ClientApplicationServiceTest {
         @DisplayName("GIVEN person exists WHEN read THEN return Person type (not just Client)")
         void shouldReturnCorrectType() {
             UUID personId = UUID.randomUUID();
-            Person person = new Person(
-                    ClientName.of("John Doe"),
-                    Email.of("john@example.com"),
-                    PhoneNumber.of("+33123456789"),
-                    PersonBirthDate.of(LocalDate.of(1990, 5, 15))
-            );
+            Person person = Person.builder()
+                    .name(ClientName.of("John Doe"))
+                    .email(Email.of("john@example.com"))
+                    .phone(PhoneNumber.of("+33123456789"))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 5, 15)))
+                    .build();
 
             when(clientRepository.findById(personId)).thenReturn(Optional.of(person));
 
@@ -164,12 +164,12 @@ class ClientApplicationServiceTest {
         @DisplayName("GIVEN existing person WHEN update name, email, phone THEN changes are applied")
         void shouldUpdateAllowedFields() {
             UUID personId = UUID.randomUUID();
-            Person existingPerson = new Person(
-                    ClientName.of("John Doe"),
-                    Email.of("john@example.com"),
-                    PhoneNumber.of("+33111111111"),
-                    PersonBirthDate.of(LocalDate.of(1990, 5, 15))
-            );
+            Person existingPerson = Person.builder()
+                    .name(ClientName.of("John Doe"))
+                    .email(Email.of("john@example.com"))
+                    .phone(PhoneNumber.of("+33111111111"))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 5, 15)))
+                    .build();
 
             when(clientRepository.findById(personId)).thenReturn(Optional.of(existingPerson));
 
@@ -190,12 +190,12 @@ class ClientApplicationServiceTest {
         void shouldNotUpdateBirthdate() {
             UUID personId = UUID.randomUUID();
             PersonBirthDate originalBirthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15));
-            Person existingPerson = new Person(
-                    ClientName.of("John Doe"),
-                    Email.of("john@example.com"),
-                    PhoneNumber.of("+33111111111"),
-                    originalBirthDate
-            );
+            Person existingPerson = Person.builder()
+                    .name(ClientName.of("John Doe"))
+                    .email(Email.of("john@example.com"))
+                    .phone(PhoneNumber.of("+33111111111"))
+                    .birthDate(originalBirthDate)
+                    .build();
 
             when(clientRepository.findById(personId)).thenReturn(Optional.of(existingPerson));
 
