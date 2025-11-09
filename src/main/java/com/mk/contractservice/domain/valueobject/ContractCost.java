@@ -2,20 +2,14 @@ package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.mk.contractservice.domain.exception.InvalidContractCostException;
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
+
 import java.math.BigDecimal;
 import java.util.Objects;
 
-@Embeddable
 public final class ContractCost {
 
-    @Column(name = "cost_amount", nullable = false, precision = 12, scale = 2)
     private final BigDecimal value;
 
-    protected ContractCost() {
-        this.value = null;
-    }
 
     private ContractCost(final BigDecimal value) {
         this.value = value;

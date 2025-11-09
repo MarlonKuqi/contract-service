@@ -6,6 +6,7 @@ import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -15,12 +16,12 @@ class CompanyTest {
     @Test
     @DisplayName("GIVEN valid data WHEN creating Company THEN company is created")
     void shouldCreateCompanyWithValidData() {
-        Company company = new Company(
-                ClientName.of("ACME Corporation"),
-                Email.of("contact@acme.com"),
-                PhoneNumber.of("+33123456789"),
-                CompanyIdentifier.of("acme-123")
-        );
+        Company company = Company.builder()
+                .name(ClientName.of("ACME Corporation"))
+                .email(Email.of("contact@acme.com"))
+                .phone(PhoneNumber.of("+33123456789"))
+                .companyIdentifier(CompanyIdentifier.of("acme-123"))
+                .build();
 
         assertThat(company).isNotNull();
         assertThat(company.getName().value()).isEqualTo("ACME Corporation");
@@ -32,12 +33,12 @@ class CompanyTest {
     @Test
     @DisplayName("GIVEN null company identifier WHEN creating Company THEN throw exception")
     void shouldRejectNullCompanyIdentifier() {
-        assertThatThrownBy(() -> new Company(
-                ClientName.of("ACME Corp"),
-                Email.of("contact@acme.com"),
-                PhoneNumber.of("+33123456789"),
-                null
-        ))
+        assertThatThrownBy(() -> Company.builder()
+                .name(ClientName.of("ACME Corp"))
+                .email(Email.of("contact@acme.com"))
+                .phone(PhoneNumber.of("+33123456789"))
+                .companyIdentifier(null)
+                .build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Company identifier must not be null");
     }
@@ -45,12 +46,12 @@ class CompanyTest {
     @Test
     @DisplayName("GIVEN identifier from subject WHEN creating Company THEN accept")
     void shouldAcceptPatternFromSubject() {
-        Company company = new Company(
-                ClientName.of("Example Company"),
-                Email.of("info@example.com"),
-                PhoneNumber.of("+33987654321"),
-                CompanyIdentifier.of("aaa-123")
-        );
+        Company company = Company.builder()
+                .name(ClientName.of("Example Company"))
+                .email(Email.of("info@example.com"))
+                .phone(PhoneNumber.of("+33987654321"))
+                .companyIdentifier(CompanyIdentifier.of("aaa-123"))
+                .build();
 
         assertThat(company.getCompanyIdentifier().value()).isEqualTo("aaa-123");
     }
@@ -58,12 +59,12 @@ class CompanyTest {
     @Test
     @DisplayName("GIVEN company identifier with special chars WHEN creating Company THEN accept")
     void shouldAcceptSpecialCharactersInIdentifier() {
-        Company company = new Company(
-                ClientName.of("Test Corp"),
-                Email.of("test@corp.com"),
-                PhoneNumber.of("+33111111111"),
-                CompanyIdentifier.of("abc-xyz-123_456")
-        );
+        Company company = Company.builder()
+                .name(ClientName.of("Test Corp"))
+                .email(Email.of("test@corp.com"))
+                .phone(PhoneNumber.of("+33111111111"))
+                .companyIdentifier(CompanyIdentifier.of("abc-xyz-123_456"))
+                .build();
 
         assertThat(company.getCompanyIdentifier().value()).isEqualTo("abc-xyz-123_456");
     }

@@ -35,17 +35,17 @@ class PersonLifecycleIT {
     private int port;
 
     @Autowired
-    private ClientJpaRepository clientRepository;
+    private ClientJpaRepository clientJpaRepository;
 
     @Autowired
-    private ContractJpaRepository contractRepository;
+    private ContractJpaRepository contractJpaRepository;
 
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
-        contractRepository.deleteAll();
-        clientRepository.deleteAll();
+        contractJpaRepository.deleteAll();
+        clientJpaRepository.deleteAll();
     }
 
     @Test

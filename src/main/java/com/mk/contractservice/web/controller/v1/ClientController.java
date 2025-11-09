@@ -8,11 +8,14 @@ import com.mk.contractservice.web.dto.client.ClientResponse;
 import com.mk.contractservice.web.dto.client.UpdateClientRequest;
 import com.mk.contractservice.web.dto.mapper.client.ClientDtoMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,11 +44,27 @@ public class ClientController {
     @Operation(
             summary = "Read a client with all fields",
             description = "Returns a client (Person or Company) with all its fields. "
-                    + "The response includes a 'type' discriminator field."
+                    + "The response includes a 'type' discriminator field (PERSON or COMPANY)."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Client found"),
-            @ApiResponse(responseCode = "404", description = "Client not found")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Client found and returned successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ClientResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Client not found",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Unexpected server error",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            )
     })
     @GetMapping("/{id}")
     public ResponseEntity<ClientResponse> read(@PathVariable final UUID id, final Locale locale) {
@@ -59,12 +78,38 @@ public class ClientController {
     @Operation(
             summary = "Update a client (all fields except birthDate/companyIdentifier)",
             description = "Updates the common fields of a client (name, email, phone). "
-                    + "birthDate and companyIdentifier cannot be updated as per business rules."
+                    + "birthDate and companyIdentifier cannot be updated as per business rules. "
+                    + "Works for both Person and Company clients."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Client updated successfully"),
-            @ApiResponse(responseCode = "404", description = "Client not found"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data")
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Client updated successfully (no content returned)"
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid input data (validation failed)",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Client not found",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "422",
+                    description = "Business validation failed (e.g., invalid email or phone format)",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Unexpected server error",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            )
     })
     @PutMapping("/{id}")
     public ResponseEntity<Void> update(@PathVariable final UUID id, @Valid @RequestBody final UpdateClientRequest req) {
@@ -76,11 +121,27 @@ public class ClientController {
 
     @Operation(
             summary = "Delete a client",
-            description = "Deletes a client and automatically closes their active contracts by setting endDate=now"
+            description = "Deletes a client (and its Person or Company subtype via database cascade) "
+                    + "and automatically closes their active contracts by setting endDate=now. "
+                    + "This ensures referential integrity and data consistency."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Client deleted successfully"),
-            @ApiResponse(responseCode = "404", description = "Client not found")
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Client deleted successfully (including Person/Company record and contract closure)"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Client not found",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Unexpected server error",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            )
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable final UUID id) {

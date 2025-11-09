@@ -3,28 +3,33 @@ package com.mk.contractservice.infrastructure.persistence;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
+import com.mk.contractservice.domain.valueobject.Email;
+import com.mk.contractservice.infrastructure.persistence.assembler.ClientAssembler;
+import org.springframework.stereotype.Repository;
+
 import java.util.Optional;
 import java.util.UUID;
-
-import com.mk.contractservice.domain.valueobject.Email;
-import org.springframework.stereotype.Repository;
 
 @Repository
 public class JpaClientRepository implements ClientRepository {
     private final ClientJpaRepository jpa;
+    private final ClientAssembler assembler;
 
-    public JpaClientRepository(final ClientJpaRepository jpa) {
+    public JpaClientRepository(final ClientJpaRepository jpa, final ClientAssembler assembler) {
         this.jpa = jpa;
+        this.assembler = assembler;
     }
 
     @Override
     public Optional<Client> findById(final UUID id) {
-        return jpa.findById(id);
+        return jpa.findById(id).map(assembler::toDomain);
     }
 
     @Override
     public Client save(final Client c) {
-        return jpa.save(c);
+        var entity = assembler.toJpaEntity(c);
+        var savedEntity = jpa.save(entity);
+        return assembler.toDomain(savedEntity);
     }
 
     @Override
@@ -39,12 +44,12 @@ public class JpaClientRepository implements ClientRepository {
 
     @Override
     public boolean existsByEmail(final Email email) {
-        return jpa.existsByEmail_Value(email.value());
+        return jpa.existsByEmail(email.value());
     }
 
     @Override
     public boolean existsByEmail(final String email) {
-        return jpa.existsByEmail_Value(email);
+        return jpa.existsByEmail(email);
     }
 
     @Override

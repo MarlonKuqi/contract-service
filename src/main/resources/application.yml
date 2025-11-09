@@ -2,7 +2,7 @@ spring:
   application:
     name: contract-service
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:prod}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/contract}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
@@ -37,4 +37,18 @@ info:
     name: '@project.name@'
     version: '@project.version@'
     description: Contract Management Service
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operationsSorter: method
+    tagsSorter: alpha
+app:
+  pagination:
+    default-page-size: 20
+    max-page-size: 100
 
