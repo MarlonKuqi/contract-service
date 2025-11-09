@@ -98,6 +98,16 @@ class ContractLifecycleIT {
 
         String contractId = location.substring(location.lastIndexOf('/') + 1);
 
+        given()
+                .when()
+                .get("/v1/clients/{clientId}/contracts/{contractId}", testClient.getId(), contractId)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(contractId))
+                .body("costAmount", equalTo(5000.00f))
+                .body("period.startDate", notNullValue())
+                .body("period.endDate", notNullValue());
+
         String updatePayload = """
                 {
                     "amount": "7500.50"
@@ -381,6 +391,39 @@ class ContractLifecycleIT {
                 .body(updatePayload)
                 .when()
                 .patch("/v1/clients/{clientId}/contracts/{contractId}/cost", wrongClientId, contractId)
+                .then()
+                .statusCode(403)
+                .body("title", equalTo("Access Denied"))
+                .body("code", equalTo("contractAccessDenied"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Get contract with wrong clientId returns 403 Forbidden")
+    void shouldReturn403WhenGettingContractWithWrongClientId() {
+        String contractPayload = """
+                {
+                    "startDate": "2025-01-01T00:00:00",
+                    "endDate": null,
+                    "costAmount": "1000.00"
+                }
+                """;
+
+        String location = given()
+                .contentType(ContentType.JSON)
+                .body(contractPayload)
+                .when()
+                .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                .then()
+                .statusCode(201)
+                .extract().header("Location");
+
+        String contractId = location.substring(location.lastIndexOf('/') + 1);
+
+        UUID wrongClientId = UUID.randomUUID();
+
+        given()
+                .when()
+                .get("/v1/clients/{clientId}/contracts/{contractId}", wrongClientId, contractId)
                 .then()
                 .statusCode(403)
                 .body("title", equalTo("Access Denied"))

@@ -67,6 +67,18 @@ public class ContractApplicationService {
     }
 
     @Transactional(readOnly = true)
+    public Contract getContractById(final UUID clientId, final UUID contractId) {
+        final Contract contract = contractRepo.findById(contractId)
+                .orElseThrow(() -> new ContractNotFoundException(contractId));
+
+        if (!contract.getClient().getId().equals(clientId)) {
+            throw new ContractNotOwnedByClientException(contractId, clientId);
+        }
+
+        return contract;
+    }
+
+    @Transactional(readOnly = true)
     public Page<Contract> getActiveContractsPageable(final UUID clientId, LocalDateTime updatedSince, Pageable pageable) {
         LocalDateTime now = LocalDateTime.now();
         return contractRepo.findActiveByClientIdPageable(clientId, now, updatedSince, pageable);
