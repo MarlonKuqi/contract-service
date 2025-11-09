@@ -35,4 +35,3 @@ class PaginationPropertiesTest {
         assertThat(props.maxPageSize()).isEqualTo(50);
     }
 }
-

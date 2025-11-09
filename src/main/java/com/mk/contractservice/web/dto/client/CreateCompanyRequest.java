@@ -1,10 +1,13 @@
 package com.mk.contractservice.web.dto.client;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+@JsonTypeName("COMPANY")
+@Schema(description = "Create company client request")
 public record CreateCompanyRequest(
         @NotBlank(message = "Name is required")
         @Size(max = 200, message = "Name must not exceed 200 characters")
@@ -26,5 +29,5 @@ public record CreateCompanyRequest(
         @Size(max = 64, message = "Company identifier must not exceed 64 characters")
         @Schema(description = "Swiss company identifier (e.g., CHE number)", example = "CHE-123.456.789", maxLength = 64, requiredMode = Schema.RequiredMode.REQUIRED)
         String companyIdentifier
-) {
+) implements CreateClientRequest {
 }

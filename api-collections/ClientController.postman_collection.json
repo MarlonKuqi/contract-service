@@ -18,6 +18,50 @@
   ],
   "item": [
     {
+      "name": "Create Person",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"PERSON\",\n  \"name\": \"Jean Dupont\",\n  \"email\": \"jean.dupont@example.com\",\n  \"phone\": \"+41791234567\",\n  \"birthDate\": \"1985-03-15\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients"]
+        },
+        "description": "Create a Person client. Requires 'type': 'PERSON' and birthDate field (format: YYYY-MM-DD). Swiss phone format."
+      }
+    },
+    {
+      "name": "Create Company",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"COMPANY\",\n  \"name\": \"Assurance Vaudoise SA\",\n  \"email\": \"contact@vaudoise.ch\",\n  \"phone\": \"+41219258111\",\n  \"companyIdentifier\": \"CHE-123.456.789\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients"]
+        },
+        "description": "Create a Company client. Requires 'type': 'COMPANY' and companyIdentifier field (format: CHE-XXX.XXX.XXX)."
+      }
+    },
+    {
       "name": "Read Client",
       "request": {
         "method": "GET",

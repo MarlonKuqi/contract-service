@@ -97,7 +97,7 @@ class ContractSumRestAssuredIT {
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .contentType("application/json")
@@ -109,7 +109,7 @@ class ContractSumRestAssuredIT {
     void shouldReturnZeroWhenNoContracts() {
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("0"));
@@ -128,7 +128,7 @@ class ContractSumRestAssuredIT {
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("0"));
@@ -154,7 +154,7 @@ class ContractSumRestAssuredIT {
         long startTime = System.currentTimeMillis();
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo(expectedSum.toString()))
@@ -166,7 +166,7 @@ class ContractSumRestAssuredIT {
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo(expectedSum.toString()))
@@ -179,7 +179,7 @@ class ContractSumRestAssuredIT {
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo(expectedSum.toString()))
@@ -194,7 +194,7 @@ class ContractSumRestAssuredIT {
 
             given()
                     .when()
-                    .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                    .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(200)
                     .body(equalTo(expectedSum.toString()))
@@ -238,7 +238,7 @@ class ContractSumRestAssuredIT {
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("100.00"));
@@ -257,14 +257,14 @@ class ContractSumRestAssuredIT {
         );
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("500.00"));
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("500.00"))
@@ -278,14 +278,14 @@ class ContractSumRestAssuredIT {
         );
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("800.00"));
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("800.00"))

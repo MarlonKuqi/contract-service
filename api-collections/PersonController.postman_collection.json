@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "PersonController",
-    "description": "Endpoints for creating persons (physical clients)",
+    "name": "PersonController [OBSOLETE]",
+    "description": "⚠️ OBSOLETE: This collection is deprecated. Use ClientController.postman_collection.json instead (unified client creation with type discriminant 'PERSON').",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [

@@ -303,7 +303,7 @@ class ClientCrudIT {
         contractRepository.save(contract2);
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", client.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("3000.00"));
@@ -319,7 +319,7 @@ class ClientCrudIT {
                 .statusCode(404);
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", client.getId())
+                .get("/v1/contracts/sum?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(anyOf(is(200), is(404)));
     }

@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "CompanyController",
-    "description": "Endpoints for creating companies (legal entity clients)",
+    "name": "CompanyController [OBSOLETE]",
+    "description": "⚠️ OBSOLETE: This collection is deprecated. Use ClientController.postman_collection.json instead (unified client creation with type discriminant 'COMPANY').",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [

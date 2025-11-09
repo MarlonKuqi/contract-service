@@ -39,7 +39,7 @@ import java.util.UUID;
 
 @Tag(name = "Contracts", description = "Operations on contracts (create, read, update cost)")
 @RestController
-@RequestMapping("/v1/clients/{clientId}/contracts")
+@RequestMapping("/v1/contracts")
 public class ContractController {
 
     private final ContractApplicationService contractApplicationService;
@@ -94,7 +94,7 @@ public class ContractController {
     })
     @PostMapping
     public ResponseEntity<CreateContractResponse> create(
-            @PathVariable final UUID clientId,
+            @RequestParam final UUID clientId,
             @Valid @RequestBody final CreateContractRequest req,
             final UriComponentsBuilder uriBuilder,
             final Locale locale
@@ -107,8 +107,8 @@ public class ContractController {
         );
 
         final var location = uriBuilder
-                .path("/v1/clients/{clientId}/contracts/{contractId}")
-                .buildAndExpand(clientId, contract.getId())
+                .path("/v1/contracts/{contractId}")
+                .buildAndExpand(contract.getId())
                 .toUri();
 
         final CreateContractResponse body = new CreateContractResponse(
@@ -159,7 +159,7 @@ public class ContractController {
     })
     @GetMapping
     public ResponseEntity<PagedContractResponse> listActive(
-            @PathVariable final UUID clientId,
+            @RequestParam final UUID clientId,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final LocalDateTime updatedSince,
             final Pageable pageable,
@@ -195,7 +195,7 @@ public class ContractController {
     })
     @GetMapping("/{contractId}")
     public ResponseEntity<ContractResponse> getById(
-            @PathVariable final UUID clientId,
+            @RequestParam final UUID clientId,
             @PathVariable final UUID contractId,
             final Locale locale
     ) {
@@ -234,7 +234,7 @@ public class ContractController {
     })
     @GetMapping("/sum")
     public ResponseEntity<BigDecimal> sumActive(
-            @PathVariable final UUID clientId,
+            @RequestParam final UUID clientId,
             final Locale locale
     ) {
         final BigDecimal sum = contractApplicationService.sumActiveContracts(clientId);
@@ -258,7 +258,7 @@ public class ContractController {
     })
     @PatchMapping("/{contractId}/cost")
     public ResponseEntity<Void> updateCost(
-            @PathVariable final UUID clientId,
+            @RequestParam final UUID clientId,
             @PathVariable final UUID contractId,
             @Valid @RequestBody final CostUpdateRequest req
     ) {

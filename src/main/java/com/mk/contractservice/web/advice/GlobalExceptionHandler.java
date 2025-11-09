@@ -1,10 +1,7 @@
 package com.mk.contractservice.web.advice;
 
-import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
-import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
-import com.mk.contractservice.domain.exception.DomainValidationException;
 import com.mk.contractservice.domain.exception.ExpiredContractException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,75 +11,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.net.URI;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException ex) {
-        ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Validation Failed",
-                "One or more fields are invalid or missing.", "validationError");
-
-        List<Map<String, Object>> errors = ex.getBindingResult().getFieldErrors().stream()
-                .map(fe -> Map.<String, Object>of(
-                        "field", fe.getField(),
-                        "message", messageOf(fe),
-                        "rejectedValue", Optional.ofNullable(fe.getRejectedValue()).orElse("null")))
-                .toList();
-
-        problemDetail.setProperty("validations", errors);
-        return respond(problemDetail);
-    }
-
-    @ExceptionHandler(DomainValidationException.class)
-    public ResponseEntity<ProblemDetail> handleDomainValidation(DomainValidationException ex) {
-        ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Domain Validation Error",
-                ex.getMessage(), ex.getCode() != null ? ex.getCode() : "domainValidationError");
-        return respond(problemDetail);
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex) {
-        log.warn("Illegal argument: {}", ex.getMessage());
-
-        ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Bad Request",
-                ex.getMessage(), "badRequest");
-        return respond(problemDetail);
-    }
-
-    @ExceptionHandler(ClientAlreadyExistsException.class)
-    public ResponseEntity<ProblemDetail> handleClientAlreadyExists(ClientAlreadyExistsException ex) {
-        log.debug("Client already exists: {}", ex.getMessage());
-
-        ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Client Already Exists",
-                ex.getMessage(), "clientAlreadyExists");
-        if (ex.getBusinessKey() != null) {
-            problemDetail.setProperty("businessKey", ex.getBusinessKey());
-        }
-        return respond(problemDetail);
-    }
-
-    @ExceptionHandler(ClientNotFoundException.class)
-    public ResponseEntity<ProblemDetail> handleClientNotFound(ClientNotFoundException ex) {
-        log.debug("Client not found: {}", ex.getMessage());
-
-        ProblemDetail problemDetail = problem(HttpStatus.NOT_FOUND, "Client Not Found",
-                ex.getMessage(), "clientNotFound");
-        return respond(problemDetail);
-    }
 
     @ExceptionHandler(ContractNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleContractNotFound(ContractNotFoundException ex) {
@@ -108,6 +48,18 @@ public class GlobalExceptionHandler {
 
         ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Contract Expired",
                 ex.getMessage(), "contractExpired");
+        return respond(problemDetail);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ProblemDetail> handleMissingRequestParameter(MissingServletRequestParameterException ex) {
+        log.debug("Missing required request parameter: {}", ex.getParameterName());
+
+        String message = String.format("Required request parameter '%s' is missing", ex.getParameterName());
+        ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Missing Required Parameter",
+                message, "missingParameter");
+        problemDetail.setProperty("parameterName", ex.getParameterName());
+        problemDetail.setProperty("parameterType", ex.getParameterType());
         return respond(problemDetail);
     }
 
@@ -151,9 +103,6 @@ public class GlobalExceptionHandler {
                 .body(problemDetail);
     }
 
-    private static String messageOf(FieldError fe) {
-        return Optional.ofNullable(fe.getDefaultMessage()).orElse("Invalid value");
-    }
 
     private static String getStackTrace(Exception ex) {
         StringBuilder sb = new StringBuilder();

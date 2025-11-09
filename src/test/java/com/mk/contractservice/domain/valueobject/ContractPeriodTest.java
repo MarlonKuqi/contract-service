@@ -128,6 +128,7 @@ class ContractPeriodTest {
         assertThat(period.isActive()).isFalse();
     }
 
+
     @Test
     @DisplayName("GIVEN two equal periods WHEN comparing THEN they are equal")
     void shouldBeEqualWhenSameValues() {

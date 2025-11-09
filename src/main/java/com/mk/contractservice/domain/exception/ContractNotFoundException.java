@@ -11,4 +11,3 @@ public class ContractNotFoundException extends RuntimeException {
         super("Contract not found: " + contractId);
     }
 }
-
