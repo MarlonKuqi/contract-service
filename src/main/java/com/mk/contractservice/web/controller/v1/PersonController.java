@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.Locale;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -23,7 +22,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
-@Tag(name = "Clients - Persons")
+import java.util.Locale;
+
+@Tag(name = "Clients - Persons", description = "Create person clients")
 @RestController
 @RequestMapping("/v1/clients/persons")
 public class PersonController {
@@ -42,12 +43,12 @@ public class PersonController {
     @Operation(
             summary = "Create a person client",
             description = "Creates a new person client and returns its representation. "
-                    + "On success returns 201 Created with Location header to PATH_NEW_RESOURCE."
+                    + "On success returns 201 Created with Location header to /v1/clients/{id}."
     )
     @ApiResponses({
             @ApiResponse(
                     responseCode = "201",
-                    description = "Person created",
+                    description = "Person created successfully",
                     headers = {
                             @Header(name = "Location", description = "URI of the created client resource")
                     },
@@ -62,13 +63,13 @@ public class PersonController {
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "Conflict (e.g. duplicate unique business key)",
+                    description = "Conflict - Email already exists",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class))
             ),
             @ApiResponse(
                     responseCode = "422",
-                    description = "Business validation failed",
+                    description = "Business validation failed (e.g., invalid email, phone, or birthdate format)",
                     content = @Content(mediaType = "application/problem+json",
                             schema = @Schema(implementation = ProblemDetail.class))
             ),

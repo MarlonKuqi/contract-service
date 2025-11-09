@@ -2,19 +2,13 @@ package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.mk.contractservice.domain.exception.InvalidPersonBirthDateException;
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import java.time.LocalDate;
-import java.util.Objects;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
-@Embeddable
-@NoArgsConstructor(access = AccessLevel.PROTECTED, force = true)
+import java.time.LocalDate;
+import java.util.Objects;
+
 public final class PersonBirthDate {
 
-    @Column(name = "birth_date", nullable = false, updatable = false)
     private final LocalDate value;
 
     private PersonBirthDate(final LocalDate value) {

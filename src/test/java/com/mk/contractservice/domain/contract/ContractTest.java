@@ -11,13 +11,15 @@ import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -28,12 +30,12 @@ class ContractTest {
 
     @BeforeEach
     void setUp() {
-        testClient = new Person(
-                ClientName.of("John Doe"),
-                Email.of("john.doe@example.com"),
-                PhoneNumber.of("+33123456789"),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-        );
+        testClient = Person.builder()
+                .name(ClientName.of("John Doe"))
+                .email(Email.of("john.doe@example.com"))
+                .phone(PhoneNumber.of("+33123456789"))
+                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                .build();
     }
 
     @Nested
@@ -48,7 +50,11 @@ class ContractTest {
             ContractPeriod period = ContractPeriod.of(startDate, endDate);
             ContractCost cost = ContractCost.of(new BigDecimal("100.50"));
 
-            Contract contract = new Contract(testClient, period, cost);
+            Contract contract = Contract.builder()
+                    .client(testClient)
+                    .period(period)
+                    .costAmount(cost)
+                    .build();
 
             assertThat(contract.getClient()).isEqualTo(testClient);
             assertThat(contract.getPeriod()).isEqualTo(period);
@@ -62,7 +68,11 @@ class ContractTest {
             ContractPeriod period = ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusDays(30));
             ContractCost cost = ContractCost.of(new BigDecimal("100.00"));
 
-            assertThatThrownBy(() -> new Contract(null, period, cost))
+            assertThatThrownBy(() -> Contract.builder()
+                    .client(null)
+                    .period(period)
+                    .costAmount(cost)
+                    .build())
                     .isInstanceOf(InvalidContractException.class)
                     .hasMessageContaining("Client cannot be null");
         }
@@ -72,7 +82,11 @@ class ContractTest {
         void shouldRejectNullPeriod() {
             ContractCost cost = ContractCost.of(new BigDecimal("100.00"));
 
-            assertThatThrownBy(() -> new Contract(testClient, null, cost))
+            assertThatThrownBy(() -> Contract.builder()
+                    .client(testClient)
+                    .period(null)
+                    .costAmount(cost)
+                    .build())
                     .isInstanceOf(InvalidContractException.class)
                     .hasMessageContaining("Contract period cannot be null");
         }
@@ -82,7 +96,11 @@ class ContractTest {
         void shouldRejectNullCost() {
             ContractPeriod period = ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusDays(30));
 
-            assertThatThrownBy(() -> new Contract(testClient, period, null))
+            assertThatThrownBy(() -> Contract.builder()
+                    .client(testClient)
+                    .period(period)
+                    .costAmount(null)
+                    .build())
                     .isInstanceOf(InvalidContractException.class)
                     .hasMessageContaining("Cost amount cannot be null");
         }
@@ -97,7 +115,11 @@ class ContractTest {
         void shouldUpdateCostAndLastModified() throws InterruptedException {
             ContractPeriod period = ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusDays(30));
             ContractCost initialCost = ContractCost.of(new BigDecimal("100.00"));
-            Contract contract = new Contract(testClient, period, initialCost);
+            Contract contract = Contract.builder()
+                    .client(testClient)
+                    .period(period)
+                    .costAmount(initialCost)
+                    .build();
 
             LocalDateTime initialLastModified = contract.getLastModified();
             Thread.sleep(10);
@@ -114,13 +136,64 @@ class ContractTest {
         void shouldRejectNullCostOnUpdate() {
             ContractPeriod period = ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusDays(30));
             ContractCost initialCost = ContractCost.of(new BigDecimal("100.00"));
-            Contract contract = new Contract(testClient, period, initialCost);
+            Contract contract = Contract.builder()
+                    .client(testClient)
+                    .period(period)
+                    .costAmount(initialCost)
+                    .build();
 
             assertThatThrownBy(() -> contract.changeCost(null))
                     .isInstanceOf(InvalidContractException.class)
                     .hasMessageContaining("New cost amount cannot be null");
 
             assertThat(contract.getCostAmount()).isEqualTo(initialCost);
+        }
+    }
+
+    @Nested
+    @DisplayName("isActive - Subject requirement: Determine if contract is currently active")
+    class IsActiveValidation {
+
+        @Test
+        @DisplayName("GIVEN contract with null endDate WHEN checking isActive THEN should be active")
+        void shouldBeActiveWhenEndDateIsNull() {
+            LocalDateTime now = LocalDateTime.now();
+            ContractPeriod period = ContractPeriod.of(now.minusDays(10), null);
+            Contract contract = Contract.builder()
+                    .client(testClient)
+                    .period(period)
+                    .costAmount(ContractCost.of(BigDecimal.valueOf(1000)))
+                    .build();
+
+            assertThat(contract.isActive()).isTrue();
+        }
+
+        @Test
+        @DisplayName("GIVEN contract with future endDate WHEN checking isActive THEN should be active")
+        void shouldBeActiveWhenEndDateIsInFuture() {
+            LocalDateTime now = LocalDateTime.now();
+            ContractPeriod period = ContractPeriod.of(now.minusDays(10), now.plusDays(30));
+            Contract contract = Contract.builder()
+                    .client(testClient)
+                    .period(period)
+                    .costAmount(ContractCost.of(BigDecimal.valueOf(1000)))
+                    .build();
+
+            assertThat(contract.isActive()).isTrue();
+        }
+
+        @Test
+        @DisplayName("GIVEN contract with past endDate WHEN checking isActive THEN should NOT be active")
+        void shouldNotBeActiveWhenEndDateIsInPast() {
+            LocalDateTime now = LocalDateTime.now();
+            ContractPeriod period = ContractPeriod.of(now.minusDays(100), now.minusDays(1));
+            Contract contract = Contract.builder()
+                    .client(testClient)
+                    .period(period)
+                    .costAmount(ContractCost.of(BigDecimal.valueOf(1000)))
+                    .build();
+
+            assertThat(contract.isActive()).isFalse();
         }
     }
 

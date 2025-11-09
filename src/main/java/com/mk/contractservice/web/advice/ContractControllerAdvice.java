@@ -1,6 +1,7 @@
 package com.mk.contractservice.web.advice;
 
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.exception.InvalidContractCostException;
 import com.mk.contractservice.web.controller.v1.ContractController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +32,15 @@ public class ContractControllerAdvice {
         ProblemDetail pd = problem(HttpStatus.NOT_FOUND, "Client Not Found",
                 ex.getMessage(), "clientNotFound");
         pd.setProperty("context", "Cannot create contract for non-existent client");
+        return respond(pd);
+    }
+
+    @ExceptionHandler(InvalidContractCostException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidContractCost(InvalidContractCostException ex) {
+        log.warn("Invalid contract cost: {}", ex.getMessage());
+        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "Invalid Contract Cost",
+                ex.getMessage(), "invalidContractCost");
+        pd.setProperty("context", "Contract cost validation failed");
         return respond(pd);
     }
 

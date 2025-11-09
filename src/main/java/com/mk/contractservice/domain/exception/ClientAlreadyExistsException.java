@@ -1,11 +1,8 @@
 package com.mk.contractservice.domain.exception;
 
-import org.springframework.http.HttpStatus;
-
 public class ClientAlreadyExistsException extends RuntimeException {
 
     private final String businessKey;
-    private final HttpStatus status = HttpStatus.CONFLICT;
 
     public ClientAlreadyExistsException(String message) {
         super(message);
@@ -19,9 +16,5 @@ public class ClientAlreadyExistsException extends RuntimeException {
 
     public String getBusinessKey() {
         return businessKey;
-    }
-
-    public HttpStatus getStatus() {
-        return status;
     }
 }
