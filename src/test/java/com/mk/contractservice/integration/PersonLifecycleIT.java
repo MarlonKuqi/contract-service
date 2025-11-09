@@ -69,6 +69,7 @@ class PersonLifecycleIT {
                 .then()
                 .statusCode(201)
                 .header("Location", matchesPattern(".*/v1/clients/[0-9a-f-]{36}"))
+                .header("Content-Language", equalTo("fr-CH"))
                 .body("id", notNullValue())
                 .body("name", equalTo("Alice Martin"))
                 .body("email", containsString("alice.martin"))
@@ -81,10 +82,94 @@ class PersonLifecycleIT {
                 .get("/v1/clients/{id}", clientId)
                 .then()
                 .statusCode(200)
+                .header("Content-Language", equalTo("fr-CH"))
                 .body("id", equalTo(clientId))
                 .body("type", equalTo("PERSON"))
                 .body("name", equalTo("Alice Martin"))
                 .body("birthDate", equalTo("1990-05-15"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Should respect Accept-Language header for different locales")
+    void shouldRespectAcceptLanguageHeader() {
+        // Test English locale
+        given()
+                .contentType(ContentType.JSON)
+                .header("Accept-Language", "en")
+                .body("""
+                        {
+                            "type": "PERSON",
+                            "name": "John Doe",
+                            "email": "john.%s@example.com",
+                            "phone": "+41791234568",
+                            "birthDate": "1990-05-20"
+                        }
+                        """.formatted(UUID.randomUUID().toString().substring(0, 8)))
+                .when()
+                .post("/v1/clients")
+                .then()
+                .statusCode(201)
+                .header("Content-Language", equalTo("en"));
+
+        // Test German Swiss locale
+        given()
+                .contentType(ContentType.JSON)
+                .header("Accept-Language", "de-CH")
+                .body("""
+                        {
+                            "type": "PERSON",
+                            "name": "Hans Müller",
+                            "email": "hans.%s@example.com",
+                            "phone": "+41791234569",
+                            "birthDate": "1988-08-10"
+                        }
+                        """.formatted(UUID.randomUUID().toString().substring(0, 8)))
+                .when()
+                .post("/v1/clients")
+                .then()
+                .statusCode(201)
+                .header("Content-Language", equalTo("de-CH"));
+
+        // Test Italian Swiss locale
+        given()
+                .contentType(ContentType.JSON)
+                .header("Accept-Language", "it-CH")
+                .body("""
+                        {
+                            "type": "PERSON",
+                            "name": "Marco Rossi",
+                            "email": "marco.%s@example.com",
+                            "phone": "+41791234571",
+                            "birthDate": "1987-07-15"
+                        }
+                        """.formatted(UUID.randomUUID().toString().substring(0, 8)))
+                .when()
+                .post("/v1/clients")
+                .then()
+                .statusCode(201)
+                .header("Content-Language", equalTo("it-CH"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Should fallback to fr-CH for unsupported locale")
+    void shouldFallbackToDefaultLocaleForUnsupportedLanguage() {
+        given()
+                .contentType(ContentType.JSON)
+                .header("Accept-Language", "zh-CN")
+                .body("""
+                        {
+                            "type": "PERSON",
+                            "name": "Test User",
+                            "email": "test.%s@example.com",
+                            "phone": "+41791234572",
+                            "birthDate": "1995-01-01"
+                        }
+                        """.formatted(UUID.randomUUID().toString().substring(0, 8)))
+                .when()
+                .post("/v1/clients")
+                .then()
+                .statusCode(201)
+                .header("Content-Language", equalTo("fr-CH"));
     }
 
     @Test
