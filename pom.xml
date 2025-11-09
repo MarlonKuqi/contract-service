@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.mk</groupId>
 	<artifactId>contract-service</artifactId>
-	<version>1.0.0</version>
+	<version>1.1.0</version>
 	<name>contract-service</name>
 	<description>Microservice for managing clients and contracts in an insurance context.</description>
 	<url/>
