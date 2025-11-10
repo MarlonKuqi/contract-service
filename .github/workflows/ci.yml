@@ -63,21 +63,21 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results
           path: target/surefire-reports/
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-report
           path: target/site/jacoco/
 
       - name: Upload JAR artifact
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release/'))
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: contract-service-jar
           path: target/*.jar
@@ -128,7 +128,7 @@ jobs:
 
       - name: Upload integration test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: integration-test-results
           path: target/failsafe-reports/
@@ -184,7 +184,7 @@ jobs:
 
       - name: Upload Dependency-Check HTML report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: dependency-check-report
           path: target/dependency-check-report.html
