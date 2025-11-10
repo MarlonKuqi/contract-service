@@ -6,7 +6,7 @@ import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.CompanyIdentifierAlreadyExistsException;
 import com.mk.contractservice.domain.exception.DomainValidationException;
-import com.mk.contractservice.web.controller.v1.ClientController;
+import com.mk.contractservice.web.controller.ClientController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.i18n.LocaleContextHolder;

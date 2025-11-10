@@ -37,9 +37,9 @@
           "raw": "{\n  \"costAmount\": 1500.50\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/contracts?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "contracts"],
+          "path": ["v2", "contracts"],
           "query": [
             {
               "key": "clientId",
@@ -66,9 +66,9 @@
           "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2025-12-31T23:59:59\",\n  \"costAmount\": 2500.00\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/contracts?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "contracts"],
+          "path": ["v2", "contracts"],
           "query": [
             {
               "key": "clientId",
@@ -95,9 +95,9 @@
           "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/contracts?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "contracts"],
+          "path": ["v2", "contracts"],
           "query": [
             {
               "key": "clientId",
@@ -115,9 +115,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/contracts?clientId={{clientId}}&page=0&size=20&sort=lastModified,desc",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&page=0&size=20&sort=lastModified,desc",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "contracts"],
+          "path": ["v2", "contracts"],
           "query": [
             {
               "key": "clientId",
@@ -150,9 +150,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/contracts?clientId={{clientId}}&updatedSince=2025-10-26T00:00:00&page=0&size=20",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&updatedSince=2025-10-26T00:00:00&page=0&size=20",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "contracts"],
+          "path": ["v2", "contracts"],
           "query": [
             {
               "key": "clientId",
@@ -185,9 +185,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/contracts/{{contractId}}?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "contracts", "{{contractId}}"],
+          "path": ["v2", "contracts", "{{contractId}}"],
           "query": [
             {
               "key": "clientId",
@@ -214,9 +214,9 @@
           "raw": "{\n  \"amount\": 3000.00\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/contracts/{{contractId}}/cost?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}/cost?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "contracts", "{{contractId}}", "cost"],
+          "path": ["v2", "contracts", "{{contractId}}", "cost"],
           "query": [
             {
               "key": "clientId",
@@ -234,9 +234,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/contracts/sum?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts/sum?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "contracts", "sum"],
+          "path": ["v2", "contracts", "sum"],
           "query": [
             {
               "key": "clientId",

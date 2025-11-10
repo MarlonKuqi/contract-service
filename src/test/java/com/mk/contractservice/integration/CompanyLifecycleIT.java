@@ -1,5 +1,8 @@
 package com.mk.contractservice.integration;
 
+import com.mk.contractservice.web.controller.ClientController;
+import com.mk.contractservice.web.controller.ContractController;
+
 import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
@@ -66,10 +69,10 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
-                .header("Location", matchesPattern(".*/v1/clients/[0-9a-f-]{36}"))
+                .header("Location", matchesPattern(".*" + ClientController.VERSION + "/clients/[0-9a-f-]{36}"))
                 .header("Content-Language", equalTo("fr-CH"))
                 .body("id", notNullValue())
                 .body("name", equalTo("Acme Corporation"))
@@ -80,7 +83,7 @@ class CompanyLifecycleIT {
 
         given()
                 .when()
-                .get("/v1/clients/{id}", clientId)
+                .get(ClientController.PATH_CLIENT, clientId)
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("fr-CH"))
@@ -108,7 +111,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(invalidIdentifierPayload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(anyOf(is(400), is(422)));
     }
@@ -130,7 +133,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(missingIdentifierPayload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(422);
     }
@@ -154,7 +157,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -175,13 +178,13 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .put("/v1/clients/{id}", clientId)
+                .put(ClientController.PATH_CLIENT, clientId)
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get("/v1/clients/{id}", clientId)
+                .get(ClientController.PATH_CLIENT, clientId)
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Updated Tech SA"))
@@ -208,7 +211,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(companyPayload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -226,19 +229,19 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post("/v1/contracts?clientId={clientId}", clientId)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", clientId)
                 .then()
                 .statusCode(201);
 
         given()
                 .when()
-                .delete("/v1/clients/{id}", clientId)
+                .delete(ClientController.PATH_CLIENT, clientId)
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get("/v1/clients/{id}", clientId)
+                .get(ClientController.PATH_CLIENT, clientId)
                 .then()
                 .statusCode(404);
     }
@@ -262,7 +265,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(firstPayload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201);
 
@@ -280,7 +283,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(secondPayload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(anyOf(is(409), is(400), is(422), is(500)));
     }
@@ -306,7 +309,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(firstPayload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -325,12 +328,12 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(secondPayload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(anyOf(is(409), is(400), is(422), is(500)));
         given()
                 .when()
-                .delete("/v1/clients/{id}", firstClientId)
+                .delete(ClientController.PATH_CLIENT, firstClientId)
                 .then()
                 .statusCode(204);
     }
@@ -353,7 +356,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(companyPayload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -375,12 +378,12 @@ class CompanyLifecycleIT {
                 }
                 """, now.minusDays(10));
 
-        given().contentType(ContentType.JSON).body(contract1).post("/v1/contracts?clientId={clientId}", clientId).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(contract2).post("/v1/contracts?clientId={clientId}", clientId).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract1).post(ContractController.PATH_BASE + "?clientId={clientId}", clientId).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract2).post(ContractController.PATH_BASE + "?clientId={clientId}", clientId).then().statusCode(201);
 
         given()
                 .when()
-                .get("/v1/contracts/sum?clientId={clientId}", clientId)
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", clientId)
                 .then()
                 .statusCode(200)
                 .body(equalTo("12500.50"));
@@ -404,7 +407,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(validPayload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201);
 
@@ -431,7 +434,7 @@ class CompanyLifecycleIT {
                     .contentType(ContentType.JSON)
                     .body(invalidPayload)
                     .when()
-                    .post("/v1/clients")
+                    .post(ClientController.PATH_BASE)
                     .then()
                     .statusCode(422);
         }
@@ -466,7 +469,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(company1Payload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -475,7 +478,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(company2Payload)
                 .when()
-                .post("/v1/clients")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -493,20 +496,20 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post("/v1/contracts?clientId={clientId}", id1)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", id1)
                 .then()
                 .statusCode(201);
 
         given()
                 .when()
-                .get("/v1/contracts/sum?clientId={clientId}", id1)
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", id1)
                 .then()
                 .statusCode(200)
                 .body(equalTo("1000.00"));
 
         given()
                 .when()
-                .get("/v1/contracts/sum?clientId={clientId}", id2)
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", id2)
                 .then()
                 .statusCode(200)
                 .body(equalTo("0"));

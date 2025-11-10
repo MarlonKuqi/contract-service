@@ -1,5 +1,8 @@
 package com.mk.contractservice.integration;
 
+import com.mk.contractservice.web.controller.ClientController;
+import com.mk.contractservice.web.controller.ContractController;
+
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
@@ -87,10 +90,10 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
-                .post("/v1/contracts?clientId={clientId}", testClient.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201)
-                .header("Location", containsString("/v1/contracts/"))
+                .header("Location", containsString(ContractController.PATH_BASE + "/"))
                 .header("Content-Language", equalTo("fr-CH"))
                 .body("costAmount", equalTo(5000.00f))
                 .body("period.startDate", notNullValue())
@@ -101,7 +104,7 @@ class ContractLifecycleIT {
 
         given()
                 .when()
-                .get("/v1/contracts/{contractId}?clientId={clientId}", contractId, testClient.getId())
+                .get(ContractController.PATH_CONTRACT + "?clientId={clientId}", contractId, testClient.getId())
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("fr-CH"))
@@ -120,13 +123,13 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .patch("/v1/contracts/{contractId}/cost?clientId={clientId}", contractId, testClient.getId())
+                .patch(ContractController.PATH_CONTRACT_COST + "?clientId={clientId}", contractId, testClient.getId())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get("/v1/contracts?clientId={clientId}", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", greaterThan(0));
@@ -161,20 +164,20 @@ class ContractLifecycleIT {
                 }
                 """, now.minusDays(3).toString(), now.plusMonths(3).toString());
 
-        given().contentType(ContentType.JSON).body(contract1).post("/v1/contracts?clientId={clientId}", testClient.getId()).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(contract2).post("/v1/contracts?clientId={clientId}", testClient.getId()).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(contract3).post("/v1/contracts?clientId={clientId}", testClient.getId()).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract1).post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract2).post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract3).post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
 
         given()
                 .when()
-                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("4250.50"));
 
         given()
                 .when()
-                .get("/v1/contracts?clientId={clientId}", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(3));
@@ -199,19 +202,19 @@ class ContractLifecycleIT {
                 }
                 """;
 
-        given().contentType(ContentType.JSON).body(expiredContract).post("/v1/contracts?clientId={clientId}", testClient.getId()).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(activeContract).post("/v1/contracts?clientId={clientId}", testClient.getId()).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(expiredContract).post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(activeContract).post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
 
         given()
                 .when()
-                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("5000.00"));
 
         given()
                 .when()
-                .get("/v1/contracts?clientId={clientId}", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(1))
@@ -233,7 +236,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(invalidPayload)
                 .when()
-                .post("/v1/contracts?clientId={clientId}", testClient.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(anyOf(is(400), is(422), is(500)));
 
@@ -250,7 +253,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(invalidDateRange)
                 .when()
-                .post("/v1/contracts?clientId={clientId}", testClient.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(anyOf(is(400), is(422)));
     }
@@ -272,7 +275,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(payload)
                 .when()
-                .post("/v1/contracts?clientId={clientId}", fakeClientId)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", fakeClientId)
                 .then()
                 .statusCode(404);
     }
@@ -292,7 +295,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post("/v1/contracts?clientId={clientId}", testClient.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201)
                 .extract().header("Location");
@@ -309,7 +312,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .patch("/v1/contracts/{contractId}/cost?clientId={clientId}", contractId, testClient.getId())
+                .patch(ContractController.PATH_CONTRACT_COST + "?clientId={clientId}", contractId, testClient.getId())
                 .then()
                 .statusCode(204);
 
@@ -317,7 +320,7 @@ class ContractLifecycleIT {
         given()
                 .queryParam("updatedSince", updatedSince)
                 .when()
-                .get("/v1/contracts?clientId={clientId}", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", greaterThanOrEqualTo(1));
@@ -339,13 +342,13 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post("/v1/contracts?clientId={clientId}", testClient.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201);
 
         given()
                 .when()
-                .get("/v1/contracts?clientId={clientId}", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(1))
@@ -353,7 +356,7 @@ class ContractLifecycleIT {
 
         given()
                 .when()
-                .get("/v1/contracts/sum?clientId={clientId}", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("1500.00"));
@@ -374,7 +377,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post("/v1/contracts?clientId={clientId}", testClient.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201)
                 .extract().header("Location");
@@ -392,7 +395,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .patch("/v1/contracts/{contractId}/cost?clientId={clientId}", contractId, wrongClientId)
+                .patch(ContractController.PATH_CONTRACT_COST + "?clientId={clientId}", contractId, wrongClientId)
                 .then()
                 .statusCode(403)
                 .body("title", equalTo("Access Denied"))
@@ -414,7 +417,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post("/v1/contracts?clientId={clientId}", testClient.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201)
                 .extract().header("Location");
@@ -425,7 +428,7 @@ class ContractLifecycleIT {
 
         given()
                 .when()
-                .get("/v1/contracts/{contractId}?clientId={clientId}", contractId, wrongClientId)
+                .get(ContractController.PATH_CONTRACT + "?clientId={clientId}", contractId, wrongClientId)
                 .then()
                 .statusCode(403)
                 .body("title", equalTo("Access Denied"))

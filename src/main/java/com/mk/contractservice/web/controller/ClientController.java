@@ -1,4 +1,4 @@
-package com.mk.contractservice.web.controller.v1;
+package com.mk.contractservice.web.controller;
 
 import com.mk.contractservice.application.ClientApplicationService;
 import com.mk.contractservice.domain.client.Client;
@@ -45,8 +45,13 @@ import java.util.UUID;
 
 @Tag(name = "Clients", description = "Operations on clients (create, read, update, delete)")
 @RestController
-@RequestMapping("/v1/clients")
+@RequestMapping(ClientController.PATH_BASE)
 public class ClientController {
+
+    public static final String VERSION = "/v2";
+    public static final String PATH_BASE = VERSION + "/clients";
+    public static final String PATH_ID = "/{id}";
+    public static final String PATH_CLIENT = PATH_BASE + PATH_ID;
 
     private final ClientApplicationService service;
     private final ClientDtoMapper clientDtoMapper;
@@ -67,7 +72,7 @@ public class ClientController {
             summary = "Create a client (Person or Company)",
             description = "Creates a new client. The type is discriminated via the 'type' field in JSON. "
                     + "Use 'PERSON' for person clients (requires birthDate) or 'COMPANY' for company clients (requires companyIdentifier). "
-                    + "On success returns 201 Created with Location header to /v1/clients/{id}."
+                    + "On success returns 201 Created with Location header to " + PATH_BASE + "/{id}."
     )
     @ApiResponses({
             @ApiResponse(
@@ -139,7 +144,7 @@ public class ClientController {
             final Locale locale
     ) {
         final var location = uriBuilder
-                .path("/v1/clients/{id}")
+                .path(PATH_CLIENT)
                 .buildAndExpand(client.getId())
                 .toUri();
 
@@ -174,7 +179,7 @@ public class ClientController {
                             schema = @Schema(implementation = ProblemDetail.class))
             )
     })
-    @GetMapping("/{id}")
+    @GetMapping(PATH_ID)
     public ResponseEntity<ClientResponse> read(@PathVariable final UUID id, final Locale locale) {
         final var client = service.getClientById(id);
         return ResponseEntity.ok()
@@ -218,7 +223,7 @@ public class ClientController {
                             schema = @Schema(implementation = ProblemDetail.class))
             )
     })
-    @PutMapping("/{id}")
+    @PutMapping(PATH_ID)
     public ResponseEntity<Void> update(@PathVariable final UUID id, @Valid @RequestBody final UpdateClientRequest req) {
         service.updateCommonFields(
                 id, ClientName.of(req.name()), Email.of(req.email()), PhoneNumber.of(req.phone())
@@ -298,7 +303,7 @@ public class ClientController {
                             schema = @Schema(implementation = ProblemDetail.class))
             )
     })
-    @DeleteMapping("/{id}")
+    @DeleteMapping(PATH_ID)
     public ResponseEntity<Void> delete(@PathVariable final UUID id) {
         service.deleteClientAndCloseContracts(id);
         return ResponseEntity.noContent().build();

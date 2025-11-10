@@ -32,9 +32,9 @@
           "raw": "{\n  \"type\": \"PERSON\",\n  \"name\": \"Jean Dupont\",\n  \"email\": \"jean.dupont@example.com\",\n  \"phone\": \"+41791234567\",\n  \"birthDate\": \"1985-03-15\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/clients",
+          "raw": "{{baseUrl}}/v2/clients",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients"]
+          "path": ["v2", "clients"]
         },
         "description": "Create a Person client. Requires 'type': 'PERSON' and birthDate field (format: YYYY-MM-DD). Swiss phone format."
       }
@@ -54,9 +54,9 @@
           "raw": "{\n  \"type\": \"COMPANY\",\n  \"name\": \"Assurance Vaudoise SA\",\n  \"email\": \"contact@vaudoise.ch\",\n  \"phone\": \"+41219258111\",\n  \"companyIdentifier\": \"CHE-123.456.789\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/clients",
+          "raw": "{{baseUrl}}/v2/clients",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients"]
+          "path": ["v2", "clients"]
         },
         "description": "Create a Company client. Requires 'type': 'COMPANY' and companyIdentifier field (format: CHE-XXX.XXX.XXX)."
       }
@@ -67,9 +67,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}"]
+          "path": ["v2", "clients", "{{clientId}}"]
         },
         "description": "Returns all client fields including specific type data (Person or Company). Replace {{clientId}} with actual UUID from Create Person/Company response."
       }
@@ -89,9 +89,9 @@
           "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"phone\": \"+41790000000\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}"]
+          "path": ["v2", "clients", "{{clientId}}"]
         },
         "description": "Update client common fields (name, email, phone). Note: Cannot update birthDate (Person) or companyIdentifier (Company)."
       }
@@ -190,9 +190,9 @@
         "method": "DELETE",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}"]
+          "path": ["v2", "clients", "{{clientId}}"]
         },
         "description": "Delete a client. This will set endDate to current date for all active contracts."
       }
