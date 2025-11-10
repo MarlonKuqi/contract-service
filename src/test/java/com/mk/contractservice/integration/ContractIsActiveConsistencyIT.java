@@ -30,13 +30,7 @@ import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Integration test to verify consistency between domain logic (Contract.isActive())
- * and infrastructure logic (JPQL queries with "endDate IS NULL OR endDate > now").
- * <p>
- * This test ensures that the duplicated business logic remains synchronized.
- */
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @DisplayName("Contract isActive() Consistency Tests")

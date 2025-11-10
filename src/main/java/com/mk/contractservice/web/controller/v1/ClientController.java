@@ -4,6 +4,7 @@ import com.mk.contractservice.application.ClientApplicationService;
 import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
+import com.mk.contractservice.web.dto.PatchClientRequest;
 import com.mk.contractservice.web.dto.client.ClientResponse;
 import com.mk.contractservice.web.dto.client.UpdateClientRequest;
 import com.mk.contractservice.web.dto.mapper.client.ClientDtoMapper;
@@ -19,6 +20,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -68,11 +70,10 @@ public class ClientController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<ClientResponse> read(@PathVariable final UUID id, final Locale locale) {
-        return service.findById(id)
-                .map(c -> ResponseEntity.ok()
-                        .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
-                        .body(clientDtoMapper.toResponse(c)))
-                .orElse(ResponseEntity.notFound().build());
+        final var client = service.getClientById(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
+                .body(clientDtoMapper.toResponse(client));
     }
 
     @Operation(
@@ -113,10 +114,58 @@ public class ClientController {
     })
     @PutMapping("/{id}")
     public ResponseEntity<Void> update(@PathVariable final UUID id, @Valid @RequestBody final UpdateClientRequest req) {
-        final boolean ok = service.updateCommonFields(
+        service.updateCommonFields(
                 id, ClientName.of(req.name()), Email.of(req.email()), PhoneNumber.of(req.phone())
         );
-        return ok ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Partially update a client",
+            description = "Updates only the provided fields of a client (name, email, phone). "
+                    + "Fields not included in the request are left unchanged. "
+                    + "birthDate and companyIdentifier cannot be updated as per business rules. "
+                    + "Works for both Person and Company clients."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Client partially updated successfully (no content returned)"
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid input data (validation failed for provided fields)",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Client not found",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "422",
+                    description = "Business validation failed (e.g., invalid email or phone format for provided fields)",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Unexpected server error",
+                    content = @Content(mediaType = "application/problem+json",
+                            schema = @Schema(implementation = ProblemDetail.class))
+            )
+    })
+    @PatchMapping("/{id}")
+    public ResponseEntity<Void> patch(@PathVariable final UUID id, @RequestBody final PatchClientRequest req) {
+        service.patchClient(
+                id,
+                req.name().map(ClientName::of).orElse(null),
+                req.email().map(Email::of).orElse(null),
+                req.phone().map(PhoneNumber::of).orElse(null)
+        );
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(
@@ -145,7 +194,7 @@ public class ClientController {
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable final UUID id) {
-        final boolean ok = service.deleteClientAndCloseContracts(id);
-        return ok ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        service.deleteClientAndCloseContracts(id);
+        return ResponseEntity.noContent().build();
     }
 }

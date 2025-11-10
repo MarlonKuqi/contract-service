@@ -16,6 +16,7 @@ import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
+import com.mk.contractservice.integration.helper.TestDataHelper;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,7 +74,7 @@ class ClientCrudIT {
     void shouldReadPersonClientWithAllFields() {
         Person givenPerson = Person.builder()
                 .name(ClientName.of("John Doe"))
-                .email(Email.of("john.doe." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
+                .email(Email.of(TestDataHelper.uniqueEmail("john.doe")))
                 .phone(PhoneNumber.of("+41791234567"))
                 .birthDate(PersonBirthDate.of(LocalDate.of(1990, 5, 15)))
                 .build();
@@ -96,12 +97,11 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: Read company client returns correct type and all fields")
     void shouldReadCompanyClientWithAllFields() {
-        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-        String companyId = String.format("CHE-%s.456.789", uniqueId.substring(0, 6));
+        String companyId = TestDataHelper.uniqueCompanyIdentifier("CHE");
 
         Company company = Company.builder()
                 .name(ClientName.of("Acme Corp"))
-                .email(Email.of("acme." + uniqueId + "@example.com"))
+                .email(Email.of(TestDataHelper.uniqueEmail("acme")))
                 .phone(PhoneNumber.of("+41791234567"))
                 .companyIdentifier(CompanyIdentifier.of(companyId))
                 .build();
@@ -166,7 +166,7 @@ class ClientCrudIT {
                 .body("name", equalTo("Alice After"))
                 .body("email", containsString("alice.after"))
                 .body("phone", equalTo("+41792222222"))
-                .body("birthDate", equalTo("1985-03-20")); // Unchanged
+                .body("birthDate", equalTo("1985-03-20"));
     }
 
     @Test
@@ -205,7 +205,7 @@ class ClientCrudIT {
                 .body("name", equalTo("New Corp"))
                 .body("email", containsString("new"))
                 .body("phone", equalTo("+41793333333"))
-                .body("companyIdentifier", equalTo(companyId)); // Unchanged
+                .body("companyIdentifier", equalTo(companyId));
     }
 
     @Test
@@ -456,6 +456,255 @@ class ClientCrudIT {
                 .statusCode(200)
                 .body("name", equalTo("Update 2"))
                 .body("email", containsString("update2"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: PATCH person client with only name updates only name")
+    void shouldPatchPersonClientWithOnlyName() {
+        Person person = Person.builder()
+                .name(ClientName.of("Original Name"))
+                .email(Email.of("original." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
+                .phone(PhoneNumber.of("+41791234567"))
+                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                .build();
+        person = (Person) clientRepository.save(person);
+
+        String patchPayload = """
+                {
+                    "name": "Patched Name"
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(patchPayload)
+                .when()
+                .patch("/v1/clients/{id}", person.getId())
+                .then()
+                .statusCode(204);
+
+        given()
+                .when()
+                .get("/v1/clients/{id}", person.getId())
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("Patched Name"))
+                .body("email", containsString("original"))
+                .body("phone", equalTo("+41791234567"))
+                .body("birthDate", equalTo("1990-01-01"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: PATCH person client with only email updates only email")
+    void shouldPatchPersonClientWithOnlyEmail() {
+        Person person = Person.builder()
+                .name(ClientName.of("Test Person"))
+                .email(Email.of("old." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
+                .phone(PhoneNumber.of("+41791234567"))
+                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                .build();
+        person = (Person) clientRepository.save(person);
+
+        String patchPayload = """
+                {
+                    "email": "new.%s@example.com"
+                }
+                """.formatted(UUID.randomUUID().toString().substring(0, 8));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(patchPayload)
+                .when()
+                .patch("/v1/clients/{id}", person.getId())
+                .then()
+                .statusCode(204);
+
+        given()
+                .when()
+                .get("/v1/clients/{id}", person.getId())
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("Test Person"))
+                .body("email", containsString("new"))
+                .body("phone", equalTo("+41791234567"))
+                .body("birthDate", equalTo("1990-01-01"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: PATCH person client with only phone updates only phone")
+    void shouldPatchPersonClientWithOnlyPhone() {
+        Person person = Person.builder()
+                .name(ClientName.of("Test Person"))
+                .email(Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
+                .phone(PhoneNumber.of("+41791234567"))
+                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                .build();
+        person = (Person) clientRepository.save(person);
+
+        String patchPayload = """
+                {
+                    "phone": "+41799999999"
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(patchPayload)
+                .when()
+                .patch("/v1/clients/{id}", person.getId())
+                .then()
+                .statusCode(204);
+
+        given()
+                .when()
+                .get("/v1/clients/{id}", person.getId())
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("Test Person"))
+                .body("email", containsString("test"))
+                .body("phone", equalTo("+41799999999"))
+                .body("birthDate", equalTo("1990-01-01"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: PATCH company client with multiple fields updates only those fields")
+    void shouldPatchCompanyClientWithMultipleFields() {
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+        String companyId = String.format("CHE-%s.999.888", uniqueId.substring(0, 6));
+
+        Company company = Company.builder()
+                .name(ClientName.of("Old Corp"))
+                .email(Email.of("old." + uniqueId + "@example.com"))
+                .phone(PhoneNumber.of("+41791111111"))
+                .companyIdentifier(CompanyIdentifier.of(companyId))
+                .build();
+        company = (Company) clientRepository.save(company);
+
+        String patchPayload = """
+                {
+                    "name": "Patched Corp",
+                    "email": "patched.%s@example.com"
+                }
+                """.formatted(UUID.randomUUID().toString().substring(0, 8));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(patchPayload)
+                .when()
+                .patch("/v1/clients/{id}", company.getId())
+                .then()
+                .statusCode(204);
+
+        given()
+                .when()
+                .get("/v1/clients/{id}", company.getId())
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("Patched Corp"))
+                .body("email", containsString("patched"))
+                .body("phone", equalTo("+41791111111"))
+                .body("companyIdentifier", equalTo(companyId));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: PATCH with invalid email should fail")
+    void shouldRejectPatchWithInvalidEmail() {
+        Client client = clientRepository.save(Person.builder()
+                .name(ClientName.of("Test Person"))
+                .email(Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
+                .phone(PhoneNumber.of("+41791234567"))
+                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                .build());
+
+        String invalidPatchPayload = """
+                {
+                    "email": "invalid-email"
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(invalidPatchPayload)
+                .when()
+                .patch("/v1/clients/{id}", client.getId())
+                .then()
+                .statusCode(anyOf(is(400), is(422)));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: PATCH with invalid phone should fail")
+    void shouldRejectPatchWithInvalidPhone() {
+        Client client = clientRepository.save(Person.builder()
+                .name(ClientName.of("Test Person"))
+                .email(Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
+                .phone(PhoneNumber.of("+41791234567"))
+                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                .build());
+
+        String invalidPatchPayload = """
+                {
+                    "phone": "invalid"
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(invalidPatchPayload)
+                .when()
+                .patch("/v1/clients/{id}", client.getId())
+                .then()
+                .statusCode(anyOf(is(400), is(422)));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: PATCH non-existent client returns 404")
+    void shouldReturn404WhenPatchingNonExistentClient() {
+        UUID fakeId = UUID.randomUUID();
+
+        String patchPayload = """
+                {
+                    "name": "Ghost Name"
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(patchPayload)
+                .when()
+                .patch("/v1/clients/{id}", fakeId)
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @DisplayName("SCENARIO: PATCH with empty body should succeed (no changes)")
+    void shouldAcceptPatchWithEmptyBody() {
+        Person person = Person.builder()
+                .name(ClientName.of("Test Person"))
+                .email(Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
+                .phone(PhoneNumber.of("+41791234567"))
+                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                .build();
+        person = (Person) clientRepository.save(person);
+
+        String emptyPatchPayload = "{}";
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(emptyPatchPayload)
+                .when()
+                .patch("/v1/clients/{id}", person.getId())
+                .then()
+                .statusCode(204);
+
+        given()
+                .when()
+                .get("/v1/clients/{id}", person.getId())
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("Test Person"))
+                .body("email", containsString("test"))
+                .body("phone", equalTo("+41791234567"));
     }
 }
 

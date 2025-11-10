@@ -53,6 +53,94 @@
       }
     },
     {
+      "name": "Patch Client - Name Only",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Patched Name\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients", "{{clientId}}"]
+        },
+        "description": "Partially update a client - only name field. Other fields (email, phone) remain unchanged."
+      }
+    },
+    {
+      "name": "Patch Client - Email Only",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"patched@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients", "{{clientId}}"]
+        },
+        "description": "Partially update a client - only email field. Other fields (name, phone) remain unchanged."
+      }
+    },
+    {
+      "name": "Patch Client - Phone Only",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"+41799999999\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients", "{{clientId}}"]
+        },
+        "description": "Partially update a client - only phone field. Other fields (name, email) remain unchanged."
+      }
+    },
+    {
+      "name": "Patch Client - Multiple Fields",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated Name via PATCH\",\n  \"email\": \"new.email@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "clients", "{{clientId}}"]
+        },
+        "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated."
+      }
+    },
+    {
       "name": "Delete Client",
       "request": {
         "method": "DELETE",
