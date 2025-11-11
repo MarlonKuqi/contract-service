@@ -240,7 +240,7 @@ class ContractApplicationServiceTest {
             LocalDateTime now = LocalDateTime.now();
             Contract expiredContract = Contract.builder()
                     .client(testClient)
-                    .period(ContractPeriod.of(now.minusDays(100), now.minusDays(1)))  // Expired yesterday
+                    .period(ContractPeriod.of(now.minusDays(100), now.minusDays(1)))
                     .costAmount(ContractCost.of(new BigDecimal("100.00")))
                     .build();
 

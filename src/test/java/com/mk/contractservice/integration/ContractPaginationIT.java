@@ -234,7 +234,6 @@ class ContractPaginationIT {
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(3))
-                // Most recent first (created last)
                 .body("content[0].costAmount", equalTo(300.00f))
                 .body("content[1].costAmount", equalTo(100.00f))
                 .body("content[2].costAmount", equalTo(200.00f));

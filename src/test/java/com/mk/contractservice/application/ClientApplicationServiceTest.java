@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
+import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PersonBirthDate;
@@ -24,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -113,10 +113,9 @@ class ClientApplicationServiceTest {
 
             when(clientRepository.findById(personId)).thenReturn(Optional.of(person));
 
-            Optional<Client> result = service.findById(personId);
+            Client result = service.getClientById(personId);
 
-            assertThat(result).isPresent();
-            Person foundPerson = (Person) result.get();
+            Person foundPerson = (Person) result;
             assertThat(foundPerson.getName()).isEqualTo(person.getName());
             assertThat(foundPerson.getEmail()).isEqualTo(person.getEmail());
             assertThat(foundPerson.getPhone()).isEqualTo(person.getPhone());
@@ -124,14 +123,14 @@ class ClientApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("GIVEN non-existent person WHEN findById THEN return empty")
-        void shouldReturnEmptyWhenNotFound() {
+        @DisplayName("GIVEN non-existent person WHEN getClientById THEN throw ClientNotFoundException")
+        void shouldThrowExceptionWhenNotFound() {
             UUID nonExistentId = UUID.randomUUID();
             when(clientRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-            Optional<Client> result = service.findById(nonExistentId);
-
-            assertThat(result).isEmpty();
+            assertThatThrownBy(() -> service.getClientById(nonExistentId))
+                    .isInstanceOf(ClientNotFoundException.class)
+                    .hasMessageContaining("Client with ID " + nonExistentId + " not found");
         }
 
         @Test
@@ -147,11 +146,10 @@ class ClientApplicationServiceTest {
 
             when(clientRepository.findById(personId)).thenReturn(Optional.of(person));
 
-            Optional<Client> result = service.findById(personId);
+            Client result = service.getClientById(personId);
 
-            assertThat(result).isPresent();
-            assertThat(result.get()).isInstanceOf(Person.class);
-            Person foundPerson = (Person) result.get();
+            assertThat(result).isInstanceOf(Person.class);
+            Person foundPerson = (Person) result;
             assertThat(foundPerson.getBirthDate()).isNotNull();
         }
     }
@@ -177,9 +175,8 @@ class ClientApplicationServiceTest {
             Email newEmail = Email.of("jane@example.com");
             PhoneNumber newPhone = PhoneNumber.of("+33222222222");
 
-            boolean updated = service.updateCommonFields(personId, newName, newEmail, newPhone);
+            service.updateCommonFields(personId, newName, newEmail, newPhone);
 
-            assertThat(updated).isTrue();
             assertThat(existingPerson.getName()).isEqualTo(newName);
             assertThat(existingPerson.getEmail()).isEqualTo(newEmail);
             assertThat(existingPerson.getPhone()).isEqualTo(newPhone);
@@ -212,19 +209,19 @@ class ClientApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("GIVEN non-existent person WHEN update THEN return false")
-        void shouldReturnFalseWhenNotFound() {
+        @DisplayName("GIVEN non-existent person WHEN update THEN throw ClientNotFoundException")
+        void shouldThrowExceptionWhenNotFound() {
             UUID nonExistentId = UUID.randomUUID();
             when(clientRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-            boolean updated = service.updateCommonFields(
+            assertThatThrownBy(() -> service.updateCommonFields(
                     nonExistentId,
                     ClientName.of("Name"),
                     Email.of("email@example.com"),
                     PhoneNumber.of("+33111111111")
-            );
-
-            assertThat(updated).isFalse();
+            ))
+                    .isInstanceOf(ClientNotFoundException.class)
+                    .hasMessageContaining("Client with ID " + nonExistentId + " not found");
         }
     }
 
@@ -233,35 +230,8 @@ class ClientApplicationServiceTest {
     class DeletePersonTests {
 
         @Test
-        @DisplayName("GIVEN person with contracts WHEN delete THEN contracts are closed with current date")
-        void shouldCloseContractsWhenDeleted() {
-            UUID personId = UUID.randomUUID();
-
-            when(clientRepository.existsById(personId)).thenReturn(true);
-            doNothing().when(contractApplicationService).closeActiveContractsByClientId(personId);
-            doNothing().when(clientRepository).deleteById(personId);
-
-            boolean deleted = service.deleteClientAndCloseContracts(personId);
-            assertThat(deleted).isTrue();
-        }
-
-        @Test
-        @DisplayName("GIVEN non-existent person WHEN delete THEN return false and do nothing")
-        void shouldReturnFalseWhenNotFound() {
-            UUID nonExistentId = UUID.randomUUID();
-            when(clientRepository.existsById(nonExistentId)).thenReturn(false);
-
-            boolean deleted = service.deleteClientAndCloseContracts(nonExistentId);
-
-            assertThat(deleted).isFalse();
-
-            verify(contractApplicationService, never()).closeActiveContractsByClientId(any());
-            verify(clientRepository, never()).deleteById(any());
-        }
-
-        @Test
-        @DisplayName("GIVEN person WHEN delete THEN contracts are closed BEFORE client deletion (order matters)")
-        void shouldCloseContractsBeforeDeleting() {
+        @DisplayName("GIVEN existing person WHEN delete THEN deletion succeeds (contracts closure is delegated)")
+        void shouldDeleteExistingClient() {
             UUID personId = UUID.randomUUID();
 
             when(clientRepository.existsById(personId)).thenReturn(true);
@@ -270,9 +240,34 @@ class ClientApplicationServiceTest {
 
             service.deleteClientAndCloseContracts(personId);
 
-            var inOrder = inOrder(contractApplicationService, clientRepository);
-            inOrder.verify(contractApplicationService).closeActiveContractsByClientId(personId);
-            inOrder.verify(clientRepository).deleteById(personId);
+            verify(contractApplicationService).closeActiveContractsByClientId(personId);
+        }
+
+        @Test
+        @DisplayName("GIVEN non-existent person WHEN delete THEN throw ClientNotFoundException and do nothing")
+        void shouldThrowExceptionWhenNotFound() {
+            UUID nonExistentId = UUID.randomUUID();
+            when(clientRepository.existsById(nonExistentId)).thenReturn(false);
+
+            assertThatThrownBy(() -> service.deleteClientAndCloseContracts(nonExistentId))
+                    .isInstanceOf(ClientNotFoundException.class)
+                    .hasMessageContaining("Client with ID " + nonExistentId + " not found");
+
+            verify(contractApplicationService, never()).closeActiveContractsByClientId(any());
+        }
+
+        @Test
+        @DisplayName("GIVEN person WHEN delete THEN contracts closure is delegated (business rule: close before delete)")
+        void shouldDelegateContractsClosureBeforeDeletion() {
+            UUID personId = UUID.randomUUID();
+
+            when(clientRepository.existsById(personId)).thenReturn(true);
+            doNothing().when(contractApplicationService).closeActiveContractsByClientId(personId);
+            doNothing().when(clientRepository).deleteById(personId);
+
+            service.deleteClientAndCloseContracts(personId);
+
+            verify(contractApplicationService).closeActiveContractsByClientId(personId);
         }
     }
 

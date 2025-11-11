@@ -5,6 +5,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
+import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.CompanyIdentifierAlreadyExistsException;
 import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
@@ -14,7 +15,6 @@ import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -68,28 +68,41 @@ public class ClientApplicationService {
         return (Company) clientRepo.save(company);
     }
 
-    public Optional<Client> findById(final UUID id) {
-        return clientRepo.findById(id);
+    @Transactional(readOnly = true)
+    public Client getClientById(final UUID id) {
+        return clientRepo.findById(id)
+                .orElseThrow(() -> new ClientNotFoundException("Client with ID " + id + " not found"));
     }
 
     @Transactional
-    public boolean updateCommonFields(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
-        final Optional<Client> clientOptional = clientRepo.findById(id);
-        if (clientOptional.isEmpty()) {
-            return false;
-        }
-        final Client client = clientOptional.get();
+    public void updateCommonFields(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
+        final Client client = getClientById(id);
         client.updateCommonFields(name, email, phone);
         clientRepo.save(client);
-        return true;
     }
 
     @Transactional
-    public boolean deleteClientAndCloseContracts(final UUID id) {
-        if (!clientRepo.existsById(id)) return false;
+    public void patchClient(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
+        final Client client = getClientById(id);
+        if (name != null) {
+            client.changeName(name);
+        }
+        if (email != null) {
+            client.changeEmail(email);
+        }
+        if (phone != null) {
+            client.changePhone(phone);
+        }
+        clientRepo.save(client);
+    }
+
+    @Transactional
+    public void deleteClientAndCloseContracts(final UUID id) {
+        if (!clientRepo.existsById(id)) {
+            throw new ClientNotFoundException("Client with ID " + id + " not found");
+        }
         contractService.closeActiveContractsByClientId(id);
         clientRepo.deleteById(id);
-        return true;
     }
 
 }
