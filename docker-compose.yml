@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:18.0-trixie
+    pull_policy: missing
     container_name: postgres
     environment:
       POSTGRES_USER: postgres
@@ -19,9 +20,8 @@ services:
       - contract-network
 
   contract-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: contract-service:2.0.0-optimized
+    pull_policy: missing
     container_name: contract-service
     ports:
       - "8080:8080"
