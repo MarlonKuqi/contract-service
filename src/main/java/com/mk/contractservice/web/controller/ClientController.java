@@ -115,26 +115,38 @@ public class ClientController {
             final UriComponentsBuilder uriBuilder,
             final Locale locale
     ) {
-        switch (request) {
-            case CreatePersonRequest personReq -> {
-                final Person person = service.createPerson(
-                        personReq.name(),
-                        personReq.email(),
-                        personReq.phone(),
-                        personReq.birthDate()
-                );
-                return buildCreatedResponse(person, personResponseMapper.toDto(person), uriBuilder, locale);
-            }
-            case CreateCompanyRequest companyReq -> {
-                final Company company = service.createCompany(
-                        companyReq.name(),
-                        companyReq.email(),
-                        companyReq.phone(),
-                        companyReq.companyIdentifier()
-                );
-                return buildCreatedResponse(company, companyResponseMapper.toDto(company), uriBuilder, locale);
-            }
-        }
+        return switch (request) {
+            case CreatePersonRequest personReq -> createPersonResponse(personReq, uriBuilder, locale);
+            case CreateCompanyRequest companyReq -> createCompanyResponse(companyReq, uriBuilder, locale);
+        };
+    }
+
+    private ResponseEntity<CreateClientResponse> createPersonResponse(
+            CreatePersonRequest request,
+            UriComponentsBuilder uriBuilder,
+            Locale locale
+    ) {
+        final Person person = service.createPerson(
+                request.name(),
+                request.email(),
+                request.phone(),
+                request.birthDate()
+        );
+        return buildCreatedResponse(person, personResponseMapper.toDto(person), uriBuilder, locale);
+    }
+
+    private ResponseEntity<CreateClientResponse> createCompanyResponse(
+            CreateCompanyRequest request,
+            UriComponentsBuilder uriBuilder,
+            Locale locale
+    ) {
+        final Company company = service.createCompany(
+                request.name(),
+                request.email(),
+                request.phone(),
+                request.companyIdentifier()
+        );
+        return buildCreatedResponse(company, companyResponseMapper.toDto(company), uriBuilder, locale);
     }
 
     private ResponseEntity<CreateClientResponse> buildCreatedResponse(

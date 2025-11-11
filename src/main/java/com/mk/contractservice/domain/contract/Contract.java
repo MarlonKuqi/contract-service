@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.contract;
 
 import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.exception.ExpiredContractException;
 import com.mk.contractservice.domain.exception.InvalidContractException;
 import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
@@ -44,7 +45,7 @@ public class Contract {
         return new ContractBuilder();
     }
 
-    private void touch() {
+    private void updateLastModified() {
         this.lastModified = LocalDateTime.now();
     }
 
@@ -52,12 +53,19 @@ public class Contract {
         return period.isActive();
     }
 
+    public boolean isInactive() {
+        return !isActive();
+    }
+
     public void changeCost(final ContractCost newAmount) {
         if (newAmount == null) {
             throw InvalidContractException.forNullNewCostAmount();
         }
+        if (isInactive()) {
+            throw new ExpiredContractException(getId());
+        }
         this.costAmount = newAmount;
-        touch();
+        updateLastModified();
     }
 
     public static class ContractBuilder {

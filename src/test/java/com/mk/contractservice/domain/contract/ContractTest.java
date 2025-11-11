@@ -2,6 +2,7 @@ package com.mk.contractservice.domain.contract;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.domain.exception.ExpiredContractException;
 import com.mk.contractservice.domain.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.exception.InvalidContractException;
 import com.mk.contractservice.domain.exception.InvalidContractPeriodException;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -145,6 +147,30 @@ class ContractTest {
             assertThatThrownBy(() -> contract.changeCost(null))
                     .isInstanceOf(InvalidContractException.class)
                     .hasMessageContaining("New cost amount cannot be null");
+
+            assertThat(contract.getCostAmount()).isEqualTo(initialCost);
+        }
+
+        @Test
+        @DisplayName("GIVEN expired contract WHEN changing cost THEN throw ExpiredContractException")
+        void shouldRejectCostChangeOnExpiredContract() {
+            UUID contractId = UUID.randomUUID();
+            LocalDateTime now = LocalDateTime.now();
+            ContractPeriod expiredPeriod = ContractPeriod.of(now.minusDays(100), now.minusDays(1));
+            ContractCost initialCost = ContractCost.of(new BigDecimal("100.00"));
+
+            Contract contract = Contract.builder()
+                    .id(contractId)
+                    .client(testClient)
+                    .period(expiredPeriod)
+                    .costAmount(initialCost)
+                    .build();
+
+            ContractCost newCost = ContractCost.of(new BigDecimal("200.00"));
+
+            assertThatThrownBy(() -> contract.changeCost(newCost))
+                    .isInstanceOf(ExpiredContractException.class)
+                    .hasMessageContaining(contractId.toString());
 
             assertThat(contract.getCostAmount()).isEqualTo(initialCost);
         }
