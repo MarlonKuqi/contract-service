@@ -1,47 +1,47 @@
 ---
 name: "Feature"
-about: Suivre l'ajout d'une nouvelle fonctionnalité
+about: Track the addition of a new feature
 title: "feat: "
 labels: ["feature"]
 ---
 
-## 🎯 Objectif
+## 🎯 Objective
 
-Décris clairement ce que tu veux atteindre avec cette feature.  
-Exemple : *Permettre aux utilisateurs de créer un compte via l'endpoint `/register`.*
+Clearly describe what you want to achieve with this feature.  
+Example: *Allow users to create an account via the `/register` endpoint.*
 
 ---
 
 ## 🧩 Description
 
-Explique brièvement :
-- le *quoi* (fonctionnalité),
-- le *pourquoi* (problème ou besoin auquel ça répond).
+Briefly explain:
+- the *what* (functionality),
+- the *why* (problem or need it addresses).
 
 ---
 
-## ✅ Critères d’acceptation (Definition of Done)
+## ✅ Acceptance Criteria (Definition of Done)
 
-Coche ce qui doit être vrai pour considérer la feature comme terminée :
+Check what must be true to consider the feature complete:
 
-- [ ] Code implémenté
-- [ ] Tests (unitaires / intégration) écrits et passants
-- [ ] Documentation mise à jour (README / API / diagrammes si nécessaire)
-- [ ] Review et merge de la PR associée
-
----
-
-## 🔨 Checklist technique
-
-- [ ] Architecture / design validés
-- [ ] Coverage impactée en positif ou neutre
-- [ ] Pas de duplication ou dette inutile introduite
+- [ ] Code implemented
+- [ ] Tests (unit / integration) written and passing
+- [ ] Documentation updated (README / API / diagrams if necessary)
+- [ ] PR reviewed and merged
 
 ---
 
-## 🔗 Liens (optionnels)
+## 🔨 Technical Checklist
 
-- Maquette
+- [ ] Architecture / design validated
+- [ ] Coverage impacted positively or neutrally
+- [ ] No duplication or unnecessary debt introduced
+
+---
+
+## 🔗 Links (optional)
+
+- Mockup
 - RFC / documentation
-- Ticket parent / dépendances
+- Parent ticket / dependencies
 

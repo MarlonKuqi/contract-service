@@ -1,49 +1,52 @@
 ## 📌 Description
 
-Décris ce que cette Pull Request apporte.
-Exemple : *Ajout de l'authentification JWT (issue #12).*
+**Describe what this Pull Request brings and why.**
+
+Example: *Added JWT authentication (issue #12) to secure API endpoints. Users now need to provide a valid token to access protected resources.*
 
 ---
 
-## ✅ Type de changement
+## ✅ Type of Change
 
-Coche ce qui correspond :
+**Check the type(s) that apply (no description needed here):**
 
-- [ ] Feature
-- [ ] Bugfix
-- [ ] Refactor (changement sans impact fonctionnel)
-- [ ] Documentation uniquement
-
----
-
-## 🧪 Tests effectués
-
-Décris comment tu as vérifié que ça fonctionne :
-
-- [ ] Tests unitaires ajoutés / mis à jour
-- [ ] Tests d'intégration ajoutés / mis à jour
-- [ ] L'application démarre correctement
-- [ ] Tests automatisés CI/CD passants
+- [ ] Feature (new functionality)
+- [ ] Bugfix (fixes an issue)
+- [ ] Refactor (change without functional impact)
+- [ ] Documentation only
+- [ ] Performance improvement
+- [ ] Technical debt reduction
 
 ---
 
-## 📷 Capture d’écran (optionnel)
+## 🧪 Testing Performed
 
-_Ajoute des logs, captures Postman, screenshots, etc._
+Describe how you verified that it works:
 
----
-
-## 🔗 Liens
-
-- Issue associée : Fixes #ISSUE_NUMBER ou Closes #ISSUE_NUMBER
-- Documentation / contexte associée
+- [ ] Unit tests added / updated
+- [ ] Integration tests added / updated
+- [ ] Application starts correctly
+- [ ] Automated CI/CD tests passing
 
 ---
 
-## ✅ Checklist finale avant merge
+## 📷 Screenshot (optional)
+
+_Add logs, Postman captures, screenshots, etc._
+
+---
+
+## 🔗 Links
+
+- Related issue: Fixes #ISSUE_NUMBER or Closes #ISSUE_NUMBER
+- Related documentation / context
+
+---
+
+## ✅ Final Checklist Before Merge
 
 - [ ] Lint / Format ok
-- [ ] Pas de `TODO:` ou commentaire inutile
-- [ ] Nom du commit respectant la convention (`feat:`, `fix:`…)
-- [ ] Pas de code mort ajouté
+- [ ] No `TODO:` or unnecessary comments
+- [ ] Commit name follows convention (`feat:`, `fix:`…)
+- [ ] No dead code added
 
