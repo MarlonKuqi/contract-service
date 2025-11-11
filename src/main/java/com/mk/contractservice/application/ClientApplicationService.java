@@ -84,16 +84,14 @@ public class ClientApplicationService {
     @Transactional
     public void patchClient(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
         final Client client = getClientById(id);
-        if (name != null) {
-            client.changeName(name);
+
+        boolean hasChanges = applyIfPresent(name, client::changeName)
+                           | applyIfPresent(email, client::changeEmail)
+                           | applyIfPresent(phone, client::changePhone);
+
+        if (hasChanges) {
+            clientRepo.save(client);
         }
-        if (email != null) {
-            client.changeEmail(email);
-        }
-        if (phone != null) {
-            client.changePhone(phone);
-        }
-        clientRepo.save(client);
     }
 
     @Transactional
