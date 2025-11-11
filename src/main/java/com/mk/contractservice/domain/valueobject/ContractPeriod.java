@@ -5,8 +5,12 @@ import com.mk.contractservice.domain.exception.InvalidContractPeriodException;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.function.BiPredicate;
 
 public final class ContractPeriod {
+
+    public static final BiPredicate<LocalDateTime, LocalDateTime> END_IS_AFTER_START =
+        (start, end) -> end == null || (start != null && end.isAfter(start));
 
     private final LocalDateTime startDate;
 
@@ -25,7 +29,7 @@ public final class ContractPeriod {
     }
 
     private static void validate(final LocalDateTime startDate, final LocalDateTime endDate) {
-        if (endDate != null && !endDate.isAfter(startDate)) {
+        if (!END_IS_AFTER_START.test(startDate, endDate)) {
             throw new InvalidContractPeriodException(
                     "Contract end date must be after start date. " +
                             "Start: " + startDate + ", End: " + endDate

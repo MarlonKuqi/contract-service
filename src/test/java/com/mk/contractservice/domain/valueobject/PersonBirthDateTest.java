@@ -124,6 +124,19 @@ class PersonBirthDateTest {
     }
 
     @Test
+    @DisplayName("Predicate IS_IN_FUTURE should validate future dates")
+    void predicateIsInFuture() {
+        LocalDate futureDate = LocalDate.now().plusDays(1);
+        LocalDate pastDate = LocalDate.now().minusDays(1);
+        LocalDate today = LocalDate.now();
+
+        assertThat(PersonBirthDate.IS_IN_FUTURE.test(futureDate)).isTrue();
+        assertThat(PersonBirthDate.IS_IN_FUTURE.test(LocalDate.now().plusYears(1))).isTrue();
+        assertThat(PersonBirthDate.IS_IN_FUTURE.test(pastDate)).isFalse();
+        assertThat(PersonBirthDate.IS_IN_FUTURE.test(today)).isFalse();
+    }
+
+    @Test
     @DisplayName("GIVEN last day of year WHEN of() THEN accept")
     void shouldAcceptLastDayOfYear() {
         LocalDate lastDay = LocalDate.of(2000, 12, 31);

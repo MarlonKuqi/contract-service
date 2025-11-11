@@ -5,8 +5,17 @@ import com.mk.contractservice.domain.exception.InvalidClientNameException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Objects;
+import java.util.function.Predicate;
 
 public final class ClientName {
+
+    private static final int MAX_LENGTH = 200;
+
+    public static final Predicate<String> IS_BLANK =
+        name -> name == null || name.isBlank();
+
+    public static final Predicate<String> IS_NOT_VALID_LENGTH =
+        name -> name == null || name.isEmpty() || name.length() > MAX_LENGTH;
 
     @JsonValue
     private final String value;
@@ -22,15 +31,15 @@ public final class ClientName {
     }
 
     private static String normalize(final String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
+        if (IS_BLANK.test(rawValue)) {
             throw new InvalidClientNameException("Client name must not be null or blank");
         }
         return rawValue.trim();
     }
 
     private static void validate(final String normalized) {
-        if (normalized.length() > 200) {
-            throw new InvalidClientNameException("Client name too long (max 200 characters)");
+        if (IS_NOT_VALID_LENGTH.test(normalized)) {
+            throw new InvalidClientNameException("Client name too long (max " + MAX_LENGTH + " characters)");
         }
     }
 

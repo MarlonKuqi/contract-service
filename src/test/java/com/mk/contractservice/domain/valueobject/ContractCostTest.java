@@ -81,5 +81,27 @@ class ContractCostTest {
 
         assertThat(cost.value()).isEqualByComparingTo("999999999.99");
     }
+
+    @Test
+    @DisplayName("Predicate IS_ZERO_OR_NEGATIVE should validate cost sign")
+    void predicateIsZeroOrNegative() {
+        assertThat(ContractCost.IS_ZERO_OR_NEGATIVE.test(BigDecimal.ZERO)).isTrue();
+        assertThat(ContractCost.IS_ZERO_OR_NEGATIVE.test(new BigDecimal("-0.01"))).isTrue();
+        assertThat(ContractCost.IS_ZERO_OR_NEGATIVE.test(new BigDecimal("-100"))).isTrue();
+        assertThat(ContractCost.IS_ZERO_OR_NEGATIVE.test(null)).isTrue();
+        assertThat(ContractCost.IS_ZERO_OR_NEGATIVE.test(new BigDecimal("0.01"))).isFalse();
+        assertThat(ContractCost.IS_ZERO_OR_NEGATIVE.test(new BigDecimal("100.50"))).isFalse();
+    }
+
+    @Test
+    @DisplayName("Predicate HAS_INVALID_SCALE should validate decimal places")
+    void predicateHasInvalidScale() {
+        assertThat(ContractCost.HAS_INVALID_SCALE.test(new BigDecimal("100.00"))).isFalse();
+        assertThat(ContractCost.HAS_INVALID_SCALE.test(new BigDecimal("100.5"))).isFalse();
+        assertThat(ContractCost.HAS_INVALID_SCALE.test(new BigDecimal("100"))).isFalse();
+        assertThat(ContractCost.HAS_INVALID_SCALE.test(new BigDecimal("100.123"))).isTrue();
+        assertThat(ContractCost.HAS_INVALID_SCALE.test(new BigDecimal("100.9999"))).isTrue();
+        assertThat(ContractCost.HAS_INVALID_SCALE.test(null)).isTrue();
+    }
 }
 

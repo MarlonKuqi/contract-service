@@ -5,8 +5,17 @@ import com.mk.contractservice.domain.exception.InvalidPhoneNumberException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Objects;
+import java.util.function.Predicate;
 
 public final class PhoneNumber {
+
+    private static final String PHONE_PATTERN = "\\+?[0-9 .()/-]{7,20}";
+
+    public static final Predicate<String> IS_BLANK =
+        phone -> phone == null || phone.isBlank();
+
+    public static final Predicate<String> HAS_INVALID_FORMAT =
+        phone -> phone == null || !phone.matches(PHONE_PATTERN);
 
     private final String value;
 
@@ -21,14 +30,14 @@ public final class PhoneNumber {
     }
 
     private static String normalize(final String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
+        if (IS_BLANK.test(rawValue)) {
             throw new InvalidPhoneNumberException("Phone number must not be null or blank");
         }
         return rawValue.trim();
     }
 
     private static void validate(final String normalized, final String rawValue) {
-        if (!normalized.matches("\\+?[0-9 .()/-]{7,20}")) {
+        if (HAS_INVALID_FORMAT.test(normalized)) {
             throw new InvalidPhoneNumberException("Invalid phone number format: " + rawValue);
         }
     }

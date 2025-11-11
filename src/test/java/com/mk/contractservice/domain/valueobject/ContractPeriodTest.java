@@ -77,9 +77,8 @@ class ContractPeriodTest {
     @DisplayName("GIVEN end equal to start WHEN of() THEN throw exception")
     void shouldRejectEndEqualToStart() {
         LocalDateTime start = LocalDateTime.now();
-        LocalDateTime end = start;
 
-        assertThatThrownBy(() -> ContractPeriod.of(start, end))
+        assertThatThrownBy(() -> ContractPeriod.of(start, start))
                 .isInstanceOf(InvalidContractPeriodException.class)
                 .hasMessageContaining("Contract end date must be after start date");
     }
@@ -156,14 +155,24 @@ class ContractPeriodTest {
     }
 
     @Test
-    @DisplayName("GIVEN period compared to itself WHEN equals THEN return true")
-    void shouldBeEqualToItself() {
-        LocalDateTime start = LocalDateTime.now();
-        LocalDateTime end = start.plusDays(30);
+    @DisplayName("BiPredicate END_IS_AFTER_START should validate date ordering")
+    void biPredicateEndIsAfterStart() {
+        LocalDateTime start = LocalDateTime.of(2024, 1, 1, 10, 0);
+        LocalDateTime endAfter = LocalDateTime.of(2024, 1, 2, 10, 0);
+        LocalDateTime endBefore = LocalDateTime.of(2023, 12, 31, 10, 0);
 
-        ContractPeriod period = ContractPeriod.of(start, end);
+        // Valid: end is after start
+        assertThat(ContractPeriod.END_IS_AFTER_START.test(start, endAfter)).isTrue();
+        assertThat(ContractPeriod.END_IS_AFTER_START.test(start, start.plusSeconds(1))).isTrue();
 
-        assertThat(period).isEqualTo(period);
+        // Valid: end is null (no end date)
+        assertThat(ContractPeriod.END_IS_AFTER_START.test(start, null)).isTrue();
+
+        // Invalid: end equals start
+        assertThat(ContractPeriod.END_IS_AFTER_START.test(start, start)).isFalse();
+
+        // Invalid: end is before start
+        assertThat(ContractPeriod.END_IS_AFTER_START.test(start, endBefore)).isFalse();
     }
 
     @Test

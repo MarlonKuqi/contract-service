@@ -109,6 +109,26 @@ class CompanyIdentifierTest {
     }
 
     @Test
+    @DisplayName("Predicate IS_BLANK should validate blank identifiers")
+    void predicateIsBlank() {
+        assertThat(CompanyIdentifier.IS_BLANK.test("")).isTrue();
+        assertThat(CompanyIdentifier.IS_BLANK.test("  ")).isTrue();
+        assertThat(CompanyIdentifier.IS_BLANK.test("\t")).isTrue();
+        assertThat(CompanyIdentifier.IS_BLANK.test(null)).isTrue();
+        assertThat(CompanyIdentifier.IS_BLANK.test("acme-123")).isFalse();
+    }
+
+    @Test
+    @DisplayName("Predicate IS_NOT_VALID should validate identifier constraints")
+    void predicateIsNotValid() {
+        assertThat(CompanyIdentifier.IS_NOT_VALID.test("valid-id")).isFalse();
+        assertThat(CompanyIdentifier.IS_NOT_VALID.test("a".repeat(64))).isFalse();
+        assertThat(CompanyIdentifier.IS_NOT_VALID.test("a".repeat(65))).isTrue();
+        assertThat(CompanyIdentifier.IS_NOT_VALID.test("")).isTrue();
+        assertThat(CompanyIdentifier.IS_NOT_VALID.test(null)).isTrue();
+    }
+
+    @Test
     @DisplayName("GIVEN identifier with numbers WHEN creating CompanyIdentifier THEN accept")
     void shouldAcceptNumbers() {
         CompanyIdentifier identifier = CompanyIdentifier.of("123456789");

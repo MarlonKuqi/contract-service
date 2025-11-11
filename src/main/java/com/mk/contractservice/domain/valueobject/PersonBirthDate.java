@@ -6,8 +6,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 public final class PersonBirthDate {
+
+    public static final Predicate<LocalDate> IS_IN_FUTURE =
+            date -> date == null || date.isAfter(LocalDate.now());
 
     private final LocalDate value;
 
@@ -24,7 +28,7 @@ public final class PersonBirthDate {
         if (birthDate == null) {
             throw new InvalidPersonBirthDateException("Birth date must not be null");
         }
-        if (birthDate.isAfter(LocalDate.now())) {
+        if (IS_IN_FUTURE.test(birthDate)) {
             throw new InvalidPersonBirthDateException("Birth date cannot be in the future");
         }
     }
@@ -49,4 +53,3 @@ public final class PersonBirthDate {
         return value != null ? value.toString() : StringUtils.EMPTY;
     }
 }
-

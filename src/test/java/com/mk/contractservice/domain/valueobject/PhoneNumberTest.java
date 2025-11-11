@@ -199,5 +199,30 @@ class PhoneNumberTest {
 
         assertThat(phone.value()).isEqualTo(maxLengthPhone);
     }
+
+    @Test
+    @DisplayName("Predicate IS_BLANK should validate blank phone numbers")
+    void predicateIsBlank() {
+        assertThat(PhoneNumber.IS_BLANK.test("")).isTrue();
+        assertThat(PhoneNumber.IS_BLANK.test("  ")).isTrue();
+        assertThat(PhoneNumber.IS_BLANK.test("\t")).isTrue();
+        assertThat(PhoneNumber.IS_BLANK.test(null)).isTrue();
+        assertThat(PhoneNumber.IS_BLANK.test("+33123456789")).isFalse();
+    }
+
+    @Test
+    @DisplayName("Predicate HAS_INVALID_FORMAT should validate phone number format")
+    void predicateHasInvalidFormat() {
+        // Invalid formats - should return true
+        assertThat(PhoneNumber.HAS_INVALID_FORMAT.test("abc")).isTrue();
+        assertThat(PhoneNumber.HAS_INVALID_FORMAT.test("123")).isTrue();
+        assertThat(PhoneNumber.HAS_INVALID_FORMAT.test("123456789012345678901")).isTrue();
+        assertThat(PhoneNumber.HAS_INVALID_FORMAT.test(null)).isTrue();
+
+        // Valid formats - should return false
+        assertThat(PhoneNumber.HAS_INVALID_FORMAT.test("+33123456789")).isFalse();
+        assertThat(PhoneNumber.HAS_INVALID_FORMAT.test("+33 1 23 45 67 89")).isFalse();
+        assertThat(PhoneNumber.HAS_INVALID_FORMAT.test("1234567890")).isFalse();
+    }
 }
 
