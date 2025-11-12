@@ -1,5 +1,8 @@
 package com.mk.contractservice.integration;
 
+import com.mk.contractservice.web.controller.ClientController;
+import com.mk.contractservice.web.controller.ContractController;
+
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
@@ -97,7 +100,7 @@ class ContractSumRestAssuredIT {
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .contentType("application/json")
@@ -109,7 +112,7 @@ class ContractSumRestAssuredIT {
     void shouldReturnZeroWhenNoContracts() {
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("0"));
@@ -128,7 +131,7 @@ class ContractSumRestAssuredIT {
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("0"));
@@ -154,7 +157,7 @@ class ContractSumRestAssuredIT {
         long startTime = System.currentTimeMillis();
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo(expectedSum.toString()))
@@ -166,7 +169,7 @@ class ContractSumRestAssuredIT {
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo(expectedSum.toString()))
@@ -179,7 +182,7 @@ class ContractSumRestAssuredIT {
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo(expectedSum.toString()))
@@ -194,7 +197,7 @@ class ContractSumRestAssuredIT {
 
             given()
                     .when()
-                    .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                    .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(200)
                     .body(equalTo(expectedSum.toString()))
@@ -238,7 +241,7 @@ class ContractSumRestAssuredIT {
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("100.00"));
@@ -257,14 +260,14 @@ class ContractSumRestAssuredIT {
         );
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("500.00"));
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("500.00"))
@@ -278,14 +281,14 @@ class ContractSumRestAssuredIT {
         );
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("800.00"));
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", testClient.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("800.00"))

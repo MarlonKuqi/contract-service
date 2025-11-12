@@ -4,10 +4,8 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.contract.ContractService;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
-import com.mk.contractservice.domain.exception.ContractNotFoundException;
-import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
-import com.mk.contractservice.domain.exception.ExpiredContractException;
 import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import org.springframework.cache.annotation.CacheEvict;
@@ -26,11 +24,14 @@ public class ContractApplicationService {
 
     private final ContractRepository contractRepo;
     private final ClientRepository clientRepo;
+    private final ContractService contractService;
 
     public ContractApplicationService(ContractRepository contractRepo,
-                                      ClientRepository clientRepo) {
+                                      ClientRepository clientRepo,
+                                      ContractService contractService) {
         this.contractRepo = contractRepo;
         this.clientRepo = clientRepo;
+        this.contractService = contractService;
     }
 
     @Transactional
@@ -53,29 +54,15 @@ public class ContractApplicationService {
     @Transactional
     @CacheEvict(value = "contractSums", key = "#clientId")
     public void updateCost(final UUID clientId, final UUID contractId, BigDecimal newAmount) {
-        final Contract contract = contractRepo.findById(contractId)
-                .orElseThrow(() -> new ContractNotFoundException(contractId));
-
-        if (!contract.getClient().getId().equals(clientId)) {
-            throw new ContractNotOwnedByClientException(contractId, clientId);
-        }
-        if (!contract.isActive()) {
-            throw new ExpiredContractException(contractId);
-        }
+        final Contract contract = contractService.getContractForClient(clientId, contractId);
+        
         contract.changeCost(ContractCost.of(newAmount));
         contractRepo.save(contract);
     }
 
     @Transactional(readOnly = true)
     public Contract getContractById(final UUID clientId, final UUID contractId) {
-        final Contract contract = contractRepo.findById(contractId)
-                .orElseThrow(() -> new ContractNotFoundException(contractId));
-
-        if (!contract.getClient().getId().equals(clientId)) {
-            throw new ContractNotOwnedByClientException(contractId, clientId);
-        }
-
-        return contract;
+        return contractService.getContractForClient(clientId, contractId);
     }
 
     @Transactional(readOnly = true)

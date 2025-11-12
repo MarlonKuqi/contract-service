@@ -1,5 +1,8 @@
 package com.mk.contractservice.integration;
 
+import com.mk.contractservice.web.controller.ClientController;
+import com.mk.contractservice.web.controller.ContractController;
+
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
@@ -25,6 +28,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
@@ -81,7 +85,7 @@ class ContractPaginationIT {
                     .contentType(ContentType.JSON)
                     .body(contractPayload)
                     .when()
-                    .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(201);
 
@@ -96,7 +100,7 @@ class ContractPaginationIT {
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(10))
@@ -111,7 +115,7 @@ class ContractPaginationIT {
                 .queryParam("page", 1)
                 .queryParam("size", 10)
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(10))
@@ -126,7 +130,7 @@ class ContractPaginationIT {
                 .queryParam("page", 2)
                 .queryParam("size", 10)
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(5))
@@ -153,7 +157,7 @@ class ContractPaginationIT {
             given()
                     .contentType(ContentType.JSON)
                     .body(contractPayload)
-                    .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(201);
         }
@@ -162,7 +166,7 @@ class ContractPaginationIT {
                 .queryParam("page", 5)
                 .queryParam("size", 10)
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(0))
@@ -204,7 +208,7 @@ class ContractPaginationIT {
                 """, now.minusDays(1));
 
         given().contentType(ContentType.JSON).body(middleContract)
-                .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(201);
 
         try {
@@ -214,7 +218,7 @@ class ContractPaginationIT {
         }
 
         given().contentType(ContentType.JSON).body(oldContract)
-                .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(201);
 
         try {
@@ -224,13 +228,13 @@ class ContractPaginationIT {
         }
 
         given().contentType(ContentType.JSON).body(recentContract)
-                .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(201);
 
         given()
                 .queryParam("sort", "lastModified,desc")
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(3))
@@ -254,7 +258,7 @@ class ContractPaginationIT {
                     """, i * 100);
 
             given().contentType(ContentType.JSON).body(oldContract)
-                    .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                     .then().statusCode(201);
 
             try {
@@ -280,7 +284,7 @@ class ContractPaginationIT {
                     """, i * 100);
 
             given().contentType(ContentType.JSON).body(recentContract)
-                    .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                     .then().statusCode(201);
 
             try {
@@ -295,7 +299,7 @@ class ContractPaginationIT {
                 .queryParam("page", 0)
                 .queryParam("size", 5)
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(5))
@@ -318,14 +322,14 @@ class ContractPaginationIT {
             given()
                     .contentType(ContentType.JSON)
                     .body(contractPayload)
-                    .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(201);
         }
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(20))
@@ -348,7 +352,7 @@ class ContractPaginationIT {
             given()
                     .contentType(ContentType.JSON)
                     .body(contractPayload)
-                    .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(201);
         }
@@ -356,7 +360,7 @@ class ContractPaginationIT {
         given()
                 .queryParam("size", 5)
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(5))
@@ -366,7 +370,7 @@ class ContractPaginationIT {
         given()
                 .queryParam("size", 25)
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(25))
@@ -376,7 +380,7 @@ class ContractPaginationIT {
         given()
                 .queryParam("size", 50)
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(50))
@@ -401,7 +405,7 @@ class ContractPaginationIT {
             given()
                     .contentType(ContentType.JSON)
                     .body(contractPayload)
-                    .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(201);
         }
@@ -409,7 +413,7 @@ class ContractPaginationIT {
         given()
                 .queryParam("size", 20)
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(3))
@@ -427,7 +431,7 @@ class ContractPaginationIT {
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(0))
@@ -454,7 +458,7 @@ class ContractPaginationIT {
             given()
                     .contentType(ContentType.JSON)
                     .body(expiredContract)
-                    .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(201);
         }
@@ -471,7 +475,7 @@ class ContractPaginationIT {
             given()
                     .contentType(ContentType.JSON)
                     .body(activeContract)
-                    .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(201);
         }
@@ -479,7 +483,7 @@ class ContractPaginationIT {
         given()
                 .queryParam("size", 5)
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(5))
@@ -488,7 +492,47 @@ class ContractPaginationIT {
     }
 
     @Test
-    @DisplayName("Should enforce max page size limit when requested size exceeds maximum")
+    @DisplayName("LOCALIZATION: Should accept and return Italian Swiss locale (it-CH) for contract operations")
+    void shouldAcceptItalianSwissLocaleForContracts() {
+        String contractPayload = """
+                {
+                    "startDate": "2025-01-01T00:00:00",
+                    "endDate": null,
+                    "costAmount": "2500.00"
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .header("Accept-Language", "it-CH")
+                .body(contractPayload)
+                .when()
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(201)
+                .header("Content-Language", equalTo("it-CH"));
+
+        given()
+                .header("Accept-Language", "it-CH")
+                .when()
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(200)
+                .header("Content-Language", equalTo("it-CH"));
+    }
+
+    @Test
+    @DisplayName("LOCALIZATION: Should work with contract sum endpoint")
+    void shouldWorkWithContractSumEndpointLocalization() {
+        given()
+                .header("Accept-Language", "de-CH")
+                .when()
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(200)
+                .header("Content-Language", equalTo("de-CH"));
+    }
+
     void shouldEnforceMaxPageSizeLimit() {
         for (int i = 1; i <= 50; i++) {
             String contractPayload = String.format("""
@@ -502,18 +546,157 @@ class ContractPaginationIT {
             given()
                     .contentType(ContentType.JSON)
                     .body(contractPayload)
-                    .post("/v1/clients/{clientId}/contracts", testClient.getId())
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(201);
         }
         given()
                 .queryParam("size", 200)
                 .when()
-                .get("/v1/clients/{clientId}/contracts", testClient.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(50))
                 .body("pageSize", equalTo(100));
+    }
+
+
+    @Test
+    @DisplayName("Sum endpoint should be performant with 100 contracts (< 100ms)")
+    void sumShouldBePerformantWith100Contracts() {
+        for (int i = 1; i <= 100; i++) {
+            String contractPayload = String.format("""
+                    {
+                        "startDate": "2025-01-01T00:00:00",
+                        "endDate": null,
+                        "costAmount": "1000.00"
+                    }
+                    """);
+
+            given()
+                    .contentType(ContentType.JSON)
+                    .body(contractPayload)
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .then()
+                    .statusCode(201);
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        String sum = given()
+                .when()
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(200)
+                .extract()
+                .asString();
+
+        long duration = System.currentTimeMillis() - startTime;
+
+        assertThat(duration)
+                .as("Sum of 100 contracts should execute in < 100ms (actual: %dms)", duration)
+                .isLessThan(100L);
+
+        System.out.printf("✅ Sum of 100 contracts: %dms (expected < 100ms)%n", duration);
+    }
+
+    @Test
+    @DisplayName("Sum endpoint should be performant with 1,000 contracts (< 200ms)")
+    void sumShouldBePerformantWith1000Contracts() {
+        for (int i = 1; i <= 1000; i++) {
+            String contractPayload = """
+                    {
+                        "startDate": "2025-01-01T00:00:00",
+                        "endDate": null,
+                        "costAmount": "500.00"
+                    }
+                    """;
+
+            given()
+                    .contentType(ContentType.JSON)
+                    .body(contractPayload)
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .then()
+                    .statusCode(201);
+
+            if (i % 100 == 0) {
+                System.out.printf("   Created %d/1000 contracts...%n", i);
+            }
+        }
+        long startTime = System.currentTimeMillis();
+
+        given()
+                .when()
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(200);
+
+        long duration = System.currentTimeMillis() - startTime;
+
+        assertThat(duration)
+                .as("Sum of 1,000 contracts should execute in < 200ms (actual: %dms)", duration)
+                .isLessThan(200L);
+
+        System.out.printf("✅ Sum of 1,000 contracts: %dms (expected < 200ms)%n", duration);
+    }
+
+    @Test
+    @DisplayName("Sum endpoint should only count ACTIVE contracts (performance + correctness)")
+    void sumShouldOnlyCountActiveContractsPerformance() {
+        LocalDateTime now = LocalDateTime.now();
+
+        for (int i = 1; i <= 100; i++) {
+            String activeContract = """
+                    {
+                        "startDate": "2025-01-01T00:00:00",
+                        "endDate": null,
+                        "costAmount": "1000.00"
+                    }
+                    """;
+
+            given()
+                    .contentType(ContentType.JSON)
+                    .body(activeContract)
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .then()
+                    .statusCode(201);
+        }
+
+        for (int i = 1; i <= 100; i++) {
+            String expiredContract = String.format("""
+                    {
+                        "startDate": "2024-01-01T00:00:00",
+                        "endDate": "%s",
+                        "costAmount": "999999.00"
+                    }
+                    """, now.minusDays(1));
+
+            given()
+                    .contentType(ContentType.JSON)
+                    .body(expiredContract)
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .then()
+                    .statusCode(201);
+        }
+        long startTime = System.currentTimeMillis();
+
+        String sum = given()
+                .when()
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(200)
+                .extract()
+                .asString();
+
+        long duration = System.currentTimeMillis() - startTime;
+
+        assertThat(duration)
+                .as("Sum with active/expired mix should execute in < 100ms (actual: %dms)", duration)
+                .isLessThan(100L);
+
+        assertThat(sum).isEqualTo("100000.00");
+
+        System.out.printf("✅ Sum of 100 active + 100 expired contracts: %dms (only active counted: %s)%n", duration, sum);
     }
 }
 

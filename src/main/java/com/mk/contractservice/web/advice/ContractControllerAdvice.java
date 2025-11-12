@@ -1,8 +1,9 @@
 package com.mk.contractservice.web.advice;
 
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.exception.DomainValidationException;
 import com.mk.contractservice.domain.exception.InvalidContractCostException;
-import com.mk.contractservice.web.controller.v1.ContractController;
+import com.mk.contractservice.web.controller.ContractController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -13,11 +14,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestControllerAdvice(assignableTypes = {ContractController.class})
@@ -35,12 +41,39 @@ public class ContractControllerAdvice {
         return respond(pd);
     }
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException ex) {
+        log.debug("Validation failed for contract request: {}", ex.getMessage());
+
+        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Validation Failed",
+                "One or more fields are invalid or missing.", "validationError");
+
+        List<Map<String, Object>> errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> Map.of(
+                        "field", fe.getField(),
+                        "message", messageOf(fe),
+                        "rejectedValue", Optional.ofNullable(fe.getRejectedValue()).orElse("null")))
+                .toList();
+
+        pd.setProperty("validations", errors);
+        return respond(pd);
+    }
+
     @ExceptionHandler(InvalidContractCostException.class)
     public ResponseEntity<ProblemDetail> handleInvalidContractCost(InvalidContractCostException ex) {
         log.warn("Invalid contract cost: {}", ex.getMessage());
-        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "Invalid Contract Cost",
+        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid Contract Cost",
                 ex.getMessage(), "invalidContractCost");
         pd.setProperty("context", "Contract cost validation failed");
+        return respond(pd);
+    }
+
+    @ExceptionHandler(DomainValidationException.class)
+    public ResponseEntity<ProblemDetail> handleDomainValidation(DomainValidationException ex) {
+        log.warn("Domain validation failed for contract: {}", ex.getMessage());
+        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Domain Validation Failed",
+                ex.getMessage(), ex.getCode() != null ? ex.getCode() : "domainValidationError");
+        pd.setProperty("context", "Contract domain validation failed");
         return respond(pd);
     }
 
@@ -51,6 +84,10 @@ public class ContractControllerAdvice {
                 ex.getMessage(), "contractValidationError");
         pd.setProperty("context", "Contract validation failed");
         return respond(pd);
+    }
+
+    private static String messageOf(FieldError fe) {
+        return Optional.ofNullable(fe.getDefaultMessage()).orElse("Invalid value");
     }
 
     private static ProblemDetail problem(HttpStatus status, String title, String detail, String code) {

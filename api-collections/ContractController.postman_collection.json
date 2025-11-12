@@ -37,9 +37,16 @@
           "raw": "{\n  \"costAmount\": 1500.50\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}", "contracts"]
+          "path": ["v2", "contracts"],
+          "query": [
+            {
+              "key": "clientId",
+              "value": "{{clientId}}",
+              "description": "UUID of the client (required)"
+            }
+          ]
         },
         "description": "Create a contract with default dates. If not provided, startDate defaults to current date and endDate is null (open-ended contract)."
       }
@@ -59,9 +66,16 @@
           "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2025-12-31T23:59:59\",\n  \"costAmount\": 2500.00\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}", "contracts"]
+          "path": ["v2", "contracts"],
+          "query": [
+            {
+              "key": "clientId",
+              "value": "{{clientId}}",
+              "description": "UUID of the client (required)"
+            }
+          ]
         },
         "description": "Create a contract with specific start and end dates (ISO 8601 format without timezone - Swiss time assumed)."
       }
@@ -81,9 +95,16 @@
           "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}", "contracts"]
+          "path": ["v2", "contracts"],
+          "query": [
+            {
+              "key": "clientId",
+              "value": "{{clientId}}",
+              "description": "UUID of the client (required)"
+            }
+          ]
         },
         "description": "Create an open-ended contract (no end date - Swiss time assumed)."
       }
@@ -94,10 +115,15 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts?page=0&size=20&sort=lastModified,desc",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&page=0&size=20&sort=lastModified,desc",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}", "contracts"],
+          "path": ["v2", "contracts"],
           "query": [
+            {
+              "key": "clientId",
+              "value": "{{clientId}}",
+              "description": "UUID of the client (required)"
+            },
             {
               "key": "page",
               "value": "0",
@@ -124,10 +150,15 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts?updatedSince=2025-10-26T00:00:00&page=0&size=20",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&updatedSince=2025-10-26T00:00:00&page=0&size=20",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}", "contracts"],
+          "path": ["v2", "contracts"],
           "query": [
+            {
+              "key": "clientId",
+              "value": "{{clientId}}",
+              "description": "UUID of the client (required)"
+            },
             {
               "key": "updatedSince",
               "value": "2025-10-26T00:00:00",
@@ -149,6 +180,26 @@
       }
     },
     {
+      "name": "Get Contract By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}?clientId={{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "{{contractId}}"],
+          "query": [
+            {
+              "key": "clientId",
+              "value": "{{clientId}}",
+              "description": "UUID of the client (required)"
+            }
+          ]
+        },
+        "description": "Get a specific contract by its ID. Validates that the contract belongs to the specified client. Returns 403 if the contract doesn't belong to the client."
+      }
+    },
+    {
       "name": "Update Contract Cost",
       "request": {
         "method": "PATCH",
@@ -163,11 +214,18 @@
           "raw": "{\n  \"amount\": 3000.00\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts/{{contractId}}/cost",
+          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}/cost?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}", "contracts", "{{contractId}}", "cost"]
+          "path": ["v2", "contracts", "{{contractId}}", "cost"],
+          "query": [
+            {
+              "key": "clientId",
+              "value": "{{clientId}}",
+              "description": "UUID of the client (required)"
+            }
+          ]
         },
-        "description": "Update the cost amount of a contract. Automatically updates lastModifiedDate to current date."
+        "description": "Update the cost amount of a contract. Automatically updates lastModifiedDate to current date. Only active (non-expired) contracts can be updated."
       }
     },
     {
@@ -176,9 +234,16 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}/contracts/sum",
+          "raw": "{{baseUrl}}/v2/contracts/sum?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}", "contracts", "sum"]
+          "path": ["v2", "contracts", "sum"],
+          "query": [
+            {
+              "key": "clientId",
+              "value": "{{clientId}}",
+              "description": "UUID of the client (required)"
+            }
+          ]
         },
         "description": "Very performant endpoint using database aggregation. Returns the sum of costAmount for all active contracts of a client."
       }

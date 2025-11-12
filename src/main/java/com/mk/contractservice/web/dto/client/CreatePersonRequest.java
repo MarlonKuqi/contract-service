@@ -1,5 +1,6 @@
 package com.mk.contractservice.web.dto.client;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -9,6 +10,8 @@ import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
+@JsonTypeName("PERSON")
+@Schema(description = "Create person client request")
 public record CreatePersonRequest(
         @NotBlank(message = "Name is required")
         @Size(max = 200, message = "Name must not exceed 200 characters")
@@ -30,6 +33,6 @@ public record CreatePersonRequest(
         @PastOrPresent(message = "Birth date must be in the past or present")
         @Schema(description = "Person birth date (must be in the past or present)", example = "1990-05-15", format = "date", requiredMode = Schema.RequiredMode.REQUIRED)
         LocalDate birthDate
-) {
+) implements CreateClientRequest {
 }
 

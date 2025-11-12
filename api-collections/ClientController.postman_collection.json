@@ -18,14 +18,58 @@
   ],
   "item": [
     {
+      "name": "Create Person",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"PERSON\",\n  \"name\": \"Jean Dupont\",\n  \"email\": \"jean.dupont@example.com\",\n  \"phone\": \"+41791234567\",\n  \"birthDate\": \"1985-03-15\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/clients",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "clients"]
+        },
+        "description": "Create a Person client. Requires 'type': 'PERSON' and birthDate field (format: YYYY-MM-DD). Swiss phone format."
+      }
+    },
+    {
+      "name": "Create Company",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"COMPANY\",\n  \"name\": \"Assurance Vaudoise SA\",\n  \"email\": \"contact@vaudoise.ch\",\n  \"phone\": \"+41219258111\",\n  \"companyIdentifier\": \"CHE-123.456.789\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/clients",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "clients"]
+        },
+        "description": "Create a Company client. Requires 'type': 'COMPANY' and companyIdentifier field (format: CHE-XXX.XXX.XXX)."
+      }
+    },
+    {
       "name": "Read Client",
       "request": {
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}"]
+          "path": ["v2", "clients", "{{clientId}}"]
         },
         "description": "Returns all client fields including specific type data (Person or Company). Replace {{clientId}} with actual UUID from Create Person/Company response."
       }
@@ -45,9 +89,9 @@
           "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"phone\": \"+41790000000\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}"]
+          "path": ["v2", "clients", "{{clientId}}"]
         },
         "description": "Update client common fields (name, email, phone). Note: Cannot update birthDate (Person) or companyIdentifier (Company)."
       }
@@ -67,9 +111,9 @@
           "raw": "{\n  \"name\": \"Patched Name\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}"]
+          "path": ["v2", "clients", "{{clientId}}"]
         },
         "description": "Partially update a client - only name field. Other fields (email, phone) remain unchanged."
       }
@@ -89,9 +133,9 @@
           "raw": "{\n  \"email\": \"patched@example.com\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}"]
+          "path": ["v2", "clients", "{{clientId}}"]
         },
         "description": "Partially update a client - only email field. Other fields (name, phone) remain unchanged."
       }
@@ -111,9 +155,9 @@
           "raw": "{\n  \"phone\": \"+41799999999\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}"]
+          "path": ["v2", "clients", "{{clientId}}"]
         },
         "description": "Partially update a client - only phone field. Other fields (name, email) remain unchanged."
       }
@@ -133,9 +177,9 @@
           "raw": "{\n  \"name\": \"Updated Name via PATCH\",\n  \"email\": \"new.email@example.com\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}"]
+          "path": ["v2", "clients", "{{clientId}}"]
         },
         "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated."
       }
@@ -146,9 +190,9 @@
         "method": "DELETE",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/clients/{{clientId}}",
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v1", "clients", "{{clientId}}"]
+          "path": ["v2", "clients", "{{clientId}}"]
         },
         "description": "Delete a client. This will set endDate to current date for all active contracts."
       }

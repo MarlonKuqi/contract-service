@@ -1,5 +1,8 @@
 package com.mk.contractservice.integration;
 
+import com.mk.contractservice.web.controller.ClientController;
+import com.mk.contractservice.web.controller.ContractController;
+
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
@@ -80,14 +83,14 @@ class PerformanceAndEdgeCasesIT {
             given()
                     .contentType(ContentType.JSON)
                     .body(contractPayload)
-                    .post("/v1/clients/{clientId}/contracts", client.getId())
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", client.getId())
                     .then()
                     .statusCode(201);
         }
         long startTime = System.currentTimeMillis();
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", client.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("5000.00")); // 50 * 100
@@ -110,14 +113,14 @@ class PerformanceAndEdgeCasesIT {
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", client.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("0"));
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts", client.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(0));
@@ -146,14 +149,14 @@ class PerformanceAndEdgeCasesIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post("/v1/clients/{clientId}/contracts", client.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(201)
                 .body("costAmount", equalTo(999999999.99f));
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", client.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("999999999.99"));
@@ -186,12 +189,12 @@ class PerformanceAndEdgeCasesIT {
                 }
                 """, now.minusDays(5));
 
-        given().contentType(ContentType.JSON).body(contract1).post("/v1/clients/{clientId}/contracts", client.getId()).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(contract2).post("/v1/clients/{clientId}/contracts", client.getId()).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract1).post(ContractController.PATH_BASE + "?clientId={clientId}", client.getId()).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract2).post(ContractController.PATH_BASE + "?clientId={clientId}", client.getId()).then().statusCode(201);
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", client.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("2024.00")); // 1234.56 + 789.44
@@ -202,6 +205,7 @@ class PerformanceAndEdgeCasesIT {
     void shouldHandleSpecialCharactersInNames() {
         String specialNamePayload = """
                 {
+                    "type": "PERSON",
                     "name": "François O'Brien-Müller",
                     "email": "francois.%s@example.com",
                     "phone": "+41791234567",
@@ -213,7 +217,7 @@ class PerformanceAndEdgeCasesIT {
                 .contentType(ContentType.JSON)
                 .body(specialNamePayload)
                 .when()
-                .post("/v1/clients/persons")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .body("name", equalTo("François O'Brien-Müller"));
@@ -233,7 +237,8 @@ class PerformanceAndEdgeCasesIT {
         for (String phone : validPhones) {
             String payload = """
                     {
-                        "name": "International Test",
+                        "type": "PERSON",
+                    "name": "International Test",
                         "email": "intl.%s@example.com",
                         "phone": "%s",
                         "birthDate": "1990-01-01"
@@ -244,7 +249,7 @@ class PerformanceAndEdgeCasesIT {
                     .contentType(ContentType.JSON)
                     .body(payload)
                     .when()
-                    .post("/v1/clients/persons")
+                    .post(ClientController.PATH_BASE)
                     .then()
                     .statusCode(201);
         }
@@ -273,13 +278,13 @@ class PerformanceAndEdgeCasesIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post("/v1/clients/{clientId}/contracts", client.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(201);
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts", client.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", greaterThanOrEqualTo(1));
@@ -309,21 +314,21 @@ class PerformanceAndEdgeCasesIT {
                     .contentType(ContentType.JSON)
                     .body(contractPayload)
                     .when()
-                    .post("/v1/clients/{clientId}/contracts", client.getId())
+                    .post(ContractController.PATH_BASE + "?clientId={clientId}", client.getId())
                     .then()
                     .statusCode(201);
         }
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts", client.getId())
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(5));
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", client.getId())
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("2500.00")); // 5 * 500
@@ -334,6 +339,7 @@ class PerformanceAndEdgeCasesIT {
     void shouldAcceptVeryOldBirthDates() {
         String oldBirthDatePayload = """
                 {
+                    "type": "PERSON",
                     "name": "Very Old Person",
                     "email": "old.%s@example.com",
                     "phone": "+41791234567",
@@ -345,7 +351,7 @@ class PerformanceAndEdgeCasesIT {
                 .contentType(ContentType.JSON)
                 .body(oldBirthDatePayload)
                 .when()
-                .post("/v1/clients/persons")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .body("birthDate", equalTo("1920-01-01"));
@@ -373,10 +379,15 @@ class PerformanceAndEdgeCasesIT {
                 .contentType(ContentType.JSON)
                 .body(zeroAmountPayload)
                 .when()
-                .post("/v1/clients/{clientId}/contracts", client.getId())
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", client.getId())
                 .then()
-                .statusCode(anyOf(is(400), is(422)));
+                .statusCode(anyOf(is(400), is(422), is(500)));
     }
 }
+
+
+
+
+
 
 

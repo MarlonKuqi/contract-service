@@ -1,4 +1,4 @@
-package com.mk.contractservice.web.controller.v1;
+package com.mk.contractservice.web.controller;
 
 import com.mk.contractservice.application.ContractApplicationService;
 import com.mk.contractservice.domain.contract.Contract;
@@ -39,8 +39,15 @@ import java.util.UUID;
 
 @Tag(name = "Contracts", description = "Operations on contracts (create, read, update cost)")
 @RestController
-@RequestMapping("/v1/clients/{clientId}/contracts")
+@RequestMapping(ContractController.PATH_BASE)
 public class ContractController {
+    public static final String VERSION = "/v2";
+    public static final String PATH_BASE = VERSION + "/contracts";
+    public static final String PATH_ID = "/{contractId}";
+    public static final String PATH_CONTRACT = PATH_BASE + PATH_ID;
+    public static final String PATH_SUM = "/sum";
+    public static final String PATH_COST = PATH_ID + "/cost";
+    public static final String PATH_CONTRACT_COST = PATH_CONTRACT + "/cost";
 
     private final ContractApplicationService contractApplicationService;
     private final ContractMapper contractMapper;
@@ -94,7 +101,7 @@ public class ContractController {
     })
     @PostMapping
     public ResponseEntity<CreateContractResponse> create(
-            @PathVariable final UUID clientId,
+            @RequestParam final UUID clientId,
             @Valid @RequestBody final CreateContractRequest req,
             final UriComponentsBuilder uriBuilder,
             final Locale locale
@@ -107,8 +114,8 @@ public class ContractController {
         );
 
         final var location = uriBuilder
-                .path("/v1/clients/{clientId}/contracts/{contractId}")
-                .buildAndExpand(clientId, contract.getId())
+                .path(PATH_CONTRACT)
+                .buildAndExpand(contract.getId())
                 .toUri();
 
         final CreateContractResponse body = new CreateContractResponse(
@@ -159,7 +166,7 @@ public class ContractController {
     })
     @GetMapping
     public ResponseEntity<PagedContractResponse> listActive(
-            @PathVariable final UUID clientId,
+            @RequestParam final UUID clientId,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final LocalDateTime updatedSince,
             final Pageable pageable,
@@ -193,9 +200,9 @@ public class ContractController {
             @ApiResponse(responseCode = "403", description = "Contract does not belong to this client"),
             @ApiResponse(responseCode = "404", description = "Contract not found")
     })
-    @GetMapping("/{contractId}")
+    @GetMapping(PATH_ID)
     public ResponseEntity<ContractResponse> getById(
-            @PathVariable final UUID clientId,
+            @RequestParam final UUID clientId,
             @PathVariable final UUID contractId,
             final Locale locale
     ) {
@@ -232,9 +239,9 @@ public class ContractController {
                             schema = @Schema(implementation = ProblemDetail.class))
             )
     })
-    @GetMapping("/sum")
+    @GetMapping(PATH_SUM)
     public ResponseEntity<BigDecimal> sumActive(
-            @PathVariable final UUID clientId,
+            @RequestParam final UUID clientId,
             final Locale locale
     ) {
         final BigDecimal sum = contractApplicationService.sumActiveContracts(clientId);
@@ -256,9 +263,9 @@ public class ContractController {
             @ApiResponse(responseCode = "404", description = "Contract not found"),
             @ApiResponse(responseCode = "422", description = "Contract is expired and cannot be modified")
     })
-    @PatchMapping("/{contractId}/cost")
+    @PatchMapping(PATH_COST)
     public ResponseEntity<Void> updateCost(
-            @PathVariable final UUID clientId,
+            @RequestParam final UUID clientId,
             @PathVariable final UUID contractId,
             @Valid @RequestBody final CostUpdateRequest req
     ) {

@@ -5,8 +5,15 @@ import com.mk.contractservice.domain.exception.InvalidContractCostException;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 public final class ContractCost {
+
+    public static final Predicate<BigDecimal> IS_ZERO_OR_NEGATIVE =
+        amount -> amount == null || amount.compareTo(BigDecimal.ZERO) <= 0;
+
+    public static final Predicate<BigDecimal> HAS_INVALID_SCALE =
+        amount -> amount == null || amount.scale() > 2;
 
     private final BigDecimal value;
 
@@ -25,11 +32,11 @@ public final class ContractCost {
             throw new InvalidContractCostException("Contract cost amount must not be null");
         }
 
-        if (rawValue.compareTo(BigDecimal.ZERO) <= 0) {
+        if (IS_ZERO_OR_NEGATIVE.test(rawValue)) {
             throw new InvalidContractCostException("Contract cost amount must be greater than zero: " + rawValue);
         }
 
-        if (rawValue.scale() > 2) {
+        if (HAS_INVALID_SCALE.test(rawValue)) {
             throw new InvalidContractCostException("Contract cost amount must have at most 2 decimal places: " + rawValue);
         }
     }

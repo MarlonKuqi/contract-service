@@ -6,8 +6,23 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 public final class Email {
+
+    private static final int MAX_LENGTH = 254;
+    private static final String EMAIL_PATTERN = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
+
+    public static final Predicate<String> IS_BLANK =
+        email -> email == null || email.isBlank();
+
+    public static final Predicate<String> IS_INVALID_LENGTH =
+        email -> email == null || email.isEmpty() || email.length() > MAX_LENGTH;
+
+
+    public static final Predicate<String> HAS_INVALID_FORMAT =
+        email -> email == null || !email.matches(EMAIL_PATTERN);
+
 
     private final String value;
 
@@ -22,21 +37,22 @@ public final class Email {
     }
 
     private static String normalize(final String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
+        if (IS_BLANK.test(rawValue)) {
             throw InvalidEmailException.forBlank();
         }
         return rawValue.trim().toLowerCase(Locale.ROOT);
     }
 
     private static void validate(final String normalizedValue, final String rawValue) {
-        if (normalizedValue.length() > 254) {
-            throw new InvalidEmailException("Email too long (max 254 characters per RFC 5321)");
+        if (IS_INVALID_LENGTH.test(normalizedValue)) {
+            throw new InvalidEmailException("Email too long (max " + MAX_LENGTH + " characters per RFC 5321)");
         }
 
-        if (!normalizedValue.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+        if (HAS_INVALID_FORMAT.test(normalizedValue)) {
             throw InvalidEmailException.forInvalidFormat(rawValue);
         }
     }
+
 
     @JsonValue
     public String value() {

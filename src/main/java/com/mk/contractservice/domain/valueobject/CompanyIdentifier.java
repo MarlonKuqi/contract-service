@@ -5,8 +5,17 @@ import com.mk.contractservice.domain.exception.InvalidCompanyIdentifierException
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Objects;
+import java.util.function.Predicate;
 
 public final class CompanyIdentifier {
+
+    private static final int MAX_LENGTH = 64;
+
+    public static final Predicate<String> IS_BLANK =
+        identifier -> identifier == null || identifier.isBlank();
+
+    public static final Predicate<String> IS_NOT_VALID =
+        identifier -> identifier == null || identifier.isEmpty() || identifier.length() > MAX_LENGTH;
 
     private final String value;
 
@@ -21,15 +30,15 @@ public final class CompanyIdentifier {
     }
 
     private static String normalize(final String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
+        if (IS_BLANK.test(rawValue)) {
             throw new InvalidCompanyIdentifierException("Company identifier must not be null or blank");
         }
         return rawValue.trim();
     }
 
     private static void validate(final String normalized) {
-        if (normalized.length() > 64) {
-            throw new InvalidCompanyIdentifierException("Company identifier too long (max 64 characters)");
+        if (IS_NOT_VALID.test(normalized)) {
+            throw new InvalidCompanyIdentifierException("Company identifier too long (max " + MAX_LENGTH + " characters)");
         }
     }
 

@@ -1,5 +1,8 @@
 package com.mk.contractservice.integration;
 
+import com.mk.contractservice.web.controller.ClientController;
+import com.mk.contractservice.web.controller.ContractController;
+
 import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
@@ -54,6 +57,7 @@ class CompanyLifecycleIT {
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         String createPayload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "Acme Corporation",
                     "email": "contact.acme.%s@example.com",
                     "phone": "+41791234567",
@@ -65,10 +69,11 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
-                .header("Location", matchesPattern(".*/v1/clients/[0-9a-f-]{36}"))
+                .header("Location", matchesPattern(".*" + ClientController.VERSION + "/clients/[0-9a-f-]{36}"))
+                .header("Content-Language", equalTo("fr-CH"))
                 .body("id", notNullValue())
                 .body("name", equalTo("Acme Corporation"))
                 .body("email", containsString("contact.acme"))
@@ -78,9 +83,10 @@ class CompanyLifecycleIT {
 
         given()
                 .when()
-                .get("/v1/clients/{id}", clientId)
+                .get(ClientController.PATH_CLIENT, clientId)
                 .then()
                 .statusCode(200)
+                .header("Content-Language", equalTo("fr-CH"))
                 .body("id", equalTo(clientId))
                 .body("type", equalTo("COMPANY"))
                 .body("name", equalTo("Acme Corporation"))
@@ -93,6 +99,7 @@ class CompanyLifecycleIT {
         String uniqueEmail = "bad." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         String invalidIdentifierPayload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "Bad Company",
                     "email": "%s",
                     "phone": "+41791234567",
@@ -104,7 +111,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(invalidIdentifierPayload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(anyOf(is(400), is(422)));
     }
@@ -115,6 +122,7 @@ class CompanyLifecycleIT {
         String uniqueEmail = "incomplete." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         String missingIdentifierPayload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "Incomplete Company",
                     "email": "%s",
                     "phone": "+41791234567"
@@ -125,7 +133,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(missingIdentifierPayload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(422);
     }
@@ -137,6 +145,7 @@ class CompanyLifecycleIT {
         String companyIdPart = uniqueId.substring(0, 6);
         String createPayload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "Original Tech SA",
                     "email": "original.tech.%s@example.com",
                     "phone": "+41791111111",
@@ -148,7 +157,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -158,6 +167,7 @@ class CompanyLifecycleIT {
         String updateUniqueId = UUID.randomUUID().toString().substring(0, 8);
         String updatePayload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "Updated Tech SA",
                     "email": "updated.tech.%s@example.com",
                     "phone": "+41792222222"
@@ -168,13 +178,13 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .put("/v1/clients/{id}", clientId)
+                .put(ClientController.PATH_CLIENT, clientId)
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get("/v1/clients/{id}", clientId)
+                .get(ClientController.PATH_CLIENT, clientId)
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Updated Tech SA"))
@@ -189,6 +199,7 @@ class CompanyLifecycleIT {
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         String companyPayload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "Delete Me Inc",
                     "email": "deleteme.%s@example.com",
                     "phone": "+41791234567",
@@ -200,7 +211,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(companyPayload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -218,19 +229,19 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post("/v1/clients/{clientId}/contracts", clientId)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", clientId)
                 .then()
                 .statusCode(201);
 
         given()
                 .when()
-                .delete("/v1/clients/{id}", clientId)
+                .delete(ClientController.PATH_CLIENT, clientId)
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get("/v1/clients/{id}", clientId)
+                .get(ClientController.PATH_CLIENT, clientId)
                 .then()
                 .statusCode(404);
     }
@@ -242,6 +253,7 @@ class CompanyLifecycleIT {
 
         String firstPayload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "First Company",
                     "email": "%s",
                     "phone": "+41791111111",
@@ -253,12 +265,13 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(firstPayload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201);
 
         String secondPayload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "Second Company",
                     "email": "%s",
                     "phone": "+41792222222",
@@ -270,7 +283,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(secondPayload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(anyOf(is(409), is(400), is(422), is(500)));
     }
@@ -284,6 +297,7 @@ class CompanyLifecycleIT {
         String firstUniqueEmail = UUID.randomUUID().toString().substring(0, 8);
         String firstPayload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "First Company",
                     "email": "first.%s@example.com",
                     "phone": "+41791111111",
@@ -295,7 +309,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(firstPayload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -303,6 +317,7 @@ class CompanyLifecycleIT {
         String secondUniqueEmail = UUID.randomUUID().toString().substring(0, 8);
         String secondPayload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "Second Company",
                     "email": "second.%s@example.com",
                     "phone": "+41792222222",
@@ -313,12 +328,12 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(secondPayload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(anyOf(is(409), is(400), is(422), is(500)));
         given()
                 .when()
-                .delete("/v1/clients/{id}", firstClientId)
+                .delete(ClientController.PATH_CLIENT, firstClientId)
                 .then()
                 .statusCode(204);
     }
@@ -329,6 +344,7 @@ class CompanyLifecycleIT {
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         String companyPayload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "Big Enterprise LLC",
                     "email": "bigenterprise.%s@example.com",
                     "phone": "+41791234567",
@@ -340,7 +356,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(companyPayload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -362,12 +378,12 @@ class CompanyLifecycleIT {
                 }
                 """, now.minusDays(10));
 
-        given().contentType(ContentType.JSON).body(contract1).post("/v1/clients/{clientId}/contracts", clientId).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(contract2).post("/v1/clients/{clientId}/contracts", clientId).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract1).post(ContractController.PATH_BASE + "?clientId={clientId}", clientId).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract2).post(ContractController.PATH_BASE + "?clientId={clientId}", clientId).then().statusCode(201);
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", clientId)
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", clientId)
                 .then()
                 .statusCode(200)
                 .body(equalTo("12500.50"));
@@ -379,6 +395,7 @@ class CompanyLifecycleIT {
         String uniqueId1 = UUID.randomUUID().toString().substring(0, 8);
         String validPayload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "Valid Email Company",
                     "email": "contact+sales@company-name.co.uk",
                     "phone": "+41791234567",
@@ -390,7 +407,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(validPayload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201);
 
@@ -405,7 +422,8 @@ class CompanyLifecycleIT {
             String uniqueId = UUID.randomUUID().toString().substring(0, 8);
             String invalidPayload = String.format("""
                     {
-                        "name": "Invalid Email Company",
+                        "type": "COMPANY",
+                    "name": "Invalid Email Company",
                         "email": "%s",
                         "phone": "+41791234567",
                         "companyIdentifier": "CHE-%s.888.777"
@@ -416,7 +434,7 @@ class CompanyLifecycleIT {
                     .contentType(ContentType.JSON)
                     .body(invalidPayload)
                     .when()
-                    .post("/v1/clients/companies")
+                    .post(ClientController.PATH_BASE)
                     .then()
                     .statusCode(422);
         }
@@ -428,6 +446,7 @@ class CompanyLifecycleIT {
         String uniqueId1 = UUID.randomUUID().toString().substring(0, 8);
         String company1Payload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "Company Alpha",
                     "email": "alpha.%s@example.com",
                     "phone": "+41791111111",
@@ -438,6 +457,7 @@ class CompanyLifecycleIT {
         String uniqueId2 = UUID.randomUUID().toString().substring(0, 8);
         String company2Payload = String.format("""
                 {
+                    "type": "COMPANY",
                     "name": "Company Beta",
                     "email": "beta.%s@example.com",
                     "phone": "+41792222222",
@@ -449,7 +469,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(company1Payload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -458,7 +478,7 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(company2Payload)
                 .when()
-                .post("/v1/clients/companies")
+                .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -476,23 +496,27 @@ class CompanyLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post("/v1/clients/{clientId}/contracts", id1)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", id1)
                 .then()
                 .statusCode(201);
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", id1)
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", id1)
                 .then()
                 .statusCode(200)
                 .body(equalTo("1000.00"));
 
         given()
                 .when()
-                .get("/v1/clients/{clientId}/contracts/sum", id2)
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", id2)
                 .then()
                 .statusCode(200)
                 .body(equalTo("0"));
     }
 }
+
+
+
+
 
