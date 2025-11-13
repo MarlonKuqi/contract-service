@@ -1,8 +1,5 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.web.controller.ClientController;
-import com.mk.contractservice.web.controller.ContractController;
-
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
@@ -13,6 +10,7 @@ import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
+import com.mk.contractservice.web.controller.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -108,8 +106,8 @@ class ContractPaginationIT {
                 .body("pageSize", equalTo(pageSize))
                 .body("totalElements", equalTo(25))
                 .body("totalPages", equalTo(3))
-                .body("first", equalTo(true))
-                .body("last", equalTo(false));
+                .body("isFirst", equalTo(true))
+                .body("isLast", equalTo(false));
 
         given()
                 .queryParam("page", 1)
@@ -123,8 +121,8 @@ class ContractPaginationIT {
                 .body("pageSize", equalTo(10))
                 .body("totalElements", equalTo(25))
                 .body("totalPages", equalTo(3))
-                .body("first", equalTo(false))
-                .body("last", equalTo(false));
+                .body("isFirst", equalTo(false))
+                .body("isLast", equalTo(false));
 
         given()
                 .queryParam("page", 2)
@@ -138,8 +136,8 @@ class ContractPaginationIT {
                 .body("pageSize", equalTo(pageSize))
                 .body("totalElements", equalTo(25))
                 .body("totalPages", equalTo(3))
-                .body("first", equalTo(false))
-                .body("last", equalTo(true));
+                .body("isFirst", equalTo(false))
+                .body("isLast", equalTo(true));
     }
 
     @Test
@@ -174,8 +172,8 @@ class ContractPaginationIT {
                 .body("pageSize", equalTo(10))
                 .body("totalElements", equalTo(5))
                 .body("totalPages", equalTo(1))
-                .body("first", equalTo(false))
-                .body("last", equalTo(true));
+                .body("isFirst", equalTo(false))
+                .body("isLast", equalTo(true));
     }
 
     @Test
@@ -386,8 +384,8 @@ class ContractPaginationIT {
                 .body("content.size()", equalTo(50))
                 .body("pageSize", equalTo(50))
                 .body("totalPages", equalTo(1))
-                .body("first", equalTo(true))
-                .body("last", equalTo(true));
+                .body("isFirst", equalTo(true))
+                .body("isLast", equalTo(true));
     }
 
     @Test
@@ -421,8 +419,8 @@ class ContractPaginationIT {
                 .body("pageSize", equalTo(20))
                 .body("totalElements", equalTo(3))
                 .body("totalPages", equalTo(1))
-                .body("first", equalTo(true))
-                .body("last", equalTo(true));
+                .body("isFirst", equalTo(true))
+                .body("isLast", equalTo(true));
     }
 
     @Test
@@ -438,8 +436,8 @@ class ContractPaginationIT {
                 .body("pageNumber", equalTo(0))
                 .body("totalElements", equalTo(0))
                 .body("totalPages", equalTo(0))
-                .body("first", equalTo(true))
-                .body("last", equalTo(true));
+                .body("isFirst", equalTo(true))
+                .body("isLast", equalTo(true));
     }
 
     @Test

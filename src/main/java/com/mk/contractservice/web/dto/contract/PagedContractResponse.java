@@ -22,10 +22,10 @@ public record PagedContractResponse(
         int totalPages,
 
         @Schema(description = "True if this is the first page", example = "true")
-        boolean first,
+        boolean isFirst,
 
         @Schema(description = "True if this is the last page", example = "false")
-        boolean last
+        boolean isLast
 ) {
 }
 

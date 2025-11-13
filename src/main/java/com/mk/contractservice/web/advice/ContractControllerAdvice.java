@@ -1,5 +1,7 @@
 package com.mk.contractservice.web.advice;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.DomainValidationException;
 import com.mk.contractservice.domain.exception.InvalidContractCostException;
@@ -14,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -38,6 +41,25 @@ public class ContractControllerAdvice {
         ProblemDetail pd = problem(HttpStatus.NOT_FOUND, "Client Not Found",
                 ex.getMessage(), "clientNotFound");
         pd.setProperty("context", "Cannot create contract for non-existent client");
+        return respond(pd);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ProblemDetail> handleNotReadable(HttpMessageNotReadableException ex) {
+        log.debug("Malformed JSON in contract request: {}", ex.getMessage());
+
+        String detail = "Malformed JSON or invalid payload.";
+
+        Throwable cause = ex.getCause();
+        if (cause instanceof InvalidFormatException ife) {
+            detail = String.format("Invalid value '%s' for field '%s'. Expected type: %s",
+                    ife.getValue(), ife.getPath().get(0).getFieldName(), ife.getTargetType().getSimpleName());
+        } else if (cause instanceof MismatchedInputException mie) {
+            if (!mie.getPath().isEmpty()) {
+                detail = String.format("Missing or invalid field: '%s'", mie.getPath().get(0).getFieldName());
+            }
+        }
+        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Validation Failed", detail, "validationError");
         return respond(pd);
     }
 
