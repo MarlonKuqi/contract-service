@@ -1,0 +1,49 @@
+chore: release version 2.0.0
+
+BREAKING CHANGES:
+- PagedContractResponse: renamed 'first' → 'isFirst', 'last' → 'isLast'
+
+Features:
+- Contract startDate defaults to now() when not provided (as per specs)
+- ContractPeriod validates endDate > startDate (throws 422 if invalid)
+- Boolean fields prefixed with 'is' (Vaudoise guidelines compliance)
+
+Improvements:
+- Refined HTTP status codes for better REST conformity:
+  * 422 for all data/validation errors (simple & consistent)
+  * 400 for missing query parameters
+  * 404 for resources not found
+  * 409 for conflicts (duplicate email/identifier)
+  * 403 for forbidden access (contract ownership)
+- Added HttpMessageNotReadableException handlers in both ClientControllerAdvice
+  and ContractControllerAdvice for consistency
+- Removed handler from GlobalExceptionHandler (proper separation of concerns)
+
+Tests:
+- Updated 8 pagination test assertions for isFirst/isLast
+- Validated all HTTP status codes (400, 404, 409, 422, 403, 500)
+- All integration tests passing (80%+ coverage)
+
+Documentation:
+- Complete README with architecture explanation (998 chars, max 1000)
+- Proof API works section with:
+  * Swagger UI link
+  * cURL examples for all operations
+  * Test coverage metrics
+  * Postman collections
+- Created comprehensive documentation:
+  * AMELIORATIONS_GUIDELINES_VAUDOISE.md
+  * IMPROVEMENTS_SUMMARY.md
+  * AUDIT_PAGINATION_EXCEPTIONS.md
+  * DESIGN_DECISION_HTTP_CODES.md
+  * SUJET_FINAL_CHECKLIST.md
+  * TODO_FINAL.md
+
+Technical Details:
+- ContractPeriod.of() handles startDate defaulting (DDD Value Object)
+- All ControllerAdvice return Content-Language header
+- ProblemDetail with traceId/timestamp for all errors
+- Simplified exception handling: all data errors → 422 (maintainable)
+
+Version: 2.0.0 (production-ready)
+

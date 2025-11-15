@@ -1,0 +1,10 @@
+refactor(config): simplify PaginationProperties validation
+
+- Remove Bean Validation annotations from PaginationProperties
+- Trust admin config, validate client requests only
+- Remove redundant IllegalArgumentException handler from GlobalExceptionHandler
+- Update tests to reflect simplified behavior
+
+Runtime validation in ValidatingPageableArgumentResolver unchanged.
+Admin responsible for sensible config values.
+

@@ -46,12 +46,12 @@ Change all API calls from `/v1/` to `/v2/`:
 
 **Before:**
 ```java
-String baseUrl = "https://api.vaudoise.ch/v1";
+String baseUrl = "https://api.assurance.ch/v1";
 ```
 
 **After:**
 ```java
-String baseUrl = "https://api.vaudoise.ch/v2";
+String baseUrl = "https://api.assurance.ch/v2";
 ```
 
 ### Step 2: Migrate Person Creation
@@ -148,7 +148,7 @@ Simply replace `/v1/` with `/v2/` in all your API calls:
 **Before:**
 ```java
 RestTemplate restTemplate = new RestTemplate();
-String url = "https://api.vaudoise.ch/v1/clients/persons";
+String url = "https://api.assurance.ch/v1/clients/persons";
 
 PersonRequest request = new PersonRequest();
 request.setName("John Doe");
@@ -162,7 +162,7 @@ ResponseEntity<PersonResponse> response = restTemplate.postForEntity(url, reques
 **After:**
 ```java
 RestTemplate restTemplate = new RestTemplate();
-String url = "https://api.vaudoise.ch/v2/clients";
+String url = "https://api.assurance.ch/v2/clients";
 
 ClientRequest request = new ClientRequest();
 request.setType("PERSON");  // ADD THIS
@@ -178,7 +178,7 @@ ResponseEntity<ClientResponse> response = restTemplate.postForEntity(url, reques
 
 **Before:**
 ```javascript
-const response = await fetch('https://api.vaudoise.ch/v1/clients/persons', {
+const response = await fetch('https://api.assurance.ch/v1/clients/persons', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -192,7 +192,7 @@ const response = await fetch('https://api.vaudoise.ch/v1/clients/persons', {
 
 **After:**
 ```javascript
-const response = await fetch('https://api.vaudoise.ch/v2/clients', {
+const response = await fetch('https://api.assurance.ch/v2/clients', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -209,7 +209,7 @@ const response = await fetch('https://api.vaudoise.ch/v2/clients', {
 
 **Before:**
 ```bash
-curl -X POST https://api.vaudoise.ch/v1/clients/persons \
+curl -X POST https://api.assurance.ch/v1/clients/persons \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -221,7 +221,7 @@ curl -X POST https://api.vaudoise.ch/v1/clients/persons \
 
 **After:**
 ```bash
-curl -X POST https://api.vaudoise.ch/v2/clients \
+curl -X POST https://api.assurance.ch/v2/clients \
   -H "Content-Type: application/json" \
   -d '{
     "type": "PERSON",
@@ -257,7 +257,7 @@ If you encounter issues during migration:
 
 1. Check the [CHANGELOG.md](../CHANGELOG.md) for detailed changes
 2. Review [API_VERSIONING.md](../API_VERSIONING.md) for API design principles
-3. Contact the API team: [team-email@vaudoise.ch]
+3. Contact the API team: [team-email@assurance.ch]
 
 ---
 

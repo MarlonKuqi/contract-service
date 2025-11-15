@@ -3,6 +3,7 @@ package com.mk.contractservice.web.advice;
 import com.mk.contractservice.domain.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
 import com.mk.contractservice.domain.exception.ExpiredContractException;
+import com.mk.contractservice.infrastructure.exception.InvalidPaginationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -62,6 +63,16 @@ public class GlobalExceptionHandler {
         problemDetail.setProperty("parameterType", ex.getParameterType());
         return respond(problemDetail);
     }
+
+    @ExceptionHandler(InvalidPaginationException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidPagination(InvalidPaginationException ex) {
+        log.debug("Invalid pagination parameter: {}", ex.getMessage());
+
+        ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Invalid Parameter",
+                ex.getMessage(), "invalidParameter");
+        return respond(problemDetail);
+    }
+
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGenericException(Exception ex) {
