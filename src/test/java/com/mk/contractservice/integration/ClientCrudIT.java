@@ -75,12 +75,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: Read person client returns correct type and all fields")
     void shouldReadPersonClientWithAllFields() {
-        Person givenPerson = Person.builder()
-                .name(ClientName.of("John Doe"))
-                .email(Email.of(TestDataHelper.uniqueEmail("john.doe")))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 5, 15)))
-                .build();
+        Person givenPerson = Person.of(
+                ClientName.of("John Doe"),
+                Email.of(TestDataHelper.uniqueEmail("john.doe")),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15))
+        );
         givenPerson = (Person) clientRepository.save(givenPerson);
 
         given()
@@ -102,12 +102,12 @@ class ClientCrudIT {
     void shouldReadCompanyClientWithAllFields() {
         String companyId = TestDataHelper.uniqueCompanyIdentifier("CHE");
 
-        Company company = Company.builder()
-                .name(ClientName.of("Acme Corp"))
-                .email(Email.of(TestDataHelper.uniqueEmail("acme")))
-                .phone(PhoneNumber.of("+41791234567"))
-                .companyIdentifier(CompanyIdentifier.of(companyId))
-                .build();
+        Company company = Company.of(
+                ClientName.of("Acme Corp"),
+                Email.of(TestDataHelper.uniqueEmail("acme")),
+                PhoneNumber.of("+41791234567"),
+                CompanyIdentifier.of(companyId)
+        );
         company = (Company) clientRepository.save(company);
 
         given()
@@ -139,12 +139,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: Update person client with valid data succeeds")
     void shouldUpdatePersonClientSuccessfully() {
-        Person person = Person.builder()
-                .name(ClientName.of("Alice Before"))
-                .email(Email.of("alice.before." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791111111"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1985, 3, 20)))
-                .build();
+        Person person = Person.of(
+                ClientName.of("Alice Before"),
+                Email.of("alice.before." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791111111"),
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20))
+        );
         person = (Person) clientRepository.save(person);
         String updatePayload = """
                 {
@@ -178,12 +178,12 @@ class ClientCrudIT {
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         String companyId = String.format("CHE-%s.222.333", uniqueId.substring(0, 6));
 
-        Company company = Company.builder()
-                .name(ClientName.of("Old Corp"))
-                .email(Email.of("old." + uniqueId + "@example.com"))
-                .phone(PhoneNumber.of("+41791111111"))
-                .companyIdentifier(CompanyIdentifier.of(companyId))
-                .build();
+        Company company = Company.of(
+                ClientName.of("Old Corp"),
+                Email.of("old." + uniqueId + "@example.com"),
+                PhoneNumber.of("+41791111111"),
+                CompanyIdentifier.of(companyId)
+        );
         company = (Company) clientRepository.save(company);
         String updatePayload = """
                 {
@@ -214,12 +214,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: Update with invalid email should fail")
     void shouldRejectUpdateWithInvalidEmail() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("Test Person"))
-                .email(Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Test Person"),
+                Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
         String invalidPayload = """
                 {
                     "name": "Test Person",
@@ -262,12 +262,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: Delete client without contracts succeeds")
     void shouldDeleteClientWithoutContracts() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("To Delete"))
-                .email(Email.of("delete." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("To Delete"),
+                Email.of("delete." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
         given()
                 .when()
                 .delete(ClientController.PATH_CLIENT, client.getId())
@@ -284,12 +284,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: Delete client with active contracts closes them")
     void shouldCloseContractsWhenDeletingClient() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("Client With Contracts"))
-                .email(Email.of("contracts." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Client With Contracts"),
+                Email.of("contracts." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
 
         LocalDateTime now = LocalDateTime.now();
         Contract contract1 = Contract.builder()
@@ -342,12 +342,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: Update maintains client type (Person stays Person)")
     void shouldMaintainClientTypeAfterUpdate() {
-        Person person = Person.builder()
-                .name(ClientName.of("Person Type Test"))
-                .email(Email.of("person.type." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build();
+        Person person = Person.of(
+                ClientName.of("Person Type Test"),
+                Email.of("person.type." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        );
         person = (Person) clientRepository.save(person);
         String updatePayload = """
                 {
@@ -380,12 +380,12 @@ class ClientCrudIT {
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         String companyId = String.format("CHE-%s.888.777", uniqueId.substring(0, 6));
 
-        Company company = Company.builder()
-                .name(ClientName.of("Company Type Test"))
-                .email(Email.of("company.type." + uniqueId + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .companyIdentifier(CompanyIdentifier.of(companyId))
-                .build();
+        Company company = Company.of(
+                ClientName.of("Company Type Test"),
+                Email.of("company.type." + uniqueId + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                CompanyIdentifier.of(companyId)
+        );
         company = (Company) clientRepository.save(company);
         String updatePayload = """
                 {
@@ -415,12 +415,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: Concurrent updates should be handled gracefully")
     void shouldHandleConcurrentUpdates() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("Concurrent Test"))
-                .email(Email.of("concurrent." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Concurrent Test"),
+                Email.of("concurrent." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
         String update1 = """
                 {
                     "name": "Update 1",
@@ -464,12 +464,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: PATCH person client with only name updates only name")
     void shouldPatchPersonClientWithOnlyName() {
-        Person person = Person.builder()
-                .name(ClientName.of("Original Name"))
-                .email(Email.of("original." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build();
+        Person person = Person.of(
+                ClientName.of("Original Name"),
+                Email.of("original." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        );
         person = (Person) clientRepository.save(person);
 
         String patchPayload = """
@@ -500,12 +500,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: PATCH person client with only email updates only email")
     void shouldPatchPersonClientWithOnlyEmail() {
-        Person person = Person.builder()
-                .name(ClientName.of("Test Person"))
-                .email(Email.of("old." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build();
+        Person person = Person.of(
+                ClientName.of("Test Person"),
+                Email.of("old." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        );
         person = (Person) clientRepository.save(person);
 
         String patchPayload = """
@@ -536,12 +536,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: PATCH person client with only phone updates only phone")
     void shouldPatchPersonClientWithOnlyPhone() {
-        Person person = Person.builder()
-                .name(ClientName.of("Test Person"))
-                .email(Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build();
+        Person person = Person.of(
+                ClientName.of("Test Person"),
+                Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        );
         person = (Person) clientRepository.save(person);
 
         String patchPayload = """
@@ -575,12 +575,12 @@ class ClientCrudIT {
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         String companyId = String.format("CHE-%s.999.888", uniqueId.substring(0, 6));
 
-        Company company = Company.builder()
-                .name(ClientName.of("Old Corp"))
-                .email(Email.of("old." + uniqueId + "@example.com"))
-                .phone(PhoneNumber.of("+41791111111"))
-                .companyIdentifier(CompanyIdentifier.of(companyId))
-                .build();
+        Company company = Company.of(
+                ClientName.of("Old Corp"),
+                Email.of("old." + uniqueId + "@example.com"),
+                PhoneNumber.of("+41791111111"),
+                CompanyIdentifier.of(companyId)
+        );
         company = (Company) clientRepository.save(company);
 
         String patchPayload = """
@@ -612,12 +612,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: PATCH with invalid email should fail")
     void shouldRejectPatchWithInvalidEmail() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("Test Person"))
-                .email(Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Test Person"),
+                Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
 
         String invalidPatchPayload = """
                 {
@@ -637,12 +637,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: PATCH with invalid phone should fail")
     void shouldRejectPatchWithInvalidPhone() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("Test Person"))
-                .email(Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Test Person"),
+                Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
 
         String invalidPatchPayload = """
                 {
@@ -682,12 +682,12 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: PATCH with empty body should succeed (no changes)")
     void shouldAcceptPatchWithEmptyBody() {
-        Person person = Person.builder()
-                .name(ClientName.of("Test Person"))
-                .email(Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build();
+        Person person = Person.of(
+                ClientName.of("Test Person"),
+                Email.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        );
         person = (Person) clientRepository.save(person);
 
         String emptyPatchPayload = "{}";

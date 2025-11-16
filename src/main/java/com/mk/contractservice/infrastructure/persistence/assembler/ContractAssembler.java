@@ -49,12 +49,13 @@ public class ContractAssembler {
             return null;
         }
 
-        return Contract.builder()
-                .id(entity.getId())
-                .client(clientAssembler.toDomain(entity.getClient()))
-                .period(ContractPeriod.of(entity.getStartDate(), entity.getEndDate()))
-                .costAmount(ContractCost.of(entity.getCostAmount()))
-                .build();
+        return Contract.reconstitute(
+                entity.getId(),
+                clientAssembler.toDomain(entity.getClient()),
+                ContractPeriod.of(entity.getStartDate(), entity.getEndDate()),
+                ContractCost.of(entity.getCostAmount()),
+                entity.getLastModified()
+        );
     }
 }
 

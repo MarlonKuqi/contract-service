@@ -16,8 +16,6 @@ import com.mk.contractservice.domain.client.ClientService;
 
 import java.util.UUID;
 
-import static com.mk.contractservice.util.FunctionalUtils.applyIfPresent;
-
 @Service
 public class ClientApplicationService {
 
@@ -63,23 +61,27 @@ public class ClientApplicationService {
     }
 
     @Transactional
-    public void updateCommonFields(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
+    public Client updateCommonFields(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
         final Client client = getClientById(id);
-        client.updateCommonFields(name, email, phone);
-        clientRepo.save(client);
+
+        final Client updatedClient = switch (client) {
+            case Person p -> p.withCommonFields(name, email, phone);
+            case Company c -> c.withCommonFields(name, email, phone);
+        };
+
+        return clientRepo.save(updatedClient);
     }
 
     @Transactional
-    public void patchClient(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
-        final Client client = getClientById(id);
+    public Client patchClient(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
+        Client client = getClientById(id);
 
-        boolean hasChanges = applyIfPresent(name, client::changeName)
-                           | applyIfPresent(email, client::changeEmail)
-                           | applyIfPresent(phone, client::changePhone);
-
-        if (hasChanges) {
-            clientRepo.save(client);
+        if (name == null && email == null && phone == null) {
+            return client;
         }
+
+        Client patchedClient = client.updatePartial(name, email, phone);
+        return clientRepo.save(patchedClient);
     }
 
     @Transactional

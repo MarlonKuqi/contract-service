@@ -65,12 +65,12 @@ class ContractLifecycleIT {
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
 
-        testClient = Person.builder()
-                .name(ClientName.of("Marie Durand"))
-                .email(Email.of("marie.durand." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1985, 3, 20)))
-                .build();
+        testClient = Person.of(
+                ClientName.of("Marie Durand"),
+                Email.of("marie.durand." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20))
+        );
         testClient = clientRepository.save(testClient);
     }
 

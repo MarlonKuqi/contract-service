@@ -66,12 +66,12 @@ class ContractSumRestAssuredIT {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
 
-        testClient = Person.builder()
-                .name(ClientName.of("Jean Dupont"))
-                .email(Email.of("jean.dupont." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 5, 15)))
-                .build();
+        testClient = Person.of(
+                ClientName.of("Jean Dupont"),
+                Email.of("jean.dupont." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15))
+        );
         testClient = clientRepository.save(testClient);
     }
 
@@ -80,23 +80,20 @@ class ContractSumRestAssuredIT {
     void shouldReturnSumOfActiveContracts() {
         LocalDateTime now = LocalDateTime.now();
 
-        contractRepository.save(Contract.builder()
-                .client(testClient)
-                .period(ContractPeriod.of(now.minusDays(30), null))
-                .costAmount(ContractCost.of(new BigDecimal("1500.50")))
-                .build());
+        contractRepository.save(Contract.of(
+                testClient,
+                ContractPeriod.of(now.minusDays(30), null),
+                ContractCost.of(new BigDecimal("1500.50"))));
 
-        contractRepository.save(Contract.builder()
-                .client(testClient)
-                .period(ContractPeriod.of(now.minusDays(15), now.plusDays(100)))
-                .costAmount(ContractCost.of(new BigDecimal("2500.00")))
-                .build());
+        contractRepository.save(Contract.of(
+                testClient,
+                ContractPeriod.of(now.minusDays(15), now.plusDays(100)),
+                ContractCost.of(new BigDecimal("2500.00"))));
 
-        contractRepository.save(Contract.builder()
-                .client(testClient)
-                .period(ContractPeriod.of(now.minusDays(5), now.plusDays(50)))
-                .costAmount(ContractCost.of(new BigDecimal("3500.75")))
-                .build());
+        contractRepository.save(Contract.of(
+                testClient,
+                ContractPeriod.of(now.minusDays(5), now.plusDays(50)),
+                ContractCost.of(new BigDecimal("3500.75"))));
 
         given()
                 .when()
@@ -122,12 +119,10 @@ class ContractSumRestAssuredIT {
     @DisplayName("GIVEN client with inactive contracts WHEN GET /sum THEN return zero")
     void shouldReturnZeroForInactiveContracts() {
         LocalDateTime now = LocalDateTime.now();
-
-        contractRepository.save(Contract.builder()
-                .client(testClient)
-                .period(ContractPeriod.of(now.minusDays(100), now.minusDays(10)))
-                .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                .build());
+        contractRepository.save(Contract.of(
+                testClient,
+                ContractPeriod.of(now.minusDays(100), now.minusDays(10)),
+                ContractCost.of(new BigDecimal("1000.00"))));
 
         given()
                 .when()
@@ -144,18 +139,18 @@ class ContractSumRestAssuredIT {
         BigDecimal expectedSum = BigDecimal.ZERO;
 
         for (int i = 0; i < 100; i++) {
-            BigDecimal amount = new BigDecimal("100.50");
-            expectedSum = expectedSum.add(amount);
-
-            contractRepository.save(Contract.builder()
                     .client(testClient)
                     .period(ContractPeriod.of(now.minusDays(30), now.plusDays(365)))
                     .costAmount(ContractCost.of(amount))
-                    .build());
+            contractRepository.save(Contract.of(
         }
 
         long startTime = System.currentTimeMillis();
+
         given()
+                    testClient,
+                    ContractPeriod.of(now.minusDays(30), now.plusDays(365)),
+                    ContractCost.of(amount)));
                 .when()
                 .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
@@ -223,17 +218,15 @@ class ContractSumRestAssuredIT {
     }
 
     @Test
-    @DisplayName("GIVEN decimal precision amounts WHEN GET /sum THEN return exact sum")
-    void shouldHandleDecimalPrecisionCorrectly() {
-        LocalDateTime now = LocalDateTime.now();
-
-        contractRepository.save(Contract.builder()
+        contractRepository.save(Contract.of(
+                testClient,
+                ContractPeriod.of(now.minusDays(10), now.plusDays(30)),
+                ContractCost.of(new BigDecimal("99.99"))));
                 .client(testClient)
-                .period(ContractPeriod.of(now.minusDays(10), now.plusDays(30)))
-                .costAmount(ContractCost.of(new BigDecimal("99.99")))
-                .build());
-
-        contractRepository.save(Contract.builder()
+        contractRepository.save(Contract.of(
+                testClient,
+                ContractPeriod.of(now.minusDays(5), now.plusDays(60)),
+                ContractCost.of(new BigDecimal("0.01"))));
                 .client(testClient)
                 .period(ContractPeriod.of(now.minusDays(5), now.plusDays(60)))
                 .costAmount(ContractCost.of(new BigDecimal("0.01")))

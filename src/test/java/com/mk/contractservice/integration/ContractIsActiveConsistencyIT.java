@@ -55,12 +55,12 @@ class ContractIsActiveConsistencyIT {
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
 
-        testClient = Person.builder()
-                .name(ClientName.of("Consistency Test Client"))
-                .email(Email.of("consistency-" + System.currentTimeMillis() + "@test.com"))
-                .phone(PhoneNumber.of("+33999999999"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build();
+        testClient = Person.of(
+                ClientName.of("Consistency Test Client"),
+                Email.of("consistency-" + System.currentTimeMillis() + "@test.com"),
+                PhoneNumber.of("+33999999999"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        );
         testClient = clientRepository.save(testClient);
     }
 

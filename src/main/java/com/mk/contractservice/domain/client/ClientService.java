@@ -7,45 +7,38 @@ import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
 import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 @Service
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class ClientService {
 
-    private final ClientRepository clientRepository;
+    ClientRepository clientRepository;
 
     public ClientService(final ClientRepository clientRepository) {
         this.clientRepository = clientRepository;
     }
 
-    public Person createPerson(ClientName name, Email email, PhoneNumber phone, PersonBirthDate birthDate) {
+    public Person createPerson(final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
         ensureEmailIsUnique(email);
-        return Person.builder()
-                .name(name)
-                .email(email)
-                .phone(phone)
-                .birthDate(birthDate)
-                .build();
+        return Person.of(name, email, phone, birthDate);
     }
 
-    public Company createCompany(ClientName name, Email email, PhoneNumber phone, CompanyIdentifier companyIdentifier) {
+    public Company createCompany(final ClientName name, final Email email, final PhoneNumber phone, final CompanyIdentifier companyIdentifier) {
         ensureEmailIsUnique(email);
         ensureCompanyIdentifierIsUnique(companyIdentifier);
-        return Company.builder()
-                .name(name)
-                .email(email)
-                .phone(phone)
-                .companyIdentifier(companyIdentifier)
-                .build();
+        return Company.of(name, email, phone, companyIdentifier);
     }
 
-    public void ensureEmailIsUnique(Email email) {
+    public void ensureEmailIsUnique(final Email email) {
         if (clientRepository.existsByEmail(email.value())) {
             throw new ClientAlreadyExistsException("Client already exists", email.value());
         }
     }
 
-    public void ensureCompanyIdentifierIsUnique(CompanyIdentifier identifier) {
+    public void ensureCompanyIdentifierIsUnique(final CompanyIdentifier identifier) {
         if (clientRepository.existsByCompanyIdentifier(identifier.value())) {
             throw new CompanyIdentifierAlreadyExistsException(
                     "A company with identifier '" + identifier.value() + "' already exists",

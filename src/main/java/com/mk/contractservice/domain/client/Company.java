@@ -5,27 +5,82 @@ import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
 import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import lombok.Getter;
+import lombok.experimental.FieldDefaults;
 
 import java.util.UUID;
 
 @Getter
+@FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
 public final class Company extends Client {
 
-    private static final String COMPANY_IDENTIFIER_NULL_MESSAGE = "Company identifier must not be null";
+    static String COMPANY_IDENTIFIER_NULL_MESSAGE = "Company identifier must not be null";
 
-    private final CompanyIdentifier companyIdentifier;
+    CompanyIdentifier companyIdentifier;
 
     private Company(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final CompanyIdentifier companyIdentifier) {
         super(id, name, email, phone);
+        this.companyIdentifier = companyIdentifier;
+        checkInvariants();
+    }
+
+    @Override
+    protected void checkInvariants() {
+        super.checkInvariants();
         if (companyIdentifier == null) {
             throw new IllegalArgumentException(COMPANY_IDENTIFIER_NULL_MESSAGE);
         }
-        this.companyIdentifier = companyIdentifier;
     }
 
+    public static Company of(final ClientName name, final Email email, final PhoneNumber phone, final CompanyIdentifier companyIdentifier) {
+        return builder()
+                .name(name)
+                .email(email)
+                .phone(phone)
+                .companyIdentifier(companyIdentifier)
+                .build();
+    }
 
-    public static CompanyBuilder builder() {
+    public static Company reconstitute(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final CompanyIdentifier companyIdentifier) {
+        if (id == null) {
+            throw new IllegalArgumentException("ID must not be null when reconstituting a Company");
+        }
+        return builder()
+                .id(id)
+                .name(name)
+                .email(email)
+                .phone(phone)
+                .companyIdentifier(companyIdentifier)
+                .build();
+    }
+
+    public Company withCommonFields(final ClientName name, final Email email, final PhoneNumber phone) {
+        return toBuilder()
+                .name(name)
+                .email(email)
+                .phone(phone)
+                .build();
+    }
+
+    @Override
+    public Company updatePartial(final ClientName name, final Email email, final PhoneNumber phone) {
+        return toBuilder()
+                .name(name != null ? name : this.getName())
+                .email(email != null ? email : this.getEmail())
+                .phone(phone != null ? phone : this.getPhone())
+                .build();
+    }
+
+    private static CompanyBuilder builder() {
         return new CompanyBuilder();
+    }
+
+    public CompanyBuilder toBuilder() {
+        return builder()
+                .id(this.getId())
+                .name(this.getName())
+                .email(this.getEmail())
+                .phone(this.getPhone())
+                .companyIdentifier(this.companyIdentifier);
     }
 
     public static class CompanyBuilder {
@@ -34,6 +89,8 @@ public final class Company extends Client {
         private Email email;
         private PhoneNumber phone;
         private CompanyIdentifier companyIdentifier;
+
+        CompanyBuilder() {}
 
         public CompanyBuilder id(final UUID id) {
             this.id = id;
@@ -65,3 +122,4 @@ public final class Company extends Client {
         }
     }
 }
+
