@@ -57,12 +57,12 @@ class ContractPaginationIT {
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
 
-        testClient = Person.builder()
-                .name(ClientName.of("John Doe"))
-                .email(Email.of("john.pagination@test.com"))
-                .phone(PhoneNumber.of("+33123456789"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build();
+        testClient = Person.of(
+                ClientName.of("John Doe"),
+                Email.of("john.pagination@test.com"),
+                PhoneNumber.of("+33123456789"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        );
         testClient = clientRepository.save(testClient);
     }
 

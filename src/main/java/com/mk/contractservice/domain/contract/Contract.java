@@ -5,25 +5,30 @@ import com.mk.contractservice.domain.exception.ExpiredContractException;
 import com.mk.contractservice.domain.exception.InvalidContractException;
 import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
+import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class Contract {
 
-    private UUID id;
+    final UUID id;
 
-    private final Client client;
+    final Client client;
 
-    private final ContractPeriod period;
+    final ContractPeriod period;
 
-    private ContractCost costAmount;
+    ContractCost costAmount;
 
-    private LocalDateTime lastModified;
+    LocalDateTime lastModified;
 
-    private Contract(final UUID id, final Client client, final ContractPeriod period, final ContractCost costAmount) {
+    @Builder(toBuilder = true)
+    private Contract(final UUID id, final Client client, final ContractPeriod period, final ContractCost costAmount, final LocalDateTime lastModified) {
         if (client == null) {
             throw InvalidContractException.forNullClient();
         }
@@ -37,13 +42,31 @@ public class Contract {
         this.client = client;
         this.period = period;
         this.costAmount = costAmount;
-        this.lastModified = LocalDateTime.now();
+        this.lastModified = lastModified != null ? lastModified : LocalDateTime.now();
     }
 
 
-    public static ContractBuilder builder() {
-        return new ContractBuilder();
+    public static Contract of(final Client client, final ContractPeriod period, final ContractCost costAmount) {
+        return builder()
+                .client(client)
+                .period(period)
+                .costAmount(costAmount)
+                .build();
     }
+
+    public static Contract reconstitute(final UUID id, final Client client, final ContractPeriod period, final ContractCost costAmount, final LocalDateTime lastModified) {
+        if (id == null) {
+            throw new IllegalArgumentException("ID must not be null when reconstituting a Contract");
+        }
+        return builder()
+                .id(id)
+                .client(client)
+                .period(period)
+                .costAmount(costAmount)
+                .lastModified(lastModified)
+                .build();
+    }
+
 
     private void updateLastModified() {
         this.lastModified = LocalDateTime.now();
@@ -66,37 +89,6 @@ public class Contract {
         }
         this.costAmount = newAmount;
         updateLastModified();
-    }
-
-    public static class ContractBuilder {
-        private UUID id;
-        private Client client;
-        private ContractPeriod period;
-        private ContractCost costAmount;
-
-        public ContractBuilder id(final UUID id) {
-            this.id = id;
-            return this;
-        }
-
-        public ContractBuilder client(final Client client) {
-            this.client = client;
-            return this;
-        }
-
-        public ContractBuilder period(final ContractPeriod period) {
-            this.period = period;
-            return this;
-        }
-
-        public ContractBuilder costAmount(final ContractCost costAmount) {
-            this.costAmount = costAmount;
-            return this;
-        }
-
-        public Contract build() {
-            return new Contract(id, client, period, costAmount);
-        }
     }
 }
 

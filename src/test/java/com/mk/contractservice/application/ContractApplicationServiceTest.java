@@ -67,13 +67,13 @@ class ContractApplicationServiceTest {
 
     @BeforeEach
     void setUp() {
-        testClient = Person.builder()
-                .id(JOHN_DOE_CLIENT_ID)
-                .name(ClientName.of("John Doe"))
-                .email(Email.of("john@example.com"))
-                .phone(PhoneNumber.of("+33123456789"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build();
+        testClient = Person.reconstitute(
+                JOHN_DOE_CLIENT_ID,
+                ClientName.of("John Doe"),
+                Email.of("john@example.com"),
+                PhoneNumber.of("+33123456789"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        );
     }
 
     @Nested
