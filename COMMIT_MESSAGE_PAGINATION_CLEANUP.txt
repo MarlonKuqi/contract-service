@@ -1,0 +1,55 @@
+refactor(config): simplify PaginationProperties and remove redundant validations
+
+BREAKING CHANGE: PaginationProperties validation behavior changed
+
+- Remove unnecessary Bean Validation annotations (@Min, @Max) from PaginationProperties
+  * Configuration validation is responsibility of admin, not application
+  * Removed @Validated, @Min(1), @Max(100) on defaultPageSize
+  * Removed @Min(1), @Max(1000) on maxPageSize
+  * Removed @PostConstruct validate() method
+  * Keep simple @ConfigurationProperties with Lombok @Getter/@Setter/@NoArgsConstructor
+
+- Simplify PaginationProperties to pure configuration POJO
+  * Trust admin to configure appropriate values
+  * Validation happens at runtime for client requests, not at startup for config
+  * Maintains separation: config binding != business validation
+
+- Remove redundant IllegalArgumentException handler from GlobalExceptionHandler
+  * Handler was never used (masked by ContractControllerAdvice and ClientControllerAdvice)
+  * All controllers have specific @ControllerAdvice with higher priority
+  * IllegalArgumentException still properly handled by:
+    - ClientControllerAdvice for Client domain exceptions
+    - ContractControllerAdvice for Contract domain exceptions
+
+- Update PaginationPropertiesTest to reflect simplified behavior
+  * Remove validation-related tests
+  * Focus on configuration binding only
+  * Admin responsible for sensible config values
+
+Rationale:
+- Bean Validation on @ConfigurationProperties adds rigidity without value
+- If admin needs maxPageSize=500, shouldn't require code change to @Max annotation
+- Runtime validation in ValidatingPageableArgumentResolver protects against client abuse
+- Defense in depth: validate external input (HTTP requests), not internal config (YAML)
+- Follows principle: trust professionals (DevOps), validate untrusted sources (API clients)
+
+Technical Details:
+- PaginationProperties: 40 lines → 15 lines (62% reduction)
+- Zero functional impact: client request validation unchanged
+- ValidatingPageableArgumentResolver still enforces maxPageSize limit
+- InvalidPaginationException still thrown for abusive ?size= parameters
+
+Files Modified:
+- src/main/java/.../infrastructure/config/PaginationProperties.java
+- src/main/java/.../web/advice/GlobalExceptionHandler.java
+- src/test/java/.../infrastructure/config/PaginationPropertiesTest.java
+
+Documentation Added:
+- docs-claude/NO_VALIDATION_ON_CONFIG_DECISION.md
+- docs-claude/PAGINATION_PROPERTIES_INCONSISTENCY.md
+- docs-claude/MAX_ANNOTATION_VS_MANUAL_VALIDATION.md
+- docs-claude/MAX_PAGE_SIZE_EXPLAINED.md
+- docs-claude/CLEANUP_ILLEGAL_ARGUMENT_HANDLER.md
+
+Co-authored-by: GitHub Copilot
+

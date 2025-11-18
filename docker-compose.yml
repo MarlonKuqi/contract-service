@@ -20,7 +20,7 @@ services:
       - contract-network
 
   contract-service:
-    image: contract-service:2.0.0-optimized
+    image: contract-service:2.0.0
     pull_policy: missing
     container_name: contract-service
     ports:

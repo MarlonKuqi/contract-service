@@ -104,4 +104,6 @@ Response format:
 - Step 2: proposed change or improvement
 - Step 3: generated code (if needed)
 
+Do not add comments to code.
+
 If the request is unclear, ask questions.

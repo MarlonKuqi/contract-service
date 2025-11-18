@@ -44,6 +44,16 @@ Utilisez cette collection unifiée pour créer des clients Person ou Company.
 
 ---
 
+## 🗑️ Collections Obsolètes
+
+Les collections suivantes sont **obsolètes** et ont été remplacées par `ClientController.postman_collection.json` :
+- ~~`PersonController.postman_collection.json`~~ → Migré vers ClientController
+- ~~`CompanyController.postman_collection.json`~~ → Migré vers ClientController
+
+Ces fichiers sont conservés pour référence historique mais ne devraient plus être utilisés.
+
+---
+
 ## 🚀 Import Rapide
 
 ### Postman
@@ -83,11 +93,6 @@ Utilisez cette collection unifiée pour créer des clients Person ou Company.
 ## 🔧 Variables de Collection
 
 Chaque collection définit ses propres variables :
-
-### PersonController & CompanyController
-| Variable | Valeur par défaut |
-|----------|-------------------|
-| `baseUrl` | `http://localhost:8080` |
 
 ### ClientController
 | Variable | Valeur par défaut |
@@ -146,7 +151,7 @@ Chaque collection définit ses propres variables :
 1. Importer `ContractController.postman_collection.json`
 2. Modifier la variable `clientId` avec l'UUID copié
 3. Exécuter "Create Contract - Default Dates"
-4. Copier l'`id` du contrat retourné
+4. Le contrat est créé et l'`id` est retourné
 
 ### Mettre à Jour le Coût
 
