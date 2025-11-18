@@ -52,7 +52,7 @@ Try all endpoints live with auto-generated examples!
 
 **Create a Person Client:**
 ```bash
-curl -X POST http://localhost:8080/v1/clients \
+curl -X POST http://localhost:8080/v2/clients \
   -H "Content-Type: application/json" \
   -d '{
     "type": "PERSON",
@@ -62,11 +62,11 @@ curl -X POST http://localhost:8080/v1/clients \
     "birthDate": "1990-05-15"
   }'
 ```
-✅ **Response:** `201 Created` + `Location: /v1/clients/{id}`
+✅ **Response:** `201 Created` + `Location: /v2/clients/{id}`
 
 **Create a Company Client:**
 ```bash
-curl -X POST http://localhost:8080/v1/clients \
+curl -X POST http://localhost:8080/v2/clients \
   -H "Content-Type: application/json" \
   -d '{
     "type": "COMPANY",
@@ -80,7 +80,7 @@ curl -X POST http://localhost:8080/v1/clients \
 
 **Create a Contract** (startDate defaults to now if not provided):
 ```bash
-curl -X POST "http://localhost:8080/v1/contracts?clientId={client-uuid}" \
+curl -X POST "http://localhost:8080/v2/contracts?clientId={client-uuid}" \
   -H "Content-Type: application/json" \
   -d '{
     "costAmount": 1500.00
@@ -90,13 +90,13 @@ curl -X POST "http://localhost:8080/v1/contracts?clientId={client-uuid}" \
 
 **Get Active Contracts** (paginated, only active):
 ```bash
-curl "http://localhost:8080/v1/contracts?clientId={client-uuid}&page=0&size=20"
+curl "http://localhost:8080/v2/contracts?clientId={client-uuid}&page=0&size=20"
 ```
 ✅ **Response:** `200 OK` with pagination metadata (isFirst, isLast, totalElements)
 
 **Filter by Update Date:**
 ```bash
-curl "http://localhost:8080/v1/contracts?clientId={uuid}&updatedSince=2025-01-01T00:00:00"
+curl "http://localhost:8080/v2/contracts?clientId={uuid}&updatedSince=2025-01-01T00:00:00"
 ```
 
 **Get Sum of Active Contracts** (Optimized - <100ms):
@@ -153,14 +153,14 @@ Import from `api-collections/` for complete API examples:
 | PUT | `/v1/clients/{id}` | Update client (name, email, phone - NOT birthDate/companyIdentifier) |
 | DELETE | `/v1/clients/{id}` | Delete client & auto-close all contracts |
 
-### Contracts
+### Contract Endpoints (v2)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/v1/contracts?clientId={id}` | Create contract (startDate defaults to now) |
-| GET | `/v1/contracts?clientId={id}` | Get active contracts (paginated, filter by updatedSince) |
-| GET | `/v1/contracts/{id}?clientId={id}` | Get specific contract |
-| PATCH | `/v1/contracts/{id}/cost?clientId={id}` | Update cost (auto-updates lastModified) |
-| GET | `/v1/contracts/sum?clientId={id}` | Sum of active contracts (optimized) |
+| POST | `/v2/contracts?clientId={id}` | Create contract (startDate defaults to now) |
+| GET | `/v2/contracts?clientId={id}` | Get active contracts (paginated, filter by updatedSince) |
+| GET | `/v2/contracts/{id}?clientId={id}` | Get specific contract |
+| PATCH | `/v2/contracts/{id}/cost?clientId={id}` | Update cost (auto-updates lastModified) |
+| GET | `/v2/contracts/sum?clientId={id}` | Sum of active contracts (optimized) |
 
 ---
 

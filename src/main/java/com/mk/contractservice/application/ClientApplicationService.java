@@ -2,6 +2,7 @@ package com.mk.contractservice.application;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
+import com.mk.contractservice.domain.client.ClientService;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
@@ -12,11 +13,9 @@ import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.mk.contractservice.domain.client.ClientService;
 
+import java.time.LocalDate;
 import java.util.UUID;
-
-import static com.mk.contractservice.util.FunctionalUtils.applyIfPresent;
 
 @Service
 public class ClientApplicationService {
@@ -35,7 +34,7 @@ public class ClientApplicationService {
     }
 
     @Transactional
-    public Person createPerson(final String name, final String email, final String phone, final java.time.LocalDate birthDate) {
+    public Person createPerson(final String name, final String email, final String phone, final LocalDate birthDate) {
         final Person person = clientService.createPerson(
                 ClientName.of(name),
                 Email.of(email),
@@ -63,23 +62,27 @@ public class ClientApplicationService {
     }
 
     @Transactional
-    public void updateCommonFields(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
+    public Client updateCommonFields(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
         final Client client = getClientById(id);
-        client.updateCommonFields(name, email, phone);
-        clientRepo.save(client);
+
+        final Client updatedClient = switch (client) {
+            case Person p -> p.withCommonFields(name, email, phone);
+            case Company c -> c.withCommonFields(name, email, phone);
+        };
+
+        return clientRepo.save(updatedClient);
     }
 
     @Transactional
-    public void patchClient(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
-        final Client client = getClientById(id);
+    public Client patchClient(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
+        Client client = getClientById(id);
 
-        boolean hasChanges = applyIfPresent(name, client::changeName)
-                           | applyIfPresent(email, client::changeEmail)
-                           | applyIfPresent(phone, client::changePhone);
-
-        if (hasChanges) {
-            clientRepo.save(client);
+        if (name == null && email == null && phone == null) {
+            return client;
         }
+
+        Client patchedClient = client.updatePartial(name, email, phone);
+        return clientRepo.save(patchedClient);
     }
 
     @Transactional

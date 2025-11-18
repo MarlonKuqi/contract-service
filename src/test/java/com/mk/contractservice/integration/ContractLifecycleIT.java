@@ -1,8 +1,5 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.web.controller.ClientController;
-import com.mk.contractservice.web.controller.ContractController;
-
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
@@ -13,6 +10,7 @@ import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
+import com.mk.contractservice.web.controller.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,12 +63,12 @@ class ContractLifecycleIT {
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
 
-        testClient = Person.builder()
-                .name(ClientName.of("Marie Durand"))
-                .email(Email.of("marie.durand." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1985, 3, 20)))
-                .build();
+        testClient = Person.of(
+                ClientName.of("Marie Durand"),
+                Email.of("marie.durand." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20))
+        );
         testClient = clientRepository.save(testClient);
     }
 
@@ -433,6 +431,133 @@ class ContractLifecycleIT {
                 .statusCode(403)
                 .body("title", equalTo("Access Denied"))
                 .body("code", equalTo("contractAccessDenied"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Active contracts from JPA query match domain isActive() logic")
+    void shouldReturnOnlyActiveContractsConsistentWithDomainLogic() {
+        LocalDateTime now = LocalDateTime.now();
+
+        String activeNoEndDatePayload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": null,
+                    "costAmount": "1000.00"
+                }
+                """, now.minusDays(10));
+
+        String activeFutureEndPayload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": "%s",
+                    "costAmount": "2000.00"
+                }
+                """, now.minusDays(10), now.plusDays(30));
+
+        String expiredYesterdayPayload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": "%s",
+                    "costAmount": "3000.00"
+                }
+                """, now.minusDays(100), now.minusDays(1));
+
+        String expiredLastMonthPayload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": "%s",
+                    "costAmount": "4000.00"
+                }
+                """, now.minusDays(60), now.minusDays(30));
+
+        given().contentType(ContentType.JSON).body(activeNoEndDatePayload)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then().statusCode(201);
+
+        given().contentType(ContentType.JSON).body(activeFutureEndPayload)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then().statusCode(201);
+
+        given().contentType(ContentType.JSON).body(expiredYesterdayPayload)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then().statusCode(201);
+
+        given().contentType(ContentType.JSON).body(expiredLastMonthPayload)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then().statusCode(201);
+
+        given()
+                .when()
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(200)
+                .body("totalElements", equalTo(2))  // Only 2 active contracts
+                .body("content.size()", equalTo(2))
+                .body("content[0].costAmount", anyOf(equalTo(1000.00f), equalTo(2000.00f)))
+                .body("content[1].costAmount", anyOf(equalTo(1000.00f), equalTo(2000.00f)));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Sum of active contracts via JPA matches manual sum with domain isActive()")
+    void shouldSumActiveContractsConsistentlyWithDomainLogic() {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Create 2 active contracts (1000 + 2000 = 3000)
+        String active1Payload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": null,
+                    "costAmount": "1000.00"
+                }
+                """, now.minusDays(10));
+
+        String active2Payload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": "%s",
+                    "costAmount": "2000.00"
+                }
+                """, now.minusDays(5), now.plusDays(30));
+
+        // Create 2 expired contracts (should NOT be included in sum)
+        String expired1Payload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": "%s",
+                    "costAmount": "500.00"
+                }
+                """, now.minusDays(100), now.minusDays(1));
+
+        String expired2Payload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": "%s",
+                    "costAmount": "700.00"
+                }
+                """, now.minusDays(60), now.minusDays(30));
+
+        given().contentType(ContentType.JSON).body(active1Payload)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then().statusCode(201);
+
+        given().contentType(ContentType.JSON).body(active2Payload)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then().statusCode(201);
+
+        given().contentType(ContentType.JSON).body(expired1Payload)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then().statusCode(201);
+
+        given().contentType(ContentType.JSON).body(expired2Payload)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then().statusCode(201);
+
+        given()
+                .when()
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(200)
+                .body(equalTo("3000.00"));
     }
 }
 

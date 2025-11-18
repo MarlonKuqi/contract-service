@@ -33,7 +33,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Person Management Tests")
 class ClientApplicationServiceTest {
@@ -63,12 +62,11 @@ class ClientApplicationServiceTest {
             LocalDate birthDate = LocalDate.of(1990, 1, 15);
 
             when(clientService.createPerson(any(), any(), any(), any()))
-                    .thenAnswer(invocation -> Person.builder()
-                            .name(invocation.getArgument(0))
-                            .email(invocation.getArgument(1))
-                            .phone(invocation.getArgument(2))
-                            .birthDate(invocation.getArgument(3))
-                            .build());
+                    .thenAnswer(invocation -> Person.of(
+                            invocation.getArgument(0),
+                            invocation.getArgument(1),
+                            invocation.getArgument(2),
+                            invocation.getArgument(3)));
             when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             Person result = service.createPerson(name, email, phone, birthDate);
@@ -110,12 +108,12 @@ class ClientApplicationServiceTest {
             LocalDate isoDate = LocalDate.parse("1990-05-15");
 
             when(clientService.createPerson(any(), any(), any(), any()))
-                    .thenAnswer(invocation -> Person.builder()
-                            .name(invocation.getArgument(0))
-                            .email(invocation.getArgument(1))
-                            .phone(invocation.getArgument(2))
-                            .birthDate(invocation.getArgument(3))
-                            .build());
+                    .thenAnswer(invocation -> Person.of(
+                            invocation.getArgument(0),
+                            invocation.getArgument(1),
+                            invocation.getArgument(2),
+                            invocation.getArgument(3)
+                    ));
             when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             Person result = service.createPerson("John", "john@example.com", "+33123456789", isoDate);
@@ -132,12 +130,12 @@ class ClientApplicationServiceTest {
         @DisplayName("GIVEN existing person WHEN findById THEN return person with ALL fields")
         void shouldReturnPersonWithAllFields() {
             UUID personId = UUID.randomUUID();
-            Person person = Person.builder()
-                    .name(ClientName.of("John Doe"))
-                    .email(Email.of("john@example.com"))
-                    .phone(PhoneNumber.of("+33123456789"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 5, 15)))
-                    .build();
+            Person person = Person.of(
+                    ClientName.of("John Doe"),
+                    Email.of("john@example.com"),
+                    PhoneNumber.of("+33123456789"),
+                    PersonBirthDate.of(LocalDate.of(1990, 5, 15))
+            );
 
             when(clientRepository.findById(personId)).thenReturn(Optional.of(person));
 
@@ -165,12 +163,12 @@ class ClientApplicationServiceTest {
         @DisplayName("GIVEN person exists WHEN read THEN return Person type (not just Client)")
         void shouldReturnCorrectType() {
             UUID personId = UUID.randomUUID();
-            Person person = Person.builder()
-                    .name(ClientName.of("John Doe"))
-                    .email(Email.of("john@example.com"))
-                    .phone(PhoneNumber.of("+33123456789"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 5, 15)))
-                    .build();
+            Person person = Person.of(
+                    ClientName.of("John Doe"),
+                    Email.of("john@example.com"),
+                    PhoneNumber.of("+33123456789"),
+                    PersonBirthDate.of(LocalDate.of(1990, 5, 15))
+            );
 
             when(clientRepository.findById(personId)).thenReturn(Optional.of(person));
 
@@ -190,24 +188,30 @@ class ClientApplicationServiceTest {
         @DisplayName("GIVEN existing person WHEN update name, email, phone THEN changes are applied")
         void shouldUpdateAllowedFields() {
             UUID personId = UUID.randomUUID();
-            Person existingPerson = Person.builder()
-                    .name(ClientName.of("John Doe"))
-                    .email(Email.of("john@example.com"))
-                    .phone(PhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 5, 15)))
-                    .build();
+            Person existingPerson = Person.reconstitute(
+                    personId,
+                    ClientName.of("John Doe"),
+                    Email.of("john@example.com"),
+                    PhoneNumber.of("+33111111111"),
+                    PersonBirthDate.of(LocalDate.of(1990, 5, 15))
+            );
 
             when(clientRepository.findById(personId)).thenReturn(Optional.of(existingPerson));
+            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             ClientName newName = ClientName.of("Jane Doe");
             Email newEmail = Email.of("jane@example.com");
             PhoneNumber newPhone = PhoneNumber.of("+33222222222");
 
-            service.updateCommonFields(personId, newName, newEmail, newPhone);
+            Client result = service.updateCommonFields(personId, newName, newEmail, newPhone);
 
-            assertThat(existingPerson.getName()).isEqualTo(newName);
-            assertThat(existingPerson.getEmail()).isEqualTo(newEmail);
-            assertThat(existingPerson.getPhone()).isEqualTo(newPhone);
+            // Verify the returned instance has updated fields
+            assertThat(result.getName()).isEqualTo(newName);
+            assertThat(result.getEmail()).isEqualTo(newEmail);
+            assertThat(result.getPhone()).isEqualTo(newPhone);
+
+            // Verify save was called
+            verify(clientRepository).save(any(Client.class));
         }
 
         @Test
@@ -215,25 +219,28 @@ class ClientApplicationServiceTest {
         void shouldNotUpdateBirthdate() {
             UUID personId = UUID.randomUUID();
             PersonBirthDate originalBirthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15));
-            Person existingPerson = Person.builder()
-                    .name(ClientName.of("John Doe"))
-                    .email(Email.of("john@example.com"))
-                    .phone(PhoneNumber.of("+33111111111"))
-                    .birthDate(originalBirthDate)
-                    .build();
+            Person existingPerson = Person.reconstitute(
+                    personId,
+                    ClientName.of("John Doe"),
+                    Email.of("john@example.com"),
+                    PhoneNumber.of("+33111111111"),
+                    originalBirthDate
+            );
 
             when(clientRepository.findById(personId)).thenReturn(Optional.of(existingPerson));
+            when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            service.updateCommonFields(
+            Client result = service.updateCommonFields(
                     personId,
                     ClientName.of("Updated Name"),
                     Email.of("updated@example.com"),
                     PhoneNumber.of("+33999999999")
             );
 
-            assertThat(existingPerson.getBirthDate())
-                    .isEqualTo(originalBirthDate)
-                    .as("Birthdate is immutable as per subject requirement");
+            // Verify birthdate remains unchanged in the new instance
+            assertThat(((Person) result).getBirthDate())
+                    .as("Birthdate is immutable as per subject requirement")
+                    .isEqualTo(originalBirthDate);
         }
 
         @Test
@@ -312,12 +319,12 @@ class ClientApplicationServiceTest {
             String companyId = "CHE-123.456.789";
 
             when(clientService.createCompany(any(), any(), any(), any()))
-                    .thenAnswer(invocation -> Company.builder()
-                            .name(invocation.getArgument(0))
-                            .email(invocation.getArgument(1))
-                            .phone(invocation.getArgument(2))
-                            .companyIdentifier(invocation.getArgument(3))
-                            .build());
+                    .thenAnswer(invocation -> Company.of(
+                            invocation.getArgument(0),
+                            invocation.getArgument(1),
+                            invocation.getArgument(2),
+                            invocation.getArgument(3)
+                    ));
             when(clientRepository.save(any(Company.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             Company result = service.createCompany(name, email, phone, companyId);
@@ -346,34 +353,41 @@ class ClientApplicationServiceTest {
         @DisplayName("Should update only provided fields")
         void shouldUpdateOnlyProvidedFields() {
             UUID clientId = UUID.randomUUID();
-            Person existingPerson = Person.builder()
-                    .name(ClientName.of("John Doe"))
-                    .email(Email.of("john@example.com"))
-                    .phone(PhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 5, 15)))
-                    .build();
+            Person existingPerson = Person.reconstitute(
+                    clientId,
+                    ClientName.of("John Doe"),
+                    Email.of("john@example.com"),
+                    PhoneNumber.of("+33111111111"),
+                    PersonBirthDate.of(LocalDate.of(1990, 5, 15))
+            );
 
             when(clientRepository.findById(clientId)).thenReturn(Optional.of(existingPerson));
+            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             ClientName newName = ClientName.of("Jane Doe");
-            service.patchClient(clientId, newName, null, null);
+            Client result = service.patchClient(clientId, newName, null, null);
 
-            assertThat(existingPerson.getName()).isEqualTo(newName);
-            assertThat(existingPerson.getEmail().value()).isEqualTo("john@example.com");
-            assertThat(existingPerson.getPhone().value()).isEqualTo("+33111111111");
-            verify(clientRepository).save(existingPerson);
+            // Vérifier la nouvelle instance retournée
+            assertThat(result.getName()).isEqualTo(newName);
+            assertThat(result.getEmail().value()).isEqualTo("john@example.com");
+            assertThat(result.getPhone().value()).isEqualTo("+33111111111");
+
+            // Vérifier que l'originale n'a pas changé (immutabilité)
+            assertThat(existingPerson.getName().value()).isEqualTo("John Doe");
+
+            verify(clientRepository).save(any(Client.class));
         }
 
         @Test
         @DisplayName("Should not save when no fields provided")
         void shouldNotSaveWhenNoChanges() {
             UUID clientId = UUID.randomUUID();
-            Person existingPerson = Person.builder()
-                    .name(ClientName.of("John Doe"))
-                    .email(Email.of("john@example.com"))
-                    .phone(PhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 5, 15)))
-                    .build();
+            Person existingPerson = Person.of(
+                    ClientName.of("John Doe"),
+                    Email.of("john@example.com"),
+                    PhoneNumber.of("+33111111111"),
+                    PersonBirthDate.of(LocalDate.of(1990, 5, 15))
+            );
 
             when(clientRepository.findById(clientId)).thenReturn(Optional.of(existingPerson));
 
@@ -386,25 +400,32 @@ class ClientApplicationServiceTest {
         @DisplayName("Should update all provided fields")
         void shouldUpdateAllProvidedFields() {
             UUID clientId = UUID.randomUUID();
-            Person existingPerson = Person.builder()
-                    .name(ClientName.of("John Doe"))
-                    .email(Email.of("john@example.com"))
-                    .phone(PhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 5, 15)))
-                    .build();
+            Person existingPerson = Person.reconstitute(
+                    clientId,
+                    ClientName.of("John Doe"),
+                    Email.of("john@example.com"),
+                    PhoneNumber.of("+33111111111"),
+                    PersonBirthDate.of(LocalDate.of(1990, 5, 15))
+            );
 
             when(clientRepository.findById(clientId)).thenReturn(Optional.of(existingPerson));
+            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             ClientName newName = ClientName.of("Jane Smith");
             Email newEmail = Email.of("jane@example.com");
             PhoneNumber newPhone = PhoneNumber.of("+33999999999");
 
-            service.patchClient(clientId, newName, newEmail, newPhone);
+            Client result = service.patchClient(clientId, newName, newEmail, newPhone);
 
-            assertThat(existingPerson.getName()).isEqualTo(newName);
-            assertThat(existingPerson.getEmail()).isEqualTo(newEmail);
-            assertThat(existingPerson.getPhone()).isEqualTo(newPhone);
-            verify(clientRepository).save(existingPerson);
+            // Vérifier la nouvelle instance retournée
+            assertThat(result.getName()).isEqualTo(newName);
+            assertThat(result.getEmail()).isEqualTo(newEmail);
+            assertThat(result.getPhone()).isEqualTo(newPhone);
+
+            // Vérifier que l'originale n'a pas changé (immutabilité)
+            assertThat(existingPerson.getName().value()).isEqualTo("John Doe");
+
+            verify(clientRepository).save(any(Client.class));
         }
     }
 
@@ -417,12 +438,12 @@ class ClientApplicationServiceTest {
         void shouldAcceptSpecialCharactersInName() {
             String name = "Jean-François O'Connor";
 
-            Person person = Person.builder()
-                    .name(ClientName.of(name))
-                    .email(Email.of("jf@example.com"))
-                    .phone(PhoneNumber.of("+33123456789"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1985, 5, 15)))
-                    .build();
+            Person person = Person.of(
+                    ClientName.of(name),
+                    Email.of("jf@example.com"),
+                    PhoneNumber.of("+33123456789"),
+                    PersonBirthDate.of(LocalDate.of(1985, 5, 15))
+            );
 
             when(clientService.createPerson(any(), any(), any(), any())).thenReturn(person);
             when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -437,12 +458,12 @@ class ClientApplicationServiceTest {
         void shouldAcceptTodayBirthdate() {
             LocalDate today = LocalDate.now();
 
-            Person person = Person.builder()
-                    .name(ClientName.of("Baby"))
-                    .email(Email.of("baby@example.com"))
-                    .phone(PhoneNumber.of("+33123456789"))
-                    .birthDate(PersonBirthDate.of(today))
-                    .build();
+            Person person = Person.of(
+                    ClientName.of("Baby"),
+                    Email.of("baby@example.com"),
+                    PhoneNumber.of("+33123456789"),
+                    PersonBirthDate.of(today)
+            );
 
             when(clientService.createPerson(any(), any(), any(), any())).thenReturn(person);
             when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -457,12 +478,12 @@ class ClientApplicationServiceTest {
         void shouldAcceptOldBirthdate() {
             LocalDate oldDate = LocalDate.of(1900, 1, 1);
 
-            Person person = Person.builder()
-                    .name(ClientName.of("Old"))
-                    .email(Email.of("old@example.com"))
-                    .phone(PhoneNumber.of("+33123456789"))
-                    .birthDate(PersonBirthDate.of(oldDate))
-                    .build();
+            Person person = Person.of(
+                    ClientName.of("Old"),
+                    Email.of("old@example.com"),
+                    PhoneNumber.of("+33123456789"),
+                    PersonBirthDate.of(oldDate)
+            );
 
             when(clientService.createPerson(any(), any(), any(), any())).thenReturn(person);
             when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -477,12 +498,12 @@ class ClientApplicationServiceTest {
         void shouldNormalizeEmailToLowercase() {
             String mixedCaseEmail = "John.DOE@Example.COM";
 
-            Person person = Person.builder()
-                    .name(ClientName.of("John"))
-                    .email(Email.of(mixedCaseEmail))
-                    .phone(PhoneNumber.of("+33123456789"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                    .build();
+            Person person = Person.of(
+                    ClientName.of("John"),
+                    Email.of(mixedCaseEmail),
+                    PhoneNumber.of("+33123456789"),
+                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+            );
 
             when(clientService.createPerson(any(), any(), any(), any())).thenReturn(person);
             when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));

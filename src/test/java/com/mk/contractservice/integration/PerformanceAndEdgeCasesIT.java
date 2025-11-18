@@ -63,12 +63,12 @@ class PerformanceAndEdgeCasesIT {
     @Test
     @DisplayName("PERFORMANCE: Sum endpoint should be fast even with many contracts")
     void sumEndpointShouldBePerformant() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("Performance Test Client"))
-                .email(Email.of("perf.test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Performance Test Client"),
+                Email.of("perf.test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
 
         LocalDateTime now = LocalDateTime.now();
         for (int i = 0; i < 50; i++) {
@@ -104,12 +104,12 @@ class PerformanceAndEdgeCasesIT {
     @Test
     @DisplayName("EDGE CASE: Empty client list returns empty for sum")
     void emptyClientShouldReturnZeroSum() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("No Contracts Client"))
-                .email(Email.of("nocontracts." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("No Contracts Client"),
+                Email.of("nocontracts." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
 
         given()
                 .when()
@@ -129,12 +129,12 @@ class PerformanceAndEdgeCasesIT {
     @Test
     @DisplayName("EDGE CASE: Very large cost amounts should be handled correctly")
     void shouldHandleVeryLargeCostAmounts() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("Big Money Client"))
-                .email(Email.of("bigmoney." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Big Money Client"),
+                Email.of("bigmoney." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
 
         LocalDateTime now = LocalDateTime.now();
         String contractPayload = String.format("""
@@ -165,12 +165,12 @@ class PerformanceAndEdgeCasesIT {
     @Test
     @DisplayName("EDGE CASE: Decimal precision should be maintained")
     void shouldMaintainDecimalPrecision() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("Precision Test Client"))
-                .email(Email.of("precision." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Precision Test Client"),
+                Email.of("precision." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
 
         LocalDateTime now = LocalDateTime.now();
         String contract1 = String.format("""
@@ -258,12 +258,12 @@ class PerformanceAndEdgeCasesIT {
     @Test
     @DisplayName("EDGE CASE: Boundary dates should be handled correctly")
     void shouldHandleBoundaryDates() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("Boundary Test Client"))
-                .email(Email.of("boundary." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Boundary Test Client"),
+                Email.of("boundary." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
 
         LocalDateTime now = LocalDateTime.now();
         String contractPayload = String.format("""
@@ -293,12 +293,12 @@ class PerformanceAndEdgeCasesIT {
     @Test
     @DisplayName("EDGE CASE: Concurrent contract creation should work")
     void shouldHandleConcurrentContractCreation() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("Concurrent Test Client"))
-                .email(Email.of("concurrent." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Concurrent Test Client"),
+                Email.of("concurrent." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
 
         LocalDateTime now = LocalDateTime.now();
         String contractPayload = String.format("""
@@ -360,12 +360,12 @@ class PerformanceAndEdgeCasesIT {
     @Test
     @DisplayName("EDGE CASE: Zero cost amount should be rejected")
     void shouldRejectZeroCostAmount() {
-        Client client = clientRepository.save(Person.builder()
-                .name(ClientName.of("Zero Test Client"))
-                .email(Email.of("zero." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"))
-                .phone(PhoneNumber.of("+41791234567"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
-                .build());
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Zero Test Client"),
+                Email.of("zero." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        ));
 
         LocalDateTime now = LocalDateTime.now();
         String zeroAmountPayload = String.format("""

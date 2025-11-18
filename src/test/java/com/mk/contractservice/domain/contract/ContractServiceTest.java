@@ -44,13 +44,12 @@ class ContractServiceTest {
     void setUp() {
         service = new ContractService(contractRepository);
         
-        testClient = Person.builder()
-                .id(UUID.randomUUID())
-                .name(ClientName.of("John Doe"))
-                .email(Email.of("john@example.com"))
-                .phone(PhoneNumber.of("+33123456789"))
-                .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 15)))
-                .build();
+        testClient = Person.reconstitute(
+                UUID.randomUUID(),
+                ClientName.of("John Doe"),
+                Email.of("john@example.com"),
+                PhoneNumber.of("+33123456789"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 15)));
     }
 
     @Nested
@@ -98,13 +97,12 @@ class ContractServiceTest {
             UUID differentClientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
             
-            Client owner = Person.builder()
-                    .id(UUID.randomUUID())
-                    .name(ClientName.of("Owner"))
-                    .email(Email.of("owner@example.com"))
-                    .phone(PhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1980, 1, 1)))
-                    .build();
+            Client owner = Person.reconstitute(
+                    UUID.randomUUID(),
+                    ClientName.of("Owner"),
+                    Email.of("owner@example.com"),
+                    PhoneNumber.of("+33111111111"),
+                    PersonBirthDate.of(LocalDate.of(1980, 1, 1)));
 
             Contract contract = Contract.builder()
                     .id(contractId)

@@ -5,33 +5,91 @@ import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 import java.util.UUID;
 
 @Getter
+@FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
 public final class Person extends Client {
 
-    private final PersonBirthDate birthDate;
+    PersonBirthDate birthDate;
 
     private Person(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
         super(id, name, email, phone);
+        this.birthDate = birthDate;
+        checkInvariants();
+    }
+
+    @Override
+    protected void checkInvariants() {
+        super.checkInvariants();
         if (birthDate == null) {
             throw new IllegalArgumentException("Birth date must not be null");
         }
-        this.birthDate = birthDate;
     }
 
+    public static Person of(final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
+        return builder()
+                .name(name)
+                .email(email)
+                .phone(phone)
+                .birthDate(birthDate)
+                .build();
+    }
 
-    public static PersonBuilder builder() {
+    public static Person reconstitute(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
+        if (id == null) {
+            throw new IllegalArgumentException("ID must not be null when reconstituting a Person");
+        }
+        return builder()
+                .id(id)
+                .name(name)
+                .email(email)
+                .phone(phone)
+                .birthDate(birthDate)
+                .build();
+    }
+
+    public Person withCommonFields(final ClientName name, final Email email, final PhoneNumber phone) {
+        return toBuilder()
+                .name(name)
+                .email(email)
+                .phone(phone)
+                .build();
+    }
+
+    @Override
+    public Person updatePartial(final ClientName name, final Email email, final PhoneNumber phone) {
+        return toBuilder()
+                .name(name != null ? name : this.getName())
+                .email(email != null ? email : this.getEmail())
+                .phone(phone != null ? phone : this.getPhone())
+                .build();
+    }
+
+    private static PersonBuilder builder() {
         return new PersonBuilder();
     }
 
+    public PersonBuilder toBuilder() {
+        return builder()
+                .id(this.getId())
+                .name(this.getName())
+                .email(this.getEmail())
+                .phone(this.getPhone())
+                .birthDate(this.birthDate);
+    }
+
+    @NoArgsConstructor
+    @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
     public static class PersonBuilder {
-        private UUID id;
-        private ClientName name;
-        private Email email;
-        private PhoneNumber phone;
-        private PersonBirthDate birthDate;
+        UUID id;
+        ClientName name;
+        Email email;
+        PhoneNumber phone;
+        PersonBirthDate birthDate;
 
         public PersonBuilder id(final UUID id) {
             this.id = id;
@@ -63,3 +121,4 @@ public final class Person extends Client {
         }
     }
 }
+
