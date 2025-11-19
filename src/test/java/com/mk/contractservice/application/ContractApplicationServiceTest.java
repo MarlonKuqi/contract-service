@@ -200,25 +200,6 @@ class ContractApplicationServiceTest {
                     .hasMessageContaining(nonExistentId.toString());
         }
 
-        @Test
-        @DisplayName("GIVEN valid new cost WHEN updateCost THEN lastModified is updated")
-        void shouldUpdateLastModifiedWhenCostChanged() throws InterruptedException {
-            UUID contractId = UUID.randomUUID();
-            Contract contract = Contract.builder()
-                    .client(testClient)
-                    .period(ContractPeriod.of(LocalDateTime.now(), null))
-                    .costAmount(ContractCost.of(new BigDecimal("100.00")))
-                    .build();
-            LocalDateTime initialLastModified = contract.getLastModified();
-            Thread.sleep(10);
-
-            when(contractService.getContractForClient(JOHN_DOE_CLIENT_ID, contractId))
-                    .thenReturn(contract);
-
-            service.updateCost(JOHN_DOE_CLIENT_ID, contractId, new BigDecimal("250.00"));
-
-            assertThat(contract.getLastModified()).isAfter(initialLastModified);
-        }
 
         @Test
         @DisplayName("GIVEN contract belonging to different client WHEN updateCost THEN throw ContractNotOwnedByClientException")

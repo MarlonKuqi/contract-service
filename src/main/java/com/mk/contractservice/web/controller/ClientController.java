@@ -280,7 +280,7 @@ public class ClientController {
                             schema = @Schema(implementation = ProblemDetail.class))
             )
     })
-    @PatchMapping("/{id}")
+    @PatchMapping(PATH_ID)
     public ResponseEntity<Void> patch(@PathVariable final UUID id, @RequestBody final PatchClientRequest req) {
         service.patchClient(
                 id,

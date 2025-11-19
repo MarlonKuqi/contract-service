@@ -119,6 +119,7 @@ public class ContractController {
                 .toUri();
 
         final CreateContractResponse body = new CreateContractResponse(
+                contract.getId(),
                 new CreateContractResponse.PeriodResponse(
                         contract.getPeriod().startDate(),
                         contract.getPeriod().endDate()

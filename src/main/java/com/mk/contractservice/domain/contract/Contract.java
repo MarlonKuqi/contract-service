@@ -10,25 +10,22 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class Contract {
 
-    final UUID id;
+    UUID id;
 
-    final Client client;
+    Client client;
 
-    final ContractPeriod period;
+    ContractPeriod period;
 
     ContractCost costAmount;
 
-    LocalDateTime lastModified;
-
     @Builder(toBuilder = true)
-    private Contract(final UUID id, final Client client, final ContractPeriod period, final ContractCost costAmount, final LocalDateTime lastModified) {
+    private Contract(final UUID id, final Client client, final ContractPeriod period, final ContractCost costAmount) {
         if (client == null) {
             throw InvalidContractException.forNullClient();
         }
@@ -42,9 +39,7 @@ public class Contract {
         this.client = client;
         this.period = period;
         this.costAmount = costAmount;
-        this.lastModified = lastModified != null ? lastModified : LocalDateTime.now();
     }
-
 
     public static Contract of(final Client client, final ContractPeriod period, final ContractCost costAmount) {
         return builder()
@@ -54,7 +49,7 @@ public class Contract {
                 .build();
     }
 
-    public static Contract reconstitute(final UUID id, final Client client, final ContractPeriod period, final ContractCost costAmount, final LocalDateTime lastModified) {
+    public static Contract reconstitute(final UUID id, final Client client, final ContractPeriod period, final ContractCost costAmount) {
         if (id == null) {
             throw new IllegalArgumentException("ID must not be null when reconstituting a Contract");
         }
@@ -63,13 +58,7 @@ public class Contract {
                 .client(client)
                 .period(period)
                 .costAmount(costAmount)
-                .lastModified(lastModified)
                 .build();
-    }
-
-
-    private void updateLastModified() {
-        this.lastModified = LocalDateTime.now();
     }
 
     public boolean isActive() {
@@ -80,15 +69,16 @@ public class Contract {
         return !isActive();
     }
 
-    public void changeCost(final ContractCost newAmount) {
+    public Contract changeCost(final ContractCost newAmount) {
         if (newAmount == null) {
             throw InvalidContractException.forNullNewCostAmount();
         }
         if (isInactive()) {
             throw new ExpiredContractException(getId());
         }
-        this.costAmount = newAmount;
-        updateLastModified();
+        return toBuilder()
+                .costAmount(newAmount)
+                .build();
     }
 }
 

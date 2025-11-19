@@ -44,7 +44,7 @@ class ContractTest {
     class ConstructorValidation {
 
         @Test
-        @DisplayName("GIVEN all required fields WHEN creating contract THEN contract is created with lastModified set")
+        @DisplayName("GIVEN all required fields WHEN creating contract THEN contract is created")
         void shouldCreateContractWithAllFields() {
             LocalDateTime startDate = LocalDateTime.now().minusDays(10);
             LocalDateTime endDate = LocalDateTime.now().plusDays(20);
@@ -56,7 +56,6 @@ class ContractTest {
             assertThat(contract.getClient()).isEqualTo(testClient);
             assertThat(contract.getPeriod()).isEqualTo(period);
             assertThat(contract.getCostAmount()).isEqualTo(cost);
-            assertThat(contract.getLastModified()).isNotNull();
         }
 
         @Test
@@ -92,24 +91,21 @@ class ContractTest {
     }
 
     @Nested
-    @DisplayName("changeCost - Subject requirement: Update cost amount updates lastModified")
+    @DisplayName("changeCost - Update cost amount")
     class ChangeCostValidation {
 
         @Test
-        @DisplayName("GIVEN valid new cost WHEN changing cost THEN cost is updated and lastModified changes")
-        void shouldUpdateCostAndLastModified() throws InterruptedException {
+        @DisplayName("GIVEN valid new cost WHEN changing cost THEN cost is updated")
+        void shouldUpdateCost() {
             ContractPeriod period = ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusDays(30));
             ContractCost initialCost = ContractCost.of(new BigDecimal("100.00"));
             Contract contract = Contract.of(testClient, period, initialCost);
 
-            LocalDateTime initialLastModified = contract.getLastModified();
-            Thread.sleep(10);
-
             ContractCost newCost = ContractCost.of(new BigDecimal("250.75"));
-            contract.changeCost(newCost);
+            Contract updatedContract = contract.changeCost(newCost);
 
-            assertThat(contract.getCostAmount()).isEqualTo(newCost);
-            assertThat(contract.getLastModified()).isAfter(initialLastModified);
+            assertThat(updatedContract.getCostAmount()).isEqualTo(newCost);
+            assertThat(contract.getCostAmount()).isEqualTo(initialCost);
         }
 
         @Test
@@ -134,7 +130,7 @@ class ContractTest {
             ContractPeriod expiredPeriod = ContractPeriod.of(now.minusDays(100), now.minusDays(1));
             ContractCost initialCost = ContractCost.of(new BigDecimal("100.00"));
 
-            Contract contract = Contract.reconstitute(contractId, testClient, expiredPeriod, initialCost, now.minusDays(1));
+            Contract contract = Contract.reconstitute(contractId, testClient, expiredPeriod, initialCost);
             ContractCost newCost = ContractCost.of(new BigDecimal("200.00"));
 
             assertThatThrownBy(() -> contract.changeCost(newCost))

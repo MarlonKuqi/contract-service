@@ -1,0 +1,2 @@
+ALTER TABLE contracts.client ADD COLUMN version BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE contracts.contract ADD COLUMN version BIGINT NOT NULL DEFAULT 0;
