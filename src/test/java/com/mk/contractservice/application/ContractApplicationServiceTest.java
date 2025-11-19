@@ -180,11 +180,14 @@ class ContractApplicationServiceTest {
 
             when(contractService.getContractForClient(JOHN_DOE_CLIENT_ID, contractId))
                     .thenReturn(contract);
+            when(contractRepository.save(any(Contract.class)))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
 
-            service.updateCost(JOHN_DOE_CLIENT_ID, contractId, newAmount);
+            Contract result = service.updateCost(JOHN_DOE_CLIENT_ID, contractId, newAmount);
 
-            assertThat(contract.getCostAmount().value()).isEqualByComparingTo(newAmount);
-            verify(contractRepository).save(contract);
+            assertThat(result.getCostAmount().value()).isEqualByComparingTo(newAmount);
+            assertThat(contract.getCostAmount().value()).isEqualByComparingTo(new BigDecimal("100.00"));
+            verify(contractRepository).save(any(Contract.class));
         }
 
         @Test
