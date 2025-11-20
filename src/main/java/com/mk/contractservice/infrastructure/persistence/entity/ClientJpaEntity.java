@@ -15,7 +15,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -35,6 +38,14 @@ public abstract class ClientJpaEntity {
     @Version
     @Column(name = "version", nullable = false)
     private Long version = 0L;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "last_modified", nullable = false)
+    private LocalDateTime lastModified;
 
     @Column(name = "name", nullable = false)
     private String name;

@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> handleExpiredContract(ExpiredContractException ex) {
         log.warn("Business rule violation: {}", ex.getMessage());
 
-        ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Contract Expired",
+        ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Expired Contract",
                 ex.getMessage(), "contractExpired");
         return respond(problemDetail);
     }
