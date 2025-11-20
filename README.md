@@ -244,7 +244,9 @@ All error messages and `Content-Language` headers adapt automatically.
 - **Sum Endpoint**: Native SQL aggregation (no object loading)
 - **Pagination**: Efficient offset/limit queries
 - **Lazy Loading**: Default for associations (EAGER only where needed)
-- **Caching**: @Cacheable on sum queries
+- **Caching**: Caffeine cache on sum queries (`@Cacheable`)
+  - ⚠️ **Single-instance only** (suitable for demo/evaluation)
+  - For multi-instance production → Migrate to Redis (see [docs-claude/CAFFEINE_CACHE_MULTI_INSTANCE_PROBLEM.md](docs-claude/CAFFEINE_CACHE_MULTI_INSTANCE_PROBLEM.md))
 - **Indexes**: On clientId, dates, email, companyIdentifier
 
 ---

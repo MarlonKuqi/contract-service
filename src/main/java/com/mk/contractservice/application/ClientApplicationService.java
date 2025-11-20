@@ -25,9 +25,9 @@ public class ClientApplicationService {
     private final ClientService clientService;
 
     public ClientApplicationService(
-            ClientRepository clientRepo,
-            ContractApplicationService contractService,
-            ClientService clientService) {
+            final ClientRepository clientRepo,
+            final ContractApplicationService contractService,
+            final ClientService clientService) {
         this.clientRepo = clientRepo;
         this.contractService = contractService;
         this.clientService = clientService;
@@ -57,13 +57,12 @@ public class ClientApplicationService {
 
     @Transactional(readOnly = true)
     public Client getClientById(final UUID id) {
-        return clientRepo.findById(id)
-                .orElseThrow(() -> new ClientNotFoundException("Client with ID " + id + " not found"));
+        return findClientOrThrow(id);
     }
 
     @Transactional
     public Client updateCommonFields(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
-        final Client client = getClientById(id);
+        final Client client = findClientOrThrow(id);
 
         final Client updatedClient = switch (client) {
             case Person p -> p.withCommonFields(name, email, phone);
@@ -75,7 +74,7 @@ public class ClientApplicationService {
 
     @Transactional
     public Client patchClient(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
-        Client client = getClientById(id);
+        final Client client = findClientOrThrow(id);
 
         if (name == null && email == null && phone == null) {
             return client;
@@ -88,10 +87,19 @@ public class ClientApplicationService {
     @Transactional
     public void deleteClientAndCloseContracts(final UUID id) {
         if (!clientRepo.existsById(id)) {
-            throw new ClientNotFoundException("Client with ID " + id + " not found");
+            throw clientNotFound(id);
         }
         contractService.closeActiveContractsByClientId(id);
         clientRepo.deleteById(id);
+    }
+
+    private Client findClientOrThrow(final UUID id) {
+        return clientRepo.findById(id)
+                .orElseThrow(() -> clientNotFound(id));
+    }
+
+    private static ClientNotFoundException clientNotFound(final UUID id) {
+        return new ClientNotFoundException("Client with ID " + id + " not found");
     }
 
 }

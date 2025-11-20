@@ -9,10 +9,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -30,6 +33,10 @@ public class ContractJpaEntity {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "client_id", nullable = false)
     private ClientJpaEntity client;
@@ -43,15 +50,19 @@ public class ContractJpaEntity {
     @Column(name = "cost_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal costAmount;
 
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
     @Column(name = "last_modified", nullable = false)
     private LocalDateTime lastModified;
 
-    public ContractJpaEntity(ClientJpaEntity client, LocalDateTime startDate, LocalDateTime endDate, BigDecimal costAmount) {
+    public ContractJpaEntity(final ClientJpaEntity client, final LocalDateTime startDate, final LocalDateTime endDate, final BigDecimal costAmount) {
         this.client = client;
         this.startDate = startDate;
         this.endDate = endDate;
         this.costAmount = costAmount;
-        this.lastModified = LocalDateTime.now();
     }
 }
 

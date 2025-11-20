@@ -69,7 +69,7 @@ public final class Person extends Client {
                 .build();
     }
 
-    private static PersonBuilder builder() {
+    public static PersonBuilder builder() {
         return new PersonBuilder();
     }
 

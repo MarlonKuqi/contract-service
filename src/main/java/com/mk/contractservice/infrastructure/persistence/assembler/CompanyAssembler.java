@@ -11,11 +11,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CompanyAssembler {
 
-    public CompanyJpaEntity toJpaEntity(final Company company) {
-        if (company == null) {
-            return null;
-        }
 
+    public CompanyJpaEntity toJpaEntity(final Company company) {
         final CompanyJpaEntity entity = CompanyJpaEntity.create(
                 company.getName().value(),
                 company.getEmail().value(),

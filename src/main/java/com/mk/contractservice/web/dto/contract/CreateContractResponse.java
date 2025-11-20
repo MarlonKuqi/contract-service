@@ -5,9 +5,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Schema(description = "Created contract details (returned after successful creation)")
 public record CreateContractResponse(
+        @JsonProperty("id")
+        @Schema(description = "Contract unique identifier", example = "123e4567-e89b-12d3-a456-426614174000")
+        UUID id,
+
         @JsonProperty("period")
         @Schema(description = "Contract period with start and end dates")
         PeriodResponse period,

@@ -11,7 +11,18 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 @JsonTypeName("PERSON")
-@Schema(description = "Create person client request")
+@Schema(
+        description = "Create person client request",
+        example = """
+                {
+                  "type": "PERSON",
+                  "name": "Alice Martin",
+                  "email": "alice.martin@example.com",
+                  "phone": "+41791234567",
+                  "birthDate": "1990-05-15"
+                }
+                """
+)
 public record CreatePersonRequest(
         @NotBlank(message = "Name is required")
         @Size(max = 200, message = "Name must not exceed 200 characters")

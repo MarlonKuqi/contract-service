@@ -7,11 +7,13 @@ import com.mk.contractservice.infrastructure.exception.InvalidPaginationExceptio
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -47,7 +49,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> handleExpiredContract(ExpiredContractException ex) {
         log.warn("Business rule violation: {}", ex.getMessage());
 
-        ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Contract Expired",
+        ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Expired Contract",
                 ex.getMessage(), "contractExpired");
         return respond(problemDetail);
     }
@@ -73,6 +75,40 @@ public class GlobalExceptionHandler {
         return respond(problemDetail);
     }
 
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ProblemDetail> handleOptimisticLockingFailure(ObjectOptimisticLockingFailureException ex) {
+        log.warn("Optimistic locking failure: The resource was modified by another user. Entity: {}, ID: {}",
+                ex.getPersistentClassName(), ex.getIdentifier());
+
+        ProblemDetail problemDetail = problem(
+                HttpStatus.CONFLICT,
+                "Concurrent Modification Detected",
+                "The resource you are trying to modify was updated by another user. Please refresh the data and try again.",
+                "optimisticLockFailure"
+        );
+        problemDetail.setProperty("entityType", ex.getPersistentClassName());
+        problemDetail.setProperty("entityId", ex.getIdentifier());
+        return respond(problemDetail);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ProblemDetail> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMessage());
+
+        String message = "A data constraint violation occurred.";
+        String code = "dataIntegrityViolation";
+
+        if (ex.getMessage() != null && ex.getMessage().contains("email")) {
+            message = "A client with this email address already exists.";
+            code = "emailAlreadyExists";
+        } else if (ex.getMessage() != null && ex.getMessage().contains("company_identifier")) {
+            message = "A company with this identifier already exists.";
+            code = "companyIdentifierAlreadyExists";
+        }
+
+        ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Constraint Violation", message, code);
+        return respond(problemDetail);
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGenericException(Exception ex) {
@@ -113,7 +149,6 @@ public class GlobalExceptionHandler {
                 .header(HttpHeaders.CONTENT_LANGUAGE, lang)
                 .body(problemDetail);
     }
-
 
     private static String getStackTrace(Exception ex) {
         StringBuilder sb = new StringBuilder();

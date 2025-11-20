@@ -32,7 +32,6 @@ public class JpaContractRepository implements ContractRepository {
                 entity.setStartDate(contract.getPeriod().startDate());
                 entity.setEndDate(contract.getPeriod().endDate());
                 entity.setCostAmount(contract.getCostAmount().value());
-                entity.setLastModified(contract.getLastModified());
                 var savedEntity = contractJpaRepository.save(entity);
                 return assembler.toDomain(contractJpaRepository.findByIdWithClient(savedEntity.getId()).orElseThrow());
             }

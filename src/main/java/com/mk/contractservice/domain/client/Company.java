@@ -71,7 +71,7 @@ public final class Company extends Client {
                 .build();
     }
 
-    private static CompanyBuilder builder() {
+    public static CompanyBuilder builder() {
         return new CompanyBuilder();
     }
 

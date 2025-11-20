@@ -1,4 +1,4 @@
-package com.mk.contractservice.infrastructure.config;
+package com.mk.contractservice.integration;
 
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import io.restassured.RestAssured;
@@ -64,7 +64,7 @@ class PaginationValidationIT {
                 .when()
                 .get("/v2/contracts")
                 .then()
-                .log().all() // Log la réponse complète pour debug
+                .log().all()
                 .statusCode(HttpStatus.BAD_REQUEST.value())
                 .body("title", containsString("Invalid Parameter"))
                 .body("detail", containsString(expectedMessage));

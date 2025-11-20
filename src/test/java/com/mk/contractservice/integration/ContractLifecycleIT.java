@@ -84,7 +84,7 @@ class ContractLifecycleIT {
                 }
                 """, now, now.plusMonths(12));
 
-        String location = given()
+        String contractId = given()
                 .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
@@ -93,12 +93,11 @@ class ContractLifecycleIT {
                 .statusCode(201)
                 .header("Location", containsString(ContractController.PATH_BASE + "/"))
                 .header("Content-Language", equalTo("fr-CH"))
+                .body("id", notNullValue())
                 .body("costAmount", equalTo(5000.00f))
                 .body("period.startDate", notNullValue())
                 .body("period.endDate", notNullValue())
-                .extract().header("Location");
-
-        String contractId = location.substring(location.lastIndexOf('/') + 1);
+                .extract().path("id");
 
         given()
                 .when()

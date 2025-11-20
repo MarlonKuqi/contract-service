@@ -53,11 +53,11 @@ public class ContractApplicationService {
 
     @Transactional
     @CacheEvict(value = "contractSums", key = "#clientId")
-    public void updateCost(final UUID clientId, final UUID contractId, BigDecimal newAmount) {
+    public Contract updateCost(final UUID clientId, final UUID contractId, BigDecimal newAmount) {
         final Contract contract = contractService.getContractForClient(clientId, contractId);
-        
-        contract.changeCost(ContractCost.of(newAmount));
-        contractRepo.save(contract);
+
+        final Contract updatedContract = contract.changeCost(ContractCost.of(newAmount));
+        return contractRepo.save(updatedContract);
     }
 
     @Transactional(readOnly = true)
