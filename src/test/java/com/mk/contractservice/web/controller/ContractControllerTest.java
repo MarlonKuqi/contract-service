@@ -91,15 +91,14 @@ class ContractControllerTest {
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
 
-            Contract contract = Contract.builder()
-                    .id(contractId)
-                    .client(client)
-                    .period(ContractPeriod.of(
+            Contract contract = Contract.reconstitute(
+                    contractId,
+                    client,
+                    ContractPeriod.of(
                             LocalDateTime.of(2025, 1, 1, 0, 0),
                             LocalDateTime.of(2026, 1, 1, 0, 0)
-                    ))
-                    .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                    .build();
+                    ),
+                    ContractCost.of(new BigDecimal("1000.00")));
 
             String requestJson = """
                     {
@@ -168,15 +167,14 @@ class ContractControllerTest {
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
 
-            Contract contract = Contract.builder()
-                    .id(contractId)
-                    .client(client)
-                    .period(ContractPeriod.of(
+            Contract contract = Contract.reconstitute(
+                    contractId,
+                    client,
+                    ContractPeriod.of(
                             LocalDateTime.of(2025, 1, 1, 0, 0),
                             LocalDateTime.of(2026, 1, 1, 0, 0)
-                    ))
-                    .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                    .build();
+                    ),
+                    ContractCost.of(new BigDecimal("1000.00")));
 
             when(contractService.getContractById(clientId, contractId))
                     .thenReturn(contract);
@@ -228,15 +226,14 @@ class ContractControllerTest {
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
 
-            Contract contract = Contract.builder()
-                    .id(contractId)
-                    .client(client)
-                    .period(ContractPeriod.of(
+            Contract contract = Contract.reconstitute(
+                    contractId,
+                    client,
+                    ContractPeriod.of(
                             LocalDateTime.of(2025, 1, 1, 0, 0),
                             LocalDateTime.of(2026, 1, 1, 0, 0)
-                    ))
-                    .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                    .build();
+                    ),
+                    ContractCost.of(new BigDecimal("1000.00")));
 
             Page<Contract> page = new PageImpl<>(List.of(contract), PageRequest.of(0, 20), 1);
 
