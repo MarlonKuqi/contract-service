@@ -2,7 +2,6 @@ package com.mk.contractservice.domain.contract;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
 import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.ContractCost;
@@ -14,27 +13,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
 @DisplayName("ContractService - Business Logic Tests")
 class ContractServiceTest {
-
-    @Mock
-    private ContractRepository contractRepository;
 
     private ContractService service;
 
@@ -42,8 +31,8 @@ class ContractServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ContractService(contractRepository);
-        
+        service = new ContractService();
+
         testClient = Person.reconstitute(
                 UUID.randomUUID(),
                 ClientName.of("John Doe"),
@@ -52,75 +41,6 @@ class ContractServiceTest {
                 PersonBirthDate.of(LocalDate.of(1990, 1, 15)));
     }
 
-    @Nested
-    @DisplayName("Get Contract For Client - Business Rules")
-    class GetContractForClientTests {
-
-        @Test
-        @DisplayName("Should return contract when it exists and belongs to client")
-        void shouldReturnContractWhenValid() {
-            UUID contractId = UUID.randomUUID();
-            
-            Contract contract = Contract.builder()
-                    .id(contractId)
-                    .client(testClient)
-                    .period(ContractPeriod.of(LocalDateTime.now(), null))
-                    .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                    .build();
-
-            when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract));
-
-            Contract result = service.getContractForClient(testClient.getId(), contractId);
-
-            assertThat(result).isEqualTo(contract);
-            verify(contractRepository).findById(contractId);
-        }
-
-        @Test
-        @DisplayName("Should throw ContractNotFoundException when contract does not exist")
-        void shouldThrowWhenContractNotFound() {
-            UUID clientId = UUID.randomUUID();
-            UUID contractId = UUID.randomUUID();
-
-            when(contractRepository.findById(contractId)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> service.getContractForClient(clientId, contractId))
-                    .isInstanceOf(ContractNotFoundException.class)
-                    .hasMessageContaining(contractId.toString());
-
-            verify(contractRepository).findById(contractId);
-        }
-
-        @Test
-        @DisplayName("Should throw ContractNotOwnedByClientException when contract belongs to different client")
-        void shouldThrowWhenContractBelongsToDifferentClient() {
-            UUID differentClientId = UUID.randomUUID();
-            UUID contractId = UUID.randomUUID();
-            
-            Client owner = Person.reconstitute(
-                    UUID.randomUUID(),
-                    ClientName.of("Owner"),
-                    Email.of("owner@example.com"),
-                    PhoneNumber.of("+33111111111"),
-                    PersonBirthDate.of(LocalDate.of(1980, 1, 1)));
-
-            Contract contract = Contract.builder()
-                    .id(contractId)
-                    .client(owner)
-                    .period(ContractPeriod.of(LocalDateTime.now(), null))
-                    .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                    .build();
-
-            when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract));
-
-            assertThatThrownBy(() -> service.getContractForClient(differentClientId, contractId))
-                    .isInstanceOf(ContractNotOwnedByClientException.class)
-                    .hasMessageContaining(contractId.toString())
-                    .hasMessageContaining(differentClientId.toString());
-
-            verify(contractRepository).findById(contractId);
-        }
-    }
 
     @Nested
     @DisplayName("Ensure Contract Belongs To Client - Business Rule")
@@ -130,15 +50,15 @@ class ContractServiceTest {
         @DisplayName("Should not throw when contract belongs to client")
         void shouldNotThrowWhenContractBelongsToClient() {
             UUID contractId = UUID.randomUUID();
-            
-            Contract contract = Contract.builder()
-                    .id(contractId)
-                    .client(testClient)
-                    .period(ContractPeriod.of(LocalDateTime.now(), null))
-                    .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                    .build();
+
+            Contract contract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(LocalDateTime.now(), null),
+                    ContractCost.of(new BigDecimal("1000.00")));
 
             service.ensureContractBelongsToClient(contract, testClient.getId());
+            assertThat(contract.getClient().getId()).isEqualTo(testClient.getId());
         }
 
         @Test
@@ -147,12 +67,11 @@ class ContractServiceTest {
             UUID differentClientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
 
-            Contract contract = Contract.builder()
-                    .id(contractId)
-                    .client(testClient)
-                    .period(ContractPeriod.of(LocalDateTime.now(), null))
-                    .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                    .build();
+            Contract contract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(LocalDateTime.now(), null),
+                    ContractCost.of(new BigDecimal("1000.00")));
 
             assertThatThrownBy(() -> service.ensureContractBelongsToClient(contract, differentClientId))
                     .isInstanceOf(ContractNotOwnedByClientException.class)
@@ -160,5 +79,39 @@ class ContractServiceTest {
                     .hasMessageContaining(differentClientId.toString());
         }
     }
-}
 
+    @Nested
+    @DisplayName("Create Contract - Domain Logic")
+    class CreateContractTests {
+
+        @Test
+        @DisplayName("Should create contract with all provided data")
+        void shouldCreateContract() {
+            LocalDateTime start = LocalDateTime.of(2025, 1, 1, 0, 0);
+            LocalDateTime end = LocalDateTime.of(2025, 12, 31, 23, 59);
+            ContractPeriod period = ContractPeriod.of(start, end);
+            ContractCost cost = ContractCost.of(new BigDecimal("1500.00"));
+
+            Contract result = Contract.of(testClient, period, cost);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getClient()).isEqualTo(testClient);
+            assertThat(result.getPeriod()).isEqualTo(period);
+            assertThat(result.getCostAmount()).isEqualTo(cost);
+            assertThat(result.getId()).isNull(); // Not persisted yet
+        }
+
+        @Test
+        @DisplayName("Should create contract with open-ended period")
+        void shouldCreateContractWithOpenEndedPeriod() {
+            LocalDateTime start = LocalDateTime.of(2025, 1, 1, 0, 0);
+            ContractPeriod period = ContractPeriod.of(start, null);
+            ContractCost cost = ContractCost.of(new BigDecimal("2000.00"));
+
+            Contract result = Contract.of(testClient, period, cost);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getPeriod().endDate()).isNull();
+        }
+    }
+}
