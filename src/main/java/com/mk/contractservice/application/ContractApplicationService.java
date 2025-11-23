@@ -6,6 +6,7 @@ import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractService;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import org.springframework.cache.annotation.CacheEvict;
@@ -26,9 +27,9 @@ public class ContractApplicationService {
     private final ClientRepository clientRepo;
     private final ContractService contractService;
 
-    public ContractApplicationService(ContractRepository contractRepo,
-                                      ClientRepository clientRepo,
-                                      ContractService contractService) {
+    public ContractApplicationService(final ContractRepository contractRepo,
+                                      final ClientRepository clientRepo,
+                                      final ContractService contractService) {
         this.contractRepo = contractRepo;
         this.clientRepo = clientRepo;
         this.contractService = contractService;
@@ -39,34 +40,35 @@ public class ContractApplicationService {
     public Contract createForClient(final UUID clientId, final LocalDateTime start, final LocalDateTime end, final BigDecimal amount) {
         final Client client = clientRepo.findById(clientId).orElseThrow(() ->
                 new ClientNotFoundException("Client not found: " + clientId));
-
         final ContractPeriod period = ContractPeriod.of(start, end);
-
-        final Contract contract = Contract.builder()
-                .client(client)
-                .period(period)
-                .costAmount(ContractCost.of(amount))
-                .build();
-
+        final ContractCost cost = ContractCost.of(amount);
+        final Contract contract = Contract.of(client, period, cost);
         return contractRepo.save(contract);
     }
 
     @Transactional
     @CacheEvict(value = "contractSums", key = "#clientId")
     public Contract updateCost(final UUID clientId, final UUID contractId, BigDecimal newAmount) {
-        final Contract contract = contractService.getContractForClient(clientId, contractId);
-
+        final Contract contract = getContractForClient(clientId, contractId);
         final Contract updatedContract = contract.changeCost(ContractCost.of(newAmount));
         return contractRepo.save(updatedContract);
     }
 
     @Transactional(readOnly = true)
     public Contract getContractById(final UUID clientId, final UUID contractId) {
-        return contractService.getContractForClient(clientId, contractId);
+        return getContractForClient(clientId, contractId);
+    }
+
+    private Contract getContractForClient(final UUID clientId, final UUID contractId) {
+        final Contract contract = contractRepo.findById(contractId)
+                .orElseThrow(() -> new ContractNotFoundException(contractId));
+
+        contractService.ensureContractBelongsToClient(contract, clientId);
+        return contract;
     }
 
     @Transactional(readOnly = true)
-    public Page<Contract> getActiveContractsPageable(final UUID clientId, LocalDateTime updatedSince, Pageable pageable) {
+    public Page<Contract> getActiveContractsPageable(final UUID clientId, final LocalDateTime updatedSince, final Pageable pageable) {
         LocalDateTime now = LocalDateTime.now();
         return contractRepo.findActiveByClientIdPageable(clientId, now, updatedSince, pageable);
     }
