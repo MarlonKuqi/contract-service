@@ -1,8 +1,5 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.web.controller.ClientController;
-import com.mk.contractservice.web.controller.ContractController;
-
 import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
@@ -97,7 +94,6 @@ class PersonLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Should respect Accept-Language header for different locales")
     void shouldRespectAcceptLanguageHeader() {
-        // Test English locale
         given()
                 .contentType(ContentType.JSON)
                 .header("Accept-Language", "en")
@@ -116,7 +112,6 @@ class PersonLifecycleIT {
                 .statusCode(201)
                 .header("Content-Language", equalTo("en"));
 
-        // Test German Swiss locale
         given()
                 .contentType(ContentType.JSON)
                 .header("Accept-Language", "de-CH")
@@ -135,7 +130,6 @@ class PersonLifecycleIT {
                 .statusCode(201)
                 .header("Content-Language", equalTo("de-CH"));
 
-        // Test Italian Swiss locale
         given()
                 .contentType(ContentType.JSON)
                 .header("Accept-Language", "it-CH")
@@ -558,7 +552,6 @@ class PersonLifecycleIT {
                 }
                 """.formatted(UUID.randomUUID().toString().substring(0, 8));
 
-        // Client prefers fr-CH, but accepts de-CH and en as fallback
         String clientId = given()
                 .contentType(ContentType.JSON)
                 .header("Accept-Language", "fr-CH, de-CH;q=0.8, en;q=0.5")

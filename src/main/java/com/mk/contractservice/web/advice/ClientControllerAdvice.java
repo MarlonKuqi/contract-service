@@ -49,7 +49,7 @@ public class ClientControllerAdvice {
             }
         }
 
-        final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Validation Failed", detail, "validationError");
+        final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed", detail, "validationError");
         return respond(problemDetail);
     }
 
@@ -57,7 +57,7 @@ public class ClientControllerAdvice {
     public ResponseEntity<ProblemDetail> handleValidation(final MethodArgumentNotValidException ex) {
         log.debug("Validation failed for client request: {}", ex.getMessage());
 
-        final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Validation Failed",
+        final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed",
                 "One or more fields are invalid or missing.", "validationError");
 
         final List<Map<String, Object>> errors = ex.getBindingResult().getFieldErrors().stream()
@@ -75,7 +75,7 @@ public class ClientControllerAdvice {
     public ResponseEntity<ProblemDetail> handleDomainValidation(final DomainValidationException ex) {
         log.debug("Domain validation error for client: {}", ex.getMessage());
 
-        final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Domain Validation Error",
+        final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Domain Validation Error",
                 ex.getMessage(), ex.getCode() != null ? ex.getCode() : "domainValidationError");
         return respond(problemDetail);
     }

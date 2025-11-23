@@ -59,7 +59,7 @@ public class ContractControllerAdvice {
                 detail = String.format("Missing or invalid field: '%s'", mie.getPath().get(0).getFieldName());
             }
         }
-        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Validation Failed", detail, "validationError");
+        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed", detail, "validationError");
         return respond(pd);
     }
 
@@ -67,7 +67,7 @@ public class ContractControllerAdvice {
     public ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException ex) {
         log.debug("Validation failed for contract request: {}", ex.getMessage());
 
-        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Validation Failed",
+        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed",
                 "One or more fields are invalid or missing.", "validationError");
 
         List<Map<String, Object>> errors = ex.getBindingResult().getFieldErrors().stream()
@@ -84,7 +84,7 @@ public class ContractControllerAdvice {
     @ExceptionHandler(InvalidContractCostException.class)
     public ResponseEntity<ProblemDetail> handleInvalidContractCost(InvalidContractCostException ex) {
         log.warn("Invalid contract cost: {}", ex.getMessage());
-        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid Contract Cost",
+        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid Contract Cost",
                 ex.getMessage(), "invalidContractCost");
         pd.setProperty("context", "Contract cost validation failed");
         return respond(pd);
@@ -93,7 +93,7 @@ public class ContractControllerAdvice {
     @ExceptionHandler(DomainValidationException.class)
     public ResponseEntity<ProblemDetail> handleDomainValidation(DomainValidationException ex) {
         log.warn("Domain validation failed for contract: {}", ex.getMessage());
-        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Domain Validation Failed",
+        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Domain Validation Failed",
                 ex.getMessage(), ex.getCode() != null ? ex.getCode() : "domainValidationError");
         pd.setProperty("context", "Contract domain validation failed");
         return respond(pd);

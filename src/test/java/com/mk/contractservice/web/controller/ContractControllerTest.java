@@ -1,6 +1,5 @@
 package com.mk.contractservice.web.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mk.contractservice.application.ContractApplicationService;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.contract.Contract;
@@ -21,12 +20,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -60,13 +60,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         ValueObjectMappersImpl.class
 })
 @DisplayName("ContractController - MockMvc Tests")
+@ActiveProfiles("test")
 class ContractControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @MockitoBean
     private ContractApplicationService contractService;
