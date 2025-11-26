@@ -1,11 +1,10 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.web.controller.ClientController;
-import com.mk.contractservice.web.controller.ContractController;
-
 import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
+import com.mk.contractservice.web.controller.ClientController;
+import com.mk.contractservice.web.controller.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,7 +71,7 @@ class CompanyLifecycleIT {
                 .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
-                .header("Location", matchesPattern(".*" + ClientController.VERSION + "/clients/[0-9a-f-]{36}"))
+                .header("Location", matchesPattern(".*" + "v2" + "/clients/[0-9a-f-]{36}"))
                 .header("Content-Language", equalTo("fr-CH"))
                 .body("id", notNullValue())
                 .body("name", equalTo("Acme Corporation"))

@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -39,10 +38,9 @@ import java.util.UUID;
 
 @Tag(name = "Contracts", description = "Operations on contracts (create, read, update cost)")
 @RestController
-@RequestMapping(ContractController.PATH_BASE)
+@RequestMapping(path = "/{version}/contracts", version = "2")
 public class ContractController {
-    public static final String VERSION = "/v2";
-    public static final String PATH_BASE = VERSION + "/contracts";
+    public static final String PATH_BASE = "/v2/contracts";
     public static final String PATH_ID = "/{contractId}";
     public static final String PATH_CONTRACT = PATH_BASE + PATH_ID;
     public static final String PATH_SUM = "/sum";
@@ -64,41 +62,39 @@ public class ContractController {
                     + "startDate defaults to now if not provided. "
                     + "endDate null means active contract."
     )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "Contract created successfully",
-                    headers = {
-                            @Header(name = "Location", description = "URI of the created contract resource")
-                    },
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = CreateContractResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Malformed JSON / invalid syntax",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Client not found",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "422",
-                    description = "Business validation failed (e.g., invalid cost amount, date range)",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Unexpected server error",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            )
-    })
+    @ApiResponse(
+            responseCode = "201",
+            description = "Contract created successfully",
+            headers = {
+                    @Header(name = "Location", description = "URI of the created contract resource")
+            },
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = CreateContractResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "400",
+            description = "Malformed JSON / invalid syntax",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "404",
+            description = "Client not found",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "422",
+            description = "Business validation failed (e.g., invalid cost amount, date range)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
     @PostMapping
     public ResponseEntity<CreateContractResponse> create(
             @RequestParam final UUID clientId,
@@ -139,32 +135,30 @@ public class ContractController {
                     + "Supports pagination (default size: 20, max: 100). "
                     + "Use query params: ?page=0&size=20&sort=lastModified,desc"
     )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "List of active contracts (paginated)",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = PagedContractResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Invalid query parameters (e.g., invalid date format)",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Client not found",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Unexpected server error",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            )
-    })
+    @ApiResponse(
+            responseCode = "200",
+            description = "List of active contracts (paginated)",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PagedContractResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "400",
+            description = "Invalid query parameters (e.g., invalid date format)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "404",
+            description = "Client not found",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
     @GetMapping
     public ResponseEntity<PagedContractResponse> listActive(
             @RequestParam final UUID clientId,
@@ -196,11 +190,9 @@ public class ContractController {
             description = "Retrieves a single contract by its ID. "
                     + "Validates that the contract belongs to the specified client."
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Contract found"),
-            @ApiResponse(responseCode = "403", description = "Contract does not belong to this client"),
-            @ApiResponse(responseCode = "404", description = "Contract not found")
-    })
+    @ApiResponse(responseCode = "200", description = "Contract found")
+    @ApiResponse(responseCode = "403", description = "Contract does not belong to this client")
+    @ApiResponse(responseCode = "404", description = "Contract not found")
     @GetMapping(PATH_ID)
     public ResponseEntity<ContractResponse> getById(
             @RequestParam final UUID clientId,
@@ -220,26 +212,24 @@ public class ContractController {
             description = "Returns the sum of costAmount for all active contracts of a client. "
                     + "Returns 0.00 if no active contracts exist."
     )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Sum calculated successfully",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = BigDecimal.class))
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Client not found",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Unexpected server error",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            )
-    })
+    @ApiResponse(
+            responseCode = "200",
+            description = "Sum calculated successfully",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = BigDecimal.class))
+    )
+    @ApiResponse(
+            responseCode = "404",
+            description = "Client not found",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
     @GetMapping(PATH_SUM)
     public ResponseEntity<BigDecimal> sumActive(
             @RequestParam final UUID clientId,
@@ -257,13 +247,11 @@ public class ContractController {
             description = "Updates only the costAmount field. The lastModified field is automatically updated internally. "
                     + "Business rule: Only active contracts (not expired) can be updated."
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Cost updated successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data"),
-            @ApiResponse(responseCode = "403", description = "Contract does not belong to this client"),
-            @ApiResponse(responseCode = "404", description = "Contract not found"),
-            @ApiResponse(responseCode = "422", description = "Contract is expired and cannot be modified")
-    })
+    @ApiResponse(responseCode = "204", description = "Cost updated successfully")
+    @ApiResponse(responseCode = "400", description = "Invalid input data")
+    @ApiResponse(responseCode = "403", description = "Contract does not belong to this client")
+    @ApiResponse(responseCode = "404", description = "Contract not found")
+    @ApiResponse(responseCode = "422", description = "Contract is expired and cannot be modified")
     @PatchMapping(PATH_COST)
     public ResponseEntity<Void> updateCost(
             @RequestParam final UUID clientId,

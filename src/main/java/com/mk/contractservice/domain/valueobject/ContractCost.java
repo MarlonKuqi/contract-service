@@ -2,6 +2,7 @@ package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.mk.contractservice.domain.exception.InvalidContractCostException;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -10,10 +11,10 @@ import java.util.function.Predicate;
 public final class ContractCost {
 
     public static final Predicate<BigDecimal> IS_ZERO_OR_NEGATIVE =
-        amount -> amount == null || amount.compareTo(BigDecimal.ZERO) <= 0;
+            amount -> amount.compareTo(BigDecimal.ZERO) <= 0;
 
     public static final Predicate<BigDecimal> HAS_INVALID_SCALE =
-        amount -> amount == null || amount.scale() > 2;
+            amount -> amount.scale() > 2;
 
     private final BigDecimal value;
 
@@ -22,12 +23,12 @@ public final class ContractCost {
         this.value = value;
     }
 
-    public static ContractCost of(final BigDecimal rawValue) {
+    public static ContractCost of(@Nullable final BigDecimal rawValue) {
         validate(rawValue);
         return new ContractCost(rawValue);
     }
 
-    private static void validate(final BigDecimal rawValue) {
+    private static void validate(@Nullable final BigDecimal rawValue) {
         if (rawValue == null) {
             throw new InvalidContractCostException("Contract cost amount must not be null");
         }
@@ -47,7 +48,7 @@ public final class ContractCost {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         return this == o || (o instanceof ContractCost other && Objects.equals(value, other.value));
     }
 
@@ -58,7 +59,7 @@ public final class ContractCost {
 
     @Override
     public String toString() {
-        return value != null ? value.toString() : "0.00";
+        return value.toString();
     }
 }
 

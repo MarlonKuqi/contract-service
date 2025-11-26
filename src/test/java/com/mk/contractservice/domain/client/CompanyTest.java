@@ -89,19 +89,6 @@ class CompanyTest {
         assertThat(company.getCompanyIdentifier()).isEqualTo(companyId);
     }
 
-    @Test
-    @DisplayName("Should reject null ID when reconstituting Company")
-    void shouldRejectNullIdOnReconstitute() {
-        assertThatThrownBy(() -> Company.reconstitute(
-                null,
-                ClientName.of("ACME Corp"),
-                Email.of("contact@acme.com"),
-                PhoneNumber.of("+33123456789"),
-                CompanyIdentifier.of("acme-123")
-        ))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("ID must not be null when reconstituting");
-    }
 
     @Test
     @DisplayName("Should update all common fields with withCommonFields")

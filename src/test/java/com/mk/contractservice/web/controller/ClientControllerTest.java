@@ -1,6 +1,5 @@
 package com.mk.contractservice.web.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mk.contractservice.application.ClientApplicationService;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
@@ -11,6 +10,7 @@ import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import com.mk.contractservice.web.advice.ClientControllerAdvice;
 import com.mk.contractservice.web.advice.GlobalExceptionHandler;
+import com.mk.contractservice.web.config.WebMvcConfig;
 import com.mk.contractservice.web.dto.mapper.client.ClientDtoMapperImpl;
 import com.mk.contractservice.web.dto.mapper.client.CompanyResponseMapperImpl;
 import com.mk.contractservice.web.dto.mapper.client.PersonResponseMapperImpl;
@@ -19,9 +19,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -46,7 +47,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = {
         ClientController.class,
         ClientControllerAdvice.class,
-        GlobalExceptionHandler.class
+        GlobalExceptionHandler.class,
+        WebMvcConfig.class
 })
 @Import({
         ClientDtoMapperImpl.class,
@@ -55,13 +57,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         ValueObjectMappersImpl.class
 })
 @DisplayName("ClientController - MockMvc Tests")
+@ActiveProfiles("test")
 class ClientControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @MockitoBean
     private ClientApplicationService clientService;
@@ -155,7 +155,7 @@ class ClientControllerTest {
             mockMvc.perform(post("/v2/clients")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestJson))
-                    .andExpect(status().isUnprocessableEntity());
+                    .andExpect(status().isUnprocessableContent());
         }
 
         @Test
@@ -172,7 +172,7 @@ class ClientControllerTest {
             mockMvc.perform(post("/v2/clients")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(invalidJson))
-                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(status().isUnprocessableContent())
                     .andExpect(jsonPath("$.title").value("Validation Failed"))
                     .andExpect(jsonPath("$.validations").isArray());
         }

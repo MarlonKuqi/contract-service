@@ -2,7 +2,7 @@ package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.mk.contractservice.domain.exception.InvalidEmailException;
-import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -13,15 +13,12 @@ public final class Email {
     private static final int MAX_LENGTH = 254;
     private static final String EMAIL_PATTERN = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
 
-    public static final Predicate<String> IS_BLANK =
-        email -> email == null || email.isBlank();
-
     public static final Predicate<String> IS_INVALID_LENGTH =
-        email -> email == null || email.isEmpty() || email.length() > MAX_LENGTH;
+            email -> email.isEmpty() || email.length() > MAX_LENGTH;
 
 
     public static final Predicate<String> HAS_INVALID_FORMAT =
-        email -> email == null || !email.matches(EMAIL_PATTERN);
+            email -> !email.matches(EMAIL_PATTERN);
 
 
     private final String value;
@@ -30,14 +27,14 @@ public final class Email {
         this.value = value;
     }
 
-    public static Email of(final String rawValue) {
+    public static Email of(@Nullable final String rawValue) {
         final String normalizedValue = normalize(rawValue);
         validate(normalizedValue, rawValue);
         return new Email(normalizedValue);
     }
 
-    private static String normalize(final String rawValue) {
-        if (IS_BLANK.test(rawValue)) {
+    private static String normalize(@Nullable final String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
             throw InvalidEmailException.forBlank();
         }
         return rawValue.trim().toLowerCase(Locale.ROOT);
@@ -53,14 +50,13 @@ public final class Email {
         }
     }
 
-
     @JsonValue
     public String value() {
         return value;
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         return this == o || (o instanceof Email other && Objects.equals(value, other.value));
     }
 
@@ -71,6 +67,6 @@ public final class Email {
 
     @Override
     public String toString() {
-        return value != null ? value : StringUtils.EMPTY;
+        return value;
     }
 }

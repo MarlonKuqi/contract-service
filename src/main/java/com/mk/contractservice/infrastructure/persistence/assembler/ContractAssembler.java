@@ -24,49 +24,50 @@ public class ContractAssembler {
         this.entityManager = entityManager;
     }
 
-    public ContractJpaEntity toJpaEntity(Contract domain) {
-        if (domain == null) {
-            return null;
-        }
-
-        ClientJpaEntity clientEntity = clientJpaRepository.findById(domain.getClient().getId())
-                .orElseThrow(() -> new IllegalStateException(
-                        "Client must exist - should have been validated in application service"));
+    public ContractJpaEntity toJpaEntity(final Contract domain) {
+        final ClientJpaEntity clientEntity = findClientEntity(domain);
 
         if (domain.getId() != null) {
-            ContractJpaEntity existing = entityManager.find(ContractJpaEntity.class, domain.getId());
-            if (existing != null) {
-                existing.setClient(clientEntity);
-                existing.setStartDate(domain.getPeriod().startDate());
-                existing.setEndDate(domain.getPeriod().endDate());
-                existing.setCostAmount(domain.getCostAmount().value());
-                return existing;
-            }
+            return updateExistingContract(domain, clientEntity);
         }
-
-        ContractJpaEntity entity = new ContractJpaEntity(
-                clientEntity,
-                domain.getPeriod().startDate(),
-                domain.getPeriod().endDate(),
-                domain.getCostAmount().value()
-        );
-
-        if (domain.getId() != null) {
-            entity.setId(domain.getId());
-        }
-        return entity;
+        return createNewContract(domain, clientEntity);
     }
 
-    public Contract toDomain(ContractJpaEntity entity) {
-        if (entity == null) {
-            return null;
-        }
-
+    public Contract toDomain(final ContractJpaEntity entity) {
         return Contract.reconstitute(
                 entity.getId(),
                 clientAssembler.toDomain(entity.getClient()),
                 ContractPeriod.of(entity.getStartDate(), entity.getEndDate()),
                 ContractCost.of(entity.getCostAmount())
+        );
+    }
+
+    private ClientJpaEntity findClientEntity(final Contract domain) {
+        final var clientId = domain.getClient().getId();
+        if (clientId == null) {
+            throw new IllegalStateException("Client must be persisted before creating a contract (client ID is null)");
+        }
+
+        return clientJpaRepository.findById(clientId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Client with ID " + clientId + " not found in database"));
+    }
+
+    private ContractJpaEntity updateExistingContract(final Contract domain, final ClientJpaEntity clientEntity) {
+        final ContractJpaEntity existing = entityManager.find(ContractJpaEntity.class, domain.getId());
+        existing.setClient(clientEntity);
+        existing.setStartDate(domain.getPeriod().startDate());
+        existing.setEndDate(domain.getPeriod().endDate());
+        existing.setCostAmount(domain.getCostAmount().value());
+        return existing;
+    }
+
+    private ContractJpaEntity createNewContract(final Contract domain, final ClientJpaEntity clientEntity) {
+        return new ContractJpaEntity(
+                clientEntity,
+                domain.getPeriod().startDate(),
+                domain.getPeriod().endDate(),
+                domain.getCostAmount().value()
         );
     }
 }

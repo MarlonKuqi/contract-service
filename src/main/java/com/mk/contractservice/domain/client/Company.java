@@ -7,6 +7,8 @@ import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.jspecify.annotations.NullUnmarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -14,22 +16,24 @@ import java.util.UUID;
 @FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
 public final class Company extends Client {
 
-    static String COMPANY_IDENTIFIER_NULL_MESSAGE = "Company identifier must not be null";
+    public static final String COMPANY_IDENTIFIER_NULL_MESSAGE = "Company identifier must not be null";
 
     CompanyIdentifier companyIdentifier;
 
-    private Company(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final CompanyIdentifier companyIdentifier) {
+    private Company(
+            @Nullable final UUID id,
+            @Nullable final ClientName name,
+            @Nullable final Email email,
+            @Nullable final PhoneNumber phone,
+            @Nullable final CompanyIdentifier companyIdentifier
+    ) {
         super(id, name, email, phone);
-        this.companyIdentifier = companyIdentifier;
-        checkInvariants();
-    }
 
-    @Override
-    protected void checkInvariants() {
-        super.checkInvariants();
         if (companyIdentifier == null) {
             throw new IllegalArgumentException(COMPANY_IDENTIFIER_NULL_MESSAGE);
         }
+
+        this.companyIdentifier = companyIdentifier;
     }
 
     public static Company of(final ClientName name, final Email email, final PhoneNumber phone, final CompanyIdentifier companyIdentifier) {
@@ -42,9 +46,6 @@ public final class Company extends Client {
     }
 
     public static Company reconstitute(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final CompanyIdentifier companyIdentifier) {
-        if (id == null) {
-            throw new IllegalArgumentException("ID must not be null when reconstituting a Company");
-        }
         return builder()
                 .id(id)
                 .name(name)
@@ -63,7 +64,11 @@ public final class Company extends Client {
     }
 
     @Override
-    public Company updatePartial(final ClientName name, final Email email, final PhoneNumber phone) {
+    public Company updatePartial(
+            @Nullable final ClientName name,
+            @Nullable final Email email,
+            @Nullable final PhoneNumber phone
+    ) {
         return toBuilder()
                 .name(name != null ? name : this.getName())
                 .email(email != null ? email : this.getEmail())
@@ -86,6 +91,7 @@ public final class Company extends Client {
 
     @NoArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
+    @NullUnmarked
     public static class CompanyBuilder {
         UUID id;
         ClientName name;

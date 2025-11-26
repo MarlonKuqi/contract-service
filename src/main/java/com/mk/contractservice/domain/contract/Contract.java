@@ -9,6 +9,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -16,6 +17,7 @@ import java.util.UUID;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class Contract {
 
+    @Nullable
     UUID id;
 
     Client client;
@@ -25,7 +27,12 @@ public class Contract {
     ContractCost costAmount;
 
     @Builder(toBuilder = true)
-    private Contract(final UUID id, final Client client, final ContractPeriod period, final ContractCost costAmount) {
+    private Contract(
+            @Nullable final UUID id,
+            @Nullable final Client client,
+            @Nullable final ContractPeriod period,
+            @Nullable final ContractCost costAmount
+    ) {
         if (client == null) {
             throw InvalidContractException.forNullClient();
         }
@@ -50,9 +57,6 @@ public class Contract {
     }
 
     public static Contract reconstitute(final UUID id, final Client client, final ContractPeriod period, final ContractCost costAmount) {
-        if (id == null) {
-            throw new IllegalArgumentException("ID must not be null when reconstituting a Contract");
-        }
         return builder()
                 .id(id)
                 .client(client)
@@ -69,6 +73,7 @@ public class Contract {
         return !isActive();
     }
 
+    @SuppressWarnings("ConstantConditions")
     public Contract changeCost(final ContractCost newAmount) {
         if (newAmount == null) {
             throw InvalidContractException.forNullNewCostAmount();

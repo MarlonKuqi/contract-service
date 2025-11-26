@@ -5,6 +5,7 @@ import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -13,23 +14,17 @@ import java.util.UUID;
 @FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
 public abstract sealed class Client permits Person, Company {
 
-    public static String NULL_NAME_MSG = "ClientName must not be null";
-    public static String NULL_EMAIL_MSG = "Email must not be null";
-    public static String NULL_PHONE_MSG = "PhoneNumber must not be null";
+    public static final String NULL_NAME_MSG = "ClientName must not be null";
+    public static final String NULL_EMAIL_MSG = "Email must not be null";
+    public static final String NULL_PHONE_MSG = "PhoneNumber must not be null";
 
+    @Nullable
     UUID id;
     ClientName name;
     Email email;
     PhoneNumber phone;
 
-    protected Client(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.phone = phone;
-    }
-
-    protected void checkInvariants() {
+    protected Client(@Nullable final UUID id, @Nullable final ClientName name, @Nullable final Email email, @Nullable final PhoneNumber phone) {
         if (name == null) {
             throw new IllegalArgumentException(NULL_NAME_MSG);
         }
@@ -39,7 +34,15 @@ public abstract sealed class Client permits Person, Company {
         if (phone == null) {
             throw new IllegalArgumentException(NULL_PHONE_MSG);
         }
+
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
     }
 
-    public abstract Client updatePartial(final ClientName name, final Email email, final PhoneNumber phone);
+    public abstract Client updatePartial(
+            @Nullable final ClientName name,
+            @Nullable final Email email,
+            @Nullable final PhoneNumber phone);
 }

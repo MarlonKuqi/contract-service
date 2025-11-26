@@ -23,33 +23,32 @@ public class ClientAssembler {
     }
 
     public ClientJpaEntity toJpaEntity(final Client domain) {
-        if (domain == null) {
-            return null;
-        }
         if (domain.getId() != null) {
-            ClientJpaEntity existing = entityManager.find(ClientJpaEntity.class, domain.getId());
-            if (existing != null) {
-                existing.setName(domain.getName().value());
-                existing.setEmail(domain.getEmail().value());
-                existing.setPhone(domain.getPhone().value());
-                return existing;
-            }
+            return updateExistingClient(domain);
         }
-        return switch (domain) {
-            case Person person -> personAssembler.toJpaEntity(person);
-            case Company company -> companyAssembler.toJpaEntity(company);
-        };
+        return createNewClient(domain);
     }
 
     public Client toDomain(final ClientJpaEntity entity) {
-        if (entity == null) {
-            return null;
-        }
-
         return switch (entity) {
             case PersonJpaEntity personEntity -> personAssembler.toDomain(personEntity);
             case CompanyJpaEntity companyEntity -> companyAssembler.toDomain(companyEntity);
             default -> throw new IllegalArgumentException("Unknown client entity type: " + entity.getClass().getName());
+        };
+    }
+
+    private ClientJpaEntity updateExistingClient(final Client domain) {
+        final ClientJpaEntity existing = entityManager.find(ClientJpaEntity.class, domain.getId());
+        existing.setName(domain.getName().value());
+        existing.setEmail(domain.getEmail().value());
+        existing.setPhone(domain.getPhone().value());
+        return existing;
+    }
+
+    private ClientJpaEntity createNewClient(final Client domain) {
+        return switch (domain) {
+            case Person person -> personAssembler.toJpaEntity(person);
+            case Company company -> companyAssembler.toJpaEntity(company);
         };
     }
 }

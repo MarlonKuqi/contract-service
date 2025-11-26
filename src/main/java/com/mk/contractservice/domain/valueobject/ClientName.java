@@ -2,7 +2,7 @@ package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.mk.contractservice.domain.exception.InvalidClientNameException;
-import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -11,11 +11,8 @@ public final class ClientName {
 
     private static final int MAX_LENGTH = 200;
 
-    public static final Predicate<String> IS_BLANK =
-        name -> name == null || name.isBlank();
-
     public static final Predicate<String> IS_NOT_VALID_LENGTH =
-        name -> name == null || name.isEmpty() || name.length() > MAX_LENGTH;
+            name -> name.isEmpty() || name.length() > MAX_LENGTH;
 
     @JsonValue
     private final String value;
@@ -24,14 +21,14 @@ public final class ClientName {
         this.value = value;
     }
 
-    public static ClientName of(final String rawValue) {
+    public static ClientName of(@Nullable final String rawValue) {
         final String normalized = normalize(rawValue);
         validate(normalized);
         return new ClientName(normalized);
     }
 
-    private static String normalize(final String rawValue) {
-        if (IS_BLANK.test(rawValue)) {
+    private static String normalize(@Nullable final String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
             throw new InvalidClientNameException("Client name must not be null or blank");
         }
         return rawValue.trim();
@@ -49,7 +46,7 @@ public final class ClientName {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         return this == o || (o instanceof ClientName other && Objects.equals(value, other.value));
     }
 
@@ -60,6 +57,6 @@ public final class ClientName {
 
     @Override
     public String toString() {
-        return value != null ? value : StringUtils.EMPTY;
+        return value;
     }
 }
