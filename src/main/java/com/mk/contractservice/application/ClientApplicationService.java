@@ -11,6 +11,7 @@ import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
 import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,7 +74,12 @@ public class ClientApplicationService {
     }
 
     @Transactional
-    public Client patchClient(final UUID id, final ClientName name, final Email email, final PhoneNumber phone) {
+    public Client patchClient(
+            final UUID id,
+            final @Nullable ClientName name,
+            final @Nullable Email email,
+            final @Nullable PhoneNumber phone
+    ) {
         final Client client = findClientOrThrow(id);
 
         if (name == null && email == null && phone == null) {

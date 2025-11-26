@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -137,22 +138,12 @@ class EmailTest {
     }
 
     @Test
-    @DisplayName("Predicate IS_BLANK should validate blank emails")
-    void predicateIsBlank() {
-        assertThat(Email.IS_BLANK.test("")).isTrue();
-        assertThat(Email.IS_BLANK.test("  ")).isTrue();
-        assertThat(Email.IS_BLANK.test(null)).isTrue();
-        assertThat(Email.IS_BLANK.test("test@example.com")).isFalse();
-    }
-
-    @Test
     @DisplayName("Predicate IS_INVALID_LENGTH should be exact inverse of IS_VALID_LENGTH")
     void predicateIsInvalidLength() {
         assertThat(Email.IS_INVALID_LENGTH.test("a@b.c")).isFalse();
         assertThat(Email.IS_INVALID_LENGTH.test("x".repeat(254))).isFalse();
         assertThat(Email.IS_INVALID_LENGTH.test("x".repeat(255))).isTrue();
         assertThat(Email.IS_INVALID_LENGTH.test("")).isTrue();
-        assertThat(Email.IS_INVALID_LENGTH.test(null)).isTrue();
     }
 
     @Test
@@ -161,7 +152,6 @@ class EmailTest {
         assertThat(Email.HAS_INVALID_FORMAT.test("invalid-email")).isTrue();
         assertThat(Email.HAS_INVALID_FORMAT.test("@invalid.com")).isTrue();
         assertThat(Email.HAS_INVALID_FORMAT.test("invalid@")).isTrue();
-        assertThat(Email.HAS_INVALID_FORMAT.test(null)).isTrue();
         assertThat(Email.HAS_INVALID_FORMAT.test("test@example.com")).isFalse();
         assertThat(Email.HAS_INVALID_FORMAT.test("user.name+tag@domain.co.uk")).isFalse();
     }

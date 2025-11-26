@@ -28,10 +28,6 @@ public class PersonAssembler {
     }
 
     public Person toDomain(final PersonJpaEntity entity) {
-        if (entity == null) {
-            return null;
-        }
-
         return Person.reconstitute(
                 entity.getId(),
                 ClientName.of(entity.getName()),

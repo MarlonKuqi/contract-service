@@ -70,7 +70,7 @@ class PersonLifecycleIT {
                 .post(ClientController.PATH_BASE)
                 .then()
                 .statusCode(201)
-                .header("Location", matchesPattern(".*" + ClientController.VERSION + "/clients/[0-9a-f-]{36}"))
+                .header("Location", matchesPattern(".*" + "v2/clients/[0-9a-f-]{36}"))
                 .header("Content-Language", equalTo("fr-CH"))
                 .body("id", notNullValue())
                 .body("name", equalTo("Alice Martin"))

@@ -10,6 +10,7 @@ import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import com.mk.contractservice.web.advice.ClientControllerAdvice;
 import com.mk.contractservice.web.advice.GlobalExceptionHandler;
+import com.mk.contractservice.web.config.WebMvcConfig;
 import com.mk.contractservice.web.dto.mapper.client.ClientDtoMapperImpl;
 import com.mk.contractservice.web.dto.mapper.client.CompanyResponseMapperImpl;
 import com.mk.contractservice.web.dto.mapper.client.PersonResponseMapperImpl;
@@ -46,7 +47,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = {
         ClientController.class,
         ClientControllerAdvice.class,
-        GlobalExceptionHandler.class
+        GlobalExceptionHandler.class,
+        WebMvcConfig.class
 })
 @Import({
         ClientDtoMapperImpl.class,

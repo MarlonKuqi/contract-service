@@ -22,7 +22,6 @@ import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
@@ -45,11 +44,10 @@ import java.util.UUID;
 
 @Tag(name = "Clients", description = "Operations on clients (create, read, update, delete)")
 @RestController
-@RequestMapping(ClientController.PATH_BASE)
+@RequestMapping(path = "/{version}/clients", version = "2")
 public class ClientController {
 
-    public static final String VERSION = "/v2";
-    public static final String PATH_BASE = VERSION + "/clients";
+    public static final String PATH_BASE = "/v2/clients";
     public static final String PATH_ID = "/{id}";
     public static final String PATH_CLIENT = PATH_BASE + PATH_ID;
 
@@ -72,43 +70,42 @@ public class ClientController {
             summary = "Create a client (Person or Company)",
             description = "Creates a new client. The type is discriminated via the 'type' field in JSON. "
                     + "Use 'PERSON' for person clients (requires birthDate) or 'COMPANY' for company clients (requires companyIdentifier). "
-                    + "On success returns 201 Created with Location header to " + PATH_BASE + "/{id}."
+                    + "On success returns 201 Created with Location header to /clients/{id}. "
+                    + "API version 2.0."
     )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "Client created successfully",
-                    headers = {
-                            @Header(name = "Location", description = "URI of the created client resource")
-                    },
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = CreateClientResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Malformed JSON / invalid syntax / missing 'type' field",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "409",
-                    description = "Conflict - Email or company identifier already exists",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "422",
-                    description = "Business validation failed (e.g., invalid email, phone, birthdate, or company identifier)",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Unexpected server error",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            )
-    })
+    @ApiResponse(
+            responseCode = "201",
+            description = "Client created successfully",
+            headers = {
+                    @Header(name = "Location", description = "URI of the created client resource")
+            },
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = CreateClientResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "400",
+            description = "Malformed JSON / invalid syntax / missing 'type' field",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "409",
+            description = "Conflict - Email or company identifier already exists",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "422",
+            description = "Business validation failed (e.g., invalid email, phone, birthdate, or company identifier)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CreateClientResponse> create(
             @Valid @RequestBody final CreateClientRequest request,
@@ -171,26 +168,24 @@ public class ClientController {
             description = "Returns a client (Person or Company) with all its fields. "
                     + "The response includes a 'type' discriminator field (PERSON or COMPANY)."
     )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Client found and returned successfully",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ClientResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Client not found",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Unexpected server error",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            )
-    })
+    @ApiResponse(
+            responseCode = "200",
+            description = "Client found and returned successfully",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ClientResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "404",
+            description = "Client not found",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
     @GetMapping(PATH_ID)
     public ResponseEntity<ClientResponse> read(@PathVariable final UUID id, final Locale locale) {
         final var client = service.getClientById(id);
@@ -205,36 +200,34 @@ public class ClientController {
                     + "birthDate and companyIdentifier cannot be updated as per business rules. "
                     + "Works for both Person and Company clients."
     )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "204",
-                    description = "Client updated successfully (no content returned)"
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Invalid input data (validation failed)",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Client not found",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "422",
-                    description = "Business validation failed (e.g., invalid email or phone format)",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Unexpected server error",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            )
-    })
+    @ApiResponse(
+            responseCode = "204",
+            description = "Client updated successfully (no content returned)"
+    )
+    @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input data (validation failed)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "404",
+            description = "Client not found",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "422",
+            description = "Business validation failed (e.g., invalid email or phone format)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
     @PutMapping(PATH_ID)
     public ResponseEntity<Void> update(@PathVariable final UUID id, @Valid @RequestBody final UpdateClientRequest req) {
         service.updateCommonFields(
@@ -250,36 +243,34 @@ public class ClientController {
                     + "birthDate and companyIdentifier cannot be updated as per business rules. "
                     + "Works for both Person and Company clients."
     )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "204",
-                    description = "Client partially updated successfully (no content returned)"
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Invalid input data (validation failed for provided fields)",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Client not found",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "422",
-                    description = "Business validation failed (e.g., invalid email or phone format for provided fields)",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Unexpected server error",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            )
-    })
+    @ApiResponse(
+            responseCode = "204",
+            description = "Client partially updated successfully (no content returned)"
+    )
+    @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input data (validation failed for provided fields)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "404",
+            description = "Client not found",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "422",
+            description = "Business validation failed (e.g., invalid email or phone format for provided fields)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
     @PatchMapping(PATH_ID)
     public ResponseEntity<Void> patch(@PathVariable final UUID id, @RequestBody final PatchClientRequest req) {
         service.patchClient(
@@ -297,24 +288,22 @@ public class ClientController {
                     + "and automatically closes their active contracts by setting endDate=now. "
                     + "This ensures referential integrity and data consistency."
     )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "204",
-                    description = "Client deleted successfully (including Person/Company record and contract closure)"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Client not found",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Unexpected server error",
-                    content = @Content(mediaType = "application/problem+json",
-                            schema = @Schema(implementation = ProblemDetail.class))
-            )
-    })
+    @ApiResponse(
+            responseCode = "204",
+            description = "Client deleted successfully (including Person/Company record and contract closure)"
+    )
+    @ApiResponse(
+            responseCode = "404",
+            description = "Client not found",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
     @DeleteMapping(PATH_ID)
     public ResponseEntity<Void> delete(@PathVariable final UUID id) {
         service.deleteClientAndCloseContracts(id);

@@ -14,6 +14,7 @@ import com.mk.contractservice.domain.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import com.mk.contractservice.web.advice.ContractControllerAdvice;
 import com.mk.contractservice.web.advice.GlobalExceptionHandler;
+import com.mk.contractservice.web.config.WebMvcConfig;
 import com.mk.contractservice.web.dto.mapper.common.ValueObjectMappersImpl;
 import com.mk.contractservice.web.dto.mapper.contract.ContractMapperImpl;
 import org.junit.jupiter.api.DisplayName;
@@ -53,12 +54,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = {
         ContractController.class,
         ContractControllerAdvice.class,
-        GlobalExceptionHandler.class
+        GlobalExceptionHandler.class,
+        WebMvcConfig.class,
 })
 @Import({
         ContractMapperImpl.class,
         ValueObjectMappersImpl.class
 })
+
 @DisplayName("ContractController - MockMvc Tests")
 @ActiveProfiles("test")
 class ContractControllerTest {

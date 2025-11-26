@@ -112,23 +112,12 @@ class ClientNameTest {
     }
 
     @Test
-    @DisplayName("Predicate IS_BLANK should validate blank names")
-    void predicateIsBlank() {
-        assertThat(ClientName.IS_BLANK.test("")).isTrue();
-        assertThat(ClientName.IS_BLANK.test("  ")).isTrue();
-        assertThat(ClientName.IS_BLANK.test("\t")).isTrue();
-        assertThat(ClientName.IS_BLANK.test(null)).isTrue();
-        assertThat(ClientName.IS_BLANK.test("John Doe")).isFalse();
-    }
-
-    @Test
     @DisplayName("Predicate IS_NOT_VALID_LENGTH should validate name length")
     void predicateIsNotValidLength() {
         assertThat(ClientName.IS_NOT_VALID_LENGTH.test("Valid Name")).isFalse();
         assertThat(ClientName.IS_NOT_VALID_LENGTH.test("a".repeat(200))).isFalse();
         assertThat(ClientName.IS_NOT_VALID_LENGTH.test("a".repeat(201))).isTrue();
         assertThat(ClientName.IS_NOT_VALID_LENGTH.test("")).isTrue();
-        assertThat(ClientName.IS_NOT_VALID_LENGTH.test(null)).isTrue();
     }
 
     @Test

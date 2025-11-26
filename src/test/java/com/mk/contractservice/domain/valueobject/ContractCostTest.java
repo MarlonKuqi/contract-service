@@ -1,9 +1,11 @@
 package com.mk.contractservice.domain.valueobject;
 
 import com.mk.contractservice.domain.exception.InvalidContractCostException;
-import java.math.BigDecimal;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -88,7 +90,6 @@ class ContractCostTest {
         assertThat(ContractCost.IS_ZERO_OR_NEGATIVE.test(BigDecimal.ZERO)).isTrue();
         assertThat(ContractCost.IS_ZERO_OR_NEGATIVE.test(new BigDecimal("-0.01"))).isTrue();
         assertThat(ContractCost.IS_ZERO_OR_NEGATIVE.test(new BigDecimal("-100"))).isTrue();
-        assertThat(ContractCost.IS_ZERO_OR_NEGATIVE.test(null)).isTrue();
         assertThat(ContractCost.IS_ZERO_OR_NEGATIVE.test(new BigDecimal("0.01"))).isFalse();
         assertThat(ContractCost.IS_ZERO_OR_NEGATIVE.test(new BigDecimal("100.50"))).isFalse();
     }
@@ -101,7 +102,6 @@ class ContractCostTest {
         assertThat(ContractCost.HAS_INVALID_SCALE.test(new BigDecimal("100"))).isFalse();
         assertThat(ContractCost.HAS_INVALID_SCALE.test(new BigDecimal("100.123"))).isTrue();
         assertThat(ContractCost.HAS_INVALID_SCALE.test(new BigDecimal("100.9999"))).isTrue();
-        assertThat(ContractCost.HAS_INVALID_SCALE.test(null)).isTrue();
     }
 }
 

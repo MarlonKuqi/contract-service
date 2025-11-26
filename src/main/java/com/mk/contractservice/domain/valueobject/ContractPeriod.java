@@ -2,6 +2,7 @@ package com.mk.contractservice.domain.valueobject;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mk.contractservice.domain.exception.InvalidContractPeriodException;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -9,26 +10,26 @@ import java.util.function.BiPredicate;
 
 public final class ContractPeriod {
 
-    public static final BiPredicate<LocalDateTime, LocalDateTime> END_IS_AFTER_START =
-        (start, end) -> end == null || (start != null && end.isAfter(start));
+    public static final BiPredicate<@Nullable LocalDateTime, @Nullable LocalDateTime> END_IS_AFTER_START =
+            (start, end) -> end == null || (start != null && end.isAfter(start));
 
     private final LocalDateTime startDate;
 
-    private final LocalDateTime endDate;
+    private final @Nullable LocalDateTime endDate;
 
 
-    private ContractPeriod(final LocalDateTime startDate, final LocalDateTime endDate) {
+    private ContractPeriod(final LocalDateTime startDate, final @Nullable LocalDateTime endDate) {
         this.startDate = startDate;
         this.endDate = endDate;
     }
 
-    public static ContractPeriod of(final LocalDateTime startDate, final LocalDateTime endDate) {
+    public static ContractPeriod of(@Nullable final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
         final LocalDateTime normalizedStart = (startDate != null) ? startDate : LocalDateTime.now();
         validate(normalizedStart, endDate);
         return new ContractPeriod(normalizedStart, endDate);
     }
 
-    private static void validate(final LocalDateTime startDate, final LocalDateTime endDate) {
+    private static void validate(final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
         if (!END_IS_AFTER_START.test(startDate, endDate)) {
             throw new InvalidContractPeriodException(
                     "Contract end date must be after start date. " +
@@ -48,12 +49,12 @@ public final class ContractPeriod {
     }
 
     @JsonProperty("endDate")
-    public LocalDateTime endDate() {
+    public @Nullable LocalDateTime endDate() {
         return endDate;
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         return this == o || (o instanceof ContractPeriod other && Objects.equals(startDate, other.startDate)
                 && Objects.equals(endDate, other.endDate));
     }

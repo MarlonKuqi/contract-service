@@ -7,6 +7,8 @@ import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.jspecify.annotations.NullUnmarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -16,18 +18,18 @@ public final class Person extends Client {
 
     PersonBirthDate birthDate;
 
-    private Person(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
+    private Person(
+            @Nullable final UUID id,
+            @Nullable final ClientName name,
+            @Nullable final Email email,
+            @Nullable final PhoneNumber phone,
+            @Nullable final PersonBirthDate birthDate
+    ) {
         super(id, name, email, phone);
-        this.birthDate = birthDate;
-        checkInvariants();
-    }
-
-    @Override
-    protected void checkInvariants() {
-        super.checkInvariants();
         if (birthDate == null) {
             throw new IllegalArgumentException("Birth date must not be null");
         }
+        this.birthDate = birthDate;
     }
 
     public static Person of(final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
@@ -40,9 +42,6 @@ public final class Person extends Client {
     }
 
     public static Person reconstitute(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
-        if (id == null) {
-            throw new IllegalArgumentException("ID must not be null when reconstituting a Person");
-        }
         return builder()
                 .id(id)
                 .name(name)
@@ -61,7 +60,11 @@ public final class Person extends Client {
     }
 
     @Override
-    public Person updatePartial(final ClientName name, final Email email, final PhoneNumber phone) {
+    public Person updatePartial(
+            @Nullable final ClientName name,
+            @Nullable final Email email,
+            @Nullable final PhoneNumber phone
+    ) {
         return toBuilder()
                 .name(name != null ? name : this.getName())
                 .email(email != null ? email : this.getEmail())
@@ -84,6 +87,7 @@ public final class Person extends Client {
 
     @NoArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
+    @NullUnmarked
     public static class PersonBuilder {
         UUID id;
         ClientName name;

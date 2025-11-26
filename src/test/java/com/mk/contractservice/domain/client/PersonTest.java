@@ -102,19 +102,6 @@ class PersonTest {
         assertThat(person.getBirthDate()).isEqualTo(birthDate);
     }
 
-    @Test
-    @DisplayName("Should reject null ID when reconstituting")
-    void shouldRejectNullIdOnReconstitute() {
-        assertThatThrownBy(() -> Person.reconstitute(
-                null,
-                ClientName.of("John Doe"),
-                Email.of("john@example.com"),
-                PhoneNumber.of("+33123456789"),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15))
-        ))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("ID must not be null when reconstituting");
-    }
 
     @Test
     @DisplayName("Should update partial fields keeping others unchanged")
