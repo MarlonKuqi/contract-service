@@ -1,46 +1,60 @@
-# Stage 1: Download dependencies
-FROM eclipse-temurin:21-jdk-alpine AS deps
-WORKDIR /workspace/app
-COPY mvnw .
-COPY .mvn .mvn
-COPY pom.xml .
-RUN chmod +x mvnw
-RUN ./mvnw dependency:go-offline -B || true
-
-# Stage 2: Build application with layered JAR
-FROM eclipse-temurin:21-jdk-alpine AS build
-WORKDIR /workspace/app
-COPY --from=deps /root/.m2 /root/.m2
-COPY mvnw .
-COPY .mvn .mvn
-COPY pom.xml .
-COPY src src
-RUN chmod +x mvnw
-RUN ./mvnw package -DskipTests
-RUN java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted
-
-# Stage 3: Runtime image
-FROM eclipse-temurin:21-jre-alpine
-VOLUME /tmp
-
-# Create user and directories in one layer to reduce image size
-RUN addgroup -S appuser && adduser -S appuser -G appuser
-
+# ========================================
+# STAGE 1: Build the application JAR with layers
+# ========================================
+FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
-RUN mkdir -p /app/logs && chown -R appuser:appuser /app
+# Download dependencies (cached layer)
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-# Copy Spring Boot layers in order of least to most frequently changing
-# This optimizes Docker layer caching
-COPY --from=build --chown=appuser:appuser /workspace/app/target/extracted/dependencies/ ./
-COPY --from=build --chown=appuser:appuser /workspace/app/target/extracted/spring-boot-loader/ ./
-COPY --from=build --chown=appuser:appuser /workspace/app/target/extracted/snapshot-dependencies/ ./
-COPY --from=build --chown=appuser:appuser /workspace/app/target/extracted/application/ ./
+# Build application
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# Extract Spring Boot layers for optimal caching
+RUN java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted
+
+# ========================================
+# STAGE 2: Create custom JRE with jlink (minimal modules)
+# ========================================
+FROM eclipse-temurin:21-jdk-alpine AS jre-builder
+
+RUN jlink \
+    --add-modules java.base,java.logging,java.naming,java.sql,java.management,java.xml,java.instrument,jdk.unsupported,jdk.crypto.ec \
+    --strip-debug \
+    --no-header-files \
+    --no-man-pages \
+    --compress=2 \
+    --output /custom-jre
+
+# ========================================
+# STAGE 3: Runtime image
+# ========================================
+FROM alpine:3.22.2
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -S appuser && \
+    adduser -S appuser -G appuser && \
+    mkdir -p /app/logs && \
+    chown -R appuser:appuser /app
+
+COPY --from=jre-builder /custom-jre /opt/jre
+
+# Copy Spring Boot layers (optimized caching)
+COPY --from=build --chown=appuser:appuser /app/target/extracted/dependencies/ ./
+COPY --from=build --chown=appuser:appuser /app/target/extracted/spring-boot-loader/ ./
+COPY --from=build --chown=appuser:appuser /app/target/extracted/snapshot-dependencies/ ./
+COPY --from=build --chown=appuser:appuser /app/target/extracted/application/ ./
+
+ENV PATH="/opt/jre/bin:${PATH}"
 
 # Switch to non-root user
 USER appuser
 
-# JVM optimization flags for containerized environments
+EXPOSE 8080
+
 ENTRYPOINT ["java", \
     "-XX:+UseContainerSupport", \
     "-XX:MaxRAMPercentage=75.0", \
