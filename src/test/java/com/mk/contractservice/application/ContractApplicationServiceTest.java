@@ -320,6 +320,28 @@ class ContractApplicationServiceTest {
                     .hasMessageContaining(contractId.toString())
                     .hasMessageContaining(differentClientId.toString());
         }
+
+        @Test
+        @DisplayName("GIVEN inactive contract WHEN getContractById THEN throw ExpiredContractException")
+        void shouldThrowExceptionWhenContractIsInactive() {
+            UUID contractId = UUID.randomUUID();
+            LocalDateTime now = LocalDateTime.now();
+
+            Contract inactiveContract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(now.minusDays(100), now.minusDays(1)),
+                    ContractCost.of(BigDecimal.valueOf(1000)));
+
+            when(contractRepository.findById(contractId)).thenReturn(Optional.of(inactiveContract));
+
+            doThrow(new ExpiredContractException(contractId))
+                    .when(contractService).ensureContractIsActive(inactiveContract);
+
+            assertThatThrownBy(() -> service.getContractById(JOHN_DOE_CLIENT_ID, contractId))
+                    .isInstanceOf(ExpiredContractException.class)
+                    .hasMessageContaining(contractId.toString());
+        }
     }
 
     @Nested
@@ -395,6 +417,116 @@ class ContractApplicationServiceTest {
                     .thenReturn(new BigDecimal("1000.00"));
             service.sumActiveContracts(JOHN_DOE_CLIENT_ID);
             verify(contractRepository).sumActiveByClientId(eq(JOHN_DOE_CLIENT_ID), any(LocalDateTime.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("Close Contract")
+    class CloseContractTests {
+
+        @Test
+        @DisplayName("GIVEN active contract WHEN closeContract THEN returns closed contract")
+        void shouldReturnClosedContract() {
+            UUID contractId = UUID.randomUUID();
+            LocalDateTime startDate = LocalDateTime.now().minusDays(10);
+            Contract activeContract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(startDate, null),
+                    ContractCost.of(new BigDecimal("100.00")));
+
+            Contract closedContract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(startDate, LocalDateTime.now()),
+                    ContractCost.of(new BigDecimal("100.00")));
+
+            when(contractRepository.findById(contractId)).thenReturn(Optional.of(activeContract));
+            when(contractService.closeContract(activeContract)).thenReturn(closedContract);
+            when(contractRepository.save(closedContract)).thenReturn(closedContract);
+
+            // ✅ Récupère le résultat
+            Contract result = service.closeContract(JOHN_DOE_CLIENT_ID, contractId);
+
+            // ✅ Assertions directes sur le résultat
+            assertThat(result).isNotNull();
+            assertThat(result).isSameAs(closedContract);
+            assertThat(result.getId()).isEqualTo(contractId);
+            assertThat(result.isInactive()).isTrue();
+            assertThat(result.getPeriod().endDate()).isNotNull();
+
+            // Verify les interactions
+            verify(contractService).closeContract(activeContract);
+            verify(contractRepository).save(closedContract);
+        }
+
+        @Test
+        @DisplayName("GIVEN expired contract WHEN closeContract THEN throw ExpiredContractException")
+        void shouldThrowExceptionWhenContractAlreadyExpired() {
+            UUID contractId = UUID.randomUUID();
+            LocalDateTime now = LocalDateTime.now();
+            Contract expiredContract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(now.minusDays(100), now.minusDays(1)),
+                    ContractCost.of(new BigDecimal("100.00")));
+
+            when(contractRepository.findById(contractId)).thenReturn(Optional.of(expiredContract));
+            when(contractService.closeContract(expiredContract))
+                    .thenThrow(new ExpiredContractException(contractId));
+
+            assertThatThrownBy(() -> service.closeContract(JOHN_DOE_CLIENT_ID, contractId))
+                    .isInstanceOf(ExpiredContractException.class)
+                    .hasMessageContaining(contractId.toString());
+
+            verify(contractRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("GIVEN non-existent contract WHEN closeContract THEN throw ContractNotFoundException")
+        void shouldThrowExceptionWhenContractNotFound() {
+            UUID contractId = UUID.randomUUID();
+
+            when(contractRepository.findById(contractId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.closeContract(JOHN_DOE_CLIENT_ID, contractId))
+                    .isInstanceOf(ContractNotFoundException.class)
+                    .hasMessageContaining(contractId.toString());
+
+            verify(contractRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("GIVEN contract belonging to different client WHEN closeContract THEN throw ContractNotOwnedByClientException")
+        void shouldThrowExceptionWhenContractBelongsToDifferentClient() {
+            UUID contractId = UUID.randomUUID();
+            UUID differentClientId = UUID.randomUUID();
+
+            Client otherClient = Person.reconstitute(
+                    differentClientId,
+                    ClientName.of("Other Client"),
+                    Email.of("other@example.com"),
+                    PhoneNumber.of("+33987654321"),
+                    PersonBirthDate.of(LocalDate.of(1985, 5, 15))
+            );
+
+            Contract contract = Contract.reconstitute(
+                    contractId,
+                    otherClient,
+                    ContractPeriod.of(LocalDateTime.now(), null),
+                    ContractCost.of(new BigDecimal("100.00")));
+
+            when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract));
+
+            // Mock getContractForClient which calls ensureContractBelongsToClient internally
+            doThrow(new ContractNotOwnedByClientException(contractId, differentClientId))
+                    .when(contractService).ensureContractBelongsToClient(contract, differentClientId);
+
+            assertThatThrownBy(() -> service.closeContract(differentClientId, contractId))
+                    .isInstanceOf(ContractNotOwnedByClientException.class)
+                    .hasMessageContaining(contractId.toString());
+
+            verify(contractRepository, never()).save(any());
         }
     }
 

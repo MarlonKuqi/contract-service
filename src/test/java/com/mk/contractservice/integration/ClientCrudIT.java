@@ -708,6 +708,38 @@ class ClientCrudIT {
                 .body("email", containsString("test"))
                 .body("phone", equalTo("+41791234567"));
     }
+
+    @Test
+    @DisplayName("SCENARIO: DELETE same client twice should return 404 on second attempt")
+    void shouldReturn404WhenDeletingSameClientTwice() {
+        Person person = Person.of(
+                ClientName.of("Delete Test"),
+                Email.of("delete." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                PhoneNumber.of("+41791234567"),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        );
+        person = (Person) clientRepository.save(person);
+
+        given()
+                .when()
+                .delete((ClientController.PATH_BASE + ClientController.PATH_ID), person.getId())
+                .then()
+                .statusCode(204);
+
+        given()
+                .when()
+                .get((ClientController.PATH_BASE + ClientController.PATH_ID), person.getId())
+                .then()
+                .statusCode(404);
+
+        given()
+                .when()
+                .delete((ClientController.PATH_BASE + ClientController.PATH_ID), person.getId())
+                .then()
+                .statusCode(404)
+                .body("title", equalTo("Client Not Found"))
+                .body("detail", containsString("not found"));
+    }
 }
 
 

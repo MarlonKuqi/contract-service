@@ -1,8 +1,5 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.web.controller.ClientController;
-import com.mk.contractservice.web.controller.ContractController;
-
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
@@ -13,6 +10,8 @@ import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
+import com.mk.contractservice.web.controller.ClientController;
+import com.mk.contractservice.web.controller.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -266,13 +265,14 @@ class PerformanceAndEdgeCasesIT {
         ));
 
         LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endDate = now.plusMonths(11).withDayOfMonth(1).plusMonths(1).minusDays(1).withHour(23).withMinute(59).withSecond(59);
         String contractPayload = String.format("""
                 {
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "1000.00"
                 }
-                """, now.minusDays(30), now.plusMonths(11).withDayOfMonth(31).withHour(23).withMinute(59).withSecond(59));
+                """, now.minusDays(30), endDate);
 
         given()
                 .contentType(ContentType.JSON)

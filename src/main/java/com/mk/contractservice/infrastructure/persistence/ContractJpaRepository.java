@@ -49,6 +49,7 @@ public interface ContractJpaRepository extends JpaRepository<ContractJpaEntity, 
             """)
     void closeAllActiveContracts(@Param("clientId") UUID clientId, @Param("now") LocalDateTime now);
 
+
     @Query("""
             SELECT COALESCE(SUM(c.costAmount), 0)
             FROM ContractJpaEntity c

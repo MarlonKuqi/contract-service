@@ -2,6 +2,7 @@ package com.mk.contractservice.web.dto.client;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
@@ -30,7 +31,7 @@ public record CreatePersonRequest(
         String name,
 
         @NotBlank(message = "Email is required")
-        @jakarta.validation.constraints.Email(message = "Email must be a valid email address")
+        @Email(message = "Email must be a valid email address")
         @Size(max = 254, message = "Email must not exceed 254 characters")
         @Schema(description = "Person email address", example = "alice.martin@example.com", format = "email", maxLength = 254, requiredMode = Schema.RequiredMode.REQUIRED)
         String email,

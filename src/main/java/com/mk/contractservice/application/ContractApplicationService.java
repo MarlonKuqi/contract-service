@@ -56,7 +56,9 @@ public class ContractApplicationService {
 
     @Transactional(readOnly = true)
     public Contract getContractById(final UUID clientId, final UUID contractId) {
-        return getContractForClient(clientId, contractId);
+        final Contract contract = getContractForClient(clientId, contractId);
+        contractService.ensureContractIsActive(contract);
+        return contract;
     }
 
     private Contract getContractForClient(final UUID clientId, final UUID contractId) {
@@ -85,5 +87,13 @@ public class ContractApplicationService {
     public void closeActiveContractsByClientId(final UUID clientId) {
         final LocalDateTime now = LocalDateTime.now();
         contractRepo.closeAllActiveByClientId(clientId, now);
+    }
+
+    @Transactional
+    @CacheEvict(value = "contractSums", key = "#clientId")
+    public Contract closeContract(final UUID clientId, final UUID contractId) {
+        final Contract contract = getContractForClient(clientId, contractId);
+        final Contract closedContract = contractService.closeContract(contract);
+        return contractRepo.save(closedContract);
     }
 }

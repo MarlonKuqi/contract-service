@@ -3,6 +3,7 @@ package com.mk.contractservice.infrastructure.persistence;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.assembler.ContractAssembler;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
@@ -47,7 +48,7 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, final LocalDateTime now, final LocalDateTime updatedSince, final Pageable pageable) {
+    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, final LocalDateTime now, final @Nullable LocalDateTime updatedSince, final Pageable pageable) {
         if (updatedSince == null) {
             return contractJpaRepository.findActiveContractsPageable(clientId, now, pageable)
                     .map(assembler::toDomain);
@@ -61,6 +62,7 @@ public class JpaContractRepository implements ContractRepository {
     public void closeAllActiveByClientId(final UUID clientId, final LocalDateTime now) {
         contractJpaRepository.closeAllActiveContracts(clientId, now);
     }
+
 
     @Override
     public BigDecimal sumActiveByClientId(final UUID clientId, final LocalDateTime now) {

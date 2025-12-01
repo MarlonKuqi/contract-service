@@ -4,14 +4,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record CreateContractRequest(
+        @Nullable
         @Schema(description = "Contract start date (defaults to now if not provided)", example = "2025-01-01T00:00:00", format = "date-time")
         LocalDateTime startDate,
 
+        @Nullable
         @Schema(description = "Contract end date (null means active/indefinite contract)", example = "2026-01-01T00:00:00", format = "date-time")
         LocalDateTime endDate,
 

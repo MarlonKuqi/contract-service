@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -83,6 +84,16 @@ public class Contract {
         }
         return toBuilder()
                 .costAmount(newAmount)
+                .build();
+    }
+
+    public Contract close(final LocalDateTime closingDate) {
+        if (isInactive()) {
+            throw new ExpiredContractException(getId());
+        }
+        final ContractPeriod closedPeriod = ContractPeriod.of(period.startDate(), closingDate);
+        return toBuilder()
+                .period(closedPeriod)
                 .build();
     }
 }

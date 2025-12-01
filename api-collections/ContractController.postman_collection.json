@@ -150,7 +150,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&updatedSince=2025-10-26T00:00:00&page=0&size=20",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&updatedSince=2025-01-15T00:00:00&page=0&size=20",
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts"],
           "query": [
@@ -161,7 +161,7 @@
             },
             {
               "key": "updatedSince",
-              "value": "2025-10-26T00:00:00",
+              "value": "2025-01-15T00:00:00",
               "description": "Filter contracts by lastModifiedDate (ISO 8601 format without timezone - Swiss time assumed)"
             },
             {
@@ -247,7 +247,28 @@
         },
         "description": "Very performant endpoint using database aggregation. Returns the sum of costAmount for all active contracts of a client."
       }
-    }
+    },
+    {
+      "name": "Delete Contract",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}?clientId={{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "{{contractId}}"],
+          "query": [
+            {
+              "key": "clientId",
+              "value": "{{clientId}}",
+              "description": "UUID of the client (required)"
+            }
+          ]
+        },
+        "description": "Deletes a contract by closing it (soft delete). Sets the endDate to current date, making it immediately inactive. The contract data is preserved for audit/compliance (insurance regulations). Only active contracts can be deleted. Returns 409 if contract is already expired."
+      }
+    },
+
   ]
 }
 

@@ -490,7 +490,7 @@ class ContractLifecycleIT {
                 .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
-                .body("totalElements", equalTo(2))  // Only 2 active contracts
+                .body("totalElements", equalTo(2))
                 .body("content.size()", equalTo(2))
                 .body("content[0].costAmount", anyOf(equalTo(1000.00f), equalTo(2000.00f)))
                 .body("content[1].costAmount", anyOf(equalTo(1000.00f), equalTo(2000.00f)));
@@ -501,7 +501,6 @@ class ContractLifecycleIT {
     void shouldSumActiveContractsConsistentlyWithDomainLogic() {
         LocalDateTime now = LocalDateTime.now();
 
-        // Create 2 active contracts (1000 + 2000 = 3000)
         String active1Payload = String.format("""
                 {
                     "startDate": "%s",
@@ -518,7 +517,6 @@ class ContractLifecycleIT {
                 }
                 """, now.minusDays(5), now.plusDays(30));
 
-        // Create 2 expired contracts (should NOT be included in sum)
         String expired1Payload = String.format("""
                 {
                     "startDate": "%s",
@@ -557,6 +555,186 @@ class ContractLifecycleIT {
                 .then()
                 .statusCode(200)
                 .body(equalTo("3000.00"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: DELETE active contract should close it (soft delete)")
+    void shouldCloseContractWhenDeleted() {
+        LocalDateTime now = LocalDateTime.now();
+        String contractPayload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": null,
+                    "costAmount": "2500.00"
+                }
+                """, now.minusDays(5).toString());
+
+        String location = given()
+                .contentType(ContentType.JSON)
+                .body(contractPayload)
+                .when()
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(201)
+                .extract().header("Location");
+
+        String contractId = location.substring(location.lastIndexOf('/') + 1);
+
+        given()
+                .when()
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(200)
+                .body("content.size()", equalTo(1))
+                .body("content[0].id", equalTo(contractId));
+
+        given()
+                .when()
+                .delete(ContractController.PATH_BASE + "/{contractId}?clientId={clientId}", contractId, testClient.getId())
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(contractId))
+                .body("period.endDate", notNullValue());
+
+        given()
+                .when()
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(200)
+                .body("content.size()", equalTo(0));
+
+        given()
+                .when()
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(200)
+                .body(equalTo("0"));
+        given()
+                .when()
+                .get(ContractController.PATH_BASE + "/{contractId}?clientId={clientId}", contractId, testClient.getId())
+                .then()
+                .statusCode(409)
+                .body("title", equalTo("Expired Contract"))
+                .body("code", equalTo("contractExpired"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: DELETE already expired contract should return 409 Conflict")
+    void shouldReturn409WhenDeletingAlreadyExpiredContract() {
+        LocalDateTime now = LocalDateTime.now();
+        String expiredContractPayload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": "%s",
+                    "costAmount": "1000.00"
+                }
+                """, now.minusDays(100).toString(), now.minusDays(1).toString());
+
+        String location = given()
+                .contentType(ContentType.JSON)
+                .body(expiredContractPayload)
+                .when()
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(201)
+                .extract().header("Location");
+
+        String contractId = location.substring(location.lastIndexOf('/') + 1);
+        given()
+                .when()
+                .delete(ContractController.PATH_BASE + "/{contractId}?clientId={clientId}", contractId, testClient.getId())
+                .then()
+                .statusCode(409)
+                .body("title", equalTo("Expired Contract"))
+                .body("code", equalTo("contractExpired"))
+                .body("detail", containsString("expired"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: DELETE contract with wrong clientId should return 403 Forbidden")
+    void shouldReturn403WhenDeletingContractWithWrongClientId() {
+        LocalDateTime now = LocalDateTime.now();
+        String contractPayload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": null,
+                    "costAmount": "1500.00"
+                }
+                """, now.minusDays(3).toString());
+
+        String location = given()
+                .contentType(ContentType.JSON)
+                .body(contractPayload)
+                .when()
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(201)
+                .extract().header("Location");
+
+        String contractId = location.substring(location.lastIndexOf('/') + 1);
+
+        UUID wrongClientId = UUID.randomUUID();
+        given()
+                .when()
+                .delete(ContractController.PATH_BASE + "/{contractId}?clientId={clientId}", contractId, wrongClientId)
+                .then()
+                .statusCode(403)
+                .body("title", equalTo("Access Denied"))
+                .body("code", equalTo("contractAccessDenied"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: DELETE same contract twice should return 409 on second attempt")
+    void shouldReturn409WhenDeletingSameContractTwice() {
+        LocalDateTime now = LocalDateTime.now();
+        String contractPayload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": null,
+                    "costAmount": "1200.00"
+                }
+                """, now.minusDays(2).toString());
+
+        String location = given()
+                .contentType(ContentType.JSON)
+                .body(contractPayload)
+                .when()
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(201)
+                .extract().header("Location");
+
+        String contractId = location.substring(location.lastIndexOf('/') + 1);
+
+        given()
+                .when()
+                .delete(ContractController.PATH_BASE + "/{contractId}?clientId={clientId}", contractId, testClient.getId())
+                .then()
+                .statusCode(200)
+                .body("period.endDate", notNullValue());
+
+        given()
+                .when()
+                .delete(ContractController.PATH_BASE + "/{contractId}?clientId={clientId}", contractId, testClient.getId())
+                .then()
+                .statusCode(409)
+                .body("title", equalTo("Expired Contract"))
+                .body("code", equalTo("contractExpired"))
+                .body("detail", containsString("expired"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: DELETE non-existent contract should return 404 Not Found")
+    void shouldReturn404WhenDeletingNonExistentContract() {
+        UUID nonExistentContractId = UUID.randomUUID();
+
+        given()
+                .when()
+                .delete(ContractController.PATH_BASE + "/{contractId}?clientId={clientId}", nonExistentContractId, testClient.getId())
+                .then()
+                .statusCode(404)
+                .body("title", equalTo("Contract Not Found"))
+                .body("code", equalTo("contractNotFound"));
     }
 }
 

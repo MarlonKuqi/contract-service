@@ -142,6 +142,61 @@ class ContractTest {
     }
 
     @Nested
+    @DisplayName("close - Close contract (immutable pattern)")
+    class CloseContractValidation {
+
+        @Test
+        @DisplayName("GIVEN active contract WHEN close THEN returns new instance with endDate set")
+        void shouldReturnNewInstanceWithClosedPeriod() {
+            LocalDateTime startDate = LocalDateTime.now().minusDays(30);
+            ContractPeriod activePeriod = ContractPeriod.of(startDate, null);
+            ContractCost cost = ContractCost.of(new BigDecimal("1000.00"));
+            Contract activeContract = Contract.of(testClient, activePeriod, cost);
+
+            LocalDateTime closingDate = LocalDateTime.now();
+            Contract closedContract = activeContract.close(closingDate);
+
+            assertThat(closedContract).isNotNull();
+            assertThat(closedContract).isNotSameAs(activeContract);
+            assertThat(closedContract.getPeriod().startDate()).isEqualTo(startDate);
+            assertThat(closedContract.getPeriod().endDate()).isEqualTo(closingDate);
+            assertThat(closedContract.isInactive()).isTrue();
+
+            // Original contract unchanged (immutability)
+            assertThat(activeContract.getPeriod().endDate()).isNull();
+            assertThat(activeContract.isActive()).isTrue();
+        }
+
+        @Test
+        @DisplayName("GIVEN expired contract WHEN close THEN throw ExpiredContractException")
+        void shouldThrowExceptionWhenClosingExpiredContract() {
+            UUID contractId = UUID.randomUUID();
+            LocalDateTime now = LocalDateTime.now();
+            ContractPeriod expiredPeriod = ContractPeriod.of(now.minusDays(100), now.minusDays(1));
+            Contract expiredContract = Contract.reconstitute(contractId, testClient, expiredPeriod, ContractCost.of(BigDecimal.TEN));
+
+            assertThatThrownBy(() -> expiredContract.close(LocalDateTime.now()))
+                    .isInstanceOf(ExpiredContractException.class)
+                    .hasMessageContaining(contractId.toString());
+        }
+
+        @Test
+        @DisplayName("GIVEN active contract with future end date WHEN close THEN closes early")
+        void shouldCloseContractEarly() {
+            LocalDateTime startDate = LocalDateTime.now().minusDays(30);
+            LocalDateTime originalEndDate = LocalDateTime.now().plusDays(365);
+            ContractPeriod period = ContractPeriod.of(startDate, originalEndDate);
+            Contract contract = Contract.of(testClient, period, ContractCost.of(BigDecimal.valueOf(5000)));
+
+            LocalDateTime closingDate = LocalDateTime.now();
+            Contract closedContract = contract.close(closingDate);
+
+            assertThat(closedContract.getPeriod().endDate()).isEqualTo(closingDate);
+            assertThat(closedContract.getPeriod().endDate()).isBefore(originalEndDate);
+        }
+    }
+
+    @Nested
     @DisplayName("isActive - Subject requirement: Determine if contract is currently active")
     class IsActiveValidation {
 

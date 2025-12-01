@@ -21,6 +21,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -186,13 +187,14 @@ public class ContractController {
     }
 
     @Operation(
-            summary = "Get a specific contract by ID",
-            description = "Retrieves a single contract by its ID. "
-                    + "Validates that the contract belongs to the specified client."
+            summary = "Get a specific ACTIVE contract by ID",
+            description = "Retrieves a single ACTIVE contract by its ID. "
+                    + "Validates that the contract belongs to the specified client. "
+                    + "Returns 404 if the contract is expired/inactive."
     )
-    @ApiResponse(responseCode = "200", description = "Contract found")
+    @ApiResponse(responseCode = "200", description = "Active contract found")
     @ApiResponse(responseCode = "403", description = "Contract does not belong to this client")
-    @ApiResponse(responseCode = "404", description = "Contract not found")
+    @ApiResponse(responseCode = "404", description = "Contract not found or inactive")
     @GetMapping(PATH_ID)
     public ResponseEntity<ContractResponse> getById(
             @RequestParam final UUID clientId,
@@ -260,5 +262,57 @@ public class ContractController {
     ) {
         contractApplicationService.updateCost(clientId, contractId, req.amount());
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Delete a contract",
+            description = "Deletes (closes) a contract by setting its endDate to the current date and time, making it inactive. "
+                    + "This follows REST standards: DELETE is used for removal operations. "
+                    + "The contract data is preserved for audit and compliance purposes (insurance regulations). "
+                    + "A closed contract cannot be reopened. "
+                    + "Business rule: Only active contracts (not already expired/closed) can be deleted."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Contract deleted successfully - returns the closed contract",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ContractResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "403",
+            description = "Contract does not belong to this client",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "404",
+            description = "Contract not found",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "409",
+            description = "Contract is already expired/closed",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @DeleteMapping(PATH_ID)
+    public ResponseEntity<ContractResponse> deleteContract(
+            @RequestParam final UUID clientId,
+            @PathVariable final UUID contractId,
+            final Locale locale
+    ) {
+        final Contract closedContract = contractApplicationService.closeContract(clientId, contractId);
+        final ContractResponse response = contractMapper.toDto(closedContract);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
+                .body(response);
     }
 }

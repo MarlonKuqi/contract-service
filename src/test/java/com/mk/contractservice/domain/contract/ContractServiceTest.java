@@ -3,6 +3,7 @@ package com.mk.contractservice.domain.contract;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
+import com.mk.contractservice.domain.exception.ExpiredContractException;
 import com.mk.contractservice.domain.valueobject.ClientName;
 import com.mk.contractservice.domain.valueobject.ContractCost;
 import com.mk.contractservice.domain.valueobject.ContractPeriod;
@@ -13,6 +14,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,16 +27,20 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@ExtendWith(MockitoExtension.class)
 @DisplayName("ContractService - Business Logic Tests")
 class ContractServiceTest {
 
+    @Mock
+    private ContractRepository contractRepository;
+
+    @InjectMocks
     private ContractService service;
 
     private Client testClient;
 
     @BeforeEach
     void setUp() {
-        service = new ContractService();
 
         testClient = Person.reconstitute(
                 UUID.randomUUID(),
@@ -112,6 +121,126 @@ class ContractServiceTest {
 
             assertThat(result).isNotNull();
             assertThat(result.getPeriod().endDate()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("Ensure Contract Is Active - Business Rule")
+    class EnsureContractIsActiveTests {
+
+        @Test
+        @DisplayName("GIVEN active contract WHEN ensureContractIsActive THEN no exception thrown")
+        void shouldNotThrowWhenContractIsActive() {
+            UUID contractId = UUID.randomUUID();
+            Contract activeContract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(LocalDateTime.now().minusDays(10), null),
+                    ContractCost.of(new BigDecimal("1000.00")));
+
+            service.ensureContractIsActive(activeContract);
+        }
+
+        @Test
+        @DisplayName("GIVEN expired contract WHEN ensureContractIsActive THEN throw ExpiredContractException")
+        void shouldThrowExceptionWhenContractIsInactive() {
+            UUID contractId = UUID.randomUUID();
+            LocalDateTime now = LocalDateTime.now();
+            Contract expiredContract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(now.minusDays(100), now.minusDays(1)),
+                    ContractCost.of(new BigDecimal("1000.00")));
+
+            assertThatThrownBy(() -> service.ensureContractIsActive(expiredContract))
+                    .isInstanceOf(ExpiredContractException.class)
+                    .hasMessageContaining(contractId.toString());
+        }
+
+        @Test
+        @DisplayName("GIVEN contract with future end date WHEN ensureContractIsActive THEN no exception thrown")
+        void shouldNotThrowWhenContractHasFutureEndDate() {
+            UUID contractId = UUID.randomUUID();
+            Contract futureContract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusDays(365)),
+                    ContractCost.of(new BigDecimal("1000.00")));
+
+            service.ensureContractIsActive(futureContract);
+        }
+
+        @Test
+        @DisplayName("GIVEN contract with null end date WHEN ensureContractIsActive THEN no exception thrown")
+        void shouldNotThrowWhenContractHasOpenEndedPeriod() {
+            UUID contractId = UUID.randomUUID();
+            Contract openEndedContract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(LocalDateTime.now().minusDays(30), null),
+                    ContractCost.of(new BigDecimal("1000.00")));
+
+            service.ensureContractIsActive(openEndedContract);
+        }
+    }
+
+    @Nested
+    @DisplayName("Close Contract - Domain Business Logic")
+    class CloseContractTests {
+
+        @Test
+        @DisplayName("GIVEN active contract WHEN closeContract THEN returns new instance with closed period")
+        void shouldReturnNewInstanceWithClosedPeriod() {
+            UUID contractId = UUID.randomUUID();
+            LocalDateTime startDate = LocalDateTime.now().minusDays(30);
+            Contract activeContract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(startDate, null),
+                    ContractCost.of(new BigDecimal("1000.00")));
+
+            Contract closedContract = service.closeContract(activeContract);
+
+            assertThat(closedContract).isNotNull();
+            assertThat(closedContract.getId()).isEqualTo(contractId);
+            assertThat(closedContract.isInactive()).isTrue();
+            assertThat(closedContract.getPeriod().endDate()).isNotNull();
+            assertThat(closedContract.getPeriod().startDate()).isEqualTo(startDate);
+            assertThat(activeContract.isActive()).isTrue();
+        }
+
+        @Test
+        @DisplayName("GIVEN expired contract WHEN closeContract THEN throw ExpiredContractException")
+        void shouldThrowExceptionWhenContractAlreadyExpired() {
+            UUID contractId = UUID.randomUUID();
+            LocalDateTime now = LocalDateTime.now();
+            Contract expiredContract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(now.minusDays(100), now.minusDays(1)),
+                    ContractCost.of(new BigDecimal("1000.00")));
+
+            assertThatThrownBy(() -> service.closeContract(expiredContract))
+                    .isInstanceOf(ExpiredContractException.class)
+                    .hasMessageContaining(contractId.toString());
+        }
+
+        @Test
+        @DisplayName("GIVEN contract with future end date WHEN closeContract THEN closes early")
+        void shouldCloseContractEarlyWithFutureEndDate() {
+            UUID contractId = UUID.randomUUID();
+            LocalDateTime futureEndDate = LocalDateTime.now().plusDays(365);
+            Contract contract = Contract.reconstitute(
+                    contractId,
+                    testClient,
+                    ContractPeriod.of(LocalDateTime.now().minusDays(30), futureEndDate),
+                    ContractCost.of(new BigDecimal("1000.00")));
+
+            Contract closedContract = service.closeContract(contract);
+
+            assertThat(closedContract.getPeriod().endDate()).isNotNull();
+            assertThat(closedContract.getPeriod().endDate()).isBefore(futureEndDate);
+            assertThat(closedContract.isInactive()).isTrue();
         }
     }
 }

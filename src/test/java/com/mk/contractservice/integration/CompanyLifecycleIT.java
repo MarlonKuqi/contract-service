@@ -16,6 +16,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -215,7 +216,7 @@ class CompanyLifecycleIT {
                 .statusCode(201)
                 .extract().path("id");
 
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         String contractPayload = String.format("""
                 {
                     "startDate": "%s",
@@ -360,7 +361,7 @@ class CompanyLifecycleIT {
                 .statusCode(201)
                 .extract().path("id");
 
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         String contract1 = String.format("""
                 {
                     "startDate": "%s",
@@ -482,7 +483,7 @@ class CompanyLifecycleIT {
                 .statusCode(201)
                 .extract().path("id");
 
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         String contractPayload = String.format("""
                 {
                     "startDate": "%s",
