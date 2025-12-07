@@ -1,11 +1,10 @@
 package com.mk.contractservice.web.dto.mapper.client;
 
-import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.web.dto.client.CreatePersonResponse;
-import com.mk.contractservice.web.dto.mapper.common.ValueObjectMappers;
+import com.mk.contractservice.application.dto.PersonDto;
+import com.mk.contractservice.web.dto.client.PersonResponse;
 import org.mapstruct.Mapper;
 
-@Mapper(componentModel = "spring", uses = ValueObjectMappers.class)
+@Mapper(componentModel = "spring")
 public interface PersonResponseMapper {
-    CreatePersonResponse toDto(final Person p);
+    PersonResponse toDto(final PersonDto dto);
 }

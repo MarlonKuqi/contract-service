@@ -22,38 +22,37 @@ public interface ContractJpaRepository extends JpaRepository<ContractJpaEntity, 
             SELECT c FROM ContractJpaEntity c
             JOIN FETCH c.client
             WHERE c.client.id = :clientId
-              AND (c.endDate IS NULL OR c.endDate > :now)
+              AND (c.endDate IS NULL OR c.endDate > CURRENT_TIMESTAMP)
             """)
     Page<ContractJpaEntity> findActiveContractsPageable(@Param("clientId") UUID clientId,
-                                                        @Param("now") LocalDateTime now,
                                                         Pageable pageable);
 
     @Query("""
             SELECT c FROM ContractJpaEntity c
             JOIN FETCH c.client
             WHERE c.client.id = :clientId
-              AND (c.endDate IS NULL OR c.endDate > :now)
+              AND (c.endDate IS NULL OR c.endDate > CURRENT_TIMESTAMP)
               AND c.lastModified >= :updatedSince
             """)
     Page<ContractJpaEntity> findActiveContractsUpdatedAfterPageable(@Param("clientId") UUID clientId,
-                                                                    @Param("now") LocalDateTime now,
                                                                     @Param("updatedSince") LocalDateTime updatedSince,
                                                                     Pageable pageable);
 
     @Modifying
     @Query("""
             UPDATE ContractJpaEntity c
-            SET c.endDate = :now, c.lastModified = CURRENT_TIMESTAMP
+            SET c.endDate = CURRENT_TIMESTAMP, c.lastModified = CURRENT_TIMESTAMP
             WHERE c.client.id = :clientId
-              AND (c.endDate IS NULL OR c.endDate > :now)
+              AND (c.endDate IS NULL OR c.endDate > CURRENT_TIMESTAMP)
             """)
-    void closeAllActiveContracts(@Param("clientId") UUID clientId, @Param("now") LocalDateTime now);
+    void closeAllActiveContracts(@Param("clientId") UUID clientId);
+
 
     @Query("""
             SELECT COALESCE(SUM(c.costAmount), 0)
             FROM ContractJpaEntity c
             WHERE c.client.id = :clientId
-              AND (c.endDate IS NULL OR c.endDate > :now)
+              AND (c.endDate IS NULL OR c.endDate > CURRENT_TIMESTAMP)
             """)
-    BigDecimal sumActiveContracts(@Param("clientId") UUID clientId, @Param("now") LocalDateTime now);
+    BigDecimal sumActiveContracts(@Param("clientId") UUID clientId);
 }

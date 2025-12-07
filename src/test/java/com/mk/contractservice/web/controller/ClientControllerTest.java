@@ -1,20 +1,15 @@
 package com.mk.contractservice.web.controller;
 
-import com.mk.contractservice.application.ClientApplicationService;
-import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.application.dto.PersonDto;
+import com.mk.contractservice.application.service.ClientApplicationService;
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import com.mk.contractservice.web.advice.ClientControllerAdvice;
 import com.mk.contractservice.web.advice.GlobalExceptionHandler;
 import com.mk.contractservice.web.config.WebMvcConfig;
 import com.mk.contractservice.web.dto.mapper.client.ClientDtoMapperImpl;
 import com.mk.contractservice.web.dto.mapper.client.CompanyResponseMapperImpl;
 import com.mk.contractservice.web.dto.mapper.client.PersonResponseMapperImpl;
-import com.mk.contractservice.web.dto.mapper.common.ValueObjectMappersImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -53,8 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({
         ClientDtoMapperImpl.class,
         PersonResponseMapperImpl.class,
-        CompanyResponseMapperImpl.class,
-        ValueObjectMappersImpl.class
+        CompanyResponseMapperImpl.class
 })
 @DisplayName("ClientController - MockMvc Tests")
 @ActiveProfiles("test")
@@ -76,14 +70,13 @@ class ClientControllerTest {
         void shouldCreatePersonSuccessfully() throws Exception {
 
             UUID clientId = UUID.randomUUID();
-            Person person = Person.reconstitute(
+            PersonDto personDto = new PersonDto(
                     clientId,
-                    ClientName.of("John Doe"),
-                    Email.of("john.doe@example.com"),
-                    PhoneNumber.of("+41791234567"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                    "John Doe",
+                    "john.doe@example.com",
+                    "+41791234567",
+                    LocalDate.of(1990, 1, 1)
             );
-
 
             String requestJson = """
                     {
@@ -96,7 +89,7 @@ class ClientControllerTest {
                     """;
 
             when(clientService.createPerson(anyString(), anyString(), anyString(), any(LocalDate.class)))
-                    .thenReturn(person);
+                    .thenReturn(personDto);
 
             mockMvc.perform(post("/v2/clients")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -186,16 +179,15 @@ class ClientControllerTest {
         @DisplayName("GIVEN existing client WHEN get by id THEN return 200 with client data")
         void shouldReturnClientWhenExists() throws Exception {
             UUID clientId = UUID.randomUUID();
-            Person person = Person.reconstitute(
+            PersonDto personDto = new PersonDto(
                     clientId,
-                    ClientName.of("John Doe"),
-                    Email.of("john.doe@example.com"),
-                    PhoneNumber.of("+41791234567"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                    "John Doe",
+                    "john.doe@example.com",
+                    "+41791234567",
+                    LocalDate.of(1990, 1, 1)
             );
 
-
-            when(clientService.getClientById(clientId)).thenReturn(person);
+            when(clientService.getClientById(clientId)).thenReturn(personDto);
 
             mockMvc.perform(get("/v2/clients/{id}", clientId))
                     .andExpect(status().isOk())

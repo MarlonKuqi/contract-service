@@ -95,8 +95,8 @@ class ContractLifecycleIT {
                 .header("Content-Language", equalTo("fr-CH"))
                 .body("id", notNullValue())
                 .body("costAmount", equalTo(5000.00f))
-                .body("period.startDate", notNullValue())
-                .body("period.endDate", notNullValue())
+                .body("startDate", notNullValue())
+                .body("endDate", notNullValue())
                 .extract().path("id");
 
         given()
@@ -107,8 +107,8 @@ class ContractLifecycleIT {
                 .header("Content-Language", equalTo("fr-CH"))
                 .body("id", equalTo(contractId))
                 .body("costAmount", equalTo(5000.00f))
-                .body("period.startDate", notNullValue())
-                .body("period.endDate", notNullValue());
+                .body("startDate", notNullValue())
+                .body("endDate", notNullValue());
 
         String updatePayload = """
                 {
@@ -349,7 +349,7 @@ class ContractLifecycleIT {
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(1))
-                .body("content[0].period.endDate", nullValue());
+                .body("content[0].endDate", nullValue());
 
         given()
                 .when()

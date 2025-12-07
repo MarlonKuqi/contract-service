@@ -12,6 +12,10 @@ public class InvalidContractException extends DomainValidationException {
         super(message, DEFAULT_CODE, cause);
     }
 
+    public static InvalidContractException forNullId() {
+        return new InvalidContractException("Contract ID cannot be null");
+    }
+
     public static InvalidContractException forNullClient() {
         return new InvalidContractException("Client cannot be null for a contract");
     }

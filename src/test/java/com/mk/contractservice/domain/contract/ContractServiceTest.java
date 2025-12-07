@@ -13,6 +13,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,8 +25,12 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@ExtendWith(MockitoExtension.class)
 @DisplayName("ContractService - Business Logic Tests")
 class ContractServiceTest {
+
+    @Mock
+    private ContractRepository contractRepository;
 
     private ContractService service;
 
@@ -31,7 +38,7 @@ class ContractServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ContractService();
+        service = new ContractService(contractRepository);
 
         testClient = Person.reconstitute(
                 UUID.randomUUID(),
@@ -40,7 +47,6 @@ class ContractServiceTest {
                 PhoneNumber.of("+33123456789"),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 15)));
     }
-
 
     @Nested
     @DisplayName("Ensure Contract Belongs To Client - Business Rule")

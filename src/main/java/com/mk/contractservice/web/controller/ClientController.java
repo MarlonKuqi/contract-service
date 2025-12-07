@@ -1,16 +1,12 @@
 package com.mk.contractservice.web.controller;
 
-import com.mk.contractservice.application.ClientApplicationService;
-import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.Company;
-import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
+import com.mk.contractservice.application.dto.ClientDto;
+import com.mk.contractservice.application.dto.CompanyDto;
+import com.mk.contractservice.application.dto.PersonDto;
+import com.mk.contractservice.application.service.ClientApplicationService;
 import com.mk.contractservice.web.dto.PatchClientRequest;
 import com.mk.contractservice.web.dto.client.ClientResponse;
 import com.mk.contractservice.web.dto.client.CreateClientRequest;
-import com.mk.contractservice.web.dto.client.CreateClientResponse;
 import com.mk.contractservice.web.dto.client.CreateCompanyRequest;
 import com.mk.contractservice.web.dto.client.CreatePersonRequest;
 import com.mk.contractservice.web.dto.client.UpdateClientRequest;
@@ -80,7 +76,7 @@ public class ClientController {
                     @Header(name = "Location", description = "URI of the created client resource")
             },
             content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = CreateClientResponse.class))
+                    schema = @Schema(implementation = ClientResponse.class))
     )
     @ApiResponse(
             responseCode = "400",
@@ -107,7 +103,7 @@ public class ClientController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<CreateClientResponse> create(
+    public ResponseEntity<ClientResponse> create(
             @Valid @RequestBody final CreateClientRequest request,
             final UriComponentsBuilder uriBuilder,
             final Locale locale
@@ -118,43 +114,43 @@ public class ClientController {
         };
     }
 
-    private ResponseEntity<CreateClientResponse> createPersonResponse(
+    private ResponseEntity<ClientResponse> createPersonResponse(
             CreatePersonRequest request,
             UriComponentsBuilder uriBuilder,
             Locale locale
     ) {
-        final Person person = service.createPerson(
+        final PersonDto personDto = service.createPerson(
                 request.name(),
                 request.email(),
                 request.phone(),
                 request.birthDate()
         );
-        return buildCreatedResponse(person, personResponseMapper.toDto(person), uriBuilder, locale);
+        return buildCreatedResponse(personDto, personResponseMapper.toDto(personDto), uriBuilder, locale);
     }
 
-    private ResponseEntity<CreateClientResponse> createCompanyResponse(
+    private ResponseEntity<ClientResponse> createCompanyResponse(
             CreateCompanyRequest request,
             UriComponentsBuilder uriBuilder,
             Locale locale
     ) {
-        final Company company = service.createCompany(
+        final CompanyDto companyDto = service.createCompany(
                 request.name(),
                 request.email(),
                 request.phone(),
                 request.companyIdentifier()
         );
-        return buildCreatedResponse(company, companyResponseMapper.toDto(company), uriBuilder, locale);
+        return buildCreatedResponse(companyDto, companyResponseMapper.toDto(companyDto), uriBuilder, locale);
     }
 
-    private ResponseEntity<CreateClientResponse> buildCreatedResponse(
-            final Client client,
-            final CreateClientResponse body,
+    private ResponseEntity<ClientResponse> buildCreatedResponse(
+            final ClientDto clientDto,
+            final ClientResponse body,
             final UriComponentsBuilder uriBuilder,
             final Locale locale
     ) {
         final var location = uriBuilder
                 .path(PATH_CLIENT)
-                .buildAndExpand(client.getId())
+                .buildAndExpand(clientDto.id())
                 .toUri();
 
         return ResponseEntity.created(location)
@@ -230,9 +226,7 @@ public class ClientController {
     )
     @PutMapping(PATH_ID)
     public ResponseEntity<Void> update(@PathVariable final UUID id, @Valid @RequestBody final UpdateClientRequest req) {
-        service.updateCommonFields(
-                id, ClientName.of(req.name()), Email.of(req.email()), PhoneNumber.of(req.phone())
-        );
+        service.updateCommonFields(id, req.name(), req.email(), req.phone());
         return ResponseEntity.noContent().build();
     }
 
@@ -275,9 +269,9 @@ public class ClientController {
     public ResponseEntity<Void> patch(@PathVariable final UUID id, @RequestBody final PatchClientRequest req) {
         service.patchClient(
                 id,
-                req.name().map(ClientName::of).orElse(null),
-                req.email().map(Email::of).orElse(null),
-                req.phone().map(PhoneNumber::of).orElse(null)
+                req.name().orElse(null),
+                req.email().orElse(null),
+                req.phone().orElse(null)
         );
         return ResponseEntity.noContent().build();
     }

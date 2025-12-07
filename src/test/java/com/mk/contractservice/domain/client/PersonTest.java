@@ -58,15 +58,12 @@ class PersonTest {
                 PhoneNumber.of("+33987654321")
         );
 
-        // Updated instance has new common fields
         assertThat(updated.getName().value()).isEqualTo("Jane Doe");
         assertThat(updated.getEmail().value()).isEqualTo("jane.doe@example.com");
         assertThat(updated.getPhone().value()).isEqualTo("+33987654321");
 
-        // But birthdate remains the same
         assertThat(updated.getBirthDate()).isEqualTo(originalBirthDate);
 
-        // Original instance is unchanged
         assertThat(person.getName().value()).isEqualTo("John Doe");
         assertThat(person.getBirthDate()).isEqualTo(originalBirthDate);
     }

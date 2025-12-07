@@ -3,6 +3,7 @@ package com.mk.contractservice.infrastructure.persistence;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.assembler.ContractAssembler;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
@@ -47,23 +48,23 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, final LocalDateTime now, final LocalDateTime updatedSince, final Pageable pageable) {
+    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, @Nullable final LocalDateTime updatedSince, final Pageable pageable) {
         if (updatedSince == null) {
-            return contractJpaRepository.findActiveContractsPageable(clientId, now, pageable)
+            return contractJpaRepository.findActiveContractsPageable(clientId, pageable)
                     .map(assembler::toDomain);
         }
-        return contractJpaRepository.findActiveContractsUpdatedAfterPageable(clientId, now, updatedSince, pageable)
+        return contractJpaRepository.findActiveContractsUpdatedAfterPageable(clientId, updatedSince, pageable)
                 .map(assembler::toDomain);
     }
 
 
     @Override
-    public void closeAllActiveByClientId(final UUID clientId, final LocalDateTime now) {
-        contractJpaRepository.closeAllActiveContracts(clientId, now);
+    public void closeAllActiveByClientId(final UUID clientId) {
+        contractJpaRepository.closeAllActiveContracts(clientId);
     }
 
     @Override
-    public BigDecimal sumActiveByClientId(final UUID clientId, final LocalDateTime now) {
-        return contractJpaRepository.sumActiveContracts(clientId, now);
+    public BigDecimal sumActiveByClientId(final UUID clientId) {
+        return contractJpaRepository.sumActiveContracts(clientId);
     }
 }

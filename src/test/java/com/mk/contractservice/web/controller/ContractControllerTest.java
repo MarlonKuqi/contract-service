@@ -1,22 +1,15 @@
 package com.mk.contractservice.web.controller;
 
-import com.mk.contractservice.application.ContractApplicationService;
-import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.application.dto.ContractDto;
+import com.mk.contractservice.application.mapper.ValueObjectMappersImpl;
+import com.mk.contractservice.application.service.ContractApplicationService;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.exception.ExpiredContractException;
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.ContractCost;
-import com.mk.contractservice.domain.valueobject.ContractPeriod;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import com.mk.contractservice.web.advice.ContractControllerAdvice;
 import com.mk.contractservice.web.advice.GlobalExceptionHandler;
 import com.mk.contractservice.web.config.WebMvcConfig;
-import com.mk.contractservice.web.dto.mapper.common.ValueObjectMappersImpl;
-import com.mk.contractservice.web.dto.mapper.contract.ContractMapperImpl;
+import com.mk.contractservice.web.dto.mapper.contract.ContractDtoMapperImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,7 +26,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -58,7 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         WebMvcConfig.class,
 })
 @Import({
-        ContractMapperImpl.class,
+        ContractDtoMapperImpl.class,
         ValueObjectMappersImpl.class
 })
 
@@ -84,22 +76,14 @@ class ContractControllerTest {
             UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
 
-            Person client = Person.reconstitute(
-                    clientId,
-                    ClientName.of("John Doe"),
-                    Email.of("john.doe@example.com"),
-                    PhoneNumber.of("+41791234567"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-            );
-
-            Contract contract = Contract.reconstitute(
+            ContractDto contractDto = new ContractDto(
                     contractId,
-                    client,
-                    ContractPeriod.of(
-                            LocalDateTime.of(2025, 1, 1, 0, 0),
-                            LocalDateTime.of(2026, 1, 1, 0, 0)
-                    ),
-                    ContractCost.of(new BigDecimal("1000.00")));
+                    clientId,
+                    LocalDateTime.of(2025, 1, 1, 0, 0),
+                    LocalDateTime.of(2026, 1, 1, 0, 0),
+                    true,
+                    new BigDecimal("1000.00")
+            );
 
             String requestJson = """
                     {
@@ -109,8 +93,7 @@ class ContractControllerTest {
                     }
                     """;
 
-            when(contractService.createForClient(any(UUID.class), any(), any(), any()))
-                    .thenReturn(contract);
+            when(contractService.createForClient(any(UUID.class), any(), any(), any())).thenReturn(contractDto);
             mockMvc.perform(post("/v2/contracts")
                             .param("clientId", clientId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
@@ -160,25 +143,17 @@ class ContractControllerTest {
             UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
 
-            Person client = Person.reconstitute(
+            ContractDto contractDto = new ContractDto(
+                    contractId,
                     clientId,
-                    ClientName.of("John Doe"),
-                    Email.of("john.doe@example.com"),
-                    PhoneNumber.of("+41791234567"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                    LocalDateTime.of(2025, 1, 1, 0, 0),
+                    LocalDateTime.of(2026, 1, 1, 0, 0),
+                    true,
+                    new BigDecimal("1000.00")
             );
 
-            Contract contract = Contract.reconstitute(
-                    contractId,
-                    client,
-                    ContractPeriod.of(
-                            LocalDateTime.of(2025, 1, 1, 0, 0),
-                            LocalDateTime.of(2026, 1, 1, 0, 0)
-                    ),
-                    ContractCost.of(new BigDecimal("1000.00")));
-
             when(contractService.getContractById(clientId, contractId))
-                    .thenReturn(contract);
+                    .thenReturn(contractDto);
 
 
             mockMvc.perform(get("/v2/contracts/{contractId}", contractId)
@@ -219,24 +194,16 @@ class ContractControllerTest {
             UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
 
-            Person client = Person.reconstitute(
+            ContractDto contractDto = new ContractDto(
+                    contractId,
                     clientId,
-                    ClientName.of("John Doe"),
-                    Email.of("john.doe@example.com"),
-                    PhoneNumber.of("+41791234567"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                    LocalDateTime.of(2025, 1, 1, 0, 0),
+                    LocalDateTime.of(2026, 1, 1, 0, 0),
+                    true,
+                    new BigDecimal("1000.00")
             );
 
-            Contract contract = Contract.reconstitute(
-                    contractId,
-                    client,
-                    ContractPeriod.of(
-                            LocalDateTime.of(2025, 1, 1, 0, 0),
-                            LocalDateTime.of(2026, 1, 1, 0, 0)
-                    ),
-                    ContractCost.of(new BigDecimal("1000.00")));
-
-            Page<Contract> page = new PageImpl<>(List.of(contract), PageRequest.of(0, 20), 1);
+            Page<ContractDto> page = new PageImpl<>(List.of(contractDto), PageRequest.of(0, 20), 1);
 
             when(contractService.getActiveContractsPageable(eq(clientId), any(), any()))
                     .thenReturn(page);
@@ -273,6 +240,17 @@ class ContractControllerTest {
                     }
                     """;
 
+
+            ContractDto updatedDto = new ContractDto(
+                    contractId,
+                    clientId,
+                    LocalDateTime.now(),
+                    null,
+                    true,
+                    new BigDecimal("1500.00")
+            );
+
+            when(contractService.updateCost(eq(clientId), eq(contractId), any())).thenReturn(updatedDto);
 
             mockMvc.perform(patch("/v2/contracts/{contractId}/cost", contractId)
                             .param("clientId", clientId.toString())

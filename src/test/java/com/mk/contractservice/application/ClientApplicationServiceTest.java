@@ -1,8 +1,13 @@
 package com.mk.contractservice.application;
 
-import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.ClientService;
+import com.mk.contractservice.application.dto.ClientDto;
+import com.mk.contractservice.application.dto.CompanyDto;
+import com.mk.contractservice.application.dto.PersonDto;
+import com.mk.contractservice.application.mapper.ClientMapper;
+import com.mk.contractservice.application.service.ClientApplicationService;
+import com.mk.contractservice.application.service.ContractApplicationService;
 import com.mk.contractservice.domain.client.ClientRepository;
+import com.mk.contractservice.domain.client.ClientService;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
@@ -46,6 +51,9 @@ class ClientApplicationServiceTest {
     @Mock
     private ClientService clientService;
 
+    @Mock
+    private ClientMapper mapper;
+
     @InjectMocks
     private ClientApplicationService service;
 
@@ -61,29 +69,39 @@ class ClientApplicationServiceTest {
             String phone = "+33123456789";
             LocalDate birthDate = LocalDate.of(1990, 1, 15);
 
-            when(clientService.createPerson(any(), any(), any(), any()))
-                    .thenAnswer(invocation -> Person.of(
-                            invocation.getArgument(0),
-                            invocation.getArgument(1),
-                            invocation.getArgument(2),
-                            invocation.getArgument(3)));
-            when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            Person person = Person.of(
+                    ClientName.of(name),
+                    Email.of(email),
+                    PhoneNumber.of(phone),
+                    PersonBirthDate.of(birthDate)
+            );
 
-            Person result = service.createPerson(name, email, phone, birthDate);
+            PersonDto expectedDto = new PersonDto(
+                    UUID.randomUUID(),
+                    name,
+                    email.toLowerCase(),
+                    phone,
+                    birthDate
+            );
+
+            when(clientService.createAndPersistPerson(any(), any(), any(), any())).thenReturn(person);
+            when(mapper.toPersonDto(person)).thenReturn(expectedDto);
+
+            PersonDto result = service.createPerson(name, email, phone, birthDate);
 
             assertThat(result).isNotNull();
-            assertThat(result.getName().value()).isEqualTo(name);
-            assertThat(result.getEmail().value()).isEqualTo(email.toLowerCase());
-            assertThat(result.getPhone().value()).isEqualTo(phone);
-            assertThat(result.getBirthDate().value()).isEqualTo(birthDate);
+            assertThat(result.name()).isEqualTo(name);
+            assertThat(result.email()).isEqualTo(email.toLowerCase());
+            assertThat(result.phone()).isEqualTo(phone);
+            assertThat(result.birthDate()).isEqualTo(birthDate);
 
-            verify(clientService).createPerson(
+            verify(clientService).createAndPersistPerson(
                     any(ClientName.class),
                     any(Email.class),
                     any(PhoneNumber.class),
                     any(PersonBirthDate.class)
             );
-            verify(clientRepository).save(any(Person.class));
+            verify(mapper).toPersonDto(person);
         }
 
         @Test
@@ -92,7 +110,7 @@ class ClientApplicationServiceTest {
             String email = "existing@example.com";
 
             doThrow(new ClientAlreadyExistsException("Client already exists", email))
-                    .when(clientService).createPerson(any(), any(), any(), any());
+                    .when(clientService).createAndPersistPerson(any(), any(), any(), any());
 
             assertThatThrownBy(() -> service.createPerson("John", email, "+33123456789", LocalDate.of(1990, 1, 1)))
                     .isInstanceOf(ClientAlreadyExistsException.class)
@@ -107,18 +125,20 @@ class ClientApplicationServiceTest {
         void shouldAcceptISO8601DateFormat() {
             LocalDate isoDate = LocalDate.parse("1990-05-15");
 
-            when(clientService.createPerson(any(), any(), any(), any()))
-                    .thenAnswer(invocation -> Person.of(
-                            invocation.getArgument(0),
-                            invocation.getArgument(1),
-                            invocation.getArgument(2),
-                            invocation.getArgument(3)
-                    ));
-            when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            Person person = Person.of(
+                    ClientName.of("John"),
+                    Email.of("john@example.com"),
+                    PhoneNumber.of("+33123456789"),
+                    PersonBirthDate.of(isoDate)
+            );
+            PersonDto expectedDto = new PersonDto(UUID.randomUUID(), "John", "john@example.com", "+33123456789", isoDate);
 
-            Person result = service.createPerson("John", "john@example.com", "+33123456789", isoDate);
+            when(clientService.createAndPersistPerson(any(), any(), any(), any())).thenReturn(person);
+            when(mapper.toPersonDto(person)).thenReturn(expectedDto);
 
-            assertThat(result.getBirthDate().value()).isEqualTo(isoDate);
+            PersonDto result = service.createPerson("John", "john@example.com", "+33123456789", isoDate);
+
+            assertThat(result.birthDate()).isEqualTo(isoDate);
         }
     }
 
@@ -137,15 +157,25 @@ class ClientApplicationServiceTest {
                     PersonBirthDate.of(LocalDate.of(1990, 5, 15))
             );
 
+            PersonDto expectedDto = new PersonDto(
+                    personId,
+                    "John Doe",
+                    "john@example.com",
+                    "+33123456789",
+                    LocalDate.of(1990, 5, 15)
+            );
+
             when(clientRepository.findById(personId)).thenReturn(Optional.of(person));
+            when(mapper.toDto(person)).thenReturn(expectedDto);
 
-            Client result = service.getClientById(personId);
+            ClientDto result = service.getClientById(personId);
 
-            Person foundPerson = (Person) result;
-            assertThat(foundPerson.getName()).isEqualTo(person.getName());
-            assertThat(foundPerson.getEmail()).isEqualTo(person.getEmail());
-            assertThat(foundPerson.getPhone()).isEqualTo(person.getPhone());
-            assertThat(foundPerson.getBirthDate()).isEqualTo(person.getBirthDate());
+            assertThat(result).isInstanceOf(PersonDto.class);
+            PersonDto foundPerson = (PersonDto) result;
+            assertThat(foundPerson.name()).isEqualTo("John Doe");
+            assertThat(foundPerson.email()).isEqualTo("john@example.com");
+            assertThat(foundPerson.phone()).isEqualTo("+33123456789");
+            assertThat(foundPerson.birthDate()).isEqualTo(LocalDate.of(1990, 5, 15));
         }
 
         @Test
@@ -160,7 +190,7 @@ class ClientApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("GIVEN person exists WHEN read THEN return Person type (not just Client)")
+        @DisplayName("GIVEN person exists WHEN read THEN return PersonDto type (not just ClientDto)")
         void shouldReturnCorrectType() {
             UUID personId = UUID.randomUUID();
             Person person = Person.of(
@@ -170,13 +200,22 @@ class ClientApplicationServiceTest {
                     PersonBirthDate.of(LocalDate.of(1990, 5, 15))
             );
 
+            PersonDto expectedDto = new PersonDto(
+                    personId,
+                    "John Doe",
+                    "john@example.com",
+                    "+33123456789",
+                    LocalDate.of(1990, 5, 15)
+            );
+
             when(clientRepository.findById(personId)).thenReturn(Optional.of(person));
+            when(mapper.toDto(person)).thenReturn(expectedDto);
 
-            Client result = service.getClientById(personId);
+            ClientDto result = service.getClientById(personId);
 
-            assertThat(result).isInstanceOf(Person.class);
-            Person foundPerson = (Person) result;
-            assertThat(foundPerson.getBirthDate()).isNotNull();
+            assertThat(result).isInstanceOf(PersonDto.class);
+            PersonDto foundPerson = (PersonDto) result;
+            assertThat(foundPerson.birthDate()).isNotNull();
         }
     }
 
@@ -188,57 +227,73 @@ class ClientApplicationServiceTest {
         @DisplayName("GIVEN existing person WHEN update name, email, phone THEN changes are applied")
         void shouldUpdateAllowedFields() {
             UUID personId = UUID.randomUUID();
-            Person existingPerson = Person.reconstitute(
+            Person updatedPerson = Person.reconstitute(
                     personId,
-                    ClientName.of("John Doe"),
-                    Email.of("john@example.com"),
-                    PhoneNumber.of("+33111111111"),
+                    ClientName.of("Jane Doe"),
+                    Email.of("jane@example.com"),
+                    PhoneNumber.of("+33222222222"),
                     PersonBirthDate.of(LocalDate.of(1990, 5, 15))
             );
 
-            when(clientRepository.findById(personId)).thenReturn(Optional.of(existingPerson));
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            PersonDto expectedDto = new PersonDto(
+                    personId,
+                    "Jane Doe",
+                    "jane@example.com",
+                    "+33222222222",
+                    LocalDate.of(1990, 5, 15)
+            );
 
-            ClientName newName = ClientName.of("Jane Doe");
-            Email newEmail = Email.of("jane@example.com");
-            PhoneNumber newPhone = PhoneNumber.of("+33222222222");
+            when(clientService.updateAndPersistCommonFields(any(), any(), any(), any())).thenReturn(updatedPerson);
+            when(mapper.toDto(updatedPerson)).thenReturn(expectedDto);
 
-            Client result = service.updateCommonFields(personId, newName, newEmail, newPhone);
+            ClientDto result = service.updateCommonFields(personId, "Jane Doe", "jane@example.com", "+33222222222");
 
-            // Verify the returned instance has updated fields
-            assertThat(result.getName()).isEqualTo(newName);
-            assertThat(result.getEmail()).isEqualTo(newEmail);
-            assertThat(result.getPhone()).isEqualTo(newPhone);
+            // Verify the returned DTO has updated fields
+            assertThat(result).isInstanceOf(PersonDto.class);
+            PersonDto personDto = (PersonDto) result;
+            assertThat(personDto.name()).isEqualTo("Jane Doe");
+            assertThat(personDto.email()).isEqualTo("jane@example.com");
+            assertThat(personDto.phone()).isEqualTo("+33222222222");
 
-            // Verify save was called
-            verify(clientRepository).save(any(Client.class));
+            verify(clientService).updateAndPersistCommonFields(any(), any(), any(), any());
+            verify(mapper).toDto(updatedPerson);
         }
 
         @Test
         @DisplayName("GIVEN existing person WHEN update THEN birthdate MUST remain unchanged")
         void shouldNotUpdateBirthdate() {
             UUID personId = UUID.randomUUID();
-            PersonBirthDate originalBirthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15));
-            Person existingPerson = Person.reconstitute(
-                    personId,
-                    ClientName.of("John Doe"),
-                    Email.of("john@example.com"),
-                    PhoneNumber.of("+33111111111"),
-                    originalBirthDate
-            );
-
-            when(clientRepository.findById(personId)).thenReturn(Optional.of(existingPerson));
-            when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            Client result = service.updateCommonFields(
+            LocalDate originalBirthDate = LocalDate.of(1990, 5, 15);
+            Person updatedPerson = Person.reconstitute(
                     personId,
                     ClientName.of("Updated Name"),
                     Email.of("updated@example.com"),
-                    PhoneNumber.of("+33999999999")
+                    PhoneNumber.of("+33999999999"),
+                    PersonBirthDate.of(originalBirthDate)
             );
 
-            // Verify birthdate remains unchanged in the new instance
-            assertThat(((Person) result).getBirthDate())
+            PersonDto expectedDto = new PersonDto(
+                    personId,
+                    "Updated Name",
+                    "updated@example.com",
+                    "+33999999999",
+                    originalBirthDate
+            );
+
+            when(clientService.updateAndPersistCommonFields(any(), any(), any(), any())).thenReturn(updatedPerson);
+            when(mapper.toDto(updatedPerson)).thenReturn(expectedDto);
+
+            ClientDto result = service.updateCommonFields(
+                    personId,
+                    "Updated Name",
+                    "updated@example.com",
+                    "+33999999999"
+            );
+
+            // Verify birthdate remains unchanged in the DTO
+            assertThat(result).isInstanceOf(PersonDto.class);
+            PersonDto personDto = (PersonDto) result;
+            assertThat(personDto.birthDate())
                     .as("Birthdate is immutable as per subject requirement")
                     .isEqualTo(originalBirthDate);
         }
@@ -247,13 +302,15 @@ class ClientApplicationServiceTest {
         @DisplayName("GIVEN non-existent person WHEN update THEN throw ClientNotFoundException")
         void shouldThrowExceptionWhenNotFound() {
             UUID nonExistentId = UUID.randomUUID();
-            when(clientRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+            doThrow(new ClientNotFoundException("Client with ID " + nonExistentId + " not found"))
+                    .when(clientService).updateAndPersistCommonFields(any(), any(), any(), any());
 
             assertThatThrownBy(() -> service.updateCommonFields(
                     nonExistentId,
-                    ClientName.of("Name"),
-                    Email.of("email@example.com"),
-                    PhoneNumber.of("+33111111111")
+                    "Name",
+                    "email@example.com",
+                    "+33111111111"
             ))
                     .isInstanceOf(ClientNotFoundException.class)
                     .hasMessageContaining("Client with ID " + nonExistentId + " not found");
@@ -318,30 +375,39 @@ class ClientApplicationServiceTest {
             String phone = "+33123456789";
             String companyId = "CHE-123.456.789";
 
-            when(clientService.createCompany(any(), any(), any(), any()))
-                    .thenAnswer(invocation -> Company.of(
-                            invocation.getArgument(0),
-                            invocation.getArgument(1),
-                            invocation.getArgument(2),
-                            invocation.getArgument(3)
-                    ));
-            when(clientRepository.save(any(Company.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            Company company = Company.of(
+                    ClientName.of(name),
+                    Email.of(email),
+                    PhoneNumber.of(phone),
+                    CompanyIdentifier.of(companyId)
+            );
 
-            Company result = service.createCompany(name, email, phone, companyId);
+            CompanyDto expectedDto = new CompanyDto(
+                    UUID.randomUUID(),
+                    name,
+                    email.toLowerCase(),
+                    phone,
+                    companyId
+            );
+
+            when(clientService.createAndPersistCompany(any(), any(), any(), any())).thenReturn(company);
+            when(mapper.toCompanyDto(company)).thenReturn(expectedDto);
+
+            CompanyDto result = service.createCompany(name, email, phone, companyId);
 
             assertThat(result).isNotNull();
-            assertThat(result.getName().value()).isEqualTo(name);
-            assertThat(result.getEmail().value()).isEqualTo(email.toLowerCase());
-            assertThat(result.getPhone().value()).isEqualTo(phone);
-            assertThat(result.getCompanyIdentifier().value()).isEqualTo(companyId);
+            assertThat(result.name()).isEqualTo(name);
+            assertThat(result.email()).isEqualTo(email.toLowerCase());
+            assertThat(result.phone()).isEqualTo(phone);
+            assertThat(result.companyIdentifier()).isEqualTo(companyId);
 
-            verify(clientService).createCompany(
+            verify(clientService).createAndPersistCompany(
                     any(ClientName.class),
                     any(Email.class),
                     any(PhoneNumber.class),
                     any(CompanyIdentifier.class)
             );
-            verify(clientRepository).save(any(Company.class));
+            verify(mapper).toCompanyDto(company);
         }
     }
 
@@ -353,79 +419,72 @@ class ClientApplicationServiceTest {
         @DisplayName("Should update only provided fields")
         void shouldUpdateOnlyProvidedFields() {
             UUID clientId = UUID.randomUUID();
-            Person existingPerson = Person.reconstitute(
+            Person updatedPerson = Person.reconstitute(
                     clientId,
-                    ClientName.of("John Doe"),
+                    ClientName.of("Jane Doe"),
                     Email.of("john@example.com"),
                     PhoneNumber.of("+33111111111"),
                     PersonBirthDate.of(LocalDate.of(1990, 5, 15))
             );
 
-            when(clientRepository.findById(clientId)).thenReturn(Optional.of(existingPerson));
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            ClientName newName = ClientName.of("Jane Doe");
-            Client result = service.patchClient(clientId, newName, null, null);
-
-            // Vérifier la nouvelle instance retournée
-            assertThat(result.getName()).isEqualTo(newName);
-            assertThat(result.getEmail().value()).isEqualTo("john@example.com");
-            assertThat(result.getPhone().value()).isEqualTo("+33111111111");
-
-            // Vérifier que l'originale n'a pas changé (immutabilité)
-            assertThat(existingPerson.getName().value()).isEqualTo("John Doe");
-
-            verify(clientRepository).save(any(Client.class));
-        }
-
-        @Test
-        @DisplayName("Should not save when no fields provided")
-        void shouldNotSaveWhenNoChanges() {
-            UUID clientId = UUID.randomUUID();
-            Person existingPerson = Person.of(
-                    ClientName.of("John Doe"),
-                    Email.of("john@example.com"),
-                    PhoneNumber.of("+33111111111"),
-                    PersonBirthDate.of(LocalDate.of(1990, 5, 15))
+            PersonDto expectedDto = new PersonDto(
+                    clientId,
+                    "Jane Doe",
+                    "john@example.com",
+                    "+33111111111",
+                    LocalDate.of(1990, 5, 15)
             );
 
-            when(clientRepository.findById(clientId)).thenReturn(Optional.of(existingPerson));
+            when(clientService.patchAndPersistClient(any(), any(), any(), any())).thenReturn(updatedPerson);
+            when(mapper.toDto(updatedPerson)).thenReturn(expectedDto);
 
-            service.patchClient(clientId, null, null, null);
+            ClientDto result = service.patchClient(clientId, "Jane Doe", null, null);
 
-            verify(clientRepository, never()).save(any());
+            // Vérifier le DTO retourné
+            assertThat(result).isInstanceOf(PersonDto.class);
+            PersonDto personDto = (PersonDto) result;
+            assertThat(personDto.name()).isEqualTo("Jane Doe");
+            assertThat(personDto.email()).isEqualTo("john@example.com");
+            assertThat(personDto.phone()).isEqualTo("+33111111111");
+
+            verify(clientService).patchAndPersistClient(any(), any(), any(), any());
+            verify(mapper).toDto(updatedPerson);
         }
 
         @Test
         @DisplayName("Should update all provided fields")
         void shouldUpdateAllProvidedFields() {
             UUID clientId = UUID.randomUUID();
-            Person existingPerson = Person.reconstitute(
+            Person updatedPerson = Person.reconstitute(
                     clientId,
-                    ClientName.of("John Doe"),
-                    Email.of("john@example.com"),
-                    PhoneNumber.of("+33111111111"),
+                    ClientName.of("Jane Smith"),
+                    Email.of("jane@example.com"),
+                    PhoneNumber.of("+33999999999"),
                     PersonBirthDate.of(LocalDate.of(1990, 5, 15))
             );
 
-            when(clientRepository.findById(clientId)).thenReturn(Optional.of(existingPerson));
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            PersonDto expectedDto = new PersonDto(
+                    clientId,
+                    "Jane Smith",
+                    "jane@example.com",
+                    "+33999999999",
+                    LocalDate.of(1990, 5, 15)
+            );
 
-            ClientName newName = ClientName.of("Jane Smith");
-            Email newEmail = Email.of("jane@example.com");
-            PhoneNumber newPhone = PhoneNumber.of("+33999999999");
+            when(clientService.patchAndPersistClient(any(), any(), any(), any())).thenReturn(updatedPerson);
+            when(mapper.toDto(updatedPerson)).thenReturn(expectedDto);
 
-            Client result = service.patchClient(clientId, newName, newEmail, newPhone);
+            ClientDto result = service.patchClient(clientId, "Jane Smith", "jane@example.com", "+33999999999");
 
             // Vérifier la nouvelle instance retournée
-            assertThat(result.getName()).isEqualTo(newName);
-            assertThat(result.getEmail()).isEqualTo(newEmail);
-            assertThat(result.getPhone()).isEqualTo(newPhone);
+            assertThat(result).isInstanceOf(PersonDto.class);
+            PersonDto personDto = (PersonDto) result;
+            assertThat(personDto.name()).isEqualTo("Jane Smith");
+            assertThat(personDto.email()).isEqualTo("jane@example.com");
+            assertThat(personDto.phone()).isEqualTo("+33999999999");
 
-            // Vérifier que l'originale n'a pas changé (immutabilité)
-            assertThat(existingPerson.getName().value()).isEqualTo("John Doe");
-
-            verify(clientRepository).save(any(Client.class));
+            verify(clientService).patchAndPersistClient(any(), any(), any(), any());
+            verify(mapper).toDto(updatedPerson);
         }
     }
 
@@ -437,80 +496,80 @@ class ClientApplicationServiceTest {
         @DisplayName("GIVEN name with special characters WHEN create THEN accept valid characters")
         void shouldAcceptSpecialCharactersInName() {
             String name = "Jean-François O'Connor";
-
             Person person = Person.of(
                     ClientName.of(name),
                     Email.of("jf@example.com"),
                     PhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(LocalDate.of(1985, 5, 15))
             );
+            PersonDto expectedDto = new PersonDto(UUID.randomUUID(), name, "jf@example.com", "+33123456789", LocalDate.of(1985, 5, 15));
 
-            when(clientService.createPerson(any(), any(), any(), any())).thenReturn(person);
-            when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(clientService.createAndPersistPerson(any(), any(), any(), any())).thenReturn(person);
+            when(mapper.toPersonDto(person)).thenReturn(expectedDto);
 
-            Person result = service.createPerson(name, "jf@example.com", "+33123456789", LocalDate.of(1985, 5, 15));
+            PersonDto result = service.createPerson(name, "jf@example.com", "+33123456789", LocalDate.of(1985, 5, 15));
 
-            assertThat(result.getName().value()).isEqualTo(name);
+            assertThat(result.name()).isEqualTo(name);
         }
 
         @Test
         @DisplayName("GIVEN birthdate today WHEN create THEN accept (newborn)")
         void shouldAcceptTodayBirthdate() {
             LocalDate today = LocalDate.now();
-
             Person person = Person.of(
                     ClientName.of("Baby"),
                     Email.of("baby@example.com"),
                     PhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(today)
             );
+            PersonDto expectedDto = new PersonDto(UUID.randomUUID(), "Baby", "baby@example.com", "+33123456789", today);
 
-            when(clientService.createPerson(any(), any(), any(), any())).thenReturn(person);
-            when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(clientService.createAndPersistPerson(any(), any(), any(), any())).thenReturn(person);
+            when(mapper.toPersonDto(person)).thenReturn(expectedDto);
 
-            Person result = service.createPerson("Baby", "baby@example.com", "+33123456789", today);
+            PersonDto result = service.createPerson("Baby", "baby@example.com", "+33123456789", today);
 
-            assertThat(result.getBirthDate().value()).isEqualTo(today);
+            assertThat(result.birthDate()).isEqualTo(today);
         }
 
         @Test
         @DisplayName("GIVEN very old birthdate WHEN create THEN accept (historical data)")
         void shouldAcceptOldBirthdate() {
             LocalDate oldDate = LocalDate.of(1900, 1, 1);
-
             Person person = Person.of(
                     ClientName.of("Old"),
                     Email.of("old@example.com"),
                     PhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(oldDate)
             );
+            PersonDto expectedDto = new PersonDto(UUID.randomUUID(), "Old", "old@example.com", "+33123456789", oldDate);
 
-            when(clientService.createPerson(any(), any(), any(), any())).thenReturn(person);
-            when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(clientService.createAndPersistPerson(any(), any(), any(), any())).thenReturn(person);
+            when(mapper.toPersonDto(person)).thenReturn(expectedDto);
 
-            Person result = service.createPerson("Old", "old@example.com", "+33123456789", oldDate);
+            PersonDto result = service.createPerson("Old", "old@example.com", "+33123456789", oldDate);
 
-            assertThat(result.getBirthDate().value()).isEqualTo(oldDate);
+            assertThat(result.birthDate()).isEqualTo(oldDate);
         }
 
         @Test
         @DisplayName("GIVEN email with uppercase WHEN create THEN normalize to lowercase")
         void shouldNormalizeEmailToLowercase() {
             String mixedCaseEmail = "John.DOE@Example.COM";
-
             Person person = Person.of(
                     ClientName.of("John"),
                     Email.of(mixedCaseEmail),
                     PhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
+            PersonDto expectedDto = new PersonDto(UUID.randomUUID(), "John", "john.doe@example.com", "+33123456789", LocalDate.of(1990, 1, 1));
 
-            when(clientService.createPerson(any(), any(), any(), any())).thenReturn(person);
-            when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(clientService.createAndPersistPerson(any(), any(), any(), any())).thenReturn(person);
+            when(mapper.toPersonDto(person)).thenReturn(expectedDto);
 
-            Person result = service.createPerson("John", mixedCaseEmail, "+33123456789", LocalDate.of(1990, 1, 1));
+            PersonDto result = service.createPerson("John", mixedCaseEmail, "+33123456789", LocalDate.of(1990, 1, 1));
 
-            assertThat(result.getEmail().value()).isEqualTo("john.doe@example.com");
+            assertThat(result.email()).isEqualTo("john.doe@example.com");
         }
     }
 }

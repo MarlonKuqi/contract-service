@@ -1,6 +1,6 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.application.ContractApplicationService;
+import com.mk.contractservice.application.service.ContractApplicationService;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;

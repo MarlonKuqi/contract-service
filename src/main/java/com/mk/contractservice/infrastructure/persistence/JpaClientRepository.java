@@ -3,6 +3,7 @@ package com.mk.contractservice.infrastructure.persistence;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
+import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
 import com.mk.contractservice.domain.valueobject.Email;
 import com.mk.contractservice.infrastructure.persistence.assembler.ClientAssembler;
 import org.springframework.stereotype.Repository;
@@ -48,12 +49,7 @@ public class JpaClientRepository implements ClientRepository {
     }
 
     @Override
-    public boolean existsByEmail(final String email) {
-        return jpa.existsByEmail(email);
-    }
-
-    @Override
-    public boolean existsByCompanyIdentifier(final String companyIdentifier) {
-        return jpa.existsByCompanyIdentifier(companyIdentifier);
+    public boolean existsByCompanyIdentifier(final CompanyIdentifier companyIdentifier) {
+        return jpa.existsByCompanyIdentifier(companyIdentifier.value());
     }
 }

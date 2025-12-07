@@ -1,5 +1,8 @@
 package com.mk.contractservice.application;
 
+import com.mk.contractservice.application.dto.ContractDto;
+import com.mk.contractservice.application.mapper.ContractMapper;
+import com.mk.contractservice.application.service.ContractApplicationService;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
@@ -59,6 +62,9 @@ class ContractApplicationServiceTest {
     @Mock
     private ContractService contractService;
 
+    @Mock
+    private ContractMapper contractMapper;
+
     @InjectMocks
     private ContractApplicationService service;
 
@@ -87,17 +93,19 @@ class ContractApplicationServiceTest {
             LocalDateTime start = LocalDateTime.now();
             LocalDateTime end = start.plusDays(30);
             BigDecimal amount = new BigDecimal("100.50");
+            ContractDto expectedDto = new ContractDto(UUID.randomUUID(), JOHN_DOE_CLIENT_ID, start, end, true, amount);
 
             when(clientRepository.findById(JOHN_DOE_CLIENT_ID)).thenReturn(Optional.of(testClient));
             when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(contractMapper.toDto(any(Contract.class))).thenReturn(expectedDto);
 
-            Contract result = service.createForClient(JOHN_DOE_CLIENT_ID, start, end, amount);
+            ContractDto result = service.createForClient(JOHN_DOE_CLIENT_ID, start, end, amount);
 
             assertThat(result).isNotNull();
-            assertThat(result.getClient()).isEqualTo(testClient);
-            assertThat(result.getPeriod().startDate()).isEqualTo(start);
-            assertThat(result.getPeriod().endDate()).isEqualTo(end);
-            assertThat(result.getCostAmount().value()).isEqualByComparingTo(amount);
+            assertThat(result.clientId()).isEqualTo(JOHN_DOE_CLIENT_ID);
+            assertThat(result.startDate()).isEqualTo(start);
+            assertThat(result.endDate()).isEqualTo(end);
+            assertThat(result.costAmount()).isEqualByComparingTo(amount);
         }
 
         @Test
@@ -109,12 +117,16 @@ class ContractApplicationServiceTest {
 
             when(clientRepository.findById(JOHN_DOE_CLIENT_ID)).thenReturn(Optional.of(testClient));
             when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(contractMapper.toDto(any(Contract.class))).thenAnswer(invocation -> {
+                Contract c = invocation.getArgument(0);
+                return new ContractDto(UUID.randomUUID(), JOHN_DOE_CLIENT_ID, c.getPeriod().startDate(), end, true, amount);
+            });
 
-            Contract result = service.createForClient(JOHN_DOE_CLIENT_ID, null, end, amount);
+            ContractDto result = service.createForClient(JOHN_DOE_CLIENT_ID, null, end, amount);
             LocalDateTime after = LocalDateTime.now().plusSeconds(1);
 
-            assertThat(result.getPeriod().startDate()).isNotNull();
-            assertThat(result.getPeriod().startDate()).isBetween(before, after);
+            assertThat(result.startDate()).isNotNull();
+            assertThat(result.startDate()).isBetween(before, after);
         }
 
         @Test
@@ -122,13 +134,16 @@ class ContractApplicationServiceTest {
         void shouldAcceptNullEndDate() {
             LocalDateTime start = LocalDateTime.now();
             BigDecimal amount = new BigDecimal("100.00");
+            Contract savedContract = Contract.of(testClient, ContractPeriod.of(start, null), ContractCost.of(amount));
+            ContractDto expectedDto = new ContractDto(UUID.randomUUID(), JOHN_DOE_CLIENT_ID, start, null, true, amount);
 
             when(clientRepository.findById(JOHN_DOE_CLIENT_ID)).thenReturn(Optional.of(testClient));
-            when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(contractRepository.save(any(Contract.class))).thenReturn(savedContract);
+            when(contractMapper.toDto(savedContract)).thenReturn(expectedDto);
 
-            Contract result = service.createForClient(JOHN_DOE_CLIENT_ID, start, null, amount);
+            ContractDto result = service.createForClient(JOHN_DOE_CLIENT_ID, start, null, amount);
 
-            assertThat(result.getPeriod().endDate()).isNull();
+            assertThat(result.endDate()).isNull();
         }
 
         @Test
@@ -152,6 +167,9 @@ class ContractApplicationServiceTest {
 
             when(clientRepository.findById(JOHN_DOE_CLIENT_ID)).thenReturn(Optional.of(testClient));
             when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(contractMapper.toDto(any(Contract.class))).thenReturn(
+                    new ContractDto(UUID.randomUUID(), JOHN_DOE_CLIENT_ID, start, null, true, amount)
+            );
 
             service.createForClient(JOHN_DOE_CLIENT_ID, start, null, amount);
 
@@ -172,20 +190,22 @@ class ContractApplicationServiceTest {
         @DisplayName("GIVEN existing contract WHEN updateCost THEN cost is updated")
         void shouldUpdateCostForExistingContract() {
             UUID contractId = UUID.randomUUID();
+            LocalDateTime now = LocalDateTime.now();
             Contract contract = Contract.reconstitute(
                     contractId,
                     testClient,
-                    ContractPeriod.of(LocalDateTime.now(), null),
+                    ContractPeriod.of(now, null),
                     ContractCost.of(new BigDecimal("100.00")));
             BigDecimal newAmount = new BigDecimal("200.00");
+            ContractDto expectedDto = new ContractDto(contractId, JOHN_DOE_CLIENT_ID, now, null, true, newAmount);
 
             when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract));
-            when(contractRepository.save(any(Contract.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
+            when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(contractMapper.toDto(any(Contract.class))).thenReturn(expectedDto);
 
-            Contract result = service.updateCost(JOHN_DOE_CLIENT_ID, contractId, newAmount);
+            ContractDto result = service.updateCost(JOHN_DOE_CLIENT_ID, contractId, newAmount);
 
-            assertThat(result.getCostAmount().value()).isEqualByComparingTo(newAmount);
+            assertThat(result.costAmount()).isEqualByComparingTo(newAmount);
             assertThat(contract.getCostAmount().value()).isEqualByComparingTo(new BigDecimal("100.00"));
             verify(contractService).ensureContractBelongsToClient(contract, JOHN_DOE_CLIENT_ID);
             verify(contractRepository).save(any(Contract.class));
@@ -263,17 +283,20 @@ class ContractApplicationServiceTest {
         @DisplayName("GIVEN contract exists and belongs to client WHEN getContractById THEN return contract")
         void shouldReturnContractWhenFoundAndBelongsToClient() {
             UUID contractId = UUID.randomUUID();
+            LocalDateTime now = LocalDateTime.now();
             Contract contract = Contract.reconstitute(
                     contractId,
                     testClient,
-                    ContractPeriod.of(LocalDateTime.now(), null),
+                    ContractPeriod.of(now, null),
                     ContractCost.of(BigDecimal.valueOf(1000)));
+            ContractDto expectedDto = new ContractDto(contractId, JOHN_DOE_CLIENT_ID, now, null, true, BigDecimal.valueOf(1000));
 
             when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract));
+            when(contractMapper.toDto(contract)).thenReturn(expectedDto);
 
-            Contract result = service.getContractById(JOHN_DOE_CLIENT_ID, contractId);
+            ContractDto result = service.getContractById(JOHN_DOE_CLIENT_ID, contractId);
 
-            assertThat(result).isEqualTo(contract);
+            assertThat(result).isEqualTo(expectedDto);
             verify(contractService).ensureContractBelongsToClient(contract, JOHN_DOE_CLIENT_ID);
         }
 
@@ -330,21 +353,23 @@ class ContractApplicationServiceTest {
         @DisplayName("GIVEN client with active contracts WHEN getActiveContractsPageable THEN return paginated active contracts")
         void shouldReturnActiveContracts() {
             LocalDateTime updatedSince = LocalDateTime.now().minusDays(7);
+            LocalDateTime now = LocalDateTime.now();
             Contract contract = Contract.of(
                     testClient,
-                    ContractPeriod.of(LocalDateTime.now(), null),
+                    ContractPeriod.of(now, null),
                     ContractCost.of(BigDecimal.TEN));
-            Page<Contract> expectedPage = new PageImpl<>(List.of(contract));
+            Page<Contract> contractPage = new PageImpl<>(List.of(contract));
+            ContractDto contractDto = new ContractDto(UUID.randomUUID(), JOHN_DOE_CLIENT_ID, now, null, true, BigDecimal.TEN);
             Pageable pageable = PageRequest.of(0, 20);
 
-            when(contractRepository.findActiveByClientIdPageable(eq(JOHN_DOE_CLIENT_ID), any(LocalDateTime.class), eq(updatedSince), eq(pageable)))
-                    .thenReturn(expectedPage);
+            when(contractRepository.findActiveByClientIdPageable(eq(JOHN_DOE_CLIENT_ID), eq(updatedSince), eq(pageable)))
+                    .thenReturn(contractPage);
+            when(contractMapper.toDto(contract)).thenReturn(contractDto);
 
-            Page<Contract> result = service.getActiveContractsPageable(JOHN_DOE_CLIENT_ID, updatedSince, pageable);
+            Page<ContractDto> result = service.getActiveContractsPageable(JOHN_DOE_CLIENT_ID, updatedSince, pageable);
 
             assertThat(result.getContent()).hasSize(1);
-            assertThat(result.getContent().getFirst()).isEqualTo(contract);
-
+            assertThat(result.getContent().getFirst()).isEqualTo(contractDto);
         }
 
         @Test
@@ -353,10 +378,10 @@ class ContractApplicationServiceTest {
             Page<Contract> emptyPage = Page.empty();
             Pageable pageable = PageRequest.of(0, 20);
 
-            when(contractRepository.findActiveByClientIdPageable(eq(JOHN_DOE_CLIENT_ID), any(LocalDateTime.class), any(), eq(pageable)))
+            when(contractRepository.findActiveByClientIdPageable(eq(JOHN_DOE_CLIENT_ID), any(), eq(pageable)))
                     .thenReturn(emptyPage);
 
-            Page<Contract> result = service.getActiveContractsPageable(JOHN_DOE_CLIENT_ID, null, pageable);
+            Page<ContractDto> result = service.getActiveContractsPageable(JOHN_DOE_CLIENT_ID, null, pageable);
 
             assertThat(result.getContent()).isEmpty();
         }
@@ -371,7 +396,7 @@ class ContractApplicationServiceTest {
         void shouldReturnSumOfActiveContracts() {
             BigDecimal expectedSum = new BigDecimal("500.00");
 
-            when(contractRepository.sumActiveByClientId(eq(JOHN_DOE_CLIENT_ID), any(LocalDateTime.class)))
+            when(contractRepository.sumActiveByClientId(eq(JOHN_DOE_CLIENT_ID)))
                     .thenReturn(expectedSum);
 
             BigDecimal result = service.sumActiveContracts(JOHN_DOE_CLIENT_ID);
@@ -382,7 +407,7 @@ class ContractApplicationServiceTest {
         @Test
         @DisplayName("GIVEN client with no active contracts WHEN sumActiveContracts THEN return zero")
         void shouldReturnZeroWhenNoActiveContracts() {
-            when(contractRepository.sumActiveByClientId(eq(JOHN_DOE_CLIENT_ID), any(LocalDateTime.class)))
+            when(contractRepository.sumActiveByClientId(eq(JOHN_DOE_CLIENT_ID)))
                     .thenReturn(BigDecimal.ZERO);
             BigDecimal result = service.sumActiveContracts(JOHN_DOE_CLIENT_ID);
             assertThat(result).isEqualByComparingTo(BigDecimal.ZERO);
@@ -391,10 +416,10 @@ class ContractApplicationServiceTest {
         @Test
         @DisplayName("GIVEN performant endpoint requirement WHEN sumActiveContracts THEN use repository aggregation")
         void shouldUseDatabaseAggregationForPerformance() {
-            when(contractRepository.sumActiveByClientId(eq(JOHN_DOE_CLIENT_ID), any(LocalDateTime.class)))
+            when(contractRepository.sumActiveByClientId(eq(JOHN_DOE_CLIENT_ID)))
                     .thenReturn(new BigDecimal("1000.00"));
             service.sumActiveContracts(JOHN_DOE_CLIENT_ID);
-            verify(contractRepository).sumActiveByClientId(eq(JOHN_DOE_CLIENT_ID), any(LocalDateTime.class));
+            verify(contractRepository).sumActiveByClientId(eq(JOHN_DOE_CLIENT_ID));
         }
     }
 
@@ -406,21 +431,14 @@ class ContractApplicationServiceTest {
         @DisplayName("GIVEN client with active contracts WHEN closeActiveContractsByClientId THEN close all")
         void shouldCloseAllActiveContractsForClient() {
             service.closeActiveContractsByClientId(JOHN_DOE_CLIENT_ID);
-            verify(contractRepository).closeAllActiveByClientId(eq(JOHN_DOE_CLIENT_ID), any(LocalDateTime.class));
+            verify(contractRepository).closeAllActiveByClientId(eq(JOHN_DOE_CLIENT_ID));
         }
 
         @Test
-        @DisplayName("GIVEN client deletion WHEN closeActiveContractsByClientId THEN use current date as end date")
-        void shouldUseCurrentDateAsEndDate() {
-            LocalDateTime before = LocalDateTime.now().minusSeconds(1);
+        @DisplayName("GIVEN client deletion WHEN closeActiveContractsByClientId THEN repository handles current date")
+        void shouldDelegateToRepository() {
             service.closeActiveContractsByClientId(JOHN_DOE_CLIENT_ID);
-            LocalDateTime after = LocalDateTime.now().plusSeconds(1);
-
-            ArgumentCaptor<LocalDateTime> captor = ArgumentCaptor.forClass(LocalDateTime.class);
-            verify(contractRepository).closeAllActiveByClientId(eq(JOHN_DOE_CLIENT_ID), captor.capture());
-
-            LocalDateTime usedDate = captor.getValue();
-            assertThat(usedDate).isBetween(before, after);
+            verify(contractRepository).closeAllActiveByClientId(eq(JOHN_DOE_CLIENT_ID));
         }
     }
 }

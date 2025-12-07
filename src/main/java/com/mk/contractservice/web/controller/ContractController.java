@@ -1,13 +1,12 @@
 package com.mk.contractservice.web.controller;
 
-import com.mk.contractservice.application.ContractApplicationService;
-import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.application.dto.ContractDto;
+import com.mk.contractservice.application.service.ContractApplicationService;
 import com.mk.contractservice.web.dto.contract.ContractResponse;
 import com.mk.contractservice.web.dto.contract.CostUpdateRequest;
 import com.mk.contractservice.web.dto.contract.CreateContractRequest;
-import com.mk.contractservice.web.dto.contract.CreateContractResponse;
 import com.mk.contractservice.web.dto.contract.PagedContractResponse;
-import com.mk.contractservice.web.dto.mapper.contract.ContractMapper;
+import com.mk.contractservice.web.dto.mapper.contract.ContractDtoMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -48,10 +47,10 @@ public class ContractController {
     public static final String PATH_CONTRACT_COST = PATH_CONTRACT + "/cost";
 
     private final ContractApplicationService contractApplicationService;
-    private final ContractMapper contractMapper;
+    private final ContractDtoMapper contractMapper;
 
     public ContractController(final ContractApplicationService contractApplicationService,
-                              final ContractMapper contractMapper) {
+                              final ContractDtoMapper contractMapper) {
         this.contractApplicationService = contractApplicationService;
         this.contractMapper = contractMapper;
     }
@@ -69,7 +68,7 @@ public class ContractController {
                     @Header(name = "Location", description = "URI of the created contract resource")
             },
             content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = CreateContractResponse.class))
+                    schema = @Schema(implementation = ContractResponse.class))
     )
     @ApiResponse(
             responseCode = "400",
@@ -96,13 +95,13 @@ public class ContractController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @PostMapping
-    public ResponseEntity<CreateContractResponse> create(
+    public ResponseEntity<ContractResponse> create(
             @RequestParam final UUID clientId,
             @Valid @RequestBody final CreateContractRequest req,
             final UriComponentsBuilder uriBuilder,
             final Locale locale
     ) {
-        final Contract contract = contractApplicationService.createForClient(
+        final ContractDto contractDto = contractApplicationService.createForClient(
                 clientId,
                 req.startDate(),
                 req.endDate(),
@@ -111,17 +110,10 @@ public class ContractController {
 
         final var location = uriBuilder
                 .path(PATH_CONTRACT)
-                .buildAndExpand(contract.getId())
+                .buildAndExpand(contractDto.id())
                 .toUri();
 
-        final CreateContractResponse body = new CreateContractResponse(
-                contract.getId(),
-                new CreateContractResponse.PeriodResponse(
-                        contract.getPeriod().startDate(),
-                        contract.getPeriod().endDate()
-                ),
-                contract.getCostAmount().value()
-        );
+        final ContractResponse body = contractMapper.toResponse(contractDto);
 
         return ResponseEntity.created(location)
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
@@ -167,8 +159,8 @@ public class ContractController {
             final Pageable pageable,
             final Locale locale
     ) {
-        final Page<Contract> contracts = contractApplicationService.getActiveContractsPageable(clientId, updatedSince, pageable);
-        final Page<ContractResponse> responsePage = contracts.map(contractMapper::toDto);
+        final Page<ContractDto> contractDtos = contractApplicationService.getActiveContractsPageable(clientId, updatedSince, pageable);
+        final Page<ContractResponse> responsePage = contractDtos.map(contractMapper::toResponse);
 
         final PagedContractResponse response = new PagedContractResponse(
                 responsePage.getContent(),
@@ -195,12 +187,12 @@ public class ContractController {
     @ApiResponse(responseCode = "404", description = "Contract not found")
     @GetMapping(PATH_ID)
     public ResponseEntity<ContractResponse> getById(
-            @RequestParam final UUID clientId,
             @PathVariable final UUID contractId,
+            @RequestParam final UUID clientId,
             final Locale locale
     ) {
-        final Contract contract = contractApplicationService.getContractById(clientId, contractId);
-        final ContractResponse response = contractMapper.toDto(contract);
+        final ContractDto contractDto = contractApplicationService.getContractById(clientId, contractId);
+        final ContractResponse response = contractMapper.toResponse(contractDto);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())

@@ -19,11 +19,8 @@ public class Contract {
 
     @Nullable
     UUID id;
-
     Client client;
-
     ContractPeriod period;
-
     ContractCost costAmount;
 
     @Builder(toBuilder = true)
@@ -73,7 +70,6 @@ public class Contract {
         return !isActive();
     }
 
-    @SuppressWarnings("ConstantConditions")
     public Contract changeCost(final ContractCost newAmount) {
         if (newAmount == null) {
             throw InvalidContractException.forNullNewCostAmount();

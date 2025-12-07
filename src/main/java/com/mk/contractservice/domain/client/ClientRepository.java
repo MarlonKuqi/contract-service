@@ -1,6 +1,8 @@
 package com.mk.contractservice.domain.client;
 
+import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
 import com.mk.contractservice.domain.valueobject.Email;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,7 +17,5 @@ public interface ClientRepository {
 
     boolean existsByEmail(final Email email);
 
-    boolean existsByEmail(final String email);
-
-    boolean existsByCompanyIdentifier(final String companyIdentifier);
+    boolean existsByCompanyIdentifier(final CompanyIdentifier companyIdentifier);
 }
