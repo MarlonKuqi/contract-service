@@ -1,22 +1,23 @@
 package com.mk.contractservice.application;
 
-import com.mk.contractservice.application.dto.ClientDto;
-import com.mk.contractservice.application.dto.CompanyDto;
-import com.mk.contractservice.application.dto.PersonDto;
-import com.mk.contractservice.application.mapper.ClientMapper;
-import com.mk.contractservice.application.service.ClientApplicationService;
-import com.mk.contractservice.application.service.ContractApplicationService;
+
+import com.mk.contractservice.application.client.ClientApplicationService;
+import com.mk.contractservice.application.client.dto.ClientDto;
+import com.mk.contractservice.application.client.dto.CompanyDto;
+import com.mk.contractservice.application.client.dto.PersonDto;
+import com.mk.contractservice.application.client.mapper.ClientMapper;
+import com.mk.contractservice.application.contract.ContractApplicationService;
+import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientName;
+import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientService;
 import com.mk.contractservice.domain.client.Company;
+import com.mk.contractservice.domain.client.CompanyIdentifier;
 import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -71,8 +72,8 @@ class ClientApplicationServiceTest {
 
             Person person = Person.of(
                     ClientName.of(name),
-                    Email.of(email),
-                    PhoneNumber.of(phone),
+                    ClientEmail.of(email),
+                    ClientPhoneNumber.of(phone),
                     PersonBirthDate.of(birthDate)
             );
 
@@ -97,8 +98,8 @@ class ClientApplicationServiceTest {
 
             verify(clientService).createAndPersistPerson(
                     any(ClientName.class),
-                    any(Email.class),
-                    any(PhoneNumber.class),
+                    any(ClientEmail.class),
+                    any(ClientPhoneNumber.class),
                     any(PersonBirthDate.class)
             );
             verify(mapper).toPersonDto(person);
@@ -106,7 +107,7 @@ class ClientApplicationServiceTest {
 
         @Test
         @DisplayName("Should reject duplicate email to ensure unique clients")
-        void shouldRejectDuplicateEmail() {
+        void shouldRejectDuplicateemail() {
             String email = "existing@example.com";
 
             doThrow(new ClientAlreadyExistsException("Client already exists", email))
@@ -127,8 +128,8 @@ class ClientApplicationServiceTest {
 
             Person person = Person.of(
                     ClientName.of("John"),
-                    Email.of("john@example.com"),
-                    PhoneNumber.of("+33123456789"),
+                    ClientEmail.of("john@example.com"),
+                    ClientPhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(isoDate)
             );
             PersonDto expectedDto = new PersonDto(UUID.randomUUID(), "John", "john@example.com", "+33123456789", isoDate);
@@ -152,8 +153,8 @@ class ClientApplicationServiceTest {
             UUID personId = UUID.randomUUID();
             Person person = Person.of(
                     ClientName.of("John Doe"),
-                    Email.of("john@example.com"),
-                    PhoneNumber.of("+33123456789"),
+                    ClientEmail.of("john@example.com"),
+                    ClientPhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(LocalDate.of(1990, 5, 15))
             );
 
@@ -195,8 +196,8 @@ class ClientApplicationServiceTest {
             UUID personId = UUID.randomUUID();
             Person person = Person.of(
                     ClientName.of("John Doe"),
-                    Email.of("john@example.com"),
-                    PhoneNumber.of("+33123456789"),
+                    ClientEmail.of("john@example.com"),
+                    ClientPhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(LocalDate.of(1990, 5, 15))
             );
 
@@ -230,8 +231,8 @@ class ClientApplicationServiceTest {
             Person updatedPerson = Person.reconstitute(
                     personId,
                     ClientName.of("Jane Doe"),
-                    Email.of("jane@example.com"),
-                    PhoneNumber.of("+33222222222"),
+                    ClientEmail.of("jane@example.com"),
+                    ClientPhoneNumber.of("+33222222222"),
                     PersonBirthDate.of(LocalDate.of(1990, 5, 15))
             );
 
@@ -267,8 +268,8 @@ class ClientApplicationServiceTest {
             Person updatedPerson = Person.reconstitute(
                     personId,
                     ClientName.of("Updated Name"),
-                    Email.of("updated@example.com"),
-                    PhoneNumber.of("+33999999999"),
+                    ClientEmail.of("updated@example.com"),
+                    ClientPhoneNumber.of("+33999999999"),
                     PersonBirthDate.of(originalBirthDate)
             );
 
@@ -377,8 +378,8 @@ class ClientApplicationServiceTest {
 
             Company company = Company.of(
                     ClientName.of(name),
-                    Email.of(email),
-                    PhoneNumber.of(phone),
+                    ClientEmail.of(email),
+                    ClientPhoneNumber.of(phone),
                     CompanyIdentifier.of(companyId)
             );
 
@@ -403,8 +404,8 @@ class ClientApplicationServiceTest {
 
             verify(clientService).createAndPersistCompany(
                     any(ClientName.class),
-                    any(Email.class),
-                    any(PhoneNumber.class),
+                    any(ClientEmail.class),
+                    any(ClientPhoneNumber.class),
                     any(CompanyIdentifier.class)
             );
             verify(mapper).toCompanyDto(company);
@@ -422,8 +423,8 @@ class ClientApplicationServiceTest {
             Person updatedPerson = Person.reconstitute(
                     clientId,
                     ClientName.of("Jane Doe"),
-                    Email.of("john@example.com"),
-                    PhoneNumber.of("+33111111111"),
+                    ClientEmail.of("john@example.com"),
+                    ClientPhoneNumber.of("+33111111111"),
                     PersonBirthDate.of(LocalDate.of(1990, 5, 15))
             );
 
@@ -458,8 +459,8 @@ class ClientApplicationServiceTest {
             Person updatedPerson = Person.reconstitute(
                     clientId,
                     ClientName.of("Jane Smith"),
-                    Email.of("jane@example.com"),
-                    PhoneNumber.of("+33999999999"),
+                    ClientEmail.of("jane@example.com"),
+                    ClientPhoneNumber.of("+33999999999"),
                     PersonBirthDate.of(LocalDate.of(1990, 5, 15))
             );
 
@@ -498,8 +499,8 @@ class ClientApplicationServiceTest {
             String name = "Jean-François O'Connor";
             Person person = Person.of(
                     ClientName.of(name),
-                    Email.of("jf@example.com"),
-                    PhoneNumber.of("+33123456789"),
+                    ClientEmail.of("jf@example.com"),
+                    ClientPhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(LocalDate.of(1985, 5, 15))
             );
             PersonDto expectedDto = new PersonDto(UUID.randomUUID(), name, "jf@example.com", "+33123456789", LocalDate.of(1985, 5, 15));
@@ -518,8 +519,8 @@ class ClientApplicationServiceTest {
             LocalDate today = LocalDate.now();
             Person person = Person.of(
                     ClientName.of("Baby"),
-                    Email.of("baby@example.com"),
-                    PhoneNumber.of("+33123456789"),
+                    ClientEmail.of("baby@example.com"),
+                    ClientPhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(today)
             );
             PersonDto expectedDto = new PersonDto(UUID.randomUUID(), "Baby", "baby@example.com", "+33123456789", today);
@@ -538,8 +539,8 @@ class ClientApplicationServiceTest {
             LocalDate oldDate = LocalDate.of(1900, 1, 1);
             Person person = Person.of(
                     ClientName.of("Old"),
-                    Email.of("old@example.com"),
-                    PhoneNumber.of("+33123456789"),
+                    ClientEmail.of("old@example.com"),
+                    ClientPhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(oldDate)
             );
             PersonDto expectedDto = new PersonDto(UUID.randomUUID(), "Old", "old@example.com", "+33123456789", oldDate);
@@ -558,8 +559,8 @@ class ClientApplicationServiceTest {
             String mixedCaseEmail = "John.DOE@Example.COM";
             Person person = Person.of(
                     ClientName.of("John"),
-                    Email.of(mixedCaseEmail),
-                    PhoneNumber.of("+33123456789"),
+                    ClientEmail.of(mixedCaseEmail),
+                    ClientPhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
             PersonDto expectedDto = new PersonDto(UUID.randomUUID(), "John", "john.doe@example.com", "+33123456789", LocalDate.of(1990, 1, 1));

@@ -1,16 +1,16 @@
 package com.mk.contractservice.integration;
 
 import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientName;
+import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
-import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
+import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
+import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
-import com.mk.contractservice.web.controller.ContractController;
+import com.mk.contractservice.web.contract.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,10 +57,11 @@ class ContractPaginationIT {
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
 
+        // ✅ Email unique pour chaque test
         testClient = Person.of(
                 ClientName.of("John Doe"),
-                Email.of("john.pagination@test.com"),
-                PhoneNumber.of("+33123456789"),
+                ClientEmail.of("john.pagination." + java.util.UUID.randomUUID().toString().substring(0, 8) + "@test.com"),
+                ClientPhoneNumber.of("+33123456789"),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         );
         testClient = clientRepository.save(testClient);

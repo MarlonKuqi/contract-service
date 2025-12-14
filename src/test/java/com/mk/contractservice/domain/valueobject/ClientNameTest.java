@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.valueobject;
 
+import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.domain.exception.InvalidClientNameException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

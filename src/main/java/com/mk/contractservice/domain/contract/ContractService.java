@@ -1,9 +1,6 @@
 package com.mk.contractservice.domain.contract;
 
-import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
-import com.mk.contractservice.domain.valueobject.ContractCost;
-import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
@@ -23,14 +20,14 @@ public class ContractService {
     }
 
     public void ensureContractBelongsToClient(final Contract contract, final UUID clientId) {
-        if (!Objects.equals(contract.getClient().getId(), clientId)) {
+        if (!Objects.equals(contract.getClientId(), clientId)) {
             throw new ContractNotOwnedByClientException(contract.getId(), clientId);
         }
     }
 
     @Transactional
-    public Contract createAndPersistContract(final Client client, final ContractPeriod period, final ContractCost cost) {
-        final Contract contract = Contract.of(client, period, cost);
+    public Contract createAndPersistContract(final UUID clientId, final ContractPeriod period, final ContractCost cost) {
+        final Contract contract = Contract.of(clientId, period, cost);
         return contractRepository.save(contract);
     }
 }

@@ -1,19 +1,21 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.application.service.ContractApplicationService;
+import com.mk.contractservice.application.contract.ContractApplicationService;
 import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientName;
+import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.ContractCost;
+import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.ContractCost;
-import com.mk.contractservice.domain.valueobject.ContractPeriod;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
+import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
+import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
-import com.mk.contractservice.web.controller.ContractController;
+import com.mk.contractservice.web.contract.ContractController;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -55,6 +57,12 @@ class ContractSumRestAssuredIT {
     private ContractRepository contractRepository;
 
     @Autowired
+    private ClientJpaRepository clientJpaRepository;
+
+    @Autowired
+    private ContractJpaRepository contractJpaRepository;
+
+    @Autowired
     private ContractApplicationService contractApplicationService;
 
     private Client testClient;
@@ -65,10 +73,13 @@ class ContractSumRestAssuredIT {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
 
+        contractJpaRepository.deleteAll();
+        clientJpaRepository.deleteAll();
+
         testClient = Person.of(
                 ClientName.of("Jean Dupont"),
-                Email.of("jean.dupont." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                PhoneNumber.of("+41791234567"),
+                ClientEmail.of("jean.dupont." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of("+41791234567"),
                 PersonBirthDate.of(LocalDate.of(1990, 5, 15))
         );
         testClient = clientRepository.save(testClient);
@@ -80,17 +91,17 @@ class ContractSumRestAssuredIT {
         LocalDateTime now = LocalDateTime.now();
 
         contractRepository.save(Contract.of(
-                testClient,
+                testClient.getId(),
                 ContractPeriod.of(now.minusDays(30), null),
                 ContractCost.of(new BigDecimal("1500.50"))));
 
         contractRepository.save(Contract.of(
-                testClient,
+                testClient.getId(),
                 ContractPeriod.of(now.minusDays(15), now.plusDays(100)),
                 ContractCost.of(new BigDecimal("2500.00"))));
 
         contractRepository.save(Contract.of(
-                testClient,
+                testClient.getId(),
                 ContractPeriod.of(now.minusDays(5), now.plusDays(50)),
                 ContractCost.of(new BigDecimal("3500.75"))));
 
@@ -119,7 +130,7 @@ class ContractSumRestAssuredIT {
     void shouldReturnZeroForInactiveContracts() {
         LocalDateTime now = LocalDateTime.now();
         contractRepository.save(Contract.of(
-                testClient,
+                testClient.getId(),
                 ContractPeriod.of(now.minusDays(100), now.minusDays(10)),
                 ContractCost.of(new BigDecimal("1000.00"))));
 
@@ -141,7 +152,7 @@ class ContractSumRestAssuredIT {
             BigDecimal amount = new BigDecimal("100.00");
             expectedSum = expectedSum.add(amount);
             contractRepository.save(Contract.of(
-                    testClient,
+                    testClient.getId(),
                     ContractPeriod.of(now.minusDays(30), now.plusDays(365)),
                     ContractCost.of(amount)));
         }
@@ -221,12 +232,12 @@ class ContractSumRestAssuredIT {
         LocalDateTime now = LocalDateTime.now();
 
         contractRepository.save(Contract.of(
-                testClient,
+                testClient.getId(),
                 ContractPeriod.of(now.minusDays(10), now.plusDays(30)),
                 ContractCost.of(new BigDecimal("99.99"))));
 
         contractRepository.save(Contract.of(
-                testClient,
+                testClient.getId(),
                 ContractPeriod.of(now.minusDays(5), now.plusDays(60)),
                 ContractCost.of(new BigDecimal("0.01"))));
 

@@ -1,5 +1,6 @@
 package com.mk.contractservice.infrastructure.config;
 
+import com.mk.contractservice.infrastructure.shared.config.PaginationProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

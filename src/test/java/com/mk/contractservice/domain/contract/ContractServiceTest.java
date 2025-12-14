@@ -1,14 +1,6 @@
 package com.mk.contractservice.domain.contract;
 
-import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.ContractCost;
-import com.mk.contractservice.domain.valueobject.ContractPeriod;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,12 +10,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ContractService - Business Logic Tests")
@@ -34,18 +28,12 @@ class ContractServiceTest {
 
     private ContractService service;
 
-    private Client testClient;
+    private UUID testClientId;
 
     @BeforeEach
     void setUp() {
         service = new ContractService(contractRepository);
-
-        testClient = Person.reconstitute(
-                UUID.randomUUID(),
-                ClientName.of("John Doe"),
-                Email.of("john@example.com"),
-                PhoneNumber.of("+33123456789"),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 15)));
+        testClientId = UUID.randomUUID();
     }
 
     @Nested
@@ -59,12 +47,12 @@ class ContractServiceTest {
 
             Contract contract = Contract.reconstitute(
                     contractId,
-                    testClient,
+                    testClientId,
                     ContractPeriod.of(LocalDateTime.now(), null),
                     ContractCost.of(new BigDecimal("1000.00")));
 
-            service.ensureContractBelongsToClient(contract, testClient.getId());
-            assertThat(contract.getClient().getId()).isEqualTo(testClient.getId());
+            service.ensureContractBelongsToClient(contract, testClientId);
+            assertThat(contract.getClientId()).isEqualTo(testClientId);
         }
 
         @Test
@@ -75,7 +63,7 @@ class ContractServiceTest {
 
             Contract contract = Contract.reconstitute(
                     contractId,
-                    testClient,
+                    testClientId,
                     ContractPeriod.of(LocalDateTime.now(), null),
                     ContractCost.of(new BigDecimal("1000.00")));
 
@@ -91,33 +79,105 @@ class ContractServiceTest {
     class CreateContractTests {
 
         @Test
-        @DisplayName("Should create contract with all provided data")
-        void shouldCreateContract() {
+        @DisplayName("Should create and persist contract with all provided data")
+        void shouldCreateAndPersistContract() {
             LocalDateTime start = LocalDateTime.of(2025, 1, 1, 0, 0);
             LocalDateTime end = LocalDateTime.of(2025, 12, 31, 23, 59);
             ContractPeriod period = ContractPeriod.of(start, end);
             ContractCost cost = ContractCost.of(new BigDecimal("1500.00"));
 
-            Contract result = Contract.of(testClient, period, cost);
+            UUID savedContractId = UUID.randomUUID();
+            Contract expectedSavedContract = Contract.reconstitute(
+                    savedContractId,
+                    testClientId,
+                    period,
+                    cost
+            );
+
+            when(contractRepository.save(any(Contract.class))).thenReturn(expectedSavedContract);
+
+            Contract result = service.createAndPersistContract(testClientId, period, cost);
 
             assertThat(result).isNotNull();
-            assertThat(result.getClient()).isEqualTo(testClient);
+            assertThat(result.getId()).isEqualTo(savedContractId);
+            assertThat(result.getClientId()).isEqualTo(testClientId);
             assertThat(result.getPeriod()).isEqualTo(period);
             assertThat(result.getCostAmount()).isEqualTo(cost);
-            assertThat(result.getId()).isNull(); // Not persisted yet
+
+            verify(contractRepository).save(any(Contract.class));
         }
 
         @Test
-        @DisplayName("Should create contract with open-ended period")
-        void shouldCreateContractWithOpenEndedPeriod() {
+        @DisplayName("Should create and persist contract with open-ended period (null end date)")
+        void shouldCreateAndPersistContractWithOpenEndedPeriod() {
             LocalDateTime start = LocalDateTime.of(2025, 1, 1, 0, 0);
             ContractPeriod period = ContractPeriod.of(start, null);
             ContractCost cost = ContractCost.of(new BigDecimal("2000.00"));
 
-            Contract result = Contract.of(testClient, period, cost);
+            UUID savedContractId = UUID.randomUUID();
+            Contract expectedSavedContract = Contract.reconstitute(
+                    savedContractId,
+                    testClientId,
+                    period,
+                    cost
+            );
+
+            when(contractRepository.save(any(Contract.class))).thenReturn(expectedSavedContract);
+
+            Contract result = service.createAndPersistContract(testClientId, period, cost);
 
             assertThat(result).isNotNull();
+            assertThat(result.getId()).isEqualTo(savedContractId);
             assertThat(result.getPeriod().endDate()).isNull();
+            assertThat(result.isActive()).isTrue(); // Open-ended contract is active
+
+            verify(contractRepository).save(any(Contract.class));
+        }
+
+        @Test
+        @DisplayName("Should delegate persistence to repository")
+        void shouldDelegatePersistenceToRepository() {
+            LocalDateTime start = LocalDateTime.now();
+            ContractPeriod period = ContractPeriod.of(start, null);
+            ContractCost cost = ContractCost.of(new BigDecimal("1000.00"));
+
+            when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> {
+                Contract contract = invocation.getArgument(0);
+                return Contract.reconstitute(
+                        UUID.randomUUID(),
+                        contract.getClientId(),
+                        contract.getPeriod(),
+                        contract.getCostAmount()
+                );
+            });
+
+            service.createAndPersistContract(testClientId, period, cost);
+
+            verify(contractRepository).save(any(Contract.class));
+        }
+
+        @Test
+        @DisplayName("Should preserve contract business rules during creation")
+        void shouldPreserveContractBusinessRules() {
+            LocalDateTime start = LocalDateTime.now();
+            LocalDateTime end = start.plusDays(30);
+            ContractPeriod period = ContractPeriod.of(start, end);
+            ContractCost cost = ContractCost.of(new BigDecimal("500.00"));
+
+            when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> {
+                Contract contract = invocation.getArgument(0);
+                return Contract.reconstitute(
+                        UUID.randomUUID(),
+                        contract.getClientId(),
+                        contract.getPeriod(),
+                        contract.getCostAmount()
+                );
+            });
+
+            Contract result = service.createAndPersistContract(testClientId, period, cost);
+
+            assertThat(result.isActive()).isTrue();
+            assertThat(result.getCostAmount().value()).isEqualByComparingTo(new BigDecimal("500.00"));
         }
     }
 }

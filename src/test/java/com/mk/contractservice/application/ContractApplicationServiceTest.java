@@ -1,25 +1,18 @@
 package com.mk.contractservice.application;
 
-import com.mk.contractservice.application.dto.ContractDto;
-import com.mk.contractservice.application.mapper.ContractMapper;
-import com.mk.contractservice.application.service.ContractApplicationService;
-import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.application.contract.ContractApplicationService;
+import com.mk.contractservice.application.contract.dto.ContractDto;
+import com.mk.contractservice.application.contract.mapper.ContractMapper;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.ContractCost;
+import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractService;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
 import com.mk.contractservice.domain.exception.ExpiredContractException;
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.ContractCost;
-import com.mk.contractservice.domain.valueobject.ContractPeriod;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -34,7 +27,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -70,19 +62,6 @@ class ContractApplicationServiceTest {
 
     private static final UUID JOHN_DOE_CLIENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
-    private Client testClient;
-
-    @BeforeEach
-    void setUp() {
-        testClient = Person.reconstitute(
-                JOHN_DOE_CLIENT_ID,
-                ClientName.of("John Doe"),
-                Email.of("john@example.com"),
-                PhoneNumber.of("+33123456789"),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-        );
-    }
-
     @Nested
     @DisplayName("Create Contract")
     class CreateContractTests {
@@ -93,11 +72,13 @@ class ContractApplicationServiceTest {
             LocalDateTime start = LocalDateTime.now();
             LocalDateTime end = start.plusDays(30);
             BigDecimal amount = new BigDecimal("100.50");
+            Contract savedContract = Contract.of(JOHN_DOE_CLIENT_ID, ContractPeriod.of(start, end), ContractCost.of(amount));
             ContractDto expectedDto = new ContractDto(UUID.randomUUID(), JOHN_DOE_CLIENT_ID, start, end, true, amount);
 
-            when(clientRepository.findById(JOHN_DOE_CLIENT_ID)).thenReturn(Optional.of(testClient));
-            when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(contractMapper.toDto(any(Contract.class))).thenReturn(expectedDto);
+            when(clientRepository.existsById(JOHN_DOE_CLIENT_ID)).thenReturn(true);
+            when(contractService.createAndPersistContract(eq(JOHN_DOE_CLIENT_ID), any(ContractPeriod.class), any(ContractCost.class)))
+                    .thenReturn(savedContract);
+            when(contractMapper.toDto(savedContract)).thenReturn(expectedDto);
 
             ContractDto result = service.createForClient(JOHN_DOE_CLIENT_ID, start, end, amount);
 
@@ -113,10 +94,15 @@ class ContractApplicationServiceTest {
         void shouldUseCurrentDateWhenStartIsNull() {
             LocalDateTime before = LocalDateTime.now().minusSeconds(1);
             LocalDateTime end = LocalDateTime.now().plusDays(30);
-            BigDecimal amount = new BigDecimal("100.00");
+            BigDecimal amount = new BigDecimal("150.00");
 
-            when(clientRepository.findById(JOHN_DOE_CLIENT_ID)).thenReturn(Optional.of(testClient));
-            when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(clientRepository.existsById(JOHN_DOE_CLIENT_ID)).thenReturn(true);
+            when(contractService.createAndPersistContract(eq(JOHN_DOE_CLIENT_ID), any(ContractPeriod.class), any(ContractCost.class)))
+                    .thenAnswer(invocation -> {
+                        ContractPeriod period = invocation.getArgument(1);
+                        ContractCost cost = invocation.getArgument(2);
+                        return Contract.of(JOHN_DOE_CLIENT_ID, period, cost);
+                    });
             when(contractMapper.toDto(any(Contract.class))).thenAnswer(invocation -> {
                 Contract c = invocation.getArgument(0);
                 return new ContractDto(UUID.randomUUID(), JOHN_DOE_CLIENT_ID, c.getPeriod().startDate(), end, true, amount);
@@ -134,11 +120,12 @@ class ContractApplicationServiceTest {
         void shouldAcceptNullEndDate() {
             LocalDateTime start = LocalDateTime.now();
             BigDecimal amount = new BigDecimal("100.00");
-            Contract savedContract = Contract.of(testClient, ContractPeriod.of(start, null), ContractCost.of(amount));
+            Contract savedContract = Contract.of(JOHN_DOE_CLIENT_ID, ContractPeriod.of(start, null), ContractCost.of(amount));
             ContractDto expectedDto = new ContractDto(UUID.randomUUID(), JOHN_DOE_CLIENT_ID, start, null, true, amount);
 
-            when(clientRepository.findById(JOHN_DOE_CLIENT_ID)).thenReturn(Optional.of(testClient));
-            when(contractRepository.save(any(Contract.class))).thenReturn(savedContract);
+            when(clientRepository.existsById(JOHN_DOE_CLIENT_ID)).thenReturn(true);
+            when(contractService.createAndPersistContract(eq(JOHN_DOE_CLIENT_ID), any(ContractPeriod.class), any(ContractCost.class)))
+                    .thenReturn(savedContract);
             when(contractMapper.toDto(savedContract)).thenReturn(expectedDto);
 
             ContractDto result = service.createForClient(JOHN_DOE_CLIENT_ID, start, null, amount);
@@ -150,13 +137,13 @@ class ContractApplicationServiceTest {
         @DisplayName("GIVEN non-existent client WHEN createForClient THEN throw ClientNotFoundException")
         void shouldThrowExceptionWhenClientNotFound() {
             UUID nonExistentId = UUID.randomUUID();
-            when(clientRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+            when(clientRepository.existsById(nonExistentId)).thenReturn(false);
 
             assertThatThrownBy(() -> service.createForClient(nonExistentId, LocalDateTime.now(), null, BigDecimal.TEN))
                     .isInstanceOf(ClientNotFoundException.class)
                     .hasMessageContaining("Client not found");
 
-            verify(contractRepository, never()).save(any());
+            verify(contractService, never()).createAndPersistContract(any(), any(), any());
         }
 
         @Test
@@ -165,20 +152,28 @@ class ContractApplicationServiceTest {
             LocalDateTime start = LocalDateTime.now();
             BigDecimal amount = new BigDecimal("200.00");
 
-            when(clientRepository.findById(JOHN_DOE_CLIENT_ID)).thenReturn(Optional.of(testClient));
-            when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(clientRepository.existsById(JOHN_DOE_CLIENT_ID)).thenReturn(true);
+            when(contractService.createAndPersistContract(eq(JOHN_DOE_CLIENT_ID), any(ContractPeriod.class), any(ContractCost.class)))
+                    .thenAnswer(invocation -> {
+                        ContractPeriod period = invocation.getArgument(1);
+                        ContractCost cost = invocation.getArgument(2);
+                        return Contract.of(JOHN_DOE_CLIENT_ID, period, cost);
+                    });
             when(contractMapper.toDto(any(Contract.class))).thenReturn(
                     new ContractDto(UUID.randomUUID(), JOHN_DOE_CLIENT_ID, start, null, true, amount)
             );
 
             service.createForClient(JOHN_DOE_CLIENT_ID, start, null, amount);
 
-            ArgumentCaptor<Contract> captor = ArgumentCaptor.forClass(Contract.class);
-            verify(contractRepository).save(captor.capture());
+            ArgumentCaptor<ContractPeriod> periodCaptor = ArgumentCaptor.forClass(ContractPeriod.class);
+            ArgumentCaptor<ContractCost> costCaptor = ArgumentCaptor.forClass(ContractCost.class);
+            verify(contractService).createAndPersistContract(eq(JOHN_DOE_CLIENT_ID), periodCaptor.capture(), costCaptor.capture());
 
-            Contract savedContract = captor.getValue();
-            assertThat(savedContract.getClient()).isEqualTo(testClient);
-            assertThat(savedContract.getCostAmount().value()).isEqualByComparingTo(amount);
+            ContractPeriod capturedPeriod = periodCaptor.getValue();
+            ContractCost capturedCost = costCaptor.getValue();
+            assertThat(capturedPeriod.startDate()).isEqualTo(start);
+            assertThat(capturedPeriod.endDate()).isNull();
+            assertThat(capturedCost.value()).isEqualByComparingTo(amount);
         }
     }
 
@@ -193,7 +188,7 @@ class ContractApplicationServiceTest {
             LocalDateTime now = LocalDateTime.now();
             Contract contract = Contract.reconstitute(
                     contractId,
-                    testClient,
+                    JOHN_DOE_CLIENT_ID,
                     ContractPeriod.of(now, null),
                     ContractCost.of(new BigDecimal("100.00")));
             BigDecimal newAmount = new BigDecimal("200.00");
@@ -230,17 +225,9 @@ class ContractApplicationServiceTest {
             UUID contractId = UUID.randomUUID();
             UUID differentClientId = UUID.randomUUID();
 
-            Client otherClient = Person.reconstitute(
-                    differentClientId,
-                    ClientName.of("Other Client"),
-                    Email.of("other@example.com"),
-                    PhoneNumber.of("+33987654321"),
-                    PersonBirthDate.of(LocalDate.of(1985, 5, 15))
-            );
-
             Contract contract = Contract.reconstitute(
                     contractId,
-                    otherClient,
+                    differentClientId,
                     ContractPeriod.of(LocalDateTime.now(), null),
                     ContractCost.of(new BigDecimal("100.00")));
 
@@ -263,7 +250,7 @@ class ContractApplicationServiceTest {
             LocalDateTime now = LocalDateTime.now();
             Contract expiredContract = Contract.reconstitute(
                     contractId,
-                    testClient,
+                    JOHN_DOE_CLIENT_ID,
                     ContractPeriod.of(now.minusDays(100), now.minusDays(1)),
                     ContractCost.of(new BigDecimal("100.00")));
 
@@ -286,7 +273,7 @@ class ContractApplicationServiceTest {
             LocalDateTime now = LocalDateTime.now();
             Contract contract = Contract.reconstitute(
                     contractId,
-                    testClient,
+                    JOHN_DOE_CLIENT_ID,
                     ContractPeriod.of(now, null),
                     ContractCost.of(BigDecimal.valueOf(1000)));
             ContractDto expectedDto = new ContractDto(contractId, JOHN_DOE_CLIENT_ID, now, null, true, BigDecimal.valueOf(1000));
@@ -318,23 +305,14 @@ class ContractApplicationServiceTest {
             UUID contractId = UUID.randomUUID();
             UUID differentClientId = UUID.randomUUID();
 
-            Client otherClient = Person.reconstitute(
-                    UUID.randomUUID(),
-                    ClientName.of("Other Client"),
-                    Email.of("other@example.com"),
-                    PhoneNumber.of("+33987654321"),
-                    PersonBirthDate.of(LocalDate.of(1985, 5, 15))
-            );
-
             Contract contract = Contract.reconstitute(
                     contractId,
-                    otherClient,
+                    differentClientId,
                     ContractPeriod.of(LocalDateTime.now(), null),
                     ContractCost.of(BigDecimal.valueOf(1000)));
 
             when(contractRepository.findById(contractId)).thenReturn(Optional.of(contract));
 
-            // Mock the domain service to throw exception when validating ownership
             doThrow(new ContractNotOwnedByClientException(contractId, differentClientId))
                     .when(contractService).ensureContractBelongsToClient(contract, differentClientId);
 
@@ -355,7 +333,7 @@ class ContractApplicationServiceTest {
             LocalDateTime updatedSince = LocalDateTime.now().minusDays(7);
             LocalDateTime now = LocalDateTime.now();
             Contract contract = Contract.of(
-                    testClient,
+                    JOHN_DOE_CLIENT_ID,
                     ContractPeriod.of(now, null),
                     ContractCost.of(BigDecimal.TEN));
             Page<Contract> contractPage = new PageImpl<>(List.of(contract));

@@ -1,10 +1,10 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
+import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
-import com.mk.contractservice.web.controller.ClientController;
-import com.mk.contractservice.web.controller.ContractController;
+import com.mk.contractservice.web.client.ClientController;
+import com.mk.contractservice.web.contract.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +46,7 @@ class PersonLifecycleIT {
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
+
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
     }
@@ -172,13 +173,13 @@ class PersonLifecycleIT {
     }
 
     @Test
-    @DisplayName("SCENARIO: Invalid email format should be rejected")
+    @DisplayName("SCENARIO: Invalid clientEmail format should be rejected")
     void shouldRejectInvalidEmailFormat() {
         String invalidEmailPayload = """
                 {
                     "type": "PERSON",
                     "name": "Bob Bernard",
-                    "email": "invalid-email-format",
+                    "email": "invalid-clientEmail-format",
                     "phone": "+41791234567",
                     "birthDate": "1985-03-20"
                 }
@@ -382,7 +383,7 @@ class PersonLifecycleIT {
     }
 
     @Test
-    @DisplayName("SCENARIO: Duplicate email should be handled gracefully")
+    @DisplayName("SCENARIO: Duplicate clientEmail should be handled gracefully")
     void shouldHandleDuplicateEmail() {
         String uniqueEmail = "duplicate.test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
 

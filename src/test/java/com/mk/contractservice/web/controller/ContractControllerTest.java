@@ -1,15 +1,16 @@
 package com.mk.contractservice.web.controller;
 
-import com.mk.contractservice.application.dto.ContractDto;
-import com.mk.contractservice.application.mapper.ValueObjectMappersImpl;
-import com.mk.contractservice.application.service.ContractApplicationService;
+import com.mk.contractservice.application.contract.ContractApplicationService;
+import com.mk.contractservice.application.contract.dto.ContractDto;
+import com.mk.contractservice.application.contract.mapper.ContractValueObjectMappersImpl;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.exception.ExpiredContractException;
-import com.mk.contractservice.web.advice.ContractControllerAdvice;
-import com.mk.contractservice.web.advice.GlobalExceptionHandler;
-import com.mk.contractservice.web.config.WebMvcConfig;
-import com.mk.contractservice.web.dto.mapper.contract.ContractDtoMapperImpl;
+import com.mk.contractservice.web.GlobalExceptionHandler;
+import com.mk.contractservice.web.WebMvcConfig;
+import com.mk.contractservice.web.contract.ContractController;
+import com.mk.contractservice.web.contract.ContractControllerAdvice;
+import com.mk.contractservice.web.contract.mapper.ContractDtoMapperImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -51,7 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @Import({
         ContractDtoMapperImpl.class,
-        ValueObjectMappersImpl.class
+        ContractValueObjectMappersImpl.class
 })
 
 @DisplayName("ContractController - MockMvc Tests")

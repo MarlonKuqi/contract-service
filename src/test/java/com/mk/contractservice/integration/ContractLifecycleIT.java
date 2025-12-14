@@ -1,16 +1,16 @@
 package com.mk.contractservice.integration;
 
 import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientName;
+import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
-import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
+import com.mk.contractservice.domain.client.PersonBirthDate;
+import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
-import com.mk.contractservice.web.controller.ContractController;
+import com.mk.contractservice.web.contract.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +49,7 @@ class ContractLifecycleIT {
     private ClientRepository clientRepository;
 
     @Autowired
-    private ClientJpaRepository clientJpaRepository;
+    private ContractRepository contractRepository;
 
     @Autowired
     private ContractJpaRepository contractJpaRepository;
@@ -60,13 +60,13 @@ class ContractLifecycleIT {
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
+
         contractJpaRepository.deleteAll();
-        clientJpaRepository.deleteAll();
 
         testClient = Person.of(
                 ClientName.of("Marie Durand"),
-                Email.of("marie.durand." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                PhoneNumber.of("+41791234567"),
+                ClientEmail.of("marie.durand." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of("+41791234567"),
                 PersonBirthDate.of(LocalDate.of(1985, 3, 20))
         );
         testClient = clientRepository.save(testClient);

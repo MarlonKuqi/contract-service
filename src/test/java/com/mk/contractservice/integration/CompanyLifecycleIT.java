@@ -1,10 +1,10 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
+import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
-import com.mk.contractservice.web.controller.ClientController;
-import com.mk.contractservice.web.controller.ContractController;
+import com.mk.contractservice.web.client.ClientController;
+import com.mk.contractservice.web.contract.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +46,7 @@ class CompanyLifecycleIT {
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
+
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
     }
@@ -246,7 +247,7 @@ class CompanyLifecycleIT {
     }
 
     @Test
-    @DisplayName("SCENARIO: Duplicate email should be handled gracefully")
+    @DisplayName("SCENARIO: Duplicate clientEmail should be handled gracefully")
     void shouldHandleDuplicateEmail() {
         String uniqueEmail = "duplicate.company.test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
 
@@ -389,18 +390,18 @@ class CompanyLifecycleIT {
     }
 
     @Test
-    @DisplayName("SCENARIO: Company email validation should follow RFC standards")
+    @DisplayName("VALIDATION: Should validate company email format correctly")
     void shouldValidateCompanyEmailFormat() {
         String uniqueId1 = UUID.randomUUID().toString().substring(0, 8);
         String validPayload = String.format("""
                 {
                     "type": "COMPANY",
                     "name": "Valid Email Company",
-                    "email": "contact+sales@company-name.co.uk",
+                    "email": "contact+sales.%s@company-name.co.uk",
                     "phone": "+41791234567",
                     "companyIdentifier": "CHE-%s.456.789"
                 }
-                """, uniqueId1);
+                """, uniqueId1, uniqueId1);
 
         given()
                 .contentType(ContentType.JSON)
@@ -413,7 +414,7 @@ class CompanyLifecycleIT {
         String[] invalidEmails = {
                 "@example.com",
                 "missing-at-sign.com",
-                "spaces in@email.com",
+                "spaces in@clientEmail.com",
                 "double@@at.com"
         };
 

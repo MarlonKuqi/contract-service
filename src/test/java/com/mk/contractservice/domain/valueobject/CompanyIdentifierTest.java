@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.valueobject;
 
+import com.mk.contractservice.domain.client.CompanyIdentifier;
 import com.mk.contractservice.domain.exception.InvalidCompanyIdentifierException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,9 +1,6 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,8 +22,8 @@ class ClientTest {
         void shouldCreateClientWithAllFields() {
             Person person = Person.of(
                     ClientName.of("Test User"),
-                    Email.of("test@example.com"),
-                    PhoneNumber.of("+33123456789"),
+                    ClientEmail.of("test@example.com"),
+                    ClientPhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
 
@@ -40,8 +37,8 @@ class ClientTest {
         void shouldRejectNullName() {
             assertThatThrownBy(() -> Person.of(
                     null,
-                    Email.of("test@example.com"),
-                    PhoneNumber.of("+33123456789"),
+                    ClientEmail.of("test@example.com"),
+                    ClientPhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             ))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -54,7 +51,7 @@ class ClientTest {
             assertThatThrownBy(() -> Person.of(
                     ClientName.of("Test User"),
                     null,
-                    PhoneNumber.of("+33123456789"),
+                    ClientPhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             ))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -66,7 +63,7 @@ class ClientTest {
         void shouldRejectNullPhone() {
             assertThatThrownBy(() -> Person.of(
                     ClientName.of("Test User"),
-                    Email.of("test@example.com"),
+                    ClientEmail.of("test@example.com"),
                     null,
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             ))
@@ -84,15 +81,15 @@ class ClientTest {
         void shouldCreateNewInstanceWithUpdatedFields() {
             Person original = Person.of(
                     ClientName.of("Original Name"),
-                    Email.of("original@example.com"),
-                    PhoneNumber.of("+33111111111"),
+                    ClientEmail.of("original@example.com"),
+                    ClientPhoneNumber.of("+33111111111"),
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
 
             Person updated = original.withCommonFields(
                     ClientName.of("Updated Name"),
-                    Email.of("updated@example.com"),
-                    PhoneNumber.of("+33222222222")
+                    ClientEmail.of("updated@example.com"),
+                    ClientPhoneNumber.of("+33222222222")
             );
 
             assertThat(updated.getName().value()).isEqualTo("Updated Name");
@@ -111,20 +108,20 @@ class ClientTest {
         void shouldRejectNullFieldsOnUpdate() {
             Person person = Person.of(
                     ClientName.of("Test User"),
-                    Email.of("test@example.com"),
-                    PhoneNumber.of("+33123456789"),
+                    ClientEmail.of("test@example.com"),
+                    ClientPhoneNumber.of("+33123456789"),
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
 
-            assertThatThrownBy(() -> person.withCommonFields(null, Email.of("test@test.com"), PhoneNumber.of("+33123456789")))
+            assertThatThrownBy(() -> person.withCommonFields(null, ClientEmail.of("test@test.com"), ClientPhoneNumber.of("+33123456789")))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage(Client.NULL_NAME_MSG);
 
-            assertThatThrownBy(() -> person.withCommonFields(ClientName.of("Test"), null, PhoneNumber.of("+33123456789")))
+            assertThatThrownBy(() -> person.withCommonFields(ClientName.of("Test"), null, ClientPhoneNumber.of("+33123456789")))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage(Client.NULL_EMAIL_MSG);
 
-            assertThatThrownBy(() -> person.withCommonFields(ClientName.of("Test"), Email.of("test@test.com"), null))
+            assertThatThrownBy(() -> person.withCommonFields(ClientName.of("Test"), ClientEmail.of("test@test.com"), null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage(Client.NULL_PHONE_MSG);
         }

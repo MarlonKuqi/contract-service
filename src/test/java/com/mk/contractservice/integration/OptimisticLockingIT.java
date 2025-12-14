@@ -1,7 +1,7 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
+import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -38,6 +38,7 @@ class OptimisticLockingIT {
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
+
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
     }

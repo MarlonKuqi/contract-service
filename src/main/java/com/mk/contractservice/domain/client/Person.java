@@ -1,9 +1,5 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -21,8 +17,8 @@ public final class Person extends Client {
     private Person(
             @Nullable final UUID id,
             @Nullable final ClientName name,
-            @Nullable final Email email,
-            @Nullable final PhoneNumber phone,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone,
             @Nullable final PersonBirthDate birthDate
     ) {
         super(id, name, email, phone);
@@ -32,7 +28,12 @@ public final class Person extends Client {
         this.birthDate = birthDate;
     }
 
-    public static Person of(final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
+    public static Person of(
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone,
+            @Nullable final PersonBirthDate birthDate
+    ) {
         return builder()
                 .name(name)
                 .email(email)
@@ -41,7 +42,13 @@ public final class Person extends Client {
                 .build();
     }
 
-    public static Person reconstitute(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
+    public static Person reconstitute(
+            @Nullable final UUID id,
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone,
+            @Nullable final PersonBirthDate birthDate
+    ) {
         return builder()
                 .id(id)
                 .name(name)
@@ -51,10 +58,10 @@ public final class Person extends Client {
                 .build();
     }
 
-    public Person withCommonFields(final ClientName name, final Email email, final PhoneNumber phone) {
+    public Person withCommonFields(final ClientName name, final ClientEmail clientEmail, final ClientPhoneNumber phone) {
         return toBuilder()
                 .name(name)
-                .email(email)
+                .email(clientEmail)
                 .phone(phone)
                 .build();
     }
@@ -62,8 +69,8 @@ public final class Person extends Client {
     @Override
     public Person updatePartial(
             @Nullable final ClientName name,
-            @Nullable final Email email,
-            @Nullable final PhoneNumber phone
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone
     ) {
         return toBuilder()
                 .name(name != null ? name : this.getName())
@@ -91,8 +98,8 @@ public final class Person extends Client {
     public static class PersonBuilder {
         UUID id;
         ClientName name;
-        Email email;
-        PhoneNumber phone;
+        ClientEmail email;
+        ClientPhoneNumber phone;
         PersonBirthDate birthDate;
 
         public PersonBuilder id(final UUID id) {
@@ -105,12 +112,12 @@ public final class Person extends Client {
             return this;
         }
 
-        public PersonBuilder email(final Email email) {
+        public PersonBuilder email(final ClientEmail email) {
             this.email = email;
             return this;
         }
 
-        public PersonBuilder phone(final PhoneNumber phone) {
+        public PersonBuilder phone(final ClientPhoneNumber phone) {
             this.phone = phone;
             return this;
         }

@@ -2,7 +2,7 @@ package com.mk.contractservice.infrastructure.persistence;
 
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.infrastructure.persistence.assembler.ContractAssembler;
+import com.mk.contractservice.infrastructure.persistence.contract.assembler.ContractAssembler;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,41 +30,42 @@ public class JpaContractRepository implements ContractRepository {
             var entityOpt = contractJpaRepository.findById(contract.getId());
             if (entityOpt.isPresent()) {
                 var entity = entityOpt.get();
+                entity.setClientId(contract.getClientId());
                 entity.setStartDate(contract.getPeriod().startDate());
                 entity.setEndDate(contract.getPeriod().endDate());
                 entity.setCostAmount(contract.getCostAmount().value());
                 var savedEntity = contractJpaRepository.save(entity);
-                return assembler.toDomain(contractJpaRepository.findByIdWithClient(savedEntity.getId()).orElseThrow());
+                return assembler.toDomain(savedEntity);
             }
         }
         var entity = assembler.toJpaEntity(contract);
         var savedEntity = contractJpaRepository.save(entity);
-        return assembler.toDomain(contractJpaRepository.findByIdWithClient(savedEntity.getId()).orElseThrow());
+        return assembler.toDomain(savedEntity);
     }
 
     @Override
     public Optional<Contract> findById(final UUID id) {
-        return contractJpaRepository.findByIdWithClient(id).map(assembler::toDomain);
+        return contractJpaRepository.findById(id).map(assembler::toDomain);
     }
 
     @Override
     public Page<Contract> findActiveByClientIdPageable(final UUID clientId, @Nullable final LocalDateTime updatedSince, final Pageable pageable) {
         if (updatedSince == null) {
-            return contractJpaRepository.findActiveContractsPageable(clientId, pageable)
+            return contractJpaRepository.findActiveByClientId(clientId, pageable)
                     .map(assembler::toDomain);
         }
-        return contractJpaRepository.findActiveContractsUpdatedAfterPageable(clientId, updatedSince, pageable)
+        return contractJpaRepository.findActiveByClientIdAndUpdatedAfter(clientId, updatedSince, pageable)
                 .map(assembler::toDomain);
     }
 
 
     @Override
     public void closeAllActiveByClientId(final UUID clientId) {
-        contractJpaRepository.closeAllActiveContracts(clientId);
+        contractJpaRepository.closeAllActiveByClientId(clientId);
     }
 
     @Override
     public BigDecimal sumActiveByClientId(final UUID clientId) {
-        return contractJpaRepository.sumActiveContracts(clientId);
+        return contractJpaRepository.sumActiveByClientId(clientId);
     }
 }

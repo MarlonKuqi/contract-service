@@ -1,17 +1,15 @@
 package com.mk.contractservice.integration;
 
 import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientName;
+import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
-import com.mk.contractservice.infrastructure.persistence.ClientJpaRepository;
-import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
+import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
-import com.mk.contractservice.web.controller.ClientController;
-import com.mk.contractservice.web.controller.ContractController;
+import com.mk.contractservice.web.client.ClientController;
+import com.mk.contractservice.web.contract.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,18 +43,11 @@ class PerformanceAndEdgeCasesIT {
     @Autowired
     private ClientRepository clientRepository;
 
-    @Autowired
-    private ClientJpaRepository clientJpaRepository;
-
-    @Autowired
-    private ContractJpaRepository contractJpaRepository;
 
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
-        contractJpaRepository.deleteAll();
-        clientJpaRepository.deleteAll();
     }
 
     @Test
@@ -64,8 +55,8 @@ class PerformanceAndEdgeCasesIT {
     void sumEndpointShouldBePerformant() {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Performance Test Client"),
-                Email.of("perf.test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                PhoneNumber.of("+41791234567"),
+                ClientEmail.of("perf.test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of("+41791234567"),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
 
@@ -105,8 +96,8 @@ class PerformanceAndEdgeCasesIT {
     void emptyClientShouldReturnZeroSum() {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("No Contracts Client"),
-                Email.of("nocontracts." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                PhoneNumber.of("+41791234567"),
+                ClientEmail.of("nocontracts." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of("+41791234567"),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
 
@@ -130,8 +121,8 @@ class PerformanceAndEdgeCasesIT {
     void shouldHandleVeryLargeCostAmounts() {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Big Money Client"),
-                Email.of("bigmoney." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                PhoneNumber.of("+41791234567"),
+                ClientEmail.of("bigmoney." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of("+41791234567"),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
 
@@ -166,8 +157,8 @@ class PerformanceAndEdgeCasesIT {
     void shouldMaintainDecimalPrecision() {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Precision Test Client"),
-                Email.of("precision." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                PhoneNumber.of("+41791234567"),
+                ClientEmail.of("precision." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of("+41791234567"),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
 
@@ -259,8 +250,8 @@ class PerformanceAndEdgeCasesIT {
     void shouldHandleBoundaryDates() {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Boundary Test Client"),
-                Email.of("boundary." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                PhoneNumber.of("+41791234567"),
+                ClientEmail.of("boundary." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of("+41791234567"),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
 
@@ -302,8 +293,8 @@ class PerformanceAndEdgeCasesIT {
     void shouldHandleConcurrentContractCreation() {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Concurrent Test Client"),
-                Email.of("concurrent." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                PhoneNumber.of("+41791234567"),
+                ClientEmail.of("concurrent." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of("+41791234567"),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
 
@@ -369,8 +360,8 @@ class PerformanceAndEdgeCasesIT {
     void shouldRejectZeroCostAmount() {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Zero Test Client"),
-                Email.of("zero." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                PhoneNumber.of("+41791234567"),
+                ClientEmail.of("zero." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of("+41791234567"),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
 

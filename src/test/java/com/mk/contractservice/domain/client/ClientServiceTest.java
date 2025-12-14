@@ -2,11 +2,6 @@ package com.mk.contractservice.domain.client;
 
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.exception.CompanyIdentifierAlreadyExistsException;
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -45,58 +40,58 @@ class ClientServiceTest {
         @DisplayName("Should create Person when email is unique")
         void shouldCreatePersonWhenEmailIsUnique() {
             ClientName name = ClientName.of("John Doe");
-            Email email = Email.of("john@example.com");
-            PhoneNumber phone = PhoneNumber.of("+33123456789");
+            ClientEmail clientEmail = ClientEmail.of("john@example.com");
+            ClientPhoneNumber phone = ClientPhoneNumber.of("+33123456789");
             PersonBirthDate birthDate = PersonBirthDate.of(LocalDate.of(1990, 1, 15));
 
-            when(clientRepository.existsByEmail(email)).thenReturn(false);
+            when(clientRepository.existsByEmail(clientEmail)).thenReturn(false);
             when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            Person result = service.createAndPersistPerson(name, email, phone, birthDate);
+            Person result = service.createAndPersistPerson(name, clientEmail, phone, birthDate);
 
             assertThat(result).isNotNull();
             assertThat(result.getName()).isEqualTo(name);
-            assertThat(result.getEmail()).isEqualTo(email);
+            assertThat(result.getEmail()).isEqualTo(clientEmail);
             assertThat(result.getPhone()).isEqualTo(phone);
             assertThat(result.getBirthDate()).isEqualTo(birthDate);
 
-            verify(clientRepository).existsByEmail(email);
+            verify(clientRepository).existsByEmail(clientEmail);
         }
 
         @Test
         @DisplayName("Should throw ClientAlreadyExistsException when email already exists")
         void shouldThrowWhenEmailAlreadyExists() {
             ClientName name = ClientName.of("John Doe");
-            Email email = Email.of("duplicate@example.com");
-            PhoneNumber phone = PhoneNumber.of("+33123456789");
+            ClientEmail clientEmail = ClientEmail.of("duplicate@example.com");
+            ClientPhoneNumber phone = ClientPhoneNumber.of("+33123456789");
             PersonBirthDate birthDate = PersonBirthDate.of(LocalDate.of(1990, 1, 15));
 
-            when(clientRepository.existsByEmail(email)).thenReturn(true);
+            when(clientRepository.existsByEmail(clientEmail)).thenReturn(true);
 
-            assertThatThrownBy(() -> service.createAndPersistPerson(name, email, phone, birthDate))
+            assertThatThrownBy(() -> service.createAndPersistPerson(name, clientEmail, phone, birthDate))
                     .isInstanceOf(ClientAlreadyExistsException.class)
                     .hasMessageContaining("Client already exists")
                     .extracting("businessKey")
-                    .isEqualTo(email.value());
+                    .isEqualTo(clientEmail.value());
 
-            verify(clientRepository).existsByEmail(email);
+            verify(clientRepository).existsByEmail(clientEmail);
         }
 
         @Test
         @DisplayName("Should create Person with all fields correctly mapped")
         void shouldMapAllFieldsCorrectly() {
             ClientName name = ClientName.of("Jane Smith");
-            Email email = Email.of("jane@example.com");
-            PhoneNumber phone = PhoneNumber.of("+33987654321");
+            ClientEmail clientEmail = ClientEmail.of("jane@example.com");
+            ClientPhoneNumber phone = ClientPhoneNumber.of("+33987654321");
             PersonBirthDate birthDate = PersonBirthDate.of(LocalDate.of(1985, 6, 20));
 
-            when(clientRepository.existsByEmail(email)).thenReturn(false);
+            when(clientRepository.existsByEmail(clientEmail)).thenReturn(false);
             when(clientRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            Person result = service.createAndPersistPerson(name, email, phone, birthDate);
+            Person result = service.createAndPersistPerson(name, clientEmail, phone, birthDate);
 
             assertThat(result).isNotNull();
             assertThat(result.getName()).isEqualTo(name);
-            assertThat(result.getEmail()).isEqualTo(email);
+            assertThat(result.getEmail()).isEqualTo(clientEmail);
             assertThat(result.getPhone()).isEqualTo(phone);
             assertThat(result.getBirthDate()).isEqualTo(birthDate);
         }
@@ -110,23 +105,23 @@ class ClientServiceTest {
         @DisplayName("Should create Company when email and identifier are unique")
         void shouldCreateCompanyWhenAllUnique() {
             ClientName name = ClientName.of("Acme Corp");
-            Email email = Email.of("contact@acme.com");
-            PhoneNumber phone = PhoneNumber.of("+33123456789");
+            ClientEmail clientEmail = ClientEmail.of("contact@acme.com");
+            ClientPhoneNumber phone = ClientPhoneNumber.of("+33123456789");
             CompanyIdentifier companyId = CompanyIdentifier.of("CHE-123.456.789");
 
-            when(clientRepository.existsByEmail(email)).thenReturn(false);
+            when(clientRepository.existsByEmail(clientEmail)).thenReturn(false);
             when(clientRepository.existsByCompanyIdentifier(companyId)).thenReturn(false);
             when(clientRepository.save(any(Company.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            Company result = service.createAndPersistCompany(name, email, phone, companyId);
+            Company result = service.createAndPersistCompany(name, clientEmail, phone, companyId);
 
             assertThat(result).isNotNull();
             assertThat(result.getName()).isEqualTo(name);
-            assertThat(result.getEmail()).isEqualTo(email);
+            assertThat(result.getEmail()).isEqualTo(clientEmail);
             assertThat(result.getPhone()).isEqualTo(phone);
             assertThat(result.getCompanyIdentifier()).isEqualTo(companyId);
 
-            verify(clientRepository).existsByEmail(email);
+            verify(clientRepository).existsByEmail(clientEmail);
             verify(clientRepository).existsByCompanyIdentifier(companyId);
             verify(clientRepository).save(any(Company.class));
         }
@@ -135,38 +130,38 @@ class ClientServiceTest {
         @DisplayName("Should throw ClientAlreadyExistsException when email already exists")
         void shouldThrowWhenEmailAlreadyExists() {
             ClientName name = ClientName.of("Acme Corp");
-            Email email = Email.of("duplicate@acme.com");
-            PhoneNumber phone = PhoneNumber.of("+33123456789");
+            ClientEmail clientEmail = ClientEmail.of("duplicate@acme.com");
+            ClientPhoneNumber phone = ClientPhoneNumber.of("+33123456789");
             CompanyIdentifier companyId = CompanyIdentifier.of("CHE-123.456.789");
 
-            when(clientRepository.existsByEmail(email)).thenReturn(true);
+            when(clientRepository.existsByEmail(clientEmail)).thenReturn(true);
 
-            assertThatThrownBy(() -> service.createAndPersistCompany(name, email, phone, companyId))
+            assertThatThrownBy(() -> service.createAndPersistCompany(name, clientEmail, phone, companyId))
                     .isInstanceOf(ClientAlreadyExistsException.class)
                     .hasMessageContaining("Client already exists")
                     .extracting("businessKey")
-                    .isEqualTo(email.value());
+                    .isEqualTo(clientEmail.value());
 
-            verify(clientRepository).existsByEmail(email);
+            verify(clientRepository).existsByEmail(clientEmail);
         }
 
         @Test
         @DisplayName("Should throw CompanyIdentifierAlreadyExistsException when identifier already exists")
         void shouldThrowWhenCompanyIdentifierAlreadyExists() {
             ClientName name = ClientName.of("Acme Corp");
-            Email email = Email.of("contact@acme.com");
-            PhoneNumber phone = PhoneNumber.of("+33123456789");
+            ClientEmail clientEmail = ClientEmail.of("contact@acme.com");
+            ClientPhoneNumber phone = ClientPhoneNumber.of("+33123456789");
             CompanyIdentifier companyId = CompanyIdentifier.of("CHE-999.888.777");
 
-            when(clientRepository.existsByEmail(email)).thenReturn(false);
+            when(clientRepository.existsByEmail(clientEmail)).thenReturn(false);
             when(clientRepository.existsByCompanyIdentifier(companyId)).thenReturn(true);
 
-            assertThatThrownBy(() -> service.createAndPersistCompany(name, email, phone, companyId))
+            assertThatThrownBy(() -> service.createAndPersistCompany(name, clientEmail, phone, companyId))
                     .isInstanceOf(CompanyIdentifierAlreadyExistsException.class)
                     .hasMessageContaining("already exists")
                     .hasMessageContaining(companyId.value());
 
-            verify(clientRepository).existsByEmail(email);
+            verify(clientRepository).existsByEmail(clientEmail);
             verify(clientRepository).existsByCompanyIdentifier(companyId);
         }
 
@@ -174,19 +169,19 @@ class ClientServiceTest {
         @DisplayName("Should create Company with all fields correctly mapped")
         void shouldMapAllFieldsCorrectly() {
             ClientName name = ClientName.of("Tech Solutions SA");
-            Email email = Email.of("info@techsolutions.ch");
-            PhoneNumber phone = PhoneNumber.of("+41223456789");
+            ClientEmail clientEmail = ClientEmail.of("info@techsolutions.ch");
+            ClientPhoneNumber phone = ClientPhoneNumber.of("+41223456789");
             CompanyIdentifier companyId = CompanyIdentifier.of("CHE-111.222.333");
 
-            when(clientRepository.existsByEmail(email)).thenReturn(false);
+            when(clientRepository.existsByEmail(clientEmail)).thenReturn(false);
             when(clientRepository.existsByCompanyIdentifier(companyId)).thenReturn(false);
             when(clientRepository.save(any(Company.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            Company result = service.createAndPersistCompany(name, email, phone, companyId);
+            Company result = service.createAndPersistCompany(name, clientEmail, phone, companyId);
 
             assertThat(result).isNotNull();
             assertThat(result.getName()).isEqualTo(name);
-            assertThat(result.getEmail()).isEqualTo(email);
+            assertThat(result.getEmail()).isEqualTo(clientEmail);
             assertThat(result.getPhone()).isEqualTo(phone);
             assertThat(result.getCompanyIdentifier()).isEqualTo(companyId);
         }
@@ -194,32 +189,32 @@ class ClientServiceTest {
 
     @Nested
     @DisplayName("Ensure Email Is Unique - Business Rule")
-    class EnsureEmailIsUniqueTests {
+    class EnsureClientEmailIsUniqueTests {
 
         @Test
         @DisplayName("Should not throw when email is unique")
         void shouldNotThrowWhenEmailIsUnique() {
-            Email email = Email.of("unique@example.com");
+            ClientEmail clientEmail = ClientEmail.of("unique@example.com");
 
-            when(clientRepository.existsByEmail(email)).thenReturn(false);
+            when(clientRepository.existsByEmail(clientEmail)).thenReturn(false);
 
-            service.ensureEmailIsUnique(email);
+            service.ensureEmailIsUnique(clientEmail);
 
-            verify(clientRepository).existsByEmail(email);
+            verify(clientRepository).existsByEmail(clientEmail);
         }
 
         @Test
         @DisplayName("Should throw when email already exists")
         void shouldThrowWhenEmailExists() {
-            Email email = Email.of("existing@example.com");
+            ClientEmail clientEmail = ClientEmail.of("existing@example.com");
 
-            when(clientRepository.existsByEmail(email)).thenReturn(true);
+            when(clientRepository.existsByEmail(clientEmail)).thenReturn(true);
 
-            assertThatThrownBy(() -> service.ensureEmailIsUnique(email))
+            assertThatThrownBy(() -> service.ensureEmailIsUnique(clientEmail))
                     .isInstanceOf(ClientAlreadyExistsException.class)
                     .hasMessageContaining("Client already exists");
 
-            verify(clientRepository).existsByEmail(email);
+            verify(clientRepository).existsByEmail(clientEmail);
         }
     }
 

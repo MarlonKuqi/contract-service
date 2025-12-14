@@ -240,8 +240,10 @@
 							<dataFile>target/jacoco-it.exec</dataFile>
 							<outputDirectory>target/jacoco-it</outputDirectory>
 							<excludes>
-								<exclude>**/web/dto/**</exclude>
+								<exclude>**/web/**</exclude>
 								<exclude>**/ContractServiceApplication.class</exclude>
+								<exclude>**/application/**/dto/**</exclude>
+								<exclude>**/application/**/mapper/**</exclude>
 							</excludes>
 						</configuration>
 					</execution>
@@ -249,13 +251,13 @@
 				<configuration>
 					<!-- Exclusions pour se concentrer sur le domaine -->
 					<excludes>
-						<exclude>**/web/dto/**</exclude>
-						<exclude>**/web/controller/**</exclude>
-						<exclude>**/web/advice/**</exclude>
+						<exclude>**/web/**</exclude>
 						<exclude>**/infrastructure/**</exclude>
 						<exclude>**/config/**</exclude>
 						<exclude>**/ContractServiceApplication.class</exclude>
 						<exclude>**/domain/exception/**</exclude>
+						<exclude>**/application/**/dto/**</exclude>
+						<exclude>**/application/**/mapper/**</exclude>
 					</excludes>
 					<!-- Règles de couverture -->
 					<rules>

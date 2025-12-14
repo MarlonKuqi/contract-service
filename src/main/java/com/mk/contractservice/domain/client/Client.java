@@ -1,8 +1,5 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
@@ -16,15 +13,15 @@ public abstract sealed class Client permits Person, Company {
 
     public static final String NULL_NAME_MSG = "ClientName must not be null";
     public static final String NULL_EMAIL_MSG = "Email must not be null";
-    public static final String NULL_PHONE_MSG = "PhoneNumber must not be null";
+    public static final String NULL_PHONE_MSG = "ClientPhoneNumber must not be null";
 
     @Nullable
     UUID id;
     ClientName name;
-    Email email;
-    PhoneNumber phone;
+    ClientEmail email;
+    ClientPhoneNumber phone;
 
-    protected Client(@Nullable final UUID id, @Nullable final ClientName name, @Nullable final Email email, @Nullable final PhoneNumber phone) {
+    protected Client(@Nullable final UUID id, @Nullable final ClientName name, @Nullable final ClientEmail email, @Nullable final ClientPhoneNumber phone) {
         if (name == null) {
             throw new IllegalArgumentException(NULL_NAME_MSG);
         }
@@ -43,6 +40,6 @@ public abstract sealed class Client permits Person, Company {
 
     public abstract Client updatePartial(
             @Nullable final ClientName name,
-            @Nullable final Email email,
-            @Nullable final PhoneNumber phone);
+            @Nullable final ClientEmail clientEmail,
+            @Nullable final ClientPhoneNumber phone);
 }

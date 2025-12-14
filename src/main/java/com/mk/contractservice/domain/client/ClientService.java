@@ -3,11 +3,6 @@ package com.mk.contractservice.domain.client;
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.CompanyIdentifierAlreadyExistsException;
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
@@ -27,21 +22,21 @@ public class ClientService {
     }
 
     @Transactional
-    public Person createAndPersistPerson(final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
-        ensureEmailIsUnique(email);
-        final Person person = Person.of(name, email, phone, birthDate);
+    public Person createAndPersistPerson(final ClientName name, final ClientEmail clientEmail, final ClientPhoneNumber phone, final PersonBirthDate birthDate) {
+        ensureEmailIsUnique(clientEmail);
+        final Person person = Person.of(name, clientEmail, phone, birthDate);
         return (Person) clientRepository.save(person);
     }
 
     @Transactional
-    public Company createAndPersistCompany(final ClientName name, final Email email, final PhoneNumber phone, final CompanyIdentifier companyIdentifier) {
+    public Company createAndPersistCompany(final ClientName name, final ClientEmail email, final ClientPhoneNumber phone, final CompanyIdentifier companyIdentifier) {
         ensureEmailIsUnique(email);
         ensureCompanyIdentifierIsUnique(companyIdentifier);
         final Company company = Company.of(name, email, phone, companyIdentifier);
         return (Company) clientRepository.save(company);
     }
 
-    public void ensureEmailIsUnique(final Email email) {
+    public void ensureEmailIsUnique(final ClientEmail email) {
         if (clientRepository.existsByEmail(email)) {
             throw new ClientAlreadyExistsException("Client already exists", email.value());
         }
@@ -57,13 +52,13 @@ public class ClientService {
     }
 
     @Transactional
-    public Client updateAndPersistCommonFields(final UUID clientId, final ClientName name, final Email email, final PhoneNumber phone) {
+    public Client updateAndPersistCommonFields(final UUID clientId, final ClientName name, final ClientEmail clientEmail, final ClientPhoneNumber phone) {
         final Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new ClientNotFoundException("Client with ID " + clientId + " not found"));
 
         final Client updatedClient = switch (client) {
-            case Person p -> p.withCommonFields(name, email, phone);
-            case Company c -> c.withCommonFields(name, email, phone);
+            case Person p -> p.withCommonFields(name, clientEmail, phone);
+            case Company c -> c.withCommonFields(name, clientEmail, phone);
         };
 
         return clientRepository.save(updatedClient);
@@ -73,17 +68,17 @@ public class ClientService {
     public Client patchAndPersistClient(
             final UUID clientId,
             final @Nullable ClientName name,
-            final @Nullable Email email,
-            final @Nullable PhoneNumber phone
+            final @Nullable ClientEmail clientEmail,
+            final @Nullable ClientPhoneNumber phone
     ) {
         final Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new ClientNotFoundException("Client with ID " + clientId + " not found"));
 
-        if (name == null && email == null && phone == null) {
+        if (name == null && clientEmail == null && phone == null) {
             return client;
         }
 
-        final Client patchedClient = client.updatePartial(name, email, phone);
+        final Client patchedClient = client.updatePartial(name, clientEmail, phone);
         return clientRepository.save(patchedClient);
     }
 }

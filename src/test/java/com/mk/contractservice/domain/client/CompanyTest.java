@@ -1,9 +1,6 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,8 +17,8 @@ class CompanyTest {
     void shouldCreateCompanyWithValidData() {
         Company company = Company.of(
                 ClientName.of("ACME Corporation"),
-                Email.of("contact@acme.com"),
-                PhoneNumber.of("+33123456789"),
+                ClientEmail.of("contact@acme.com"),
+                ClientPhoneNumber.of("+33123456789"),
                 CompanyIdentifier.of("acme-123")
         );
 
@@ -35,12 +32,11 @@ class CompanyTest {
     @Test
     @DisplayName("GIVEN null company identifier WHEN creating Company THEN throw exception")
     void shouldRejectNullCompanyIdentifier() {
-        assertThatThrownBy(() -> Company.of(
-                ClientName.of("ACME Corp"),
-                Email.of("contact@acme.com"),
-                PhoneNumber.of("+33123456789"),
-                null
-        ))
+        ClientName name = ClientName.of("ACME Corp");
+        ClientEmail clientEmail = ClientEmail.of("contact@acme.com");
+        ClientPhoneNumber phone = ClientPhoneNumber.of("+33123456789");
+
+        assertThatThrownBy(() -> Company.of(name, clientEmail, phone, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Company identifier must not be null");
     }
@@ -50,8 +46,8 @@ class CompanyTest {
     void shouldAcceptPatternFromSubject() {
         Company company = Company.of(
                 ClientName.of("Example Company"),
-                Email.of("info@example.com"),
-                PhoneNumber.of("+33987654321"),
+                ClientEmail.of("info@example.com"),
+                ClientPhoneNumber.of("+33987654321"),
                 CompanyIdentifier.of("aaa-123")
         );
 
@@ -63,8 +59,8 @@ class CompanyTest {
     void shouldAcceptSpecialCharactersInIdentifier() {
         Company company = Company.of(
                 ClientName.of("Test Corp"),
-                Email.of("test@corp.com"),
-                PhoneNumber.of("+33111111111"),
+                ClientEmail.of("test@corp.com"),
+                ClientPhoneNumber.of("+33111111111"),
                 CompanyIdentifier.of("abc-xyz-123_456")
         );
 
@@ -76,15 +72,15 @@ class CompanyTest {
     void shouldReconstituteCompanyWithId() {
         UUID id = UUID.randomUUID();
         ClientName name = ClientName.of("ACME Corp");
-        Email email = Email.of("contact@acme.com");
-        PhoneNumber phone = PhoneNumber.of("+33123456789");
+        ClientEmail clientEmail = ClientEmail.of("contact@acme.com");
+        ClientPhoneNumber phone = ClientPhoneNumber.of("+33123456789");
         CompanyIdentifier companyId = CompanyIdentifier.of("acme-123");
 
-        Company company = Company.reconstitute(id, name, email, phone, companyId);
+        Company company = Company.reconstitute(id, name, clientEmail, phone, companyId);
 
         assertThat(company.getId()).isEqualTo(id);
         assertThat(company.getName()).isEqualTo(name);
-        assertThat(company.getEmail()).isEqualTo(email);
+        assertThat(company.getEmail()).isEqualTo(clientEmail);
         assertThat(company.getPhone()).isEqualTo(phone);
         assertThat(company.getCompanyIdentifier()).isEqualTo(companyId);
     }
@@ -95,15 +91,15 @@ class CompanyTest {
     void shouldUpdateAllCommonFields() {
         Company company = Company.of(
                 ClientName.of("ACME Corp"),
-                Email.of("old@acme.com"),
-                PhoneNumber.of("+33111111111"),
+                ClientEmail.of("old@acme.com"),
+                ClientPhoneNumber.of("+33111111111"),
                 CompanyIdentifier.of("acme-123")
         );
 
         Company updated = company.withCommonFields(
                 ClientName.of("ACME Corporation"),
-                Email.of("new@acme.com"),
-                PhoneNumber.of("+33999999999")
+                ClientEmail.of("new@acme.com"),
+                ClientPhoneNumber.of("+33999999999")
         );
 
         assertThat(updated.getName().value()).isEqualTo("ACME Corporation");
@@ -118,15 +114,15 @@ class CompanyTest {
         CompanyIdentifier originalId = CompanyIdentifier.of("acme-123");
         Company company = Company.of(
                 ClientName.of("ACME Corp"),
-                Email.of("contact@acme.com"),
-                PhoneNumber.of("+33123456789"),
+                ClientEmail.of("contact@acme.com"),
+                ClientPhoneNumber.of("+33123456789"),
                 originalId
         );
 
         Company updated = company.withCommonFields(
                 ClientName.of("New Name"),
-                Email.of("new@acme.com"),
-                PhoneNumber.of("+33999999999")
+                ClientEmail.of("new@acme.com"),
+                ClientPhoneNumber.of("+33999999999")
         );
 
         assertThat(updated.getCompanyIdentifier()).isEqualTo(originalId);
@@ -137,8 +133,8 @@ class CompanyTest {
     void shouldUpdatePartialFields() {
         Company company = Company.of(
                 ClientName.of("ACME Corp"),
-                Email.of("contact@acme.com"),
-                PhoneNumber.of("+33123456789"),
+                ClientEmail.of("contact@acme.com"),
+                ClientPhoneNumber.of("+33123456789"),
                 CompanyIdentifier.of("acme-123")
         );
 
@@ -159,15 +155,15 @@ class CompanyTest {
     void shouldUpdateAllFieldsWhenAllProvided() {
         Company company = Company.of(
                 ClientName.of("ACME Corp"),
-                Email.of("old@acme.com"),
-                PhoneNumber.of("+33111111111"),
+                ClientEmail.of("old@acme.com"),
+                ClientPhoneNumber.of("+33111111111"),
                 CompanyIdentifier.of("acme-123")
         );
 
         Company updated = company.updatePartial(
                 ClientName.of("New Corp"),
-                Email.of("new@corp.com"),
-                PhoneNumber.of("+33999999999")
+                ClientEmail.of("new@corp.com"),
+                ClientPhoneNumber.of("+33999999999")
         );
 
         assertThat(updated.getName().value()).isEqualTo("New Corp");
@@ -182,15 +178,15 @@ class CompanyTest {
         CompanyIdentifier originalId = CompanyIdentifier.of("acme-123");
         Company company = Company.of(
                 ClientName.of("ACME Corp"),
-                Email.of("contact@acme.com"),
-                PhoneNumber.of("+33123456789"),
+                ClientEmail.of("contact@acme.com"),
+                ClientPhoneNumber.of("+33123456789"),
                 originalId
         );
 
         Company updated = company.updatePartial(
                 ClientName.of("New Name"),
-                Email.of("new@acme.com"),
-                PhoneNumber.of("+33999999999")
+                ClientEmail.of("new@acme.com"),
+                ClientPhoneNumber.of("+33999999999")
         );
 
         assertThat(updated.getCompanyIdentifier()).isEqualTo(originalId);

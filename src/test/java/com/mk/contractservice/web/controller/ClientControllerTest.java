@@ -1,15 +1,17 @@
 package com.mk.contractservice.web.controller;
 
-import com.mk.contractservice.application.dto.PersonDto;
-import com.mk.contractservice.application.service.ClientApplicationService;
+
+import com.mk.contractservice.application.client.ClientApplicationService;
+import com.mk.contractservice.application.client.dto.PersonDto;
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
-import com.mk.contractservice.web.advice.ClientControllerAdvice;
-import com.mk.contractservice.web.advice.GlobalExceptionHandler;
-import com.mk.contractservice.web.config.WebMvcConfig;
-import com.mk.contractservice.web.dto.mapper.client.ClientDtoMapperImpl;
-import com.mk.contractservice.web.dto.mapper.client.CompanyResponseMapperImpl;
-import com.mk.contractservice.web.dto.mapper.client.PersonResponseMapperImpl;
+import com.mk.contractservice.web.GlobalExceptionHandler;
+import com.mk.contractservice.web.WebMvcConfig;
+import com.mk.contractservice.web.client.ClientController;
+import com.mk.contractservice.web.client.ClientControllerAdvice;
+import com.mk.contractservice.web.client.mapper.ClientDtoMapperImpl;
+import com.mk.contractservice.web.client.mapper.CompanyResponseMapperImpl;
+import com.mk.contractservice.web.client.mapper.PersonResponseMapperImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -105,7 +107,7 @@ class ClientControllerTest {
         }
 
         @Test
-        @DisplayName("GIVEN duplicate email WHEN create THEN return 409 Conflict")
+        @DisplayName("GIVEN duplicate clientEmail WHEN create THEN return 409 Conflict")
         void shouldReturnConflictWhenEmailExists() throws Exception {
             String requestJson = """
                     {
@@ -130,7 +132,7 @@ class ClientControllerTest {
         }
 
         @Test
-        @DisplayName("GIVEN invalid email format WHEN create THEN return 422 Unprocessable Entity")
+        @DisplayName("GIVEN invalid clientEmail format WHEN create THEN return 422 Unprocessable Entity")
         void shouldReturnUnprocessableEntityForInvalidEmail() throws Exception {
             String requestJson = """
                     {
@@ -143,7 +145,7 @@ class ClientControllerTest {
                     """;
 
             when(clientService.createPerson(anyString(), anyString(), anyString(), any(LocalDate.class)))
-                    .thenThrow(new IllegalArgumentException("Invalid email format"));
+                    .thenThrow(new IllegalArgumentException("Invalid clientEmail format"));
 
             mockMvc.perform(post("/v2/clients")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -285,7 +287,7 @@ class ClientControllerTest {
         }
 
         @Test
-        @DisplayName("GIVEN valid patch request with email only WHEN patch THEN return 204 No Content")
+        @DisplayName("GIVEN valid patch request with clientEmail only WHEN patch THEN return 204 No Content")
         void shouldPatchClientEmailOnly() throws Exception {
 
             UUID clientId = UUID.randomUUID();

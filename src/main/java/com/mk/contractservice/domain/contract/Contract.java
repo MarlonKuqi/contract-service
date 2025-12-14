@@ -1,10 +1,7 @@
 package com.mk.contractservice.domain.contract;
 
-import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.exception.ExpiredContractException;
 import com.mk.contractservice.domain.exception.InvalidContractException;
-import com.mk.contractservice.domain.valueobject.ContractCost;
-import com.mk.contractservice.domain.valueobject.ContractPeriod;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,18 +16,18 @@ public class Contract {
 
     @Nullable
     UUID id;
-    Client client;
+    UUID clientId;
     ContractPeriod period;
     ContractCost costAmount;
 
     @Builder(toBuilder = true)
     private Contract(
             @Nullable final UUID id,
-            @Nullable final Client client,
+            @Nullable final UUID clientId,
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount
     ) {
-        if (client == null) {
+        if (clientId == null) {
             throw InvalidContractException.forNullClient();
         }
         if (period == null) {
@@ -40,23 +37,32 @@ public class Contract {
             throw InvalidContractException.forNullCostAmount();
         }
         this.id = id;
-        this.client = client;
+        this.clientId = clientId;
         this.period = period;
         this.costAmount = costAmount;
     }
 
-    public static Contract of(final Client client, final ContractPeriod period, final ContractCost costAmount) {
+    public static Contract of(
+            @Nullable final UUID clientId,
+            @Nullable final ContractPeriod period,
+            @Nullable final ContractCost costAmount
+    ) {
         return builder()
-                .client(client)
+                .clientId(clientId)
                 .period(period)
                 .costAmount(costAmount)
                 .build();
     }
 
-    public static Contract reconstitute(final UUID id, final Client client, final ContractPeriod period, final ContractCost costAmount) {
+    public static Contract reconstitute(
+            @Nullable final UUID id,
+            @Nullable final UUID clientId,
+            @Nullable final ContractPeriod period,
+            @Nullable final ContractCost costAmount
+    ) {
         return builder()
                 .id(id)
-                .client(client)
+                .clientId(clientId)
                 .period(period)
                 .costAmount(costAmount)
                 .build();

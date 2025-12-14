@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.valueobject;
 
+import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.exception.InvalidPersonBirthDateException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -8,7 +9,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.LocalDate;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PersonBirthDate - Value Object Tests")
 class PersonBirthDateTest {
