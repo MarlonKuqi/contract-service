@@ -5,7 +5,7 @@ import com.mk.contractservice.application.client.ClientApplicationService;
 import com.mk.contractservice.application.client.dto.PersonDto;
 import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
-import com.mk.contractservice.web.GlobalExceptionHandler;
+import com.mk.contractservice.web.GlobalControllerAdvice;
 import com.mk.contractservice.web.WebMvcConfig;
 import com.mk.contractservice.web.client.ClientController;
 import com.mk.contractservice.web.client.ClientControllerAdvice;
@@ -44,7 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = {
         ClientController.class,
         ClientControllerAdvice.class,
-        GlobalExceptionHandler.class,
+        GlobalControllerAdvice.class,
         WebMvcConfig.class
 })
 @Import({

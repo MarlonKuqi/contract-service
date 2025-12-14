@@ -6,7 +6,7 @@ import com.mk.contractservice.application.contract.mapper.ContractValueObjectMap
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.exception.ExpiredContractException;
-import com.mk.contractservice.web.GlobalExceptionHandler;
+import com.mk.contractservice.web.GlobalControllerAdvice;
 import com.mk.contractservice.web.WebMvcConfig;
 import com.mk.contractservice.web.contract.ContractController;
 import com.mk.contractservice.web.contract.ContractControllerAdvice;
@@ -47,7 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = {
         ContractController.class,
         ContractControllerAdvice.class,
-        GlobalExceptionHandler.class,
+        GlobalControllerAdvice.class,
         WebMvcConfig.class,
 })
 @Import({

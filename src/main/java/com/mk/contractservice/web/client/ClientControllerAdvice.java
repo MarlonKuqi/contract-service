@@ -6,29 +6,23 @@ import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.CompanyIdentifierAlreadyExistsException;
 import com.mk.contractservice.domain.exception.DomainValidationException;
+import com.mk.contractservice.web.BaseControllerAdvice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.net.URI;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 @RestControllerAdvice(assignableTypes = ClientController.class)
-public class ClientControllerAdvice {
+public class ClientControllerAdvice extends BaseControllerAdvice {
 
     private static final Logger log = LoggerFactory.getLogger(ClientControllerAdvice.class);
 
@@ -117,29 +111,6 @@ public class ClientControllerAdvice {
         final ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Bad Request",
                 ex.getMessage(), "badRequest");
         return respond(problemDetail);
-    }
-
-    private static String messageOf(final FieldError fe) {
-        return Optional.ofNullable(fe.getDefaultMessage()).orElse("Invalid value");
-    }
-
-    private static ProblemDetail problem(final HttpStatus status, final String title, final String detail, final String code) {
-        final ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
-        problemDetail.setTitle(title);
-        problemDetail.setType(URI.create("about:blank"));
-        problemDetail.setProperty("code", code);
-        problemDetail.setProperty("timestamp", LocalDateTime.now());
-        problemDetail.setProperty("traceId", UUID.randomUUID().toString());
-        return problemDetail;
-    }
-
-    private static ResponseEntity<ProblemDetail> respond(final ProblemDetail problemDetail) {
-        final String lang = LocaleContextHolder.getLocale().toLanguageTag();
-        return ResponseEntity
-                .status(problemDetail.getStatus())
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PROBLEM_JSON_VALUE)
-                .header(HttpHeaders.CONTENT_LANGUAGE, lang)
-                .body(problemDetail);
     }
 }
 
