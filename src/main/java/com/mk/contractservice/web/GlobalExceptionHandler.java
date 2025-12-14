@@ -14,13 +14,17 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -98,15 +102,43 @@ public class GlobalExceptionHandler {
         String message = "A data constraint violation occurred.";
         String code = "dataIntegrityViolation";
 
-        if (ex.getMessage() != null && ex.getMessage().contains("email")) {
+        if (ex.getMessage() == null) {
+            return respond(problem(HttpStatus.CONFLICT, "Constraint Violation", message, code));
+        }
+        if (ex.getMessage().contains("email")) {
             message = "A client with this email address already exists.";
             code = "emailAlreadyExists";
-        } else if (ex.getMessage() != null && ex.getMessage().contains("company_identifier")) {
+        } else if (ex.getMessage().contains("company_identifier")) {
             message = "A company with this identifier already exists.";
             code = "companyIdentifierAlreadyExists";
         }
+        return respond(problem(HttpStatus.CONFLICT, "Constraint Violation", message, code));
+    }
 
-        ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Constraint Violation", message, code);
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ProblemDetail> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        log.debug("Validation failed: {}", ex.getMessage());
+
+        List<FieldError> fieldErrors = ex.getBindingResult().getFieldErrors();
+        String errorMessage = fieldErrors.stream()
+                .map(error -> String.format("%s: %s", error.getField(), error.getDefaultMessage()))
+                .collect(Collectors.joining(", "));
+
+        ProblemDetail problemDetail = problem(
+                HttpStatus.BAD_REQUEST,
+                "Validation Failed",
+                errorMessage,
+                "validationFailed"
+        );
+
+        List<String> fieldErrorDetails = fieldErrors.stream()
+                .map(error -> String.format("Field '%s' %s (rejected value: %s)",
+                        error.getField(),
+                        error.getDefaultMessage(),
+                        error.getRejectedValue()))
+                .toList();
+        problemDetail.setProperty("errors", fieldErrorDetails);
+
         return respond(problemDetail);
     }
 
