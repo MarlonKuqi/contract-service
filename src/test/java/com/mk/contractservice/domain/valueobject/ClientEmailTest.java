@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
-import com.mk.contractservice.domain.client.ClientEmail;
-import com.mk.contractservice.domain.exception.InvalidEmailException;
+import com.mk.contractservice.domain.client.valueobject.ClientEmail;
+import com.mk.contractservice.domain.client.exception.InvalidEmailException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

@@ -306,7 +306,7 @@ src/test/
 - **[docs-claude/](docs-claude/)** - Documentation générée lors des sessions de développement
   - [Pagination Architecture](docs-claude/PAGINATION_ARCHITECTURE.md)
   - [Docker Build Guide](docs-claude/DOCKER_BUILD_GUIDE.md)
-  - [Et plus...](docs-claude/README.md)
+  - [Et plus...](docs/DDD/README.md)
 
 ---
 

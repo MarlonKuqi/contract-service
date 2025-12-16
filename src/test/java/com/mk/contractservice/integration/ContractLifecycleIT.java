@@ -1,14 +1,14 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.ClientEmail;
-import com.mk.contractservice.domain.client.ClientName;
-import com.mk.contractservice.domain.client.ClientPhoneNumber;
-import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonBirthDate;
-import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
+import com.mk.contractservice.domain.client.aggregate.Client;
+import com.mk.contractservice.domain.client.valueobject.ClientEmail;
+import com.mk.contractservice.domain.client.valueobject.ClientName;
+import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
+import com.mk.contractservice.domain.client.repository.ClientRepository;
+import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
+import com.mk.contractservice.domain.contract.repository.ContractRepository;
+import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import com.mk.contractservice.web.contract.ContractController;
 import io.restassured.RestAssured;

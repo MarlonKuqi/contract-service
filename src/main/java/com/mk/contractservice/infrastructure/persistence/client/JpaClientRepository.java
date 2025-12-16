@@ -1,10 +1,10 @@
 package com.mk.contractservice.infrastructure.persistence.client;
 
 
-import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.ClientEmail;
-import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.CompanyIdentifier;
+import com.mk.contractservice.domain.client.aggregate.Client;
+import com.mk.contractservice.domain.client.valueobject.ClientEmail;
+import com.mk.contractservice.domain.client.repository.ClientRepository;
+import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
 import com.mk.contractservice.infrastructure.persistence.client.assembler.ClientAssembler;
 import org.springframework.stereotype.Repository;
 

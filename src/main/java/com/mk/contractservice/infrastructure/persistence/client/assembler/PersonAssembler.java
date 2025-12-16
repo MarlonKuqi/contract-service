@@ -1,10 +1,10 @@
 package com.mk.contractservice.infrastructure.persistence.client.assembler;
 
-import com.mk.contractservice.domain.client.ClientEmail;
-import com.mk.contractservice.domain.client.ClientName;
-import com.mk.contractservice.domain.client.ClientPhoneNumber;
-import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonBirthDate;
+import com.mk.contractservice.domain.client.valueobject.ClientEmail;
+import com.mk.contractservice.domain.client.valueobject.ClientName;
+import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
+import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
 import com.mk.contractservice.infrastructure.persistence.client.entity.PersonJpaEntity;
 import org.springframework.stereotype.Component;
 

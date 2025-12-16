@@ -3,9 +3,9 @@ package com.mk.contractservice.application.client.mapper;
 import com.mk.contractservice.application.client.dto.ClientDto;
 import com.mk.contractservice.application.client.dto.CompanyDto;
 import com.mk.contractservice.application.client.dto.PersonDto;
-import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.Company;
-import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.domain.client.aggregate.Client;
+import com.mk.contractservice.domain.client.aggregate.Company;
+import com.mk.contractservice.domain.client.aggregate.Person;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring", uses = ClientValueObjectMappers.class)

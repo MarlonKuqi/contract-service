@@ -1,7 +1,7 @@
 package com.mk.contractservice.application.contract.mapper;
 
-import com.mk.contractservice.domain.contract.ContractCost;
-import com.mk.contractservice.domain.contract.ContractPeriod;
+import com.mk.contractservice.domain.contract.valueobject.ContractCost;
+import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import org.jspecify.annotations.Nullable;
 import org.mapstruct.Mapper;
 import org.mapstruct.Named;

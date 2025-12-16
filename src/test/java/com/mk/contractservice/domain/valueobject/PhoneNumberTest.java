@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
-import com.mk.contractservice.domain.client.ClientPhoneNumber;
-import com.mk.contractservice.domain.exception.InvalidPhoneNumberException;
+import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
+import com.mk.contractservice.domain.client.exception.InvalidPhoneNumberException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

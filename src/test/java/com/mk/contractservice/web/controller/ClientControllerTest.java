@@ -3,7 +3,7 @@ package com.mk.contractservice.web.controller;
 
 import com.mk.contractservice.application.client.ClientApplicationService;
 import com.mk.contractservice.application.client.dto.PersonDto;
-import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
+import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.web.WebMvcConfig;
 import com.mk.contractservice.web.client.ClientController;

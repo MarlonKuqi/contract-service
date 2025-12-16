@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
-import com.mk.contractservice.domain.contract.ContractPeriod;
-import com.mk.contractservice.domain.exception.InvalidContractPeriodException;
+import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
+import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

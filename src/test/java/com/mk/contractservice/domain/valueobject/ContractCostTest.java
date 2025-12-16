@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
-import com.mk.contractservice.domain.contract.ContractCost;
-import com.mk.contractservice.domain.exception.InvalidContractCostException;
+import com.mk.contractservice.domain.contract.valueobject.ContractCost;
+import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

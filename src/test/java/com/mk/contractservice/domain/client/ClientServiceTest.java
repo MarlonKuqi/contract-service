@@ -1,7 +1,12 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
-import com.mk.contractservice.domain.exception.CompanyIdentifierAlreadyExistsException;
+import com.mk.contractservice.domain.client.aggregate.Company;
+import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
+import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
+import com.mk.contractservice.domain.client.repository.ClientRepository;
+import com.mk.contractservice.domain.client.service.ClientService;
+import com.mk.contractservice.domain.client.valueobject.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

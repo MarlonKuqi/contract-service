@@ -1,6 +1,11 @@
 package com.mk.contractservice.domain.contract;
 
-import com.mk.contractservice.domain.exception.ContractNotOwnedByClientException;
+import com.mk.contractservice.domain.contract.aggregate.Contract;
+import com.mk.contractservice.domain.contract.exception.ContractNotOwnedByClientException;
+import com.mk.contractservice.domain.contract.repository.ContractRepository;
+import com.mk.contractservice.domain.contract.service.ContractService;
+import com.mk.contractservice.domain.contract.valueobject.ContractCost;
+import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

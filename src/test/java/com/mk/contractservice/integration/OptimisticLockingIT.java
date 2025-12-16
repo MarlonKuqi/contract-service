@@ -1,6 +1,6 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.infrastructure.persistence.ContractJpaRepository;
+import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import io.restassured.RestAssured;

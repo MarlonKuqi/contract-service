@@ -2,9 +2,9 @@ package com.mk.contractservice.web.client;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import com.mk.contractservice.domain.exception.ClientAlreadyExistsException;
+import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
-import com.mk.contractservice.domain.exception.CompanyIdentifierAlreadyExistsException;
+import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
 import com.mk.contractservice.domain.exception.DomainValidationException;
 import com.mk.contractservice.web.BaseControllerAdvice;
 import org.slf4j.Logger;

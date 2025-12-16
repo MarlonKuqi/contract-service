@@ -1,9 +1,12 @@
 package com.mk.contractservice.domain.contract;
 
-import com.mk.contractservice.domain.exception.ExpiredContractException;
-import com.mk.contractservice.domain.exception.InvalidContractCostException;
-import com.mk.contractservice.domain.exception.InvalidContractException;
-import com.mk.contractservice.domain.exception.InvalidContractPeriodException;
+import com.mk.contractservice.domain.contract.aggregate.Contract;
+import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
+import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
+import com.mk.contractservice.domain.contract.exception.InvalidContractException;
+import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
+import com.mk.contractservice.domain.contract.valueobject.ContractCost;
+import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

@@ -1,7 +1,7 @@
 package com.mk.contractservice.application.contract.mapper;
 
 import com.mk.contractservice.application.contract.dto.ContractDto;
-import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.aggregate.Contract;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
