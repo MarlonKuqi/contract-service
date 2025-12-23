@@ -1,11 +1,19 @@
 package com.mk.contractservice.web.controller;
 
 
-import com.mk.contractservice.application.client.ClientApplicationService;
-import com.mk.contractservice.application.client.dto.PersonDto;
+import com.mk.contractservice.application.client.usecase.CreateCompanyUseCase;
+import com.mk.contractservice.application.client.usecase.CreatePersonUseCase;
+import com.mk.contractservice.application.client.usecase.DeleteClientUseCase;
+import com.mk.contractservice.application.client.usecase.GetClientByIdQuery;
+import com.mk.contractservice.application.client.usecase.PatchClientUseCase;
+import com.mk.contractservice.application.client.usecase.UpdateClientUseCase;
+import com.mk.contractservice.domain.client.aggregate.Person;
 import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
+import com.mk.contractservice.domain.client.valueobject.ClientEmail;
+import com.mk.contractservice.domain.client.valueobject.ClientName;
+import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
+import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
-import com.mk.contractservice.web.WebMvcConfig;
 import com.mk.contractservice.web.client.ClientController;
 import com.mk.contractservice.web.client.ClientControllerAdvice;
 import com.mk.contractservice.web.client.mapper.ClientDtoMapperImpl;
@@ -27,8 +35,6 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -43,7 +49,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = {
         ClientController.class,
         ClientControllerAdvice.class,
-        WebMvcConfig.class
 })
 @Import({
         ClientDtoMapperImpl.class,
@@ -58,7 +63,22 @@ class ClientControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private ClientApplicationService clientService;
+    private CreatePersonUseCase createPersonUseCase;
+
+    @MockitoBean
+    private CreateCompanyUseCase createCompanyUseCase;
+
+    @MockitoBean
+    private GetClientByIdQuery getClientByIdQuery;
+
+    @MockitoBean
+    private UpdateClientUseCase updateClientUseCase;
+
+    @MockitoBean
+    private PatchClientUseCase patchClientUseCase;
+
+    @MockitoBean
+    private DeleteClientUseCase deleteClientUseCase;
 
 
     @Nested
@@ -70,12 +90,12 @@ class ClientControllerTest {
         void shouldCreatePersonSuccessfully() throws Exception {
 
             UUID clientId = UUID.randomUUID();
-            PersonDto personDto = new PersonDto(
+            Person person = Person.reconstitute(
                     clientId,
-                    "John Doe",
-                    "john.doe@example.com",
-                    "+41791234567",
-                    LocalDate.of(1990, 1, 1)
+                    ClientName.of("John Doe"),
+                    ClientEmail.of("john.doe@example.com"),
+                    ClientPhoneNumber.of("+41791234567"),
+                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
 
             String requestJson = """
@@ -88,8 +108,8 @@ class ClientControllerTest {
                     }
                     """;
 
-            when(clientService.createPerson(anyString(), anyString(), anyString(), any(LocalDate.class)))
-                    .thenReturn(personDto);
+            when(createPersonUseCase.execute(any(CreatePersonUseCase.CreatePersonCommand.class)))
+                    .thenReturn(person);
 
             mockMvc.perform(post("/v2/clients")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -101,7 +121,7 @@ class ClientControllerTest {
                     .andExpect(jsonPath("$.name").value("John Doe"))
                     .andExpect(jsonPath("$.email").value("john.doe@example.com"));
 
-            verify(clientService).createPerson("John Doe", "john.doe@example.com", "+41791234567", LocalDate.of(1990, 1, 1));
+            verify(createPersonUseCase).execute(any(CreatePersonUseCase.CreatePersonCommand.class));
         }
 
         @Test
@@ -117,7 +137,7 @@ class ClientControllerTest {
                     }
                     """;
 
-            when(clientService.createPerson(anyString(), anyString(), anyString(), any(LocalDate.class)))
+            when(createPersonUseCase.execute(any(CreatePersonUseCase.CreatePersonCommand.class)))
                     .thenThrow(new ClientAlreadyExistsException("Client already exists"));
 
 
@@ -142,7 +162,7 @@ class ClientControllerTest {
                     }
                     """;
 
-            when(clientService.createPerson(anyString(), anyString(), anyString(), any(LocalDate.class)))
+            when(createPersonUseCase.execute(any(CreatePersonUseCase.CreatePersonCommand.class)))
                     .thenThrow(new IllegalArgumentException("Invalid clientEmail format"));
 
             mockMvc.perform(post("/v2/clients")
@@ -179,15 +199,16 @@ class ClientControllerTest {
         @DisplayName("GIVEN existing client WHEN get by id THEN return 200 with client data")
         void shouldReturnClientWhenExists() throws Exception {
             UUID clientId = UUID.randomUUID();
-            PersonDto personDto = new PersonDto(
+            Person person = Person.reconstitute(
                     clientId,
-                    "John Doe",
-                    "john.doe@example.com",
-                    "+41791234567",
-                    LocalDate.of(1990, 1, 1)
+                    ClientName.of("John Doe"),
+                    ClientEmail.of("john.doe@example.com"),
+                    ClientPhoneNumber.of("+41791234567"),
+                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
 
-            when(clientService.getClientById(clientId)).thenReturn(personDto);
+            when(getClientByIdQuery.execute(any(GetClientByIdQuery.GetClientQuery.class)))
+                    .thenReturn(person);
 
             mockMvc.perform(get("/v2/clients/{id}", clientId))
                     .andExpect(status().isOk())
@@ -196,7 +217,7 @@ class ClientControllerTest {
                     .andExpect(jsonPath("$.email").value("john.doe@example.com"))
                     .andExpect(jsonPath("$.phone").value("+41791234567"));
 
-            verify(clientService).getClientById(clientId);
+            verify(getClientByIdQuery).execute(any(GetClientByIdQuery.GetClientQuery.class));
         }
 
         @Test
@@ -204,7 +225,7 @@ class ClientControllerTest {
         void shouldReturn404WhenClientNotFound() throws Exception {
             UUID clientId = UUID.randomUUID();
 
-            when(clientService.getClientById(clientId))
+            when(getClientByIdQuery.execute(any(GetClientByIdQuery.GetClientQuery.class)))
                     .thenThrow(new ClientNotFoundException("Client with ID " + clientId + " not found"));
 
             mockMvc.perform(get("/v2/clients/{id}", clientId))
@@ -235,7 +256,7 @@ class ClientControllerTest {
                             .content(updateJson))
                     .andExpect(status().isNoContent());
 
-            verify(clientService).updateCommonFields(eq(clientId), any(), any(), any());
+            verify(updateClientUseCase).execute(any(UpdateClientUseCase.UpdateClientCommand.class));
         }
 
         @Test
@@ -250,7 +271,7 @@ class ClientControllerTest {
                     }
                     """;
 
-            when(clientService.updateCommonFields(any(), any(), any(), any()))
+            when(updateClientUseCase.execute(any(UpdateClientUseCase.UpdateClientCommand.class)))
                     .thenThrow(new ClientNotFoundException("Client with ID " + clientId + " not found"));
 
             mockMvc.perform(put("/v2/clients/{id}", clientId)
@@ -281,7 +302,7 @@ class ClientControllerTest {
                             .content(patchJson))
                     .andExpect(status().isNoContent());
 
-            verify(clientService).patchClient(eq(clientId), any(), eq(null), eq(null));
+            verify(patchClientUseCase).execute(any(PatchClientUseCase.PatchClientCommand.class));
         }
 
         @Test
@@ -301,7 +322,7 @@ class ClientControllerTest {
                             .content(patchJson))
                     .andExpect(status().isNoContent());
 
-            verify(clientService).patchClient(eq(clientId), eq(null), any(), eq(null));
+            verify(patchClientUseCase).execute(any(PatchClientUseCase.PatchClientCommand.class));
         }
     }
 }

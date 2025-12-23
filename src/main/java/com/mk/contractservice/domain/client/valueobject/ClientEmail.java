@@ -1,6 +1,5 @@
 package com.mk.contractservice.domain.client.valueobject;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.mk.contractservice.domain.client.exception.InvalidEmailException;
 import org.jspecify.annotations.Nullable;
 
@@ -50,7 +49,6 @@ public final class ClientEmail {
         }
     }
 
-    @JsonValue
     public String value() {
         return value;
     }

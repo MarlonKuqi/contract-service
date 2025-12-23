@@ -3,7 +3,12 @@ package com.mk.contractservice.infrastructure.persistence.contract;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.assembler.ContractAssembler;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
@@ -14,17 +19,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class JpaContractRepository implements ContractRepository {
 
-    private final ContractJpaRepository contractJpaRepository;
-    private final ContractAssembler assembler;
-
-    public JpaContractRepository(final ContractJpaRepository contractJpaRepository, final ContractAssembler assembler) {
-        this.contractJpaRepository = contractJpaRepository;
-        this.assembler = assembler;
-    }
+    ContractJpaRepository contractJpaRepository;
+    ContractAssembler assembler;
 
     @Override
+    @CacheEvict(value = "contractSums", key = "#contract.clientId")
     public Contract save(final Contract contract) {
         if (contract.getId() != null) {
             var entityOpt = contractJpaRepository.findById(contract.getId());
@@ -60,11 +63,13 @@ public class JpaContractRepository implements ContractRepository {
 
 
     @Override
+    @CacheEvict(value = "contractSums", key = "#clientId")
     public void closeAllActiveByClientId(final UUID clientId) {
         contractJpaRepository.closeAllActiveByClientId(clientId);
     }
 
     @Override
+    @Cacheable(value = "contractSums", key = "#clientId")
     public BigDecimal sumActiveByClientId(final UUID clientId) {
         return contractJpaRepository.sumActiveByClientId(clientId);
     }

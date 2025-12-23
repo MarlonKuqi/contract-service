@@ -3,8 +3,8 @@ package com.mk.contractservice.web.client;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
-import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
+import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.exception.DomainValidationException;
 import com.mk.contractservice.web.BaseControllerAdvice;
 import org.slf4j.Logger;
@@ -30,17 +30,20 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handleNotReadable(final HttpMessageNotReadableException ex) {
         log.debug("Malformed JSON in client request: {}", ex.getMessage());
 
-        String detail = "Malformed JSON or invalid payload.";
-
-        Throwable cause = ex.getCause();
-        if (cause instanceof InvalidFormatException ife) {
-            detail = String.format("Invalid value '%s' for field '%s'. Expected type: %s",
-                    ife.getValue(), ife.getPath().get(0).getFieldName(), ife.getTargetType().getSimpleName());
-        } else if (cause instanceof MismatchedInputException mie) {
-            if (!mie.getPath().isEmpty()) {
-                detail = String.format("Missing or invalid field: '%s'", mie.getPath().get(0).getFieldName());
-            }
-        }
+        final Throwable cause = ex.getCause();
+        final String detail = switch (cause) {
+            case InvalidFormatException ife -> String.format(
+                    "Invalid value '%s' for field '%s'. Expected type: %s",
+                    ife.getValue(),
+                    ife.getPath().get(0).getFieldName(),
+                    ife.getTargetType().getSimpleName()
+            );
+            case MismatchedInputException mie when !mie.getPath().isEmpty() -> String.format(
+                    "Missing or invalid field: '%s'",
+                    mie.getPath().get(0).getFieldName()
+            );
+            case null, default -> "Malformed JSON or invalid payload.";
+        };
 
         final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed", detail, "validationError");
         return respond(problemDetail);

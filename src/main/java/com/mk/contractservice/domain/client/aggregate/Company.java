@@ -1,9 +1,11 @@
 package com.mk.contractservice.domain.client.aggregate;
 
+import com.mk.contractservice.domain.client.exception.InvalidClientException;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -13,14 +15,13 @@ import org.jspecify.annotations.Nullable;
 import java.util.UUID;
 
 @Getter
+@EqualsAndHashCode(callSuper = true)
 @FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
 public final class Company extends Client {
 
-    public static final String COMPANY_IDENTIFIER_NULL_MESSAGE = "Company identifier must not be null";
-
     CompanyIdentifier companyIdentifier;
 
-    private Company(
+    Company(
             @Nullable final UUID id,
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
@@ -28,11 +29,9 @@ public final class Company extends Client {
             @Nullable final CompanyIdentifier companyIdentifier
     ) {
         super(id, name, email, phone);
-
         if (companyIdentifier == null) {
-            throw new IllegalArgumentException(COMPANY_IDENTIFIER_NULL_MESSAGE);
+            throw InvalidClientException.forNullCompanyIdentifier();
         }
-
         this.companyIdentifier = companyIdentifier;
     }
 
@@ -74,17 +73,16 @@ public final class Company extends Client {
                 .build();
     }
 
-    @Override
-    public Company updatePartial(
-            @Nullable final ClientName name,
-            @Nullable final ClientEmail email,
-            @Nullable final ClientPhoneNumber phone
-    ) {
-        return toBuilder()
-                .name(name != null ? name : this.getName())
-                .email(email != null ? email : this.getEmail())
-                .phone(phone != null ? phone : this.getPhone())
-                .build();
+    public Company withName(final ClientName name) {
+        return toBuilder().name(name).build();
+    }
+
+    public Company withEmail(final ClientEmail email) {
+        return toBuilder().email(email).build();
+    }
+
+    public Company withPhone(final ClientPhoneNumber phone) {
+        return toBuilder().phone(phone).build();
     }
 
     public static CompanyBuilder builder() {

@@ -2,24 +2,26 @@ package com.mk.contractservice.infrastructure.persistence.client;
 
 
 import com.mk.contractservice.domain.client.aggregate.Client;
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
+import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
+import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.infrastructure.persistence.client.assembler.ClientAssembler;
+import com.mk.contractservice.infrastructure.persistence.client.entity.ClientJpaEntity;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
+@RequiredArgsConstructor
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class JpaClientRepository implements ClientRepository {
-    private final ClientJpaRepository jpa;
-    private final ClientAssembler assembler;
 
-    public JpaClientRepository(final ClientJpaRepository jpa, final ClientAssembler assembler) {
-        this.jpa = jpa;
-        this.assembler = assembler;
-    }
+    ClientJpaRepository jpa;
+    ClientAssembler assembler;
 
     @Override
     public Optional<Client> findById(final UUID id) {
@@ -35,7 +37,9 @@ public class JpaClientRepository implements ClientRepository {
 
     @Override
     public void deleteById(final UUID id) {
-        jpa.deleteById(id);
+        final ClientJpaEntity entity = jpa.findById(id)
+                .orElseThrow(() -> new ClientNotFoundException("Client with ID " + id + " not found"));
+        jpa.delete(entity);
     }
 
     @Override

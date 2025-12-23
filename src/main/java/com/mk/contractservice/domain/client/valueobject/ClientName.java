@@ -1,6 +1,5 @@
 package com.mk.contractservice.domain.client.valueobject;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.mk.contractservice.domain.client.exception.InvalidClientNameException;
 import org.jspecify.annotations.Nullable;
 
@@ -14,7 +13,6 @@ public final class ClientName {
     public static final Predicate<String> IS_NOT_VALID_LENGTH =
             name -> name.isEmpty() || name.length() > MAX_LENGTH;
 
-    @JsonValue
     private final String value;
 
     private ClientName(final String value) {
@@ -40,7 +38,6 @@ public final class ClientName {
         }
     }
 
-    @JsonValue
     public String value() {
         return value;
     }

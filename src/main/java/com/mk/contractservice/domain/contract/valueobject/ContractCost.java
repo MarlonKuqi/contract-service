@@ -1,6 +1,5 @@
 package com.mk.contractservice.domain.contract.valueobject;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import org.jspecify.annotations.Nullable;
 
@@ -42,7 +41,6 @@ public final class ContractCost {
         }
     }
 
-    @JsonValue
     public BigDecimal value() {
         return value;
     }

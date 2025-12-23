@@ -2,12 +2,12 @@ package com.mk.contractservice.web.contract;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.contract.exception.ContractNotOwnedByClientException;
-import com.mk.contractservice.domain.exception.DomainValidationException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
+import com.mk.contractservice.domain.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.exception.DomainValidationException;
 import com.mk.contractservice.web.BaseControllerAdvice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,17 +68,21 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handleNotReadable(HttpMessageNotReadableException ex) {
         log.debug("Malformed JSON in contract request: {}", ex.getMessage());
 
-        String detail = "Malformed JSON or invalid payload.";
-
         Throwable cause = ex.getCause();
-        if (cause instanceof InvalidFormatException ife) {
-            detail = String.format("Invalid value '%s' for field '%s'. Expected type: %s",
-                    ife.getValue(), ife.getPath().get(0).getFieldName(), ife.getTargetType().getSimpleName());
-        } else if (cause instanceof MismatchedInputException mie) {
-            if (!mie.getPath().isEmpty()) {
-                detail = String.format("Missing or invalid field: '%s'", mie.getPath().get(0).getFieldName());
-            }
-        }
+        String detail = switch (cause) {
+            case InvalidFormatException ife -> String.format(
+                    "Invalid value '%s' for field '%s'. Expected type: %s",
+                    ife.getValue(),
+                    ife.getPath().get(0).getFieldName(),
+                    ife.getTargetType().getSimpleName()
+            );
+            case MismatchedInputException mie when !mie.getPath().isEmpty() -> String.format(
+                    "Missing or invalid field: '%s'",
+                    mie.getPath().get(0).getFieldName()
+            );
+            default -> "Malformed JSON or invalid payload.";
+        };
+
         ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed", detail, "validationError");
         return respond(pd);
     }

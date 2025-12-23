@@ -1,10 +1,14 @@
 package com.mk.contractservice.web.client;
 
-
-import com.mk.contractservice.application.client.ClientApplicationService;
-import com.mk.contractservice.application.client.dto.ClientDto;
-import com.mk.contractservice.application.client.dto.CompanyDto;
-import com.mk.contractservice.application.client.dto.PersonDto;
+import com.mk.contractservice.application.client.usecase.CreateCompanyUseCase;
+import com.mk.contractservice.application.client.usecase.CreatePersonUseCase;
+import com.mk.contractservice.application.client.usecase.DeleteClientUseCase;
+import com.mk.contractservice.application.client.usecase.GetClientByIdQuery;
+import com.mk.contractservice.application.client.usecase.PatchClientUseCase;
+import com.mk.contractservice.application.client.usecase.UpdateClientUseCase;
+import com.mk.contractservice.domain.client.aggregate.Client;
+import com.mk.contractservice.domain.client.aggregate.Company;
+import com.mk.contractservice.domain.client.aggregate.Person;
 import com.mk.contractservice.web.client.dto.ClientResponse;
 import com.mk.contractservice.web.client.dto.CreateClientRequest;
 import com.mk.contractservice.web.client.dto.CreateCompanyRequest;
@@ -21,6 +25,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -41,27 +47,27 @@ import java.util.UUID;
 
 @Tag(name = "Clients", description = "Operations on clients (create, read, update, delete)")
 @RestController
-@RequestMapping(path = "/{version}/clients", version = "2")
+@RequestMapping("/v2/clients")
+@RequiredArgsConstructor
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class ClientController {
 
     public static final String PATH_BASE = "/v2/clients";
     public static final String PATH_ID = "/{id}";
     public static final String PATH_CLIENT = PATH_BASE + PATH_ID;
 
-    private final ClientApplicationService service;
-    private final ClientDtoMapper clientDtoMapper;
-    private final PersonResponseMapper personResponseMapper;
-    private final CompanyResponseMapper companyResponseMapper;
+    // Use Cases (injected directly - no more ClientApplicationService)
+    CreatePersonUseCase createPersonUseCase;
+    CreateCompanyUseCase createCompanyUseCase;
+    GetClientByIdQuery getClientByIdQuery;
+    UpdateClientUseCase updateClientUseCase;
+    PatchClientUseCase patchClientUseCase;
+    DeleteClientUseCase deleteClientUseCase;
 
-    public ClientController(final ClientApplicationService service,
-                            final ClientDtoMapper clientDtoMapper,
-                            final PersonResponseMapper personResponseMapper,
-                            final CompanyResponseMapper companyResponseMapper) {
-        this.service = service;
-        this.clientDtoMapper = clientDtoMapper;
-        this.personResponseMapper = personResponseMapper;
-        this.companyResponseMapper = companyResponseMapper;
-    }
+    // Mappers
+    ClientDtoMapper clientDtoMapper;
+    PersonResponseMapper personResponseMapper;
+    CompanyResponseMapper companyResponseMapper;
 
     @Operation(
             summary = "Create a client (Person or Company)",
@@ -120,13 +126,24 @@ public class ClientController {
             UriComponentsBuilder uriBuilder,
             Locale locale
     ) {
-        final PersonDto personDto = service.createPerson(
-                request.name(),
-                request.email(),
-                request.phone(),
-                request.birthDate()
-        );
-        return buildCreatedResponse(personDto, personResponseMapper.toDto(personDto), uriBuilder, locale);
+        final CreatePersonUseCase.CreatePersonCommand command =
+                new CreatePersonUseCase.CreatePersonCommand(
+                        request.name(),
+                        request.email(),
+                        request.phone(),
+                        request.birthDate()
+                );
+        final Person person = createPersonUseCase.execute(command);
+        final ClientResponse response = personResponseMapper.toDto(person);
+
+        final var location = uriBuilder
+                .path(PATH_CLIENT)
+                .buildAndExpand(person.getId())
+                .toUri();
+        return ResponseEntity.created(location)
+                .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response);
     }
 
     private ResponseEntity<ClientResponse> createCompanyResponse(
@@ -134,31 +151,26 @@ public class ClientController {
             UriComponentsBuilder uriBuilder,
             Locale locale
     ) {
-        final CompanyDto companyDto = service.createCompany(
-                request.name(),
-                request.email(),
-                request.phone(),
-                request.companyIdentifier()
-        );
-        return buildCreatedResponse(companyDto, companyResponseMapper.toDto(companyDto), uriBuilder, locale);
-    }
+        final CreateCompanyUseCase.CreateCompanyCommand command =
+                new CreateCompanyUseCase.CreateCompanyCommand(
+                        request.name(),
+                        request.email(),
+                        request.phone(),
+                        request.companyIdentifier()
+                );
+        final Company company = createCompanyUseCase.execute(command);
+        final ClientResponse response = companyResponseMapper.toDto(company);
 
-    private ResponseEntity<ClientResponse> buildCreatedResponse(
-            final ClientDto clientDto,
-            final ClientResponse body,
-            final UriComponentsBuilder uriBuilder,
-            final Locale locale
-    ) {
         final var location = uriBuilder
                 .path(PATH_CLIENT)
-                .buildAndExpand(clientDto.id())
+                .buildAndExpand(company.getId())
                 .toUri();
-
         return ResponseEntity.created(location)
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(body);
+                .body(response);
     }
+
 
     @Operation(
             summary = "Read a client with all fields",
@@ -185,10 +197,13 @@ public class ClientController {
     )
     @GetMapping(PATH_ID)
     public ResponseEntity<ClientResponse> read(@PathVariable final UUID id, final Locale locale) {
-        final var client = service.getClientById(id);
+        final GetClientByIdQuery.GetClientQuery query =
+                new GetClientByIdQuery.GetClientQuery(id);
+        final Client client = getClientByIdQuery.execute(query);
+        final ClientResponse response = clientDtoMapper.toResponse(client);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
-                .body(clientDtoMapper.toResponse(client));
+                .body(response);
     }
 
     @Operation(
@@ -227,7 +242,14 @@ public class ClientController {
     )
     @PutMapping(PATH_ID)
     public ResponseEntity<Void> update(@PathVariable final UUID id, @Valid @RequestBody final UpdateClientRequest req) {
-        service.updateCommonFields(id, req.name(), req.email(), req.phone());
+        final UpdateClientUseCase.UpdateClientCommand command =
+                new UpdateClientUseCase.UpdateClientCommand(
+                        id,
+                        req.name(),
+                        req.email(),
+                        req.phone()
+                );
+        updateClientUseCase.execute(command);
         return ResponseEntity.noContent().build();
     }
 
@@ -268,12 +290,14 @@ public class ClientController {
     )
     @PatchMapping(PATH_ID)
     public ResponseEntity<Void> patch(@PathVariable final UUID id, @RequestBody final PatchClientRequest req) {
-        service.patchClient(
-                id,
-                req.name().orElse(null),
-                req.email().orElse(null),
-                req.phone().orElse(null)
-        );
+        final PatchClientUseCase.PatchClientCommand command =
+                new PatchClientUseCase.PatchClientCommand(
+                        id,
+                        req.name().orElse(null),
+                        req.email().orElse(null),
+                        req.phone().orElse(null)
+                );
+        patchClientUseCase.execute(command);
         return ResponseEntity.noContent().build();
     }
 
@@ -301,7 +325,9 @@ public class ClientController {
     )
     @DeleteMapping(PATH_ID)
     public ResponseEntity<Void> delete(@PathVariable final UUID id) {
-        service.deleteClientAndCloseContracts(id);
+        final DeleteClientUseCase.DeleteClientCommand command =
+                new DeleteClientUseCase.DeleteClientCommand(id);
+        deleteClientUseCase.execute(command);
         return ResponseEntity.noContent().build();
     }
 }

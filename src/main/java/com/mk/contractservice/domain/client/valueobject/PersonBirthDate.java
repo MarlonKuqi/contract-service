@@ -1,6 +1,5 @@
 package com.mk.contractservice.domain.client.valueobject;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.mk.contractservice.domain.client.exception.InvalidPersonBirthDateException;
 import org.jspecify.annotations.Nullable;
 
@@ -33,7 +32,6 @@ public final class PersonBirthDate {
         }
     }
 
-    @JsonValue
     public LocalDate value() {
         return value;
     }

@@ -1,9 +1,11 @@
 package com.mk.contractservice.domain.client.aggregate;
 
+import com.mk.contractservice.domain.client.exception.InvalidClientException;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -13,12 +15,13 @@ import org.jspecify.annotations.Nullable;
 import java.util.UUID;
 
 @Getter
+@EqualsAndHashCode(callSuper = true)
 @FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
 public final class Person extends Client {
 
     PersonBirthDate birthDate;
 
-    private Person(
+    Person(
             @Nullable final UUID id,
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
@@ -27,7 +30,7 @@ public final class Person extends Client {
     ) {
         super(id, name, email, phone);
         if (birthDate == null) {
-            throw new IllegalArgumentException("Birth date must not be null");
+            throw InvalidClientException.forNullBirthDate();
         }
         this.birthDate = birthDate;
     }
@@ -70,17 +73,16 @@ public final class Person extends Client {
                 .build();
     }
 
-    @Override
-    public Person updatePartial(
-            @Nullable final ClientName name,
-            @Nullable final ClientEmail email,
-            @Nullable final ClientPhoneNumber phone
-    ) {
-        return toBuilder()
-                .name(name != null ? name : this.getName())
-                .email(email != null ? email : this.getEmail())
-                .phone(phone != null ? phone : this.getPhone())
-                .build();
+    public Person withName(final ClientName name) {
+        return toBuilder().name(name).build();
+    }
+
+    public Person withEmail(final ClientEmail email) {
+        return toBuilder().email(email).build();
+    }
+
+    public Person withPhone(final ClientPhoneNumber phone) {
+        return toBuilder().phone(phone).build();
     }
 
     public static PersonBuilder builder() {

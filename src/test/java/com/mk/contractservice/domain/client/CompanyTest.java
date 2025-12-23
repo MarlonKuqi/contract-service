@@ -2,6 +2,7 @@ package com.mk.contractservice.domain.client;
 
 
 import com.mk.contractservice.domain.client.aggregate.Company;
+import com.mk.contractservice.domain.client.exception.InvalidClientException;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
@@ -42,8 +43,8 @@ class CompanyTest {
         ClientPhoneNumber phone = ClientPhoneNumber.of("+33123456789");
 
         assertThatThrownBy(() -> Company.of(name, clientEmail, phone, null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Company identifier must not be null");
+                .isInstanceOf(InvalidClientException.class)
+                .hasMessage(InvalidClientException.forNullCompanyIdentifier().getMessage());
     }
 
     @Test
@@ -130,69 +131,6 @@ class CompanyTest {
                 ClientPhoneNumber.of("+33999999999")
         );
 
-        assertThat(updated.getCompanyIdentifier()).isEqualTo(originalId);
-    }
-
-    @Test
-    @DisplayName("Should update partial fields keeping others unchanged")
-    void shouldUpdatePartialFields() {
-        Company company = Company.of(
-                ClientName.of("ACME Corp"),
-                ClientEmail.of("contact@acme.com"),
-                ClientPhoneNumber.of("+33123456789"),
-                CompanyIdentifier.of("acme-123")
-        );
-
-        Company updated = company.updatePartial(
-                ClientName.of("ACME Corporation"),
-                null,
-                null
-        );
-
-        assertThat(updated.getName().value()).isEqualTo("ACME Corporation");
-        assertThat(updated.getEmail().value()).isEqualTo("contact@acme.com");
-        assertThat(updated.getPhone().value()).isEqualTo("+33123456789");
-        assertThat(updated.getCompanyIdentifier().value()).isEqualTo("acme-123");
-    }
-
-    @Test
-    @DisplayName("Should update all fields when all provided in updatePartial")
-    void shouldUpdateAllFieldsWhenAllProvided() {
-        Company company = Company.of(
-                ClientName.of("ACME Corp"),
-                ClientEmail.of("old@acme.com"),
-                ClientPhoneNumber.of("+33111111111"),
-                CompanyIdentifier.of("acme-123")
-        );
-
-        Company updated = company.updatePartial(
-                ClientName.of("New Corp"),
-                ClientEmail.of("new@corp.com"),
-                ClientPhoneNumber.of("+33999999999")
-        );
-
-        assertThat(updated.getName().value()).isEqualTo("New Corp");
-        assertThat(updated.getEmail().value()).isEqualTo("new@corp.com");
-        assertThat(updated.getPhone().value()).isEqualTo("+33999999999");
-        assertThat(updated.getCompanyIdentifier().value()).isEqualTo("acme-123");
-    }
-
-    @Test
-    @DisplayName("Should keep company identifier immutable on updatePartial")
-    void shouldKeepCompanyIdentifierImmutableOnUpdatePartial() {
-        CompanyIdentifier originalId = CompanyIdentifier.of("acme-123");
-        Company company = Company.of(
-                ClientName.of("ACME Corp"),
-                ClientEmail.of("contact@acme.com"),
-                ClientPhoneNumber.of("+33123456789"),
-                originalId
-        );
-
-        Company updated = company.updatePartial(
-                ClientName.of("New Name"),
-                ClientEmail.of("new@acme.com"),
-                ClientPhoneNumber.of("+33999999999")
-        );
 
         assertThat(updated.getCompanyIdentifier()).isEqualTo(originalId);
     }

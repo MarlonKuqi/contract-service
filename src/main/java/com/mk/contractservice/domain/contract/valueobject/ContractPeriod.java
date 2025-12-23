@@ -1,6 +1,5 @@
 package com.mk.contractservice.domain.contract.valueobject;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import org.jspecify.annotations.Nullable;
 
@@ -43,12 +42,10 @@ public final class ContractPeriod {
         return endDate == null || now.isBefore(endDate);
     }
 
-    @JsonProperty("startDate")
     public LocalDateTime startDate() {
         return startDate;
     }
 
-    @JsonProperty("endDate")
     public @Nullable LocalDateTime endDate() {
         return endDate;
     }

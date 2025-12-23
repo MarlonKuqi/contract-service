@@ -1,8 +1,10 @@
 package com.mk.contractservice.domain.client.aggregate;
 
+import com.mk.contractservice.domain.client.exception.InvalidClientException;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
@@ -11,12 +13,9 @@ import java.util.UUID;
 
 
 @Getter
+@EqualsAndHashCode
 @FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
 public abstract sealed class Client permits Person, Company {
-
-    public static final String NULL_NAME_MSG = "ClientName must not be null";
-    public static final String NULL_EMAIL_MSG = "Email must not be null";
-    public static final String NULL_PHONE_MSG = "ClientPhoneNumber must not be null";
 
     @Nullable
     UUID id;
@@ -26,13 +25,13 @@ public abstract sealed class Client permits Person, Company {
 
     protected Client(@Nullable final UUID id, @Nullable final ClientName name, @Nullable final ClientEmail email, @Nullable final ClientPhoneNumber phone) {
         if (name == null) {
-            throw new IllegalArgumentException(NULL_NAME_MSG);
+            throw InvalidClientException.forNullName();
         }
         if (email == null) {
-            throw new IllegalArgumentException(NULL_EMAIL_MSG);
+            throw InvalidClientException.forNullEmail();
         }
         if (phone == null) {
-            throw new IllegalArgumentException(NULL_PHONE_MSG);
+            throw InvalidClientException.forNullPhone();
         }
 
         this.id = id;
@@ -41,8 +40,14 @@ public abstract sealed class Client permits Person, Company {
         this.phone = phone;
     }
 
-    public abstract Client updatePartial(
-            @Nullable final ClientName name,
-            @Nullable final ClientEmail clientEmail,
-            @Nullable final ClientPhoneNumber phone);
+    public abstract Client withCommonFields(
+            final ClientName name,
+            final ClientEmail clientEmail,
+            final ClientPhoneNumber phone);
+
+    public abstract Client withName(final ClientName name);
+
+    public abstract Client withEmail(final ClientEmail email);
+
+    public abstract Client withPhone(final ClientPhoneNumber phone);
 }

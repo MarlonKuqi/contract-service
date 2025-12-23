@@ -1,8 +1,8 @@
 package com.mk.contractservice.domain.client;
 
 
-import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.domain.client.exception.InvalidClientException;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
@@ -41,40 +41,52 @@ class ClientTest {
         @Test
         @DisplayName("GIVEN null name WHEN creating Client THEN throw exception")
         void shouldRejectNullName() {
+            final ClientEmail clientEmail = ClientEmail.of("test@example.com");
+            final ClientPhoneNumber phoneNumber = ClientPhoneNumber.of("+33123456789");
+            final PersonBirthDate birthDate = PersonBirthDate.of(LocalDate.of(1990, 1, 1));
+
             assertThatThrownBy(() -> Person.of(
                     null,
-                    ClientEmail.of("test@example.com"),
-                    ClientPhoneNumber.of("+33123456789"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                    clientEmail,
+                    phoneNumber,
+                    birthDate
             ))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(Client.NULL_NAME_MSG);
+                    .isInstanceOf(InvalidClientException.class)
+                    .hasMessage(InvalidClientException.forNullName().getMessage());
         }
 
         @Test
         @DisplayName("GIVEN null email WHEN creating Client THEN throw exception")
         void shouldRejectNullEmail() {
+            final ClientName clientName = ClientName.of("Test User");
+            final ClientPhoneNumber phoneNumber = ClientPhoneNumber.of("+33123456789");
+            final PersonBirthDate birthDate = PersonBirthDate.of(LocalDate.of(1990, 1, 1));
+
             assertThatThrownBy(() -> Person.of(
-                    ClientName.of("Test User"),
+                    clientName,
                     null,
-                    ClientPhoneNumber.of("+33123456789"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                    phoneNumber,
+                    birthDate
             ))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(Client.NULL_EMAIL_MSG);
+                    .isInstanceOf(InvalidClientException.class)
+                    .hasMessage(InvalidClientException.forNullEmail().getMessage());
         }
 
         @Test
         @DisplayName("GIVEN null phone WHEN creating Client THEN throw exception")
         void shouldRejectNullPhone() {
+            final ClientName clientName = ClientName.of("Test User");
+            final ClientEmail clientEmail = ClientEmail.of("test@example.com");
+            final PersonBirthDate birthDate = PersonBirthDate.of(LocalDate.of(1990, 1, 1));
+
             assertThatThrownBy(() -> Person.of(
-                    ClientName.of("Test User"),
-                    ClientEmail.of("test@example.com"),
+                    clientName,
+                    clientEmail,
                     null,
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                    birthDate
             ))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(Client.NULL_PHONE_MSG);
+                    .isInstanceOf(InvalidClientException.class)
+                    .hasMessage(InvalidClientException.forNullPhone().getMessage());
         }
     }
 
@@ -119,17 +131,18 @@ class ClientTest {
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
 
-            assertThatThrownBy(() -> person.withCommonFields(null, ClientEmail.of("test@test.com"), ClientPhoneNumber.of("+33123456789")))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(Client.NULL_NAME_MSG);
-
-            assertThatThrownBy(() -> person.withCommonFields(ClientName.of("Test"), null, ClientPhoneNumber.of("+33123456789")))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(Client.NULL_EMAIL_MSG);
-
-            assertThatThrownBy(() -> person.withCommonFields(ClientName.of("Test"), ClientEmail.of("test@test.com"), null))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(Client.NULL_PHONE_MSG);
+            final ClientName name = ClientName.of("Test");
+            final ClientEmail email = ClientEmail.of("test@test.com");
+            final ClientPhoneNumber phoneNumber = ClientPhoneNumber.of("+33123456789");
+            assertThatThrownBy(() -> person.withCommonFields(null, email, phoneNumber))
+                    .isInstanceOf(InvalidClientException.class)
+                    .hasMessage(InvalidClientException.forNullName().getMessage());
+            assertThatThrownBy(() -> person.withCommonFields(name, null, phoneNumber))
+                    .isInstanceOf(InvalidClientException.class)
+                    .hasMessage(InvalidClientException.forNullEmail().getMessage());
+            assertThatThrownBy(() -> person.withCommonFields(name, email, null))
+                    .isInstanceOf(InvalidClientException.class)
+                    .hasMessage(InvalidClientException.forNullPhone().getMessage());
         }
     }
 

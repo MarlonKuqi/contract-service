@@ -1,7 +1,11 @@
 package com.mk.contractservice.web.contract;
 
-import com.mk.contractservice.application.contract.ContractApplicationService;
-import com.mk.contractservice.application.contract.dto.ContractDto;
+import com.mk.contractservice.application.contract.usecase.CreateContractUseCase;
+import com.mk.contractservice.application.contract.usecase.GetActiveContractsQuery;
+import com.mk.contractservice.application.contract.usecase.GetContractByIdQuery;
+import com.mk.contractservice.application.contract.usecase.SumActiveContractsQuery;
+import com.mk.contractservice.application.contract.usecase.UpdateContractCostUseCase;
+import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.web.contract.dto.ContractResponse;
 import com.mk.contractservice.web.contract.dto.CostUpdateRequest;
 import com.mk.contractservice.web.contract.dto.CreateContractRequest;
@@ -14,6 +18,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -37,7 +43,9 @@ import java.util.UUID;
 
 @Tag(name = "Contracts", description = "Operations on contracts (create, read, update cost)")
 @RestController
-@RequestMapping(path = "/{version}/contracts", version = "2")
+@RequestMapping("/v2/contracts")
+@RequiredArgsConstructor
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class ContractController {
     public static final String PATH_BASE = "/v2/contracts";
     public static final String PATH_ID = "/{contractId}";
@@ -46,14 +54,15 @@ public class ContractController {
     public static final String PATH_COST = PATH_ID + "/cost";
     public static final String PATH_CONTRACT_COST = PATH_CONTRACT + "/cost";
 
-    private final ContractApplicationService contractApplicationService;
-    private final ContractDtoMapper contractMapper;
+    // Use Cases (injected directly - no more ContractApplicationService)
+    CreateContractUseCase createContractUseCase;
+    GetContractByIdQuery getContractByIdQuery;
+    GetActiveContractsQuery getActiveContractsQuery;
+    UpdateContractCostUseCase updateContractCostUseCase;
+    SumActiveContractsQuery sumActiveContractsQuery;
 
-    public ContractController(final ContractApplicationService contractApplicationService,
-                              final ContractDtoMapper contractMapper) {
-        this.contractApplicationService = contractApplicationService;
-        this.contractMapper = contractMapper;
-    }
+    // Mapper
+    ContractDtoMapper contractMapper;
 
     @Operation(
             summary = "Create a contract for a client",
@@ -101,20 +110,19 @@ public class ContractController {
             final UriComponentsBuilder uriBuilder,
             final Locale locale
     ) {
-        final ContractDto contractDto = contractApplicationService.createForClient(
-                clientId,
-                req.startDate(),
-                req.endDate(),
-                req.costAmount()
-        );
-
+        final CreateContractUseCase.CreateContractCommand command =
+                new CreateContractUseCase.CreateContractCommand(
+                        clientId,
+                        req.startDate(),
+                        req.endDate(),
+                        req.costAmount()
+                );
+        final Contract contract = createContractUseCase.execute(command);
         final var location = uriBuilder
                 .path(PATH_CONTRACT)
-                .buildAndExpand(contractDto.id())
+                .buildAndExpand(contract.getId())
                 .toUri();
-
-        final ContractResponse body = contractMapper.toResponse(contractDto);
-
+        final ContractResponse body = contractMapper.toResponse(contract);
         return ResponseEntity.created(location)
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
                 .body(body);
@@ -125,11 +133,21 @@ public class ContractController {
             description = "Returns all active contracts (current date < end date or endDate = null). "
                     + "Can be filtered by lastModified >= updatedSince. "
                     + "Supports pagination (default size: 20, max: 100). "
-                    + "Use query params: ?page=0&size=20&sort=lastModified,desc"
+                    + "Use query params: ?page=0&size=20&sort=lastModified,desc. "
+                    + "Returns 200 OK if all resources are present, 206 Partial Content with Content-Range header if paginated."
     )
     @ApiResponse(
             responseCode = "200",
-            description = "List of active contracts (paginated)",
+            description = "All active contracts returned (no pagination needed)",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PagedContractResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "206",
+            description = "Partial list of active contracts (paginated)",
+            headers = {
+                    @Header(name = "Content-Range", description = "Range of resources returned (e.g., contracts 0-19/50)")
+            },
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = PagedContractResponse.class))
     )
@@ -159,8 +177,11 @@ public class ContractController {
             final Pageable pageable,
             final Locale locale
     ) {
-        final Page<ContractDto> contractDtos = contractApplicationService.getActiveContractsPageable(clientId, updatedSince, pageable);
-        final Page<ContractResponse> responsePage = contractDtos.map(contractMapper::toResponse);
+        final GetActiveContractsQuery.GetActiveContractsQueryParams query =
+                new GetActiveContractsQuery.GetActiveContractsQueryParams(clientId, updatedSince, pageable);
+
+        final Page<Contract> contracts = getActiveContractsQuery.execute(query);
+        final Page<ContractResponse> responsePage = contracts.map(contractMapper::toResponse);
 
         final PagedContractResponse response = new PagedContractResponse(
                 responsePage.getContent(),
@@ -172,9 +193,22 @@ public class ContractController {
                 responsePage.isLast()
         );
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
-                .body(response);
+        final long totalElements = responsePage.getTotalElements();
+        final long firstElement = (long) responsePage.getNumber() * responsePage.getSize();
+        final long lastElement = Math.min(firstElement + responsePage.getNumberOfElements() - 1, totalElements - 1);
+        final String contentRange = String.format("contracts %d-%d/%d", firstElement, lastElement, totalElements);
+
+        final boolean isPartialContent = totalElements > responsePage.getNumberOfElements() || responsePage.getNumber() > 0;
+
+        ResponseEntity.BodyBuilder responseBuilder = ResponseEntity
+                .status(isPartialContent ? 206 : 200)
+                .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag());
+
+        if (isPartialContent) {
+            responseBuilder.header(HttpHeaders.CONTENT_RANGE, contentRange);
+        }
+
+        return responseBuilder.body(response);
     }
 
     @Operation(
@@ -191,8 +225,11 @@ public class ContractController {
             @RequestParam final UUID clientId,
             final Locale locale
     ) {
-        final ContractDto contractDto = contractApplicationService.getContractById(clientId, contractId);
-        final ContractResponse response = contractMapper.toResponse(contractDto);
+        final GetContractByIdQuery.GetContractQuery query =
+                new GetContractByIdQuery.GetContractQuery(clientId, contractId);
+
+        final Contract contract = getContractByIdQuery.execute(query);
+        final ContractResponse response = contractMapper.toResponse(contract);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
@@ -227,7 +264,10 @@ public class ContractController {
             @RequestParam final UUID clientId,
             final Locale locale
     ) {
-        final BigDecimal sum = contractApplicationService.sumActiveContracts(clientId);
+        final SumActiveContractsQuery.SumActiveContractsQueryParams query =
+                new SumActiveContractsQuery.SumActiveContractsQueryParams(clientId);
+
+        final BigDecimal sum = sumActiveContractsQuery.execute(query);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
@@ -250,7 +290,10 @@ public class ContractController {
             @PathVariable final UUID contractId,
             @Valid @RequestBody final CostUpdateRequest req
     ) {
-        contractApplicationService.updateCost(clientId, contractId, req.amount());
+        final UpdateContractCostUseCase.UpdateContractCostCommand command =
+                new UpdateContractCostUseCase.UpdateContractCostCommand(clientId, contractId, req.amount());
+
+        updateContractCostUseCase.execute(command);
         return ResponseEntity.noContent().build();
     }
 }

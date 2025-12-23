@@ -3,6 +3,7 @@ package com.mk.contractservice.domain.client;
 
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.domain.client.exception.InvalidClientException;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
@@ -41,8 +42,8 @@ class PersonTest {
         ClientPhoneNumber phone = ClientPhoneNumber.of("+33123456789");
 
         assertThatThrownBy(() -> Person.of(name, clientEmail, phone, null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Birth date must not be null");
+                .isInstanceOf(InvalidClientException.class)
+                .hasMessage(InvalidClientException.forNullBirthDate().getMessage());
     }
 
     @Test
@@ -80,8 +81,9 @@ class PersonTest {
                 ClientPhoneNumber.of("+33123456789"),
                 PersonBirthDate.of(LocalDate.of(1990, 5, 15)));
 
-        assertThat(person).isInstanceOf(Client.class);
-        assertThat(person).isInstanceOf(Person.class);
+        assertThat(person)
+                .isInstanceOf(Client.class)
+                .isInstanceOf(Person.class);
     }
 
     @Test
@@ -100,71 +102,6 @@ class PersonTest {
         assertThat(person.getEmail()).isEqualTo(clientEmail);
         assertThat(person.getPhone()).isEqualTo(phone);
         assertThat(person.getBirthDate()).isEqualTo(birthDate);
-    }
-
-
-    @Test
-    @DisplayName("Should update partial fields keeping others unchanged")
-    void shouldUpdatePartialFields() {
-        Person person = Person.of(
-                ClientName.of("John Doe"),
-                ClientEmail.of("john@example.com"),
-                ClientPhoneNumber.of("+33123456789"),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15))
-        );
-
-        Person updated = person.updatePartial(
-                ClientName.of("Jane Doe"),
-                null,
-                null
-        );
-
-        assertThat(updated.getName().value()).isEqualTo("Jane Doe");
-        assertThat(updated.getEmail().value()).isEqualTo("john@example.com");
-        assertThat(updated.getPhone().value()).isEqualTo("+33123456789");
-        assertThat(updated.getBirthDate().value()).isEqualTo(LocalDate.of(1990, 5, 15));
-    }
-
-    @Test
-    @DisplayName("Should update all fields when all provided in updatePartial")
-    void shouldUpdateAllFieldsWhenAllProvided() {
-        Person person = Person.of(
-                ClientName.of("John Doe"),
-                ClientEmail.of("john@example.com"),
-                ClientPhoneNumber.of("+33123456789"),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15))
-        );
-
-        Person updated = person.updatePartial(
-                ClientName.of("Jane Smith"),
-                ClientEmail.of("jane@example.com"),
-                ClientPhoneNumber.of("+33987654321")
-        );
-
-        assertThat(updated.getName().value()).isEqualTo("Jane Smith");
-        assertThat(updated.getEmail().value()).isEqualTo("jane@example.com");
-        assertThat(updated.getPhone().value()).isEqualTo("+33987654321");
-        assertThat(updated.getBirthDate().value()).isEqualTo(LocalDate.of(1990, 5, 15));
-    }
-
-    @Test
-    @DisplayName("Should keep birthdate immutable on updatePartial")
-    void shouldKeepBirthdateImmutableOnUpdatePartial() {
-        PersonBirthDate originalBirthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15));
-        Person person = Person.of(
-                ClientName.of("John Doe"),
-                ClientEmail.of("john@example.com"),
-                ClientPhoneNumber.of("+33123456789"),
-                originalBirthDate
-        );
-
-        Person updated = person.updatePartial(
-                ClientName.of("Jane Doe"),
-                ClientEmail.of("jane@example.com"),
-                ClientPhoneNumber.of("+33987654321")
-        );
-
-        assertThat(updated.getBirthDate()).isEqualTo(originalBirthDate);
     }
 }
 

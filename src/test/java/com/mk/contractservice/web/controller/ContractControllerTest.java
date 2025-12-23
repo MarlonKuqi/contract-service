@@ -1,12 +1,16 @@
 package com.mk.contractservice.web.controller;
 
-import com.mk.contractservice.application.contract.ContractApplicationService;
-import com.mk.contractservice.application.contract.dto.ContractDto;
-import com.mk.contractservice.application.contract.mapper.ContractValueObjectMappersImpl;
-import com.mk.contractservice.domain.exception.ClientNotFoundException;
+import com.mk.contractservice.application.contract.usecase.CreateContractUseCase;
+import com.mk.contractservice.application.contract.usecase.GetActiveContractsQuery;
+import com.mk.contractservice.application.contract.usecase.GetContractByIdQuery;
+import com.mk.contractservice.application.contract.usecase.SumActiveContractsQuery;
+import com.mk.contractservice.application.contract.usecase.UpdateContractCostUseCase;
+import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
-import com.mk.contractservice.web.WebMvcConfig;
+import com.mk.contractservice.domain.contract.valueobject.ContractCost;
+import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
+import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.web.contract.ContractController;
 import com.mk.contractservice.web.contract.ContractControllerAdvice;
 import com.mk.contractservice.web.contract.mapper.ContractDtoMapperImpl;
@@ -31,7 +35,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -46,13 +49,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = {
         ContractController.class,
         ContractControllerAdvice.class,
-        WebMvcConfig.class,
 })
 @Import({
-        ContractDtoMapperImpl.class,
-        ContractValueObjectMappersImpl.class
+        ContractControllerAdvice.class,
+        ContractDtoMapperImpl.class
 })
-
 @DisplayName("ContractController - MockMvc Tests")
 @ActiveProfiles("test")
 class ContractControllerTest {
@@ -61,7 +62,19 @@ class ContractControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private ContractApplicationService contractService;
+    private CreateContractUseCase createContractUseCase;
+
+    @MockitoBean
+    private GetContractByIdQuery getContractByIdQuery;
+
+    @MockitoBean
+    private GetActiveContractsQuery getActiveContractsQuery;
+
+    @MockitoBean
+    private UpdateContractCostUseCase updateContractCostUseCase;
+
+    @MockitoBean
+    private SumActiveContractsQuery sumActiveContractsQuery;
 
 
     @Nested
@@ -75,13 +88,14 @@ class ContractControllerTest {
             UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
 
-            ContractDto contractDto = new ContractDto(
+            Contract contract = Contract.reconstitute(
                     contractId,
                     clientId,
-                    LocalDateTime.of(2025, 1, 1, 0, 0),
-                    LocalDateTime.of(2026, 1, 1, 0, 0),
-                    true,
-                    new BigDecimal("1000.00")
+                    ContractPeriod.of(
+                            LocalDateTime.of(2025, 1, 1, 0, 0),
+                            LocalDateTime.of(2026, 1, 1, 0, 0)
+                    ),
+                    ContractCost.of(new BigDecimal("1000.00"))
             );
 
             String requestJson = """
@@ -92,7 +106,9 @@ class ContractControllerTest {
                     }
                     """;
 
-            when(contractService.createForClient(any(UUID.class), any(), any(), any())).thenReturn(contractDto);
+            when(createContractUseCase.execute(any(CreateContractUseCase.CreateContractCommand.class)))
+                    .thenReturn(contract);
+
             mockMvc.perform(post("/v2/contracts")
                             .param("clientId", clientId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
@@ -103,7 +119,7 @@ class ContractControllerTest {
                     .andExpect(jsonPath("$.id").value(contractId.toString()))
                     .andExpect(jsonPath("$.costAmount").value(1000.00));
 
-            verify(contractService).createForClient(any(UUID.class), any(), any(), any());
+            verify(createContractUseCase).execute(any(CreateContractUseCase.CreateContractCommand.class));
         }
 
         @Test
@@ -119,7 +135,7 @@ class ContractControllerTest {
                     }
                     """;
 
-            when(contractService.createForClient(any(), any(), any(), any()))
+            when(createContractUseCase.execute(any(CreateContractUseCase.CreateContractCommand.class)))
                     .thenThrow(new ClientNotFoundException("Client not found: " + clientId));
 
             mockMvc.perform(post("/v2/contracts")
@@ -142,18 +158,18 @@ class ContractControllerTest {
             UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
 
-            ContractDto contractDto = new ContractDto(
+            Contract contract = Contract.reconstitute(
                     contractId,
                     clientId,
-                    LocalDateTime.of(2025, 1, 1, 0, 0),
-                    LocalDateTime.of(2026, 1, 1, 0, 0),
-                    true,
-                    new BigDecimal("1000.00")
+                    ContractPeriod.of(
+                            LocalDateTime.of(2025, 1, 1, 0, 0),
+                            LocalDateTime.of(2026, 1, 1, 0, 0)
+                    ),
+                    ContractCost.of(new BigDecimal("1000.00"))
             );
 
-            when(contractService.getContractById(clientId, contractId))
-                    .thenReturn(contractDto);
-
+            when(getContractByIdQuery.execute(any(GetContractByIdQuery.GetContractQuery.class)))
+                    .thenReturn(contract);
 
             mockMvc.perform(get("/v2/contracts/{contractId}", contractId)
                             .param("clientId", clientId.toString()))
@@ -161,7 +177,7 @@ class ContractControllerTest {
                     .andExpect(jsonPath("$.id").value(contractId.toString()))
                     .andExpect(jsonPath("$.costAmount").value(1000.00));
 
-            verify(contractService).getContractById(clientId, contractId);
+            verify(getContractByIdQuery).execute(any(GetContractByIdQuery.GetContractQuery.class));
         }
 
         @Test
@@ -171,7 +187,7 @@ class ContractControllerTest {
             UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
 
-            when(contractService.getContractById(clientId, contractId))
+            when(getContractByIdQuery.execute(any(GetContractByIdQuery.GetContractQuery.class)))
                     .thenThrow(new ContractNotFoundException("Contract not found: " + contractId));
 
 
@@ -193,20 +209,20 @@ class ContractControllerTest {
             UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
 
-            ContractDto contractDto = new ContractDto(
+            Contract contract = Contract.reconstitute(
                     contractId,
                     clientId,
-                    LocalDateTime.of(2025, 1, 1, 0, 0),
-                    LocalDateTime.of(2026, 1, 1, 0, 0),
-                    true,
-                    new BigDecimal("1000.00")
+                    ContractPeriod.of(
+                            LocalDateTime.of(2025, 1, 1, 0, 0),
+                            LocalDateTime.of(2026, 1, 1, 0, 0)
+                    ),
+                    ContractCost.of(new BigDecimal("1000.00"))
             );
 
-            Page<ContractDto> page = new PageImpl<>(List.of(contractDto), PageRequest.of(0, 20), 1);
+            Page<Contract> page = new PageImpl<>(List.of(contract), PageRequest.of(0, 20), 1);
 
-            when(contractService.getActiveContractsPageable(eq(clientId), any(), any()))
+            when(getActiveContractsQuery.execute(any(GetActiveContractsQuery.GetActiveContractsQueryParams.class)))
                     .thenReturn(page);
-
 
             mockMvc.perform(get("/v2/contracts")
                             .param("clientId", clientId.toString())
@@ -218,7 +234,7 @@ class ContractControllerTest {
                     .andExpect(jsonPath("$.totalElements").value(1))
                     .andExpect(jsonPath("$.totalPages").value(1));
 
-            verify(contractService).getActiveContractsPageable(eq(clientId), any(), any());
+            verify(getActiveContractsQuery).execute(any(GetActiveContractsQuery.GetActiveContractsQueryParams.class));
         }
     }
 
@@ -239,25 +255,13 @@ class ContractControllerTest {
                     }
                     """;
 
-
-            ContractDto updatedDto = new ContractDto(
-                    contractId,
-                    clientId,
-                    LocalDateTime.now(),
-                    null,
-                    true,
-                    new BigDecimal("1500.00")
-            );
-
-            when(contractService.updateCost(eq(clientId), eq(contractId), any())).thenReturn(updatedDto);
-
             mockMvc.perform(patch("/v2/contracts/{contractId}/cost", contractId)
                             .param("clientId", clientId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(costUpdateJson))
                     .andExpect(status().isNoContent());
 
-            verify(contractService).updateCost(eq(clientId), eq(contractId), any());
+            verify(updateContractCostUseCase).execute(any(UpdateContractCostUseCase.UpdateContractCostCommand.class));
         }
 
         @Test
@@ -273,7 +277,7 @@ class ContractControllerTest {
                     }
                     """;
 
-            when(contractService.updateCost(any(UUID.class), any(UUID.class), any(BigDecimal.class)))
+            when(updateContractCostUseCase.execute(any(UpdateContractCostUseCase.UpdateContractCostCommand.class)))
                     .thenThrow(new ExpiredContractException(contractId));
 
 
@@ -296,16 +300,15 @@ class ContractControllerTest {
 
             UUID clientId = UUID.randomUUID();
 
-            when(contractService.sumActiveContracts(clientId))
+            when(sumActiveContractsQuery.execute(any(SumActiveContractsQuery.SumActiveContractsQueryParams.class)))
                     .thenReturn(new BigDecimal("5000.00"));
-
 
             mockMvc.perform(get("/v2/contracts/sum")
                             .param("clientId", clientId.toString()))
                     .andExpect(status().isOk())
                     .andExpect(content().string("5000.00"));
 
-            verify(contractService).sumActiveContracts(clientId);
+            verify(sumActiveContractsQuery).execute(any(SumActiveContractsQuery.SumActiveContractsQueryParams.class));
         }
     }
 }

@@ -1,11 +1,12 @@
 package com.mk.contractservice.domain.contract.aggregate;
 
-import com.mk.contractservice.domain.contract.valueobject.ContractCost;
-import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractException;
+import com.mk.contractservice.domain.contract.valueobject.ContractCost;
+import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import lombok.AccessLevel;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
@@ -13,6 +14,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.UUID;
 
 @Getter
+@EqualsAndHashCode
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class Contract {
 

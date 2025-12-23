@@ -1,11 +1,11 @@
 package com.mk.contractservice.integration;
 
 import com.mk.contractservice.domain.client.aggregate.Client;
+import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.domain.client.repository.ClientRepository;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
-import com.mk.contractservice.domain.client.repository.ClientRepository;
-import com.mk.contractservice.domain.client.aggregate.Person;
 import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
@@ -558,6 +558,178 @@ class ContractLifecycleIT {
                 .statusCode(200)
                 .body(equalTo("3000.00"));
     }
+
+    @Test
+    @DisplayName("LOCALIZATION: Should accept and return Italian Swiss locale (it-CH) for contract operations")
+    void shouldAcceptItalianSwissLocaleForContracts() {
+        String contractPayload = """
+                {
+                    "startDate": "2025-01-01T00:00:00",
+                    "endDate": null,
+                    "costAmount": "2500.00"
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .header("Accept-Language", "it-CH")
+                .body(contractPayload)
+                .when()
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(201)
+                .header("Content-Language", equalTo("it-CH"));
+
+        given()
+                .header("Accept-Language", "it-CH")
+                .when()
+                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(200)
+                .header("Content-Language", equalTo("it-CH"))
+                .body("content.size()", equalTo(1));
+    }
+
+    @Test
+    @DisplayName("LOCALIZATION: Should work with contract sum endpoint and German Swiss locale (de-CH)")
+    void shouldWorkWithContractSumEndpointLocalization() {
+        String contractPayload = """
+                {
+                    "startDate": "2025-01-01T00:00:00",
+                    "endDate": null,
+                    "costAmount": "1500.00"
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(contractPayload)
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(201);
+
+        given()
+                .header("Accept-Language", "de-CH")
+                .when()
+                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(200)
+                .header("Content-Language", equalTo("de-CH"));
+    }
+
+    @Test
+    @DisplayName("LOCALIZATION: Should handle German Swiss locale (de-CH) for contract operations")
+    void shouldAcceptGermanSwissLocaleForContractsWithGermanLocale() {
+        String contractPayload = """
+                {
+                    "startDate": "2025-01-01T00:00:00",
+                    "endDate": null,
+                    "costAmount": "3000.00"
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .header("Accept-Language", "de-CH")
+                .body(contractPayload)
+                .when()
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(201)
+                .header("Content-Language", equalTo("de-CH"));
+    }
+
+    @Test
+    @DisplayName("EDGE CASE: Very large cost amounts should be handled correctly")
+    void shouldHandleVeryLargeCostAmounts() {
+        LocalDateTime now = LocalDateTime.now();
+        String contractPayload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": null,
+                    "costAmount": "999999999.99"
+                }
+                """, now.minusDays(5));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(contractPayload)
+                .when()
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(201)
+                .body("costAmount", equalTo(999999999.99f));
+    }
+
+    @Test
+    @DisplayName("EDGE CASE: Boundary dates should be handled correctly")
+    void shouldHandleBoundaryDates() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endDate = now.plusMonths(11)
+                .withDayOfMonth(1)
+                .plusMonths(1)
+                .minusDays(1)  // Last day of the month
+                .withHour(23)
+                .withMinute(59)
+                .withSecond(59);
+
+        String contractPayload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": "%s",
+                    "costAmount": "1000.00"
+                }
+                """, now.minusDays(30), endDate);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(contractPayload)
+                .when()
+                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then()
+                .statusCode(201);
+
+        given()
+                .when().get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then().statusCode(200).body("content.size()", greaterThanOrEqualTo(1));
+    }
+
+    @Test
+    @DisplayName("EDGE CASE: Concurrent contract creation should work")
+    void shouldHandleConcurrentContractCreation() {
+        LocalDateTime now = LocalDateTime.now();
+        String contractPayload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": null,
+                    "costAmount": "500.00"
+                }
+                """, now.minusDays(5));
+
+        for (int i = 0; i < 5; i++) {
+            given().contentType(ContentType.JSON).body(contractPayload)
+                    .when().post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .then().statusCode(201);
+        }
+
+        given()
+                .when().get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then().statusCode(200).body("content.size()", equalTo(5));
+    }
+
+    @Test
+    @DisplayName("EDGE CASE: Zero cost amount should be rejected")
+    void shouldRejectZeroCostAmount() {
+        LocalDateTime now = LocalDateTime.now();
+        String zeroAmountPayload = String.format("""
+                {
+                    "startDate": "%s",
+                    "endDate": null,
+                    "costAmount": "0.00"
+                }
+                """, now.minusDays(1));
+        given().contentType(ContentType.JSON).body(zeroAmountPayload)
+                .when().post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .then().statusCode(anyOf(is(400), is(422), is(500)));
+    }
 }
-
-

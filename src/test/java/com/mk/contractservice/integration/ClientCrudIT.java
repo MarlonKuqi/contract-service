@@ -1,20 +1,20 @@
 package com.mk.contractservice.integration;
 
 import com.mk.contractservice.domain.client.aggregate.Client;
+import com.mk.contractservice.domain.client.aggregate.Company;
+import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.domain.client.repository.ClientRepository;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
-import com.mk.contractservice.domain.client.repository.ClientRepository;
-import com.mk.contractservice.domain.client.aggregate.Company;
 import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
-import com.mk.contractservice.domain.client.aggregate.Person;
 import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
+import com.mk.contractservice.domain.contract.repository.ContractRepository;
 import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
-import com.mk.contractservice.domain.contract.repository.ContractRepository;
-import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
+import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import com.mk.contractservice.integration.helper.TestDataHelper;
 import com.mk.contractservice.web.client.ClientController;
@@ -708,6 +708,84 @@ class ClientCrudIT {
                 .body("name", equalTo("Test Person"))
                 .body("email", containsString("test"))
                 .body("phone", equalTo("+41791234567"));
+    }
+
+    @Test
+    @DisplayName("EDGE CASE: Special characters in names should be handled")
+    void shouldHandleSpecialCharactersInNames() {
+        String specialNamePayload = """
+                {
+                    "type": "PERSON",
+                    "name": "François O'Brien-Müller",
+                    "email": "francois.%s@example.com",
+                    "phone": "+41791234567",
+                    "birthDate": "1990-01-01"
+                }
+                """.formatted(UUID.randomUUID().toString().substring(0, 8));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(specialNamePayload)
+                .when()
+                .post(ClientController.PATH_BASE)
+                .then()
+                .statusCode(201)
+                .body("name", equalTo("François O'Brien-Müller"));
+    }
+
+    @Test
+    @DisplayName("EDGE CASE: International phone numbers should be validated")
+    void shouldValidateInternationalPhoneNumbers() {
+        String[] validPhones = {
+                "+41791234567",    // Switzerland
+                "+33612345678",    // France
+                "+4407123456789",  // UK
+                "+12025551234",    // USA
+                "+861234567890"    // China
+        };
+
+        for (String phone : validPhones) {
+            String payload = """
+                    {
+                        "type": "PERSON",
+                        "name": "International Test",
+                        "email": "intl.%s@example.com",
+                        "phone": "%s",
+                        "birthDate": "1990-01-01"
+                    }
+                    """.formatted(UUID.randomUUID().toString().substring(0, 8) + phone.hashCode(), phone);
+
+            given()
+                    .contentType(ContentType.JSON)
+                    .body(payload)
+                    .when()
+                    .post(ClientController.PATH_BASE)
+                    .then()
+                    .statusCode(201);
+        }
+    }
+
+    @Test
+    @DisplayName("EDGE CASE: Very old birth dates should be accepted")
+    void shouldAcceptVeryOldBirthDates() {
+        String oldBirthDatePayload = """
+                {
+                    "type": "PERSON",
+                    "name": "Very Old Person",
+                    "email": "old.%s@example.com",
+                    "phone": "+41791234567",
+                    "birthDate": "1920-01-01"
+                }
+                """.formatted(UUID.randomUUID().toString().substring(0, 8));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(oldBirthDatePayload)
+                .when()
+                .post(ClientController.PATH_BASE)
+                .then()
+                .statusCode(201)
+                .body("birthDate", equalTo("1920-01-01"));
     }
 }
 

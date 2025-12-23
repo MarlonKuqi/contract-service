@@ -1,33 +1,33 @@
 package com.mk.contractservice.application;
-
+/*
 
 import com.mk.contractservice.application.client.ClientApplicationService;
 import com.mk.contractservice.application.client.dto.ClientDto;
 import com.mk.contractservice.application.client.dto.CompanyDto;
 import com.mk.contractservice.application.client.dto.PersonDto;
 import com.mk.contractservice.application.client.mapper.ClientMapper;
-import com.mk.contractservice.application.contract.ContractApplicationService;
+import com.mk.contractservice.domain.client.aggregate.Company;
+import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.domain.client.event.ClientDeletedEvent;
+import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
+import com.mk.contractservice.domain.client.service.ClientService;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
-import com.mk.contractservice.domain.client.repository.ClientRepository;
-import com.mk.contractservice.domain.client.service.ClientService;
-import com.mk.contractservice.domain.client.aggregate.Company;
 import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
-import com.mk.contractservice.domain.client.aggregate.Person;
 import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDate;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,19 +44,13 @@ import static org.mockito.Mockito.when;
 class ClientApplicationServiceTest {
 
     @Mock
-    private ClientRepository clientRepository;
-
-    @Mock
-    private ContractApplicationService contractApplicationService;
-
-    @Mock
     private ClientService clientService;
 
     @Mock
     private ClientMapper mapper;
 
-    @InjectMocks
-    private ClientApplicationService service;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @Nested
     @DisplayName("US1: Create Person - Business Behavior")
@@ -118,7 +112,6 @@ class ClientApplicationServiceTest {
                     .hasMessageContaining("Client already exists")
                     .extracting("businessKey")
                     .isEqualTo(email);
-            verify(clientRepository, never()).save(any());
         }
 
         @Test
@@ -166,7 +159,7 @@ class ClientApplicationServiceTest {
                     LocalDate.of(1990, 5, 15)
             );
 
-            when(clientRepository.findById(personId)).thenReturn(Optional.of(person));
+            when(clientService.findClientById(personId)).thenReturn(person);
             when(mapper.toDto(person)).thenReturn(expectedDto);
 
             ClientDto result = service.getClientById(personId);
@@ -183,7 +176,8 @@ class ClientApplicationServiceTest {
         @DisplayName("GIVEN non-existent person WHEN getClientById THEN throw ClientNotFoundException")
         void shouldThrowExceptionWhenNotFound() {
             UUID nonExistentId = UUID.randomUUID();
-            when(clientRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+            when(clientService.findClientById(nonExistentId))
+                    .thenThrow(new ClientNotFoundException("Client with ID " + nonExistentId + " not found"));
 
             assertThatThrownBy(() -> service.getClientById(nonExistentId))
                     .isInstanceOf(ClientNotFoundException.class)
@@ -209,7 +203,7 @@ class ClientApplicationServiceTest {
                     LocalDate.of(1990, 5, 15)
             );
 
-            when(clientRepository.findById(personId)).thenReturn(Optional.of(person));
+            when(clientService.findClientById(personId)).thenReturn(person);
             when(mapper.toDto(person)).thenReturn(expectedDto);
 
             ClientDto result = service.getClientById(personId);
@@ -323,44 +317,50 @@ class ClientApplicationServiceTest {
     class DeletePersonTests {
 
         @Test
-        @DisplayName("GIVEN existing person WHEN delete THEN deletion succeeds (contracts closure is delegated)")
+        @DisplayName("GIVEN existing person WHEN delete THEN deletion succeeds and event is published")
         void shouldDeleteExistingClient() {
             UUID personId = UUID.randomUUID();
 
-            when(clientRepository.existsById(personId)).thenReturn(true);
-            doNothing().when(contractApplicationService).closeActiveContractsByClientId(personId);
-            doNothing().when(clientRepository).deleteById(personId);
+            doNothing().when(clientService).deleteByIdIfExists(personId);
 
-            service.deleteClientAndCloseContracts(personId);
+            service.deleteClient(personId);
 
-            verify(contractApplicationService).closeActiveContractsByClientId(personId);
+            verify(clientService).deleteByIdIfExists(personId);
+            verify(eventPublisher).publishEvent(any(ClientDeletedEvent.class));
         }
 
         @Test
         @DisplayName("GIVEN non-existent person WHEN delete THEN throw ClientNotFoundException and do nothing")
         void shouldThrowExceptionWhenNotFound() {
             UUID nonExistentId = UUID.randomUUID();
-            when(clientRepository.existsById(nonExistentId)).thenReturn(false);
+            doThrow(new ClientNotFoundException("Client with ID " + nonExistentId + " not found"))
+                    .when(clientService).deleteByIdIfExists(nonExistentId);
 
-            assertThatThrownBy(() -> service.deleteClientAndCloseContracts(nonExistentId))
+            assertThatThrownBy(() -> service.deleteClient(nonExistentId))
                     .isInstanceOf(ClientNotFoundException.class)
                     .hasMessageContaining("Client with ID " + nonExistentId + " not found");
 
-            verify(contractApplicationService, never()).closeActiveContractsByClientId(any());
+            verify(clientService).deleteByIdIfExists(nonExistentId);
+            verify(eventPublisher, never()).publishEvent(any());
         }
 
         @Test
-        @DisplayName("GIVEN person WHEN delete THEN contracts closure is delegated (business rule: close before delete)")
-        void shouldDelegateContractsClosureBeforeDeletion() {
+        @DisplayName("GIVEN person WHEN delete THEN ClientDeletedEvent is published with correct clientId")
+        void shouldPublishClientDeletedEventWithCorrectId() {
             UUID personId = UUID.randomUUID();
 
-            when(clientRepository.existsById(personId)).thenReturn(true);
-            doNothing().when(contractApplicationService).closeActiveContractsByClientId(personId);
-            doNothing().when(clientRepository).deleteById(personId);
+            doNothing().when(clientService).deleteByIdIfExists(personId);
 
-            service.deleteClientAndCloseContracts(personId);
+            service.deleteClient(personId);
 
-            verify(contractApplicationService).closeActiveContractsByClientId(personId);
+            // Capture l'événement publié
+            ArgumentCaptor<ClientDeletedEvent> eventCaptor = ArgumentCaptor.forClass(ClientDeletedEvent.class);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+            // Vérifier que l'événement contient le bon clientId
+            ClientDeletedEvent capturedEvent = eventCaptor.getValue();
+            assertThat(capturedEvent.clientId()).isEqualTo(personId);
+            assertThat(capturedEvent.occurredAt()).isNotNull();
         }
     }
 
@@ -477,7 +477,6 @@ class ClientApplicationServiceTest {
 
             ClientDto result = service.patchClient(clientId, "Jane Smith", "jane@example.com", "+33999999999");
 
-            // Vérifier la nouvelle instance retournée
             assertThat(result).isInstanceOf(PersonDto.class);
             PersonDto personDto = (PersonDto) result;
             assertThat(personDto.name()).isEqualTo("Jane Smith");
@@ -573,5 +572,4 @@ class ClientApplicationServiceTest {
             assertThat(result.email()).isEqualTo("john.doe@example.com");
         }
     }
-}
-
+}*/

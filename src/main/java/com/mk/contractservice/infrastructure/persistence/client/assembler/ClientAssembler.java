@@ -7,24 +7,23 @@ import com.mk.contractservice.infrastructure.persistence.client.entity.ClientJpa
 import com.mk.contractservice.infrastructure.persistence.client.entity.CompanyJpaEntity;
 import com.mk.contractservice.infrastructure.persistence.client.entity.PersonJpaEntity;
 import jakarta.persistence.EntityManager;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class ClientAssembler {
 
-    private final PersonAssembler personAssembler;
-    private final CompanyAssembler companyAssembler;
-    private final EntityManager entityManager;
+    PersonAssembler personAssembler;
+    CompanyAssembler companyAssembler;
+    EntityManager entityManager;
 
-    public ClientAssembler(final PersonAssembler personAssembler, final CompanyAssembler companyAssembler, final EntityManager entityManager) {
-        this.personAssembler = personAssembler;
-        this.companyAssembler = companyAssembler;
-        this.entityManager = entityManager;
-    }
 
     public ClientJpaEntity toJpaEntity(final Client domain) {
         if (domain.getId() != null) {
-            return updateExistingClient(domain);
+            return loadExistingClient(domain);
         }
         return createNewClient(domain);
     }
@@ -37,7 +36,7 @@ public class ClientAssembler {
         };
     }
 
-    private ClientJpaEntity updateExistingClient(final Client domain) {
+    ClientJpaEntity loadExistingClient(final Client domain) {
         final ClientJpaEntity existing = entityManager.find(ClientJpaEntity.class, domain.getId());
         existing.setName(domain.getName().value());
         existing.setEmail(domain.getEmail().value());
@@ -45,7 +44,7 @@ public class ClientAssembler {
         return existing;
     }
 
-    private ClientJpaEntity createNewClient(final Client domain) {
+    ClientJpaEntity createNewClient(final Client domain) {
         return switch (domain) {
             case Person person -> personAssembler.toJpaEntity(person);
             case Company company -> companyAssembler.toJpaEntity(company);

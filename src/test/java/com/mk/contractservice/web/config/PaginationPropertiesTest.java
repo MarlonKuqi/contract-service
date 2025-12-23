@@ -1,6 +1,6 @@
 package com.mk.contractservice.web.config;
 
-import com.mk.contractservice.infrastructure.shared.pagination.PaginationProperties;
+import com.mk.contractservice.infrastructure.pagination.PaginationProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

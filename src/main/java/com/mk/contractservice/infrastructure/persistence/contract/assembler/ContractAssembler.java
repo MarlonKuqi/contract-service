@@ -5,16 +5,16 @@ import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import com.mk.contractservice.infrastructure.persistence.contract.entity.ContractJpaEntity;
 import jakarta.persistence.EntityManager;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class ContractAssembler {
 
-    private final EntityManager entityManager;
-
-    public ContractAssembler(final EntityManager entityManager) {
-        this.entityManager = entityManager;
-    }
+    EntityManager entityManager;
 
     public ContractJpaEntity toJpaEntity(final Contract domain) {
         if (domain.getId() != null) {
