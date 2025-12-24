@@ -21,12 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateCompanyUseCase - Unit Tests")
@@ -77,10 +72,10 @@ class CreateCompanyUseCaseImplTest {
 
             // Then
             assertThat(result).isNotNull();
-            assertThat(result.getName().value()).isEqualTo(name);
-            assertThat(result.getEmail().value()).isEqualTo(email.toLowerCase());
-            assertThat(result.getPhone().value()).isEqualTo(phone);
-            assertThat(result.getCompanyIdentifier().value()).isEqualTo(companyIdentifier);
+            assertThat(result.getName().getValue()).isEqualTo(name);
+            assertThat(result.getEmail().getValue()).isEqualTo(email.toLowerCase());
+            assertThat(result.getPhone().getValue()).isEqualTo(phone);
+            assertThat(result.getCompanyIdentifier().getValue()).isEqualTo(companyIdentifier);
 
             verify(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
             verify(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
@@ -115,7 +110,7 @@ class CreateCompanyUseCaseImplTest {
             // Then
             ArgumentCaptor<ClientEmail> emailCaptor = ArgumentCaptor.forClass(ClientEmail.class);
             verify(clientValidationService).ensureEmailIsUnique(emailCaptor.capture());
-            assertThat(emailCaptor.getValue().value()).isEqualTo(command.email().toLowerCase());
+            assertThat(emailCaptor.getValue().getValue()).isEqualTo(command.email().toLowerCase());
         }
 
         @Test
@@ -146,7 +141,7 @@ class CreateCompanyUseCaseImplTest {
             // Then
             ArgumentCaptor<CompanyIdentifier> identifierCaptor = ArgumentCaptor.forClass(CompanyIdentifier.class);
             verify(clientValidationService).ensureCompanyIdentifierIsUnique(identifierCaptor.capture());
-            assertThat(identifierCaptor.getValue().value()).isEqualTo(command.companyIdentifier());
+            assertThat(identifierCaptor.getValue().getValue()).isEqualTo(command.companyIdentifier());
         }
 
         @Test
@@ -268,7 +263,7 @@ class CreateCompanyUseCaseImplTest {
             Company result = createCompanyUseCase.execute(command);
 
             // Then
-            assertThat(result.getEmail().value()).isEqualTo("contact@techcorp.com");
+            assertThat(result.getEmail().getValue()).isEqualTo("contact@techcorp.com");
         }
 
         @Test
@@ -297,7 +292,7 @@ class CreateCompanyUseCaseImplTest {
             Company result = createCompanyUseCase.execute(command);
 
             // Then
-            assertThat(result.getName().value()).isEqualTo("Tech & Innovation Corp.");
+            assertThat(result.getName().getValue()).isEqualTo("Tech & Innovation Corp.");
         }
 
         @Test
@@ -326,7 +321,7 @@ class CreateCompanyUseCaseImplTest {
             Company result = createCompanyUseCase.execute(command);
 
             // Then
-            assertThat(result.getPhone().value()).isEqualTo("+441234567890");
+            assertThat(result.getPhone().getValue()).isEqualTo("+441234567890");
         }
     }
 }

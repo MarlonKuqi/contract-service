@@ -79,7 +79,7 @@ class ContractControllerTest {
             UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
 
-            Contract contract = Contract.reconstitute(
+            Contract contract = Contract.reconstituteFromDatabase(
                     contractId,
                     clientId,
                     ContractPeriod.of(
@@ -149,7 +149,7 @@ class ContractControllerTest {
             UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
 
-            Contract contract = Contract.reconstitute(
+            Contract contract = Contract.reconstituteFromDatabase(
                     contractId,
                     clientId,
                     ContractPeriod.of(
@@ -200,7 +200,7 @@ class ContractControllerTest {
             UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
 
-            Contract contract = Contract.reconstitute(
+            Contract contract = Contract.reconstituteFromDatabase(
                     contractId,
                     clientId,
                     ContractPeriod.of(

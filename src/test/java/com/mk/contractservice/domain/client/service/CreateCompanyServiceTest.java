@@ -23,11 +23,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.argThat;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateCompanyService - Use Case Tests")
@@ -60,7 +56,7 @@ class CreateCompanyServiceTest {
         UUID savedCompanyId = UUID.randomUUID();
         when(clientRepository.save(any(Company.class))).thenAnswer(invocation -> {
             Company company = invocation.getArgument(0);
-            return Company.reconstitute(
+            return Company.reconstituteFromDatabase(
                     savedCompanyId,
                     company.getName(),
                     company.getEmail(),
@@ -78,10 +74,10 @@ class CreateCompanyServiceTest {
         verify(clientRepository).save(any(Company.class));
 
         assertThat(result.getId()).isEqualTo(savedCompanyId);
-        assertThat(result.getName().value()).isEqualTo(name);
-        assertThat(result.getEmail().value()).isEqualTo(email);
-        assertThat(result.getPhone().value()).isEqualTo(phoneNumber);
-        assertThat(result.getCompanyIdentifier().value()).isEqualTo(companyIdentifier);
+        assertThat(result.getName().getValue()).isEqualTo(name);
+        assertThat(result.getEmail().getValue()).isEqualTo(email);
+        assertThat(result.getPhone().getValue()).isEqualTo(phoneNumber);
+        assertThat(result.getCompanyIdentifier().getValue()).isEqualTo(companyIdentifier);
     }
 
     @Test
@@ -135,7 +131,7 @@ class CreateCompanyServiceTest {
     }
 
     @Test
-    @DisplayName("Should create company with all value objects properly validated")
+    @DisplayName("Should create company with all getValue objects properly validated")
     void shouldCreateCompanyWithValidatedValueObjects() {
         // Given
         CreateCompanyCommand command = new CreateCompanyCommand(
@@ -176,8 +172,8 @@ class CreateCompanyServiceTest {
         // Then
         verify(clientRepository).save(argThat(client ->
                 client instanceof Company company &&
-                        company.getName().value().equals("Business Ltd") &&
-                        company.getCompanyIdentifier().value().equals("CHE-999.888.777")
+                        company.getName().getValue().equals("Business Ltd") &&
+                        company.getCompanyIdentifier().getValue().equals("CHE-999.888.777")
         ));
     }
 }

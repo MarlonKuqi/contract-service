@@ -1,13 +1,20 @@
 package com.mk.contractservice.domain.client.valueobject;
 
 import com.mk.contractservice.domain.client.exception.InvalidEmailException;
+import com.mk.contractservice.domain.shared.ValueObject;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
-import java.util.Objects;
 import java.util.function.Predicate;
 
-public final class ClientEmail {
+@Value
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class ClientEmail {
+
+    String value;
 
     private static final int MAX_LENGTH = 254;
     private static final String EMAIL_PATTERN = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
@@ -19,17 +26,17 @@ public final class ClientEmail {
     public static final Predicate<String> HAS_INVALID_FORMAT =
             email -> !email.matches(EMAIL_PATTERN);
 
-
-    private final String value;
-
-    private ClientEmail(final String value) {
-        this.value = value;
+    public static ClientEmail of(@Nullable final String rawValue) {
+        return ValueObject.validateAndCreate(
+                rawValue,
+                ClientEmail::normalize,
+                ClientEmail::validate,
+                ClientEmail::new
+        );
     }
 
-    public static ClientEmail of(@Nullable final String rawValue) {
-        final String normalizedValue = normalize(rawValue);
-        validate(normalizedValue, rawValue);
-        return new ClientEmail(normalizedValue);
+    public static ClientEmail reconstituteFromDatabase(final String trustedValue) {
+        return ValueObject.guardNotNull(trustedValue, ClientEmail::new, ClientEmail.class);
     }
 
     private static String normalize(@Nullable final String rawValue) {
@@ -39,32 +46,12 @@ public final class ClientEmail {
         return rawValue.trim().toLowerCase(Locale.ROOT);
     }
 
-    private static void validate(final String normalizedValue, final String rawValue) {
+    private static void validate(final String normalizedValue) {
         if (IS_INVALID_LENGTH.test(normalizedValue)) {
             throw new InvalidEmailException("Email too long (max " + MAX_LENGTH + " characters per RFC 5321)");
         }
-
         if (HAS_INVALID_FORMAT.test(normalizedValue)) {
-            throw InvalidEmailException.forInvalidFormat(rawValue);
+            throw InvalidEmailException.forInvalidFormat(normalizedValue);
         }
-    }
-
-    public String value() {
-        return value;
-    }
-
-    @Override
-    public boolean equals(@Nullable final Object o) {
-        return this == o || (o instanceof ClientEmail other && Objects.equals(value, other.value));
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
-    }
-
-    @Override
-    public String toString() {
-        return value;
     }
 }

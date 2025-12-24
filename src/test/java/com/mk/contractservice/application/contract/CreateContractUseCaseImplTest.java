@@ -23,12 +23,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateContractUseCase - Unit Tests")
@@ -78,7 +73,7 @@ class CreateContractUseCaseImplTest {
             // Then
             assertThat(result).isNotNull();
             assertThat(result.getClientId()).isEqualTo(clientId);
-            assertThat(result.getCostAmount().value()).isEqualByComparingTo(costAmount);
+            assertThat(result.getCostAmount().getValue()).isEqualByComparingTo(costAmount);
 
             verify(contractValidationService).ensureClientExists(clientId);
             verify(contractRepository).save(any(Contract.class));
@@ -117,8 +112,8 @@ class CreateContractUseCaseImplTest {
             verify(contractRepository).save(contractCaptor.capture());
 
             Contract capturedContract = contractCaptor.getValue();
-            assertThat(capturedContract.getPeriod().startDate()).isEqualTo(startDate);
-            assertThat(capturedContract.getPeriod().endDate()).isEqualTo(endDate);
+            assertThat(capturedContract.getPeriod().getStartDate()).isEqualTo(startDate);
+            assertThat(capturedContract.getPeriod().getEndDate()).isEqualTo(endDate);
         }
 
         @Test
@@ -154,7 +149,7 @@ class CreateContractUseCaseImplTest {
             verify(contractRepository).save(contractCaptor.capture());
 
             Contract capturedContract = contractCaptor.getValue();
-            assertThat(capturedContract.getCostAmount().value()).isEqualByComparingTo(costAmount);
+            assertThat(capturedContract.getCostAmount().getValue()).isEqualByComparingTo(costAmount);
         }
     }
 
@@ -259,7 +254,7 @@ class CreateContractUseCaseImplTest {
 
             // Then
             assertThat(result).isNotNull();
-            assertThat(result.getCostAmount().value()).isEqualByComparingTo(costAmount);
+            assertThat(result.getCostAmount().getValue()).isEqualByComparingTo(costAmount);
             verify(contractRepository).save(any(Contract.class));
         }
 
@@ -293,7 +288,7 @@ class CreateContractUseCaseImplTest {
 
             // Then
             assertThat(result).isNotNull();
-            assertThat(result.getCostAmount().value()).isEqualByComparingTo(costAmount);
+            assertThat(result.getCostAmount().getValue()).isEqualByComparingTo(costAmount);
             verify(contractRepository).save(any(Contract.class));
         }
     }

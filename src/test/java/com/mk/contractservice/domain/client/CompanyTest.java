@@ -29,10 +29,10 @@ class CompanyTest {
         );
 
         assertThat(company).isNotNull();
-        assertThat(company.getName().value()).isEqualTo("ACME Corporation");
-        assertThat(company.getEmail().value()).isEqualTo("contact@acme.com");
-        assertThat(company.getPhone().value()).isEqualTo("+33123456789");
-        assertThat(company.getCompanyIdentifier().value()).isEqualTo("acme-123");
+        assertThat(company.getName().getValue()).isEqualTo("ACME Corporation");
+        assertThat(company.getEmail().getValue()).isEqualTo("contact@acme.com");
+        assertThat(company.getPhone().getValue()).isEqualTo("+33123456789");
+        assertThat(company.getCompanyIdentifier().getValue()).isEqualTo("acme-123");
     }
 
     @Test
@@ -57,7 +57,7 @@ class CompanyTest {
                 CompanyIdentifier.of("aaa-123")
         );
 
-        assertThat(company.getCompanyIdentifier().value()).isEqualTo("aaa-123");
+        assertThat(company.getCompanyIdentifier().getValue()).isEqualTo("aaa-123");
     }
 
     @Test
@@ -70,7 +70,7 @@ class CompanyTest {
                 CompanyIdentifier.of("abc-xyz-123_456")
         );
 
-        assertThat(company.getCompanyIdentifier().value()).isEqualTo("abc-xyz-123_456");
+        assertThat(company.getCompanyIdentifier().getValue()).isEqualTo("abc-xyz-123_456");
     }
 
     @Test
@@ -82,7 +82,7 @@ class CompanyTest {
         ClientPhoneNumber phone = ClientPhoneNumber.of("+33123456789");
         CompanyIdentifier companyId = CompanyIdentifier.of("acme-123");
 
-        Company company = Company.reconstitute(id, name, clientEmail, phone, companyId);
+        Company company = Company.reconstituteFromDatabase(id, name, clientEmail, phone, companyId);
 
         assertThat(company.getId()).isEqualTo(id);
         assertThat(company.getName()).isEqualTo(name);
@@ -108,10 +108,10 @@ class CompanyTest {
                 ClientPhoneNumber.of("+33999999999")
         );
 
-        assertThat(updated.getName().value()).isEqualTo("ACME Corporation");
-        assertThat(updated.getEmail().value()).isEqualTo("new@acme.com");
-        assertThat(updated.getPhone().value()).isEqualTo("+33999999999");
-        assertThat(updated.getCompanyIdentifier().value()).isEqualTo("acme-123");
+        assertThat(updated.getName().getValue()).isEqualTo("ACME Corporation");
+        assertThat(updated.getEmail().getValue()).isEqualTo("new@acme.com");
+        assertThat(updated.getPhone().getValue()).isEqualTo("+33999999999");
+        assertThat(updated.getCompanyIdentifier().getValue()).isEqualTo("acme-123");
     }
 
     @Test

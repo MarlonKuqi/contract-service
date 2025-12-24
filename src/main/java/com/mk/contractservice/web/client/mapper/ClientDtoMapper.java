@@ -15,17 +15,17 @@ public interface ClientDtoMapper {
         return switch (client) {
             case Person p -> new PersonResponse(
                     p.getId(),
-                    p.getName().value(),
-                    p.getEmail().value(),
-                    p.getPhone().value(),
-                    p.getBirthDate().value()
+                    p.getName().getValue(),
+                    p.getEmail().getValue(),
+                    p.getPhone().getValue(),
+                    p.getBirthDate().getValue()
             );
             case Company c -> new CompanyResponse(
                     c.getId(),
-                    c.getName().value(),
-                    c.getEmail().value(),
-                    c.getPhone().value(),
-                    c.getCompanyIdentifier().value()
+                    c.getName().getValue(),
+                    c.getEmail().getValue(),
+                    c.getPhone().getValue(),
+                    c.getCompanyIdentifier().getValue()
             );
         };
     }

@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
-import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
+import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +18,7 @@ class ContractCostTest {
     void shouldCreateWithValidCost() {
         ContractCost cost = ContractCost.of(new BigDecimal("100.50"));
 
-        assertThat(cost.value()).isEqualByComparingTo("100.50");
+        assertThat(cost.getValue()).isEqualByComparingTo("100.50");
     }
 
     @Test
@@ -58,7 +58,7 @@ class ContractCostTest {
     void shouldAcceptTwoDecimals() {
         ContractCost cost = ContractCost.of(new BigDecimal("100.99"));
 
-        assertThat(cost.value()).isEqualByComparingTo("100.99");
+        assertThat(cost.getValue()).isEqualByComparingTo("100.99");
     }
 
     @Test
@@ -66,7 +66,7 @@ class ContractCostTest {
     void shouldAcceptOneDecimal() {
         ContractCost cost = ContractCost.of(new BigDecimal("100.5"));
 
-        assertThat(cost.value()).isEqualByComparingTo("100.5");
+        assertThat(cost.getValue()).isEqualByComparingTo("100.5");
     }
 
     @Test
@@ -74,7 +74,7 @@ class ContractCostTest {
     void shouldAcceptNoDecimals() {
         ContractCost cost = ContractCost.of(new BigDecimal("100"));
 
-        assertThat(cost.value()).isEqualByComparingTo("100");
+        assertThat(cost.getValue()).isEqualByComparingTo("100");
     }
 
     @Test
@@ -82,7 +82,7 @@ class ContractCostTest {
     void shouldAcceptLargeCost() {
         ContractCost cost = ContractCost.of(new BigDecimal("999999999.99"));
 
-        assertThat(cost.value()).isEqualByComparingTo("999999999.99");
+        assertThat(cost.getValue()).isEqualByComparingTo("999999999.99");
     }
 
     @Test

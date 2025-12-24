@@ -6,15 +6,14 @@ Lors de la conception des entités de domaine (aggregates), respectez les princi
 
 ### 1. Immutabilité Stricte
 
-- **Tous les champs** DOIVENT être `private final`
-- Utiliser `@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)` de Lombok
+- **Tous les champs** DOIVENT être `private final`, sauf si on utilise `@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)` de Lombok
 - L'entité NE DOIT PAS avoir de méthodes setter publiques
 - Toute méthode qui modifie conceptuellement l'état de l'entité DOIT retourner une **nouvelle instance** avec l'état mis à jour
 
 ### 2. Constructeur Validant avec Builder
 
 - L'entité DOIT avoir un constructeur **privé** unique
-- Utiliser `@Builder(toBuilder = true)` de Lombok sur le constructeur
+- Utiliser `@Builder(toBuilder = true)` de Lombok sur le constructeur pour une classe qui n'hérite pas, ou implementer manuellement le pattern Builder si héritage
 - Le constructeur DOIT **valider** toutes les propriétés essentielles pour garantir que seules des instances valides sont créées
 - Lancer des exceptions métier spécifiques (ex: `InvalidClientException`) en cas de validation échouée
 
@@ -200,7 +199,7 @@ public class Contract {
 
 ## Justification
 
-Ce pattern favorise :
+Ce pattern a les avantages suivants :
 
 - **Séparation claire** entre état et comportement
 - **Réduction des effets de bord** : pas de modification d'état partagé

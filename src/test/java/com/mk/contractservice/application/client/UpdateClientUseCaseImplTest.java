@@ -25,10 +25,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UpdateClientUseCase - Unit Tests")
@@ -81,9 +78,9 @@ class UpdateClientUseCaseImplTest {
 
             // Then
             assertThat(result).isNotNull();
-            assertThat(result.getName().value()).isEqualTo(newName);
-            assertThat(result.getEmail().value()).isEqualTo(newEmail.toLowerCase());
-            assertThat(result.getPhone().value()).isEqualTo(newPhone);
+            assertThat(result.getName().getValue()).isEqualTo(newName);
+            assertThat(result.getEmail().getValue()).isEqualTo(newEmail.toLowerCase());
+            assertThat(result.getPhone().getValue()).isEqualTo(newPhone);
 
             verify(clientService).findClientById(clientId);
             verify(clientRepository).save(any(Client.class));
@@ -119,9 +116,9 @@ class UpdateClientUseCaseImplTest {
             verify(clientRepository).save(clientCaptor.capture());
 
             Client savedClient = clientCaptor.getValue();
-            assertThat(savedClient.getName().value()).isEqualTo("New Name");
-            assertThat(savedClient.getEmail().value()).isEqualTo("new@example.com");
-            assertThat(savedClient.getPhone().value()).isEqualTo("+33222222222");
+            assertThat(savedClient.getName().getValue()).isEqualTo("New Name");
+            assertThat(savedClient.getEmail().getValue()).isEqualTo("new@example.com");
+            assertThat(savedClient.getPhone().getValue()).isEqualTo("+33222222222");
         }
 
         @Test
@@ -181,7 +178,7 @@ class UpdateClientUseCaseImplTest {
             Client result = updateClientUseCase.execute(command);
 
             // Then
-            assertThat(result.getEmail().value()).isEqualTo("new@example.com");
+            assertThat(result.getEmail().getValue()).isEqualTo("new@example.com");
         }
 
         @Test
@@ -210,7 +207,7 @@ class UpdateClientUseCaseImplTest {
             Client result = updateClientUseCase.execute(command);
 
             // Then
-            assertThat(result.getPhone().value()).isEqualTo("+33999999999");
+            assertThat(result.getPhone().getValue()).isEqualTo("+33999999999");
         }
 
         @Test
@@ -239,7 +236,7 @@ class UpdateClientUseCaseImplTest {
             Client result = updateClientUseCase.execute(command);
 
             // Then
-            assertThat(result.getName().value()).isEqualTo("New Name");
+            assertThat(result.getName().getValue()).isEqualTo("New Name");
         }
     }
 
@@ -327,7 +324,7 @@ class UpdateClientUseCaseImplTest {
             Client result = updateClientUseCase.execute(command);
 
             // Then
-            assertThat(result.getEmail().value()).isEqualTo("new@example.com");
+            assertThat(result.getEmail().getValue()).isEqualTo("new@example.com");
         }
 
         @Test
@@ -356,7 +353,7 @@ class UpdateClientUseCaseImplTest {
             Client result = updateClientUseCase.execute(command);
 
             // Then
-            assertThat(result.getName().value()).isEqualTo("Jean-Pierre O'Connor");
+            assertThat(result.getName().getValue()).isEqualTo("Jean-Pierre O'Connor");
         }
 
         @Test
@@ -385,7 +382,7 @@ class UpdateClientUseCaseImplTest {
             Client result = updateClientUseCase.execute(command);
 
             // Then
-            assertThat(result.getPhone().value()).isEqualTo("+441234567890");
+            assertThat(result.getPhone().getValue()).isEqualTo("+441234567890");
         }
     }
 }

@@ -1,28 +1,36 @@
 package com.mk.contractservice.domain.client.valueobject;
 
 import com.mk.contractservice.domain.client.exception.InvalidCompanyIdentifierException;
+import com.mk.contractservice.domain.shared.ValueObject;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.jspecify.annotations.Nullable;
 
-import java.util.Objects;
 import java.util.function.Predicate;
 
-public final class CompanyIdentifier {
+@Value
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class CompanyIdentifier {
+
+    String value;
 
     private static final int MAX_LENGTH = 64;
 
     public static final Predicate<String> IS_NOT_VALID =
             identifier -> identifier.isEmpty() || identifier.length() > MAX_LENGTH;
 
-    private final String value;
-
-    private CompanyIdentifier(final String value) {
-        this.value = value;
+    public static CompanyIdentifier of(@Nullable final String rawValue) {
+        return ValueObject.validateAndCreate(
+                rawValue,
+                CompanyIdentifier::normalize,
+                CompanyIdentifier::validate,
+                CompanyIdentifier::new
+        );
     }
 
-    public static CompanyIdentifier of(@Nullable final String rawValue) {
-        final String normalized = normalize(rawValue);
-        validate(normalized);
-        return new CompanyIdentifier(normalized);
+    public static CompanyIdentifier reconstituteFromDatabase(final String trustedValue) {
+        return ValueObject.guardNotNull(trustedValue, CompanyIdentifier::new, CompanyIdentifier.class);
     }
 
     private static String normalize(@Nullable final String rawValue) {
@@ -36,24 +44,5 @@ public final class CompanyIdentifier {
         if (IS_NOT_VALID.test(normalized)) {
             throw new InvalidCompanyIdentifierException("Company identifier too long (max " + MAX_LENGTH + " characters)");
         }
-    }
-
-    public String value() {
-        return value;
-    }
-
-    @Override
-    public boolean equals(@Nullable final Object o) {
-        return this == o || (o instanceof CompanyIdentifier other && Objects.equals(value, other.value));
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
-    }
-
-    @Override
-    public String toString() {
-        return value;
     }
 }

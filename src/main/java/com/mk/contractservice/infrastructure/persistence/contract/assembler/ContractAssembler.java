@@ -24,29 +24,29 @@ public class ContractAssembler {
     }
 
     public Contract toDomain(final ContractJpaEntity entity) {
-        return Contract.reconstitute(
+        return Contract.reconstituteFromDatabase(
                 entity.getId(),
                 entity.getClientId(),
-                ContractPeriod.of(entity.getStartDate(), entity.getEndDate()),
-                ContractCost.of(entity.getCostAmount())
+                ContractPeriod.reconstituteFromDatabase(entity.getStartDate(), entity.getEndDate()),
+                ContractCost.reconstituteFromDatabase(entity.getCostAmount())
         );
     }
 
     private ContractJpaEntity updateExistingContract(final Contract domain) {
         final ContractJpaEntity existing = entityManager.find(ContractJpaEntity.class, domain.getId());
         existing.setClientId(domain.getClientId());
-        existing.setStartDate(domain.getPeriod().startDate());
-        existing.setEndDate(domain.getPeriod().endDate());
-        existing.setCostAmount(domain.getCostAmount().value());
+        existing.setStartDate(domain.getPeriod().getStartDate());
+        existing.setEndDate(domain.getPeriod().getEndDate());
+        existing.setCostAmount(domain.getCostAmount().getValue());
         return existing;
     }
 
     private ContractJpaEntity createNewContract(final Contract domain) {
         return new ContractJpaEntity(
                 domain.getClientId(),
-                domain.getPeriod().startDate(),
-                domain.getPeriod().endDate(),
-                domain.getCostAmount().value()
+                domain.getPeriod().getStartDate(),
+                domain.getPeriod().getEndDate(),
+                domain.getCostAmount().getValue()
         );
     }
 }

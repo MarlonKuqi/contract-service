@@ -90,7 +90,7 @@ class ClientControllerTest {
         void shouldCreatePersonSuccessfully() throws Exception {
 
             UUID clientId = UUID.randomUUID();
-            Person person = Person.reconstitute(
+            Person person = Person.reconstituteFromDatabase(
                     clientId,
                     ClientName.of("John Doe"),
                     ClientEmail.of("john.doe@example.com"),
@@ -199,7 +199,7 @@ class ClientControllerTest {
         @DisplayName("GIVEN existing client WHEN get by id THEN return 200 with client data")
         void shouldReturnClientWhenExists() throws Exception {
             UUID clientId = UUID.randomUUID();
-            Person person = Person.reconstitute(
+            Person person = Person.reconstituteFromDatabase(
                     clientId,
                     ClientName.of("John Doe"),
                     ClientEmail.of("john.doe@example.com"),

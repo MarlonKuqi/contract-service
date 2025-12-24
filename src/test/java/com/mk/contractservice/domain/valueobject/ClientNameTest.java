@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
-import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.exception.InvalidClientNameException;
+import com.mk.contractservice.domain.client.valueobject.ClientName;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,7 +19,7 @@ class ClientNameTest {
     void shouldCreateWithValidName() {
         ClientName name = ClientName.of("John Doe");
 
-        assertThat(name.value()).isEqualTo("John Doe");
+        assertThat(name.getValue()).isEqualTo("John Doe");
     }
 
     @ParameterizedTest
@@ -37,7 +37,7 @@ class ClientNameTest {
     void shouldTrimWhitespace() {
         ClientName name = ClientName.of("  John Doe  ");
 
-        assertThat(name.value()).isEqualTo("John Doe");
+        assertThat(name.getValue()).isEqualTo("John Doe");
     }
 
     @Test
@@ -57,7 +57,7 @@ class ClientNameTest {
 
         ClientName name = ClientName.of(maxLengthName);
 
-        assertThat(name.value()).hasSize(200);
+        assertThat(name.getValue()).hasSize(200);
     }
 
     @Test
@@ -65,7 +65,7 @@ class ClientNameTest {
     void shouldAcceptSpecialCharacters() {
         ClientName name = ClientName.of("Jean-François O'Connor");
 
-        assertThat(name.value()).isEqualTo("Jean-François O'Connor");
+        assertThat(name.getValue()).isEqualTo("Jean-François O'Connor");
     }
 
     @ParameterizedTest
@@ -81,7 +81,7 @@ class ClientNameTest {
     void shouldAcceptInternationalNames(String validName) {
         ClientName name = ClientName.of(validName);
 
-        assertThat(name.value()).isEqualTo(validName);
+        assertThat(name.getValue()).isEqualTo(validName);
     }
 
     @Test
@@ -134,7 +134,7 @@ class ClientNameTest {
     void shouldAcceptSingleCharacter() {
         ClientName name = ClientName.of("A");
 
-        assertThat(name.value()).isEqualTo("A");
+        assertThat(name.getValue()).isEqualTo("A");
     }
 
     @Test
@@ -142,7 +142,7 @@ class ClientNameTest {
     void shouldAcceptNamesWithNumbers() {
         ClientName name = ClientName.of("Company 123");
 
-        assertThat(name.value()).isEqualTo("Company 123");
+        assertThat(name.getValue()).isEqualTo("Company 123");
     }
 }
 

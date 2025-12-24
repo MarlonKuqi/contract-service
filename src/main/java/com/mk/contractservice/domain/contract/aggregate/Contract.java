@@ -31,6 +31,17 @@ public class Contract {
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount
     ) {
+        this.id = id;
+        this.clientId = clientId;
+        this.period = period;
+        this.costAmount = costAmount;
+    }
+
+    private static void validateContractFields(
+            @Nullable final UUID clientId,
+            @Nullable final ContractPeriod period,
+            @Nullable final ContractCost costAmount
+    ) {
         if (clientId == null) {
             throw InvalidContractException.forNullClient();
         }
@@ -40,10 +51,6 @@ public class Contract {
         if (costAmount == null) {
             throw InvalidContractException.forNullCostAmount();
         }
-        this.id = id;
-        this.clientId = clientId;
-        this.period = period;
-        this.costAmount = costAmount;
     }
 
     public static Contract of(
@@ -51,6 +58,7 @@ public class Contract {
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount
     ) {
+        validateContractFields(clientId, period, costAmount);
         return builder()
                 .clientId(clientId)
                 .period(period)
@@ -58,7 +66,7 @@ public class Contract {
                 .build();
     }
 
-    public static Contract reconstitute(
+    public static Contract reconstituteFromDatabase(
             @Nullable final UUID id,
             @Nullable final UUID clientId,
             @Nullable final ContractPeriod period,
@@ -87,9 +95,9 @@ public class Contract {
         if (isInactive()) {
             throw new ExpiredContractException(getId());
         }
+        validateContractFields(this.clientId, this.period, newAmount);
         return toBuilder()
                 .costAmount(newAmount)
                 .build();
     }
 }
-

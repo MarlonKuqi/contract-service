@@ -23,12 +23,7 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreatePersonUseCase - Unit Tests")
@@ -78,10 +73,10 @@ class CreatePersonUseCaseImplTest {
 
             // Then
             assertThat(result).isNotNull();
-            assertThat(result.getName().value()).isEqualTo(name);
-            assertThat(result.getEmail().value()).isEqualTo(email.toLowerCase());
-            assertThat(result.getPhone().value()).isEqualTo(phone);
-            assertThat(result.getBirthDate().value()).isEqualTo(birthDate);
+            assertThat(result.getName().getValue()).isEqualTo(name);
+            assertThat(result.getEmail().getValue()).isEqualTo(email.toLowerCase());
+            assertThat(result.getPhone().getValue()).isEqualTo(phone);
+            assertThat(result.getBirthDate().getValue()).isEqualTo(birthDate);
 
             verify(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
             verify(clientRepository).save(any(Person.class));
@@ -114,7 +109,7 @@ class CreatePersonUseCaseImplTest {
             // Then
             ArgumentCaptor<ClientEmail> emailCaptor = ArgumentCaptor.forClass(ClientEmail.class);
             verify(clientValidationService).ensureEmailIsUnique(emailCaptor.capture());
-            assertThat(emailCaptor.getValue().value()).isEqualTo(command.email().toLowerCase());
+            assertThat(emailCaptor.getValue().getValue()).isEqualTo(command.email().toLowerCase());
         }
 
         @Test
@@ -173,7 +168,7 @@ class CreatePersonUseCaseImplTest {
             Person result = createPersonUseCase.execute(command);
 
             // Then
-            assertThat(result.getBirthDate().value()).isEqualTo(birthDate);
+            assertThat(result.getBirthDate().getValue()).isEqualTo(birthDate);
         }
     }
 
@@ -259,7 +254,7 @@ class CreatePersonUseCaseImplTest {
             Person result = createPersonUseCase.execute(command);
 
             // Then
-            assertThat(result.getEmail().value()).isEqualTo("john.doe@example.com");
+            assertThat(result.getEmail().getValue()).isEqualTo("john.doe@example.com");
         }
 
         @Test
@@ -287,7 +282,7 @@ class CreatePersonUseCaseImplTest {
             Person result = createPersonUseCase.execute(command);
 
             // Then
-            assertThat(result.getName().value()).isEqualTo("Jean-Pierre O'Connor");
+            assertThat(result.getName().getValue()).isEqualTo("Jean-Pierre O'Connor");
         }
 
         @Test
@@ -316,7 +311,7 @@ class CreatePersonUseCaseImplTest {
             Person result = createPersonUseCase.execute(command);
 
             // Then
-            assertThat(result.getBirthDate().value()).isEqualTo(recentBirthDate);
+            assertThat(result.getBirthDate().getValue()).isEqualTo(recentBirthDate);
         }
 
         @Test
@@ -345,7 +340,7 @@ class CreatePersonUseCaseImplTest {
             Person result = createPersonUseCase.execute(command);
 
             // Then
-            assertThat(result.getBirthDate().value()).isEqualTo(oldBirthDate);
+            assertThat(result.getBirthDate().getValue()).isEqualTo(oldBirthDate);
         }
 
         @Test
@@ -373,7 +368,7 @@ class CreatePersonUseCaseImplTest {
             Person result = createPersonUseCase.execute(command);
 
             // Then
-            assertThat(result.getPhone().value()).isEqualTo("+441234567890");
+            assertThat(result.getPhone().getValue()).isEqualTo("+441234567890");
         }
     }
 }

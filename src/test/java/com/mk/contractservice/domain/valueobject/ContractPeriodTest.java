@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
-import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
+import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -21,8 +21,8 @@ class ContractPeriodTest {
 
         ContractPeriod period = ContractPeriod.of(start, end);
 
-        assertThat(period.startDate()).isEqualTo(start);
-        assertThat(period.endDate()).isEqualTo(end);
+        assertThat(period.getStartDate()).isEqualTo(start);
+        assertThat(period.getEndDate()).isEqualTo(end);
     }
 
     @Test
@@ -34,9 +34,9 @@ class ContractPeriodTest {
         ContractPeriod period = ContractPeriod.of(null, end);
         LocalDateTime after = LocalDateTime.now().plusSeconds(1);
 
-        assertThat(period.startDate()).isNotNull();
-        assertThat(period.startDate()).isBetween(before, after);
-        assertThat(period.endDate()).isEqualTo(end);
+        assertThat(period.getStartDate()).isNotNull();
+        assertThat(period.getStartDate()).isBetween(before, after);
+        assertThat(period.getEndDate()).isEqualTo(end);
     }
 
     @Test
@@ -46,8 +46,8 @@ class ContractPeriodTest {
 
         ContractPeriod period = ContractPeriod.of(start, null);
 
-        assertThat(period.startDate()).isEqualTo(start);
-        assertThat(period.endDate()).isNull();
+        assertThat(period.getStartDate()).isEqualTo(start);
+        assertThat(period.getEndDate()).isNull();
     }
 
     @Test
@@ -58,9 +58,9 @@ class ContractPeriodTest {
         ContractPeriod period = ContractPeriod.of(null, null);
         LocalDateTime after = LocalDateTime.now().plusSeconds(1);
 
-        assertThat(period.startDate()).isNotNull();
-        assertThat(period.startDate()).isBetween(before, after);
-        assertThat(period.endDate()).isNull();
+        assertThat(period.getStartDate()).isNotNull();
+        assertThat(period.getStartDate()).isBetween(before, after);
+        assertThat(period.getEndDate()).isNull();
     }
 
     @Test
@@ -92,8 +92,8 @@ class ContractPeriodTest {
 
         ContractPeriod period = ContractPeriod.of(start, end);
 
-        assertThat(period.startDate()).isEqualTo(start);
-        assertThat(period.endDate()).isEqualTo(end);
+        assertThat(period.getStartDate()).isEqualTo(start);
+        assertThat(period.getEndDate()).isEqualTo(end);
     }
 
     @Test
@@ -220,8 +220,8 @@ class ContractPeriodTest {
 
         ContractPeriod period = ContractPeriod.of(start, end);
 
-        assertThat(period.startDate()).isEqualTo(start);
-        assertThat(period.endDate()).isEqualTo(end);
+        assertThat(period.getStartDate()).isEqualTo(start);
+        assertThat(period.getEndDate()).isEqualTo(end);
     }
 
     @Test
@@ -232,8 +232,8 @@ class ContractPeriodTest {
 
         ContractPeriod period = ContractPeriod.of(start, end);
 
-        assertThat(period.startDate()).isEqualTo(start);
-        assertThat(period.endDate()).isEqualTo(end);
+        assertThat(period.getStartDate()).isEqualTo(start);
+        assertThat(period.getEndDate()).isEqualTo(end);
     }
 
     @Test
@@ -244,8 +244,8 @@ class ContractPeriodTest {
 
         ContractPeriod period = ContractPeriod.of(start, end);
 
-        assertThat(period.startDate()).isEqualTo(start);
-        assertThat(period.endDate()).isEqualTo(end);
+        assertThat(period.getStartDate()).isEqualTo(start);
+        assertThat(period.getEndDate()).isEqualTo(end);
     }
 
     @Test
@@ -256,8 +256,8 @@ class ContractPeriodTest {
 
         ContractPeriod period = ContractPeriod.of(start, end);
 
-        assertThat(period.startDate()).isEqualTo(start);
-        assertThat(period.endDate()).isEqualTo(end);
+        assertThat(period.getStartDate()).isEqualTo(start);
+        assertThat(period.getEndDate()).isEqualTo(end);
     }
 }
 

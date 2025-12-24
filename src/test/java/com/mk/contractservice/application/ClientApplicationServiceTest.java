@@ -222,7 +222,7 @@ class ClientApplicationServiceTest {
         @DisplayName("GIVEN existing person WHEN update name, email, phone THEN changes are applied")
         void shouldUpdateAllowedFields() {
             UUID personId = UUID.randomUUID();
-            Person updatedPerson = Person.reconstitute(
+            Person updatedPerson = Person.reconstituteFromDatabase(
                     personId,
                     ClientName.of("Jane Doe"),
                     ClientEmail.of("jane@example.com"),
@@ -259,7 +259,7 @@ class ClientApplicationServiceTest {
         void shouldNotUpdateBirthdate() {
             UUID personId = UUID.randomUUID();
             LocalDate originalBirthDate = LocalDate.of(1990, 5, 15);
-            Person updatedPerson = Person.reconstitute(
+            Person updatedPerson = Person.reconstituteFromDatabase(
                     personId,
                     ClientName.of("Updated Name"),
                     ClientEmail.of("updated@example.com"),
@@ -420,7 +420,7 @@ class ClientApplicationServiceTest {
         @DisplayName("Should update only provided fields")
         void shouldUpdateOnlyProvidedFields() {
             UUID clientId = UUID.randomUUID();
-            Person updatedPerson = Person.reconstitute(
+            Person updatedPerson = Person.reconstituteFromDatabase(
                     clientId,
                     ClientName.of("Jane Doe"),
                     ClientEmail.of("john@example.com"),
@@ -456,7 +456,7 @@ class ClientApplicationServiceTest {
         @DisplayName("Should update all provided fields")
         void shouldUpdateAllProvidedFields() {
             UUID clientId = UUID.randomUUID();
-            Person updatedPerson = Person.reconstitute(
+            Person updatedPerson = Person.reconstituteFromDatabase(
                     clientId,
                     ClientName.of("Jane Smith"),
                     ClientEmail.of("jane@example.com"),

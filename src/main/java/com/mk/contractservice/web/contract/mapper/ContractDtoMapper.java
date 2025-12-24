@@ -11,10 +11,10 @@ public interface ContractDtoMapper {
         return new ContractResponse(
                 contract.getId(),
                 contract.getClientId(),
-                contract.getPeriod().startDate(),
-                contract.getPeriod().endDate(),
+                contract.getPeriod().getStartDate(),
+                contract.getPeriod().getEndDate(),
                 contract.isActive(),
-                contract.getCostAmount().value()
+                contract.getCostAmount().getValue()
         );
     }
 }

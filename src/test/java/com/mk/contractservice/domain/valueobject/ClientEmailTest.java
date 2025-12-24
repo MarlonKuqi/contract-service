@@ -1,16 +1,14 @@
 package com.mk.contractservice.domain.valueobject;
 
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.exception.InvalidEmailException;
+import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 @DisplayName("Email Value Object")
 class ClientEmailTest {
@@ -22,7 +20,7 @@ class ClientEmailTest {
 
         ClientEmail clientEmail = ClientEmail.of(rawEmail);
 
-        assertThat(clientEmail.value())
+        assertThat(clientEmail.getValue())
                 .isEqualTo("john.doe@example.com")
                 .isLowerCase();
     }
@@ -34,7 +32,7 @@ class ClientEmailTest {
 
         ClientEmail clientEmail = ClientEmail.of(rawEmail);
 
-        assertThat(clientEmail.value()).isEqualTo("user@domain.com");
+        assertThat(clientEmail.getValue()).isEqualTo("user@domain.com");
     }
 
     @Test
@@ -44,7 +42,7 @@ class ClientEmailTest {
 
         ClientEmail clientEmail = ClientEmail.of(rawEmail);
 
-        assertThat(clientEmail.value()).isEqualTo("user@domain.com");
+        assertThat(clientEmail.getValue()).isEqualTo("user@domain.com");
     }
 
     @ParameterizedTest
@@ -109,13 +107,13 @@ class ClientEmailTest {
     }
 
     @Test
-    @DisplayName("Compact constructor should normalize value")
+    @DisplayName("Compact constructor should normalize getValue")
     void compactConstructorShouldAlsoNormalize() {
         String rawEmail = "TEST@EXAMPLE.COM";
 
         ClientEmail clientEmail = ClientEmail.of(rawEmail);
 
-        assertThat(clientEmail.value()).isEqualTo("test@example.com");
+        assertThat(clientEmail.getValue()).isEqualTo("test@example.com");
     }
 
     @Test
@@ -132,10 +130,10 @@ class ClientEmailTest {
         String originalEmail = "USER@EXAMPLE.COM";
 
         ClientEmail first = ClientEmail.of(originalEmail);
-        ClientEmail second = ClientEmail.of(first.value());
+        ClientEmail second = ClientEmail.of(first.getValue());
 
         assertThat(first).isEqualTo(second);
-        assertThat(first.value()).isEqualTo(second.value());
+        assertThat(first.getValue()).isEqualTo(second.getValue());
     }
 
     @Test

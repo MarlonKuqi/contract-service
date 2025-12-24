@@ -21,7 +21,7 @@ public final class Company extends Client {
 
     CompanyIdentifier companyIdentifier;
 
-    Company(
+    private Company(
             @Nullable final UUID id,
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
@@ -29,10 +29,13 @@ public final class Company extends Client {
             @Nullable final CompanyIdentifier companyIdentifier
     ) {
         super(id, name, email, phone);
+        this.companyIdentifier = companyIdentifier;
+    }
+
+    private static void validateCompanyFields(@Nullable final CompanyIdentifier companyIdentifier) {
         if (companyIdentifier == null) {
             throw InvalidClientException.forNullCompanyIdentifier();
         }
-        this.companyIdentifier = companyIdentifier;
     }
 
     public static Company of(
@@ -41,6 +44,9 @@ public final class Company extends Client {
             @Nullable final ClientPhoneNumber phone,
             @Nullable final CompanyIdentifier companyIdentifier
     ) {
+        validateCommonFields(name, email, phone);
+        validateCompanyFields(companyIdentifier);
+
         return builder()
                 .name(name)
                 .email(email)
@@ -49,7 +55,7 @@ public final class Company extends Client {
                 .build();
     }
 
-    public static Company reconstitute(
+    public static Company reconstituteFromDatabase(
             @Nullable final UUID id,
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
@@ -66,6 +72,7 @@ public final class Company extends Client {
     }
 
     public Company withCommonFields(final ClientName name, final ClientEmail email, final ClientPhoneNumber phone) {
+        validateCommonFields(name, email, phone);
         return toBuilder()
                 .name(name)
                 .email(email)
@@ -74,22 +81,25 @@ public final class Company extends Client {
     }
 
     public Company withName(final ClientName name) {
+        validateCommonFields(name, this.getEmail(), this.getPhone());
         return toBuilder().name(name).build();
     }
 
     public Company withEmail(final ClientEmail email) {
+        validateCommonFields(this.getName(), email, this.getPhone());
         return toBuilder().email(email).build();
     }
 
     public Company withPhone(final ClientPhoneNumber phone) {
+        validateCommonFields(this.getName(), this.getEmail(), phone);
         return toBuilder().phone(phone).build();
     }
 
-    public static CompanyBuilder builder() {
+    private static CompanyBuilder builder() {
         return new CompanyBuilder();
     }
 
-    public CompanyBuilder toBuilder() {
+    private CompanyBuilder toBuilder() {
         return builder()
                 .id(this.getId())
                 .name(this.getName())

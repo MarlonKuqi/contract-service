@@ -9,9 +9,9 @@ import org.mapstruct.Mapping;
 public interface CompanyResponseMapper {
 
     @Mapping(target = "id", source = "id")
-    @Mapping(target = "name", expression = "java(company.getName().value())")
-    @Mapping(target = "email", expression = "java(company.getEmail().value())")
-    @Mapping(target = "phone", expression = "java(company.getPhone().value())")
-    @Mapping(target = "companyIdentifier", expression = "java(company.getCompanyIdentifier().value())")
+    @Mapping(target = "name", expression = "java(company.getName().getValue())")
+    @Mapping(target = "email", expression = "java(company.getEmail().getValue())")
+    @Mapping(target = "phone", expression = "java(company.getPhone().getValue())")
+    @Mapping(target = "companyIdentifier", expression = "java(company.getCompanyIdentifier().getValue())")
     CompanyResponse toDto(Company company);
 }

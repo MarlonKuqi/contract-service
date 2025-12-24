@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
-import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.client.exception.InvalidPersonBirthDateException;
+import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -9,9 +9,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.LocalDate;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 @DisplayName("PersonBirthDate - Value Object Tests")
 class PersonBirthDateTest {
@@ -23,7 +21,7 @@ class PersonBirthDateTest {
 
         PersonBirthDate birthDate = PersonBirthDate.of(validDate);
 
-        assertThat(birthDate.value()).isEqualTo(validDate);
+        assertThat(birthDate.getValue()).isEqualTo(validDate);
     }
 
     @Test
@@ -51,7 +49,7 @@ class PersonBirthDateTest {
 
         PersonBirthDate birthDate = PersonBirthDate.of(today);
 
-        assertThat(birthDate.value()).isEqualTo(today);
+        assertThat(birthDate.getValue()).isEqualTo(today);
     }
 
     @Test
@@ -61,8 +59,7 @@ class PersonBirthDateTest {
 
         PersonBirthDate birthDate = PersonBirthDate.of(iso8601Date);
 
-        assertThat(birthDate.value().toString()).isEqualTo("1990-05-15");
-        assertThat(birthDate.toString()).isEqualTo("1990-05-15");
+        assertThat(birthDate.getValue().toString()).isEqualTo("1990-05-15");
     }
 
     @Test
@@ -92,7 +89,7 @@ class PersonBirthDateTest {
 
         PersonBirthDate birthDate = PersonBirthDate.of(oldDate);
 
-        assertThat(birthDate.value()).isEqualTo(oldDate);
+        assertThat(birthDate.getValue()).isEqualTo(oldDate);
     }
 
     @ParameterizedTest
@@ -113,7 +110,7 @@ class PersonBirthDateTest {
 
         PersonBirthDate birthDate = PersonBirthDate.of(leapYearDate);
 
-        assertThat(birthDate.value()).isEqualTo(leapYearDate);
+        assertThat(birthDate.getValue()).isEqualTo(leapYearDate);
     }
 
     @Test
@@ -123,7 +120,7 @@ class PersonBirthDateTest {
 
         PersonBirthDate birthDate = PersonBirthDate.of(firstDay);
 
-        assertThat(birthDate.value()).isEqualTo(firstDay);
+        assertThat(birthDate.getValue()).isEqualTo(firstDay);
     }
 
     @Test
@@ -146,7 +143,7 @@ class PersonBirthDateTest {
 
         PersonBirthDate birthDate = PersonBirthDate.of(lastDay);
 
-        assertThat(birthDate.value()).isEqualTo(lastDay);
+        assertThat(birthDate.getValue()).isEqualTo(lastDay);
     }
 
     @Test
@@ -163,7 +160,7 @@ class PersonBirthDateTest {
 
         PersonBirthDate birthDate = PersonBirthDate.of(yesterday);
 
-        assertThat(birthDate.value()).isEqualTo(yesterday);
+        assertThat(birthDate.getValue()).isEqualTo(yesterday);
     }
 
     @Test
@@ -173,7 +170,7 @@ class PersonBirthDateTest {
 
         PersonBirthDate birthDate = PersonBirthDate.of(veryOld);
 
-        assertThat(birthDate.value()).isEqualTo(veryOld);
+        assertThat(birthDate.getValue()).isEqualTo(veryOld);
     }
 
     @Test
@@ -183,7 +180,7 @@ class PersonBirthDateTest {
 
         PersonBirthDate birthDate = PersonBirthDate.of(today);
 
-        assertThat(birthDate.value()).isEqualTo(today);
+        assertThat(birthDate.getValue()).isEqualTo(today);
     }
 
     @Test

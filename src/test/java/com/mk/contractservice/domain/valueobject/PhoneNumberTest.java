@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.valueobject;
 
-import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.exception.InvalidPhoneNumberException;
+import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,7 +19,7 @@ class PhoneNumberTest {
     void shouldCreateWithValidPhoneNumber() {
         ClientPhoneNumber phoneNumber = ClientPhoneNumber.of("+33123456789");
 
-        assertThat(phoneNumber.value()).isEqualTo("+33123456789");
+        assertThat(phoneNumber.getValue()).isEqualTo("+33123456789");
     }
 
     @ParameterizedTest
@@ -37,7 +37,7 @@ class PhoneNumberTest {
     void shouldTrimWhitespace() {
         ClientPhoneNumber phoneNumber = ClientPhoneNumber.of("  +33123456789  ");
 
-        assertThat(phoneNumber.value()).isEqualTo("+33123456789");
+        assertThat(phoneNumber.getValue()).isEqualTo("+33123456789");
     }
 
     @Test
@@ -69,7 +69,7 @@ class PhoneNumberTest {
     void shouldAcceptInternationalFormat() {
         ClientPhoneNumber phoneNumber = ClientPhoneNumber.of("+33123456789");
 
-        assertThat(phoneNumber.value()).isEqualTo("+33123456789");
+        assertThat(phoneNumber.getValue()).isEqualTo("+33123456789");
     }
 
     @Test
@@ -77,7 +77,7 @@ class PhoneNumberTest {
     void shouldAcceptPhoneWithSpaces() {
         ClientPhoneNumber phoneNumber = ClientPhoneNumber.of("+33 1 23 45 67 89");
 
-        assertThat(phoneNumber.value()).isEqualTo("+33 1 23 45 67 89");
+        assertThat(phoneNumber.getValue()).isEqualTo("+33 1 23 45 67 89");
     }
 
     @Test
@@ -85,7 +85,7 @@ class PhoneNumberTest {
     void shouldAcceptPhoneWithParentheses() {
         ClientPhoneNumber phoneNumber = ClientPhoneNumber.of("+33(1)23456789");
 
-        assertThat(phoneNumber.value()).isEqualTo("+33(1)23456789");
+        assertThat(phoneNumber.getValue()).isEqualTo("+33(1)23456789");
     }
 
     @Test
@@ -93,7 +93,7 @@ class PhoneNumberTest {
     void shouldAcceptPhoneWithHyphens() {
         ClientPhoneNumber phoneNumber = ClientPhoneNumber.of("+33-1-23-45-67-89");
 
-        assertThat(phoneNumber.value()).isEqualTo("+33-1-23-45-67-89");
+        assertThat(phoneNumber.getValue()).isEqualTo("+33-1-23-45-67-89");
     }
 
     @Test
@@ -101,7 +101,7 @@ class PhoneNumberTest {
     void shouldAcceptPhoneWithDots() {
         ClientPhoneNumber phoneNumber = ClientPhoneNumber.of("+33.1.23.45.67.89");
 
-        assertThat(phoneNumber.value()).isEqualTo("+33.1.23.45.67.89");
+        assertThat(phoneNumber.getValue()).isEqualTo("+33.1.23.45.67.89");
     }
 
     @ParameterizedTest
@@ -119,7 +119,7 @@ class PhoneNumberTest {
     void shouldAcceptValidPhoneFormats(String validPhone) {
         ClientPhoneNumber phoneNumber = ClientPhoneNumber.of(validPhone);
 
-        assertThat(phoneNumber.value()).isEqualTo(validPhone.trim());
+        assertThat(phoneNumber.getValue()).isEqualTo(validPhone.trim());
     }
 
     @ParameterizedTest
@@ -188,7 +188,7 @@ class PhoneNumberTest {
     void shouldAcceptMinimumLengthPhone() {
         ClientPhoneNumber phone = ClientPhoneNumber.of("1234567");
 
-        assertThat(phone.value()).isEqualTo("1234567");
+        assertThat(phone.getValue()).isEqualTo("1234567");
     }
 
     @Test
@@ -198,7 +198,7 @@ class PhoneNumberTest {
 
         ClientPhoneNumber phone = ClientPhoneNumber.of(maxLengthPhone);
 
-        assertThat(phone.value()).isEqualTo(maxLengthPhone);
+        assertThat(phone.getValue()).isEqualTo(maxLengthPhone);
     }
 
     @Test

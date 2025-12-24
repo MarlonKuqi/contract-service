@@ -54,6 +54,8 @@ Les règles architecturales sont **testées automatiquement** avec **ArchUnit** 
 
 **Aucune dépendance technique** (ni Spring, ni JPA)
 
+**Validation** : Le domaine suit le principe "always-valid" - voir [always-valid-principle.md](always-valid-principle.md) pour les détails.
+
 #### **Application** (`application/`)
 - **Use Cases** (CQRS léger) :
   - Commands : `CreatePersonUseCase`, `UpdateClientUseCase`

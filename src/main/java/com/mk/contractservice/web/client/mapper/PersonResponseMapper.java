@@ -9,9 +9,9 @@ import org.mapstruct.Mapping;
 public interface PersonResponseMapper {
 
     @Mapping(target = "id", source = "id")
-    @Mapping(target = "name", expression = "java(person.getName().value())")
-    @Mapping(target = "email", expression = "java(person.getEmail().value())")
-    @Mapping(target = "phone", expression = "java(person.getPhone().value())")
-    @Mapping(target = "birthDate", expression = "java(person.getBirthDate().value())")
+    @Mapping(target = "name", expression = "java(person.getName().getValue())")
+    @Mapping(target = "email", expression = "java(person.getEmail().getValue())")
+    @Mapping(target = "phone", expression = "java(person.getPhone().getValue())")
+    @Mapping(target = "birthDate", expression = "java(person.getBirthDate().getValue())")
     PersonResponse toDto(Person person);
 }

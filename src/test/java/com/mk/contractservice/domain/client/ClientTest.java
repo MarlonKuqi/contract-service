@@ -33,9 +33,9 @@ class ClientTest {
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
 
-            assertThat(person.getName().value()).isEqualTo("Test User");
-            assertThat(person.getEmail().value()).isEqualTo("test@example.com");
-            assertThat(person.getPhone().value()).isEqualTo("+33123456789");
+            assertThat(person.getName().getValue()).isEqualTo("Test User");
+            assertThat(person.getEmail().getValue()).isEqualTo("test@example.com");
+            assertThat(person.getPhone().getValue()).isEqualTo("+33123456789");
         }
 
         @Test
@@ -110,13 +110,13 @@ class ClientTest {
                     ClientPhoneNumber.of("+33222222222")
             );
 
-            assertThat(updated.getName().value()).isEqualTo("Updated Name");
-            assertThat(updated.getEmail().value()).isEqualTo("updated@example.com");
-            assertThat(updated.getPhone().value()).isEqualTo("+33222222222");
+            assertThat(updated.getName().getValue()).isEqualTo("Updated Name");
+            assertThat(updated.getEmail().getValue()).isEqualTo("updated@example.com");
+            assertThat(updated.getPhone().getValue()).isEqualTo("+33222222222");
 
-            assertThat(original.getName().value()).isEqualTo("Original Name");
-            assertThat(original.getEmail().value()).isEqualTo("original@example.com");
-            assertThat(original.getPhone().value()).isEqualTo("+33111111111");
+            assertThat(original.getName().getValue()).isEqualTo("Original Name");
+            assertThat(original.getEmail().getValue()).isEqualTo("original@example.com");
+            assertThat(original.getPhone().getValue()).isEqualTo("+33111111111");
 
             assertThat(updated.getId()).isEqualTo(original.getId());
         }

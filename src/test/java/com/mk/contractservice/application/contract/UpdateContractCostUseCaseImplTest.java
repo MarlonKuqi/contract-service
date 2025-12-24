@@ -23,10 +23,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UpdateContractCostUseCase - Unit Tests")
@@ -54,7 +51,7 @@ class UpdateContractCostUseCaseImplTest {
             BigDecimal oldCost = new BigDecimal("1000.00");
             BigDecimal newCost = new BigDecimal("1500.00");
 
-            Contract existingContract = Contract.reconstitute(
+            Contract existingContract = Contract.reconstituteFromDatabase(
                     contractId,
                     clientId,
                     ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusMonths(12)),
@@ -78,7 +75,7 @@ class UpdateContractCostUseCaseImplTest {
 
             // Then
             assertThat(result).isNotNull();
-            assertThat(result.getCostAmount().value()).isEqualByComparingTo(newCost);
+            assertThat(result.getCostAmount().getValue()).isEqualByComparingTo(newCost);
 
             verify(contractService).getContractForClient(clientId, contractId);
             verify(contractRepository).save(any(Contract.class));
@@ -95,7 +92,7 @@ class UpdateContractCostUseCaseImplTest {
             BigDecimal oldCost = new BigDecimal("1000.00");
             BigDecimal newCost = new BigDecimal("2000.00");
 
-            Contract existingContract = Contract.reconstitute(
+            Contract existingContract = Contract.reconstituteFromDatabase(
                     contractId,
                     clientId,
                     ContractPeriod.of(startDate, endDate),
@@ -117,9 +114,9 @@ class UpdateContractCostUseCaseImplTest {
 
             // Then
             assertThat(result.getClientId()).isEqualTo(clientId);
-            assertThat(result.getPeriod().startDate()).isEqualTo(startDate);
-            assertThat(result.getPeriod().endDate()).isEqualTo(endDate);
-            assertThat(result.getCostAmount().value()).isEqualByComparingTo(newCost);
+            assertThat(result.getPeriod().getStartDate()).isEqualTo(startDate);
+            assertThat(result.getPeriod().getEndDate()).isEqualTo(endDate);
+            assertThat(result.getCostAmount().getValue()).isEqualByComparingTo(newCost);
         }
 
         @Test
@@ -131,7 +128,7 @@ class UpdateContractCostUseCaseImplTest {
             BigDecimal oldCost = new BigDecimal("500.00");
             BigDecimal newCost = new BigDecimal("750.00");
 
-            Contract existingContract = Contract.reconstitute(
+            Contract existingContract = Contract.reconstituteFromDatabase(
                     contractId,
                     clientId,
                     ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusMonths(6)),
@@ -156,7 +153,7 @@ class UpdateContractCostUseCaseImplTest {
             verify(contractRepository).save(contractCaptor.capture());
 
             Contract savedContract = contractCaptor.getValue();
-            assertThat(savedContract.getCostAmount().value()).isEqualByComparingTo(newCost);
+            assertThat(savedContract.getCostAmount().getValue()).isEqualByComparingTo(newCost);
         }
 
         @Test
@@ -168,7 +165,7 @@ class UpdateContractCostUseCaseImplTest {
             BigDecimal oldCost = new BigDecimal("2000.00");
             BigDecimal newCost = new BigDecimal("1500.00");
 
-            Contract existingContract = Contract.reconstitute(
+            Contract existingContract = Contract.reconstituteFromDatabase(
                     contractId,
                     clientId,
                     ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusMonths(12)),
@@ -189,7 +186,7 @@ class UpdateContractCostUseCaseImplTest {
             Contract result = updateContractCostUseCase.execute(command);
 
             // Then
-            assertThat(result.getCostAmount().value()).isEqualByComparingTo(newCost);
+            assertThat(result.getCostAmount().getValue()).isEqualByComparingTo(newCost);
             verify(contractRepository).save(any(Contract.class));
         }
     }
@@ -256,7 +253,7 @@ class UpdateContractCostUseCaseImplTest {
             UUID contractId = UUID.randomUUID();
             BigDecimal newCost = new BigDecimal("1500.00");
 
-            Contract existingContract = Contract.reconstitute(
+            Contract existingContract = Contract.reconstituteFromDatabase(
                     contractId,
                     clientId,
                     ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusMonths(12)),
@@ -295,7 +292,7 @@ class UpdateContractCostUseCaseImplTest {
             UUID contractId = UUID.randomUUID();
             BigDecimal newCost = new BigDecimal("0.01");
 
-            Contract existingContract = Contract.reconstitute(
+            Contract existingContract = Contract.reconstituteFromDatabase(
                     contractId,
                     clientId,
                     ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusMonths(12)),
@@ -316,7 +313,7 @@ class UpdateContractCostUseCaseImplTest {
             Contract result = updateContractCostUseCase.execute(command);
 
             // Then
-            assertThat(result.getCostAmount().value()).isEqualByComparingTo(newCost);
+            assertThat(result.getCostAmount().getValue()).isEqualByComparingTo(newCost);
         }
 
         @Test
@@ -327,7 +324,7 @@ class UpdateContractCostUseCaseImplTest {
             UUID contractId = UUID.randomUUID();
             BigDecimal newCost = new BigDecimal("999999.99");
 
-            Contract existingContract = Contract.reconstitute(
+            Contract existingContract = Contract.reconstituteFromDatabase(
                     contractId,
                     clientId,
                     ContractPeriod.of(LocalDateTime.now(), LocalDateTime.now().plusMonths(12)),
@@ -348,7 +345,7 @@ class UpdateContractCostUseCaseImplTest {
             Contract result = updateContractCostUseCase.execute(command);
 
             // Then
-            assertThat(result.getCostAmount().value()).isEqualByComparingTo(newCost);
+            assertThat(result.getCostAmount().getValue()).isEqualByComparingTo(newCost);
         }
     }
 }

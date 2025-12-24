@@ -13,10 +13,10 @@ public class PersonAssembler {
 
     public PersonJpaEntity toJpaEntity(final Person person) {
         final PersonJpaEntity entity = PersonJpaEntity.create(
-                person.getName().value(),
-                person.getEmail().value(),
-                person.getPhone().value(),
-                person.getBirthDate().value()
+                person.getName().getValue(),
+                person.getEmail().getValue(),
+                person.getPhone().getValue(),
+                person.getBirthDate().getValue()
         );
 
         if (person.getId() != null) {
@@ -27,12 +27,12 @@ public class PersonAssembler {
     }
 
     public Person toDomain(final PersonJpaEntity entity) {
-        return Person.reconstitute(
+        return Person.reconstituteFromDatabase(
                 entity.getId(),
-                ClientName.of(entity.getName()),
-                ClientEmail.of(entity.getEmail()),
-                ClientPhoneNumber.of(entity.getPhone()),
-                PersonBirthDate.of(entity.getBirthDate())
+                ClientName.reconstituteFromDatabase(entity.getName()),
+                ClientEmail.reconstituteFromDatabase(entity.getEmail()),
+                ClientPhoneNumber.reconstituteFromDatabase(entity.getPhone()),
+                PersonBirthDate.reconstituteFromDatabase(entity.getBirthDate())
         );
     }
 }

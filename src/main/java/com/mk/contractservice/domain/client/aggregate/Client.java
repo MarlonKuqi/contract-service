@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.client.exception.InvalidClientException;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
@@ -15,6 +16,7 @@ import java.util.UUID;
 @Getter
 @EqualsAndHashCode
 @FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
+@AllArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 public abstract sealed class Client permits Person, Company {
 
     @Nullable
@@ -23,7 +25,11 @@ public abstract sealed class Client permits Person, Company {
     ClientEmail email;
     ClientPhoneNumber phone;
 
-    protected Client(@Nullable final UUID id, @Nullable final ClientName name, @Nullable final ClientEmail email, @Nullable final ClientPhoneNumber phone) {
+    protected static void validateCommonFields(
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone
+    ) {
         if (name == null) {
             throw InvalidClientException.forNullName();
         }
@@ -33,11 +39,6 @@ public abstract sealed class Client permits Person, Company {
         if (phone == null) {
             throw InvalidClientException.forNullPhone();
         }
-
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.phone = phone;
     }
 
     public abstract Client withCommonFields(

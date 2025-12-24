@@ -49,11 +49,11 @@ public class JpaClientRepository implements ClientRepository {
 
     @Override
     public boolean existsByEmail(final ClientEmail clientEmail) {
-        return jpa.existsByEmail(clientEmail.value());
+        return jpa.existsByEmail(clientEmail.getValue());
     }
 
     @Override
     public boolean existsByCompanyIdentifier(final CompanyIdentifier companyIdentifier) {
-        return jpa.existsByCompanyIdentifier(companyIdentifier.value());
+        return jpa.existsByCompanyIdentifier(companyIdentifier.getValue());
     }
 }

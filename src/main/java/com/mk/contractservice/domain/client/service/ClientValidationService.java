@@ -21,7 +21,7 @@ public class ClientValidationService {
     @Transactional(readOnly = true)
     public void ensureEmailIsUnique(final ClientEmail email) {
         if (clientRepository.existsByEmail(email)) {
-            throw new ClientAlreadyExistsException("Client already exists", email.value());
+            throw new ClientAlreadyExistsException("Client already exists", email.getValue());
         }
     }
 
@@ -29,8 +29,8 @@ public class ClientValidationService {
     public void ensureCompanyIdentifierIsUnique(final CompanyIdentifier identifier) {
         if (clientRepository.existsByCompanyIdentifier(identifier)) {
             throw new CompanyIdentifierAlreadyExistsException(
-                    "A company with identifier '" + identifier.value() + "' already exists",
-                    identifier.value()
+                    "A company with identifier '" + identifier.getValue() + "' already exists",
+                    identifier.getValue()
             );
         }
     }

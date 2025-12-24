@@ -38,9 +38,9 @@ public class ClientAssembler {
 
     ClientJpaEntity loadExistingClient(final Client domain) {
         final ClientJpaEntity existing = entityManager.find(ClientJpaEntity.class, domain.getId());
-        existing.setName(domain.getName().value());
-        existing.setEmail(domain.getEmail().value());
-        existing.setPhone(domain.getPhone().value());
+        existing.setName(domain.getName().getValue());
+        existing.setEmail(domain.getEmail().getValue());
+        existing.setPhone(domain.getPhone().getValue());
         return existing;
     }
 

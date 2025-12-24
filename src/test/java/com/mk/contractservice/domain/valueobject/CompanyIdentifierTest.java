@@ -1,27 +1,25 @@
 package com.mk.contractservice.domain.valueobject;
 
-import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
 import com.mk.contractservice.domain.client.exception.InvalidCompanyIdentifierException;
+import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 @DisplayName("CompanyIdentifier - Value Object Tests")
 class CompanyIdentifierTest {
 
     @Test
-    @DisplayName("GIVEN valid identifier WHEN creating CompanyIdentifier THEN value object is created")
+    @DisplayName("GIVEN valid identifier WHEN creating CompanyIdentifier THEN getValue object is created")
     void shouldCreateWithValidIdentifier() {
         CompanyIdentifier identifier = CompanyIdentifier.of("aaa-123");
 
         assertThat(identifier).isNotNull();
-        assertThat(identifier.value()).isEqualTo("aaa-123");
+        assertThat(identifier.getValue()).isEqualTo("aaa-123");
     }
 
     @Test
@@ -29,7 +27,7 @@ class CompanyIdentifierTest {
     void shouldAcceptSubjectExample() {
         CompanyIdentifier identifier = CompanyIdentifier.of("aaa-123");
 
-        assertThat(identifier.value()).isEqualTo("aaa-123");
+        assertThat(identifier.getValue()).isEqualTo("aaa-123");
     }
 
     @ParameterizedTest
@@ -73,7 +71,7 @@ class CompanyIdentifierTest {
 
         CompanyIdentifier identifier = CompanyIdentifier.of(maxLength);
 
-        assertThat(identifier.value()).hasSize(64);
+        assertThat(identifier.getValue()).hasSize(64);
     }
 
     @Test
@@ -81,7 +79,7 @@ class CompanyIdentifierTest {
     void shouldTrimWhitespace() {
         CompanyIdentifier identifier = CompanyIdentifier.of("  acme-123  ");
 
-        assertThat(identifier.value()).isEqualTo("acme-123");
+        assertThat(identifier.getValue()).isEqualTo("acme-123");
     }
 
     @Test
@@ -89,7 +87,7 @@ class CompanyIdentifierTest {
     void shouldAcceptSpecialCharacters() {
         CompanyIdentifier identifier = CompanyIdentifier.of("abc-xyz_123");
 
-        assertThat(identifier.value()).isEqualTo("abc-xyz_123");
+        assertThat(identifier.getValue()).isEqualTo("abc-xyz_123");
     }
 
     @Test
@@ -125,7 +123,7 @@ class CompanyIdentifierTest {
     void shouldAcceptNumbers() {
         CompanyIdentifier identifier = CompanyIdentifier.of("123456789");
 
-        assertThat(identifier.value()).isEqualTo("123456789");
+        assertThat(identifier.getValue()).isEqualTo("123456789");
     }
 
     @Test
@@ -133,7 +131,7 @@ class CompanyIdentifierTest {
     void shouldPreserveCase() {
         CompanyIdentifier identifier = CompanyIdentifier.of("AcMe-123");
 
-        assertThat(identifier.value()).isEqualTo("AcMe-123");
+        assertThat(identifier.getValue()).isEqualTo("AcMe-123");
     }
 
     @ParameterizedTest
@@ -176,7 +174,7 @@ class CompanyIdentifierTest {
 
         CompanyIdentifier identifier = CompanyIdentifier.of(exactly64);
 
-        assertThat(identifier.value()).hasSize(64);
+        assertThat(identifier.getValue()).hasSize(64);
     }
 
     @Test

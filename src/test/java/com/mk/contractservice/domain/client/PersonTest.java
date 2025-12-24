@@ -62,13 +62,13 @@ class PersonTest {
                 ClientPhoneNumber.of("+33987654321")
         );
 
-        assertThat(updated.getName().value()).isEqualTo("Jane Doe");
-        assertThat(updated.getEmail().value()).isEqualTo("jane.doe@example.com");
-        assertThat(updated.getPhone().value()).isEqualTo("+33987654321");
+        assertThat(updated.getName().getValue()).isEqualTo("Jane Doe");
+        assertThat(updated.getEmail().getValue()).isEqualTo("jane.doe@example.com");
+        assertThat(updated.getPhone().getValue()).isEqualTo("+33987654321");
 
         assertThat(updated.getBirthDate()).isEqualTo(originalBirthDate);
 
-        assertThat(person.getName().value()).isEqualTo("John Doe");
+        assertThat(person.getName().getValue()).isEqualTo("John Doe");
         assertThat(person.getBirthDate()).isEqualTo(originalBirthDate);
     }
 
@@ -95,7 +95,7 @@ class PersonTest {
         ClientPhoneNumber phone = ClientPhoneNumber.of("+33123456789");
         PersonBirthDate birthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15));
 
-        Person person = Person.reconstitute(id, name, clientEmail, phone, birthDate);
+        Person person = Person.reconstituteFromDatabase(id, name, clientEmail, phone, birthDate);
 
         assertThat(person.getId()).isEqualTo(id);
         assertThat(person.getName()).isEqualTo(name);

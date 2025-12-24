@@ -120,7 +120,7 @@ class ContractTest {
             ContractPeriod expiredPeriod = ContractPeriod.of(now.minusDays(100), now.minusDays(1));
             ContractCost initialCost = ContractCost.of(new BigDecimal("100.00"));
 
-            Contract contract = Contract.reconstitute(contractId, testClientId, expiredPeriod, initialCost);
+            Contract contract = Contract.reconstituteFromDatabase(contractId, testClientId, expiredPeriod, initialCost);
             ContractCost newCost = ContractCost.of(new BigDecimal("200.00"));
 
             assertThatThrownBy(() -> contract.changeCost(newCost))
@@ -136,7 +136,7 @@ class ContractTest {
     class IsActiveValidation {
 
         @Test
-        @DisplayName("GIVEN contract with null endDate WHEN checking isActive THEN should be active")
+        @DisplayName("GIVEN contract with null getEndDate WHEN checking isActive THEN should be active")
         void shouldBeActiveWhenEndDateIsNull() {
             LocalDateTime now = LocalDateTime.now();
             ContractPeriod period = ContractPeriod.of(now.minusDays(10), null);
@@ -146,7 +146,7 @@ class ContractTest {
         }
 
         @Test
-        @DisplayName("GIVEN contract with future endDate WHEN checking isActive THEN should be active")
+        @DisplayName("GIVEN contract with future getEndDate WHEN checking isActive THEN should be active")
         void shouldBeActiveWhenEndDateIsInFuture() {
             LocalDateTime now = LocalDateTime.now();
             ContractPeriod period = ContractPeriod.of(now.minusDays(10), now.plusDays(30));
@@ -156,7 +156,7 @@ class ContractTest {
         }
 
         @Test
-        @DisplayName("GIVEN contract with past endDate WHEN checking isActive THEN should NOT be active")
+        @DisplayName("GIVEN contract with past getEndDate WHEN checking isActive THEN should NOT be active")
         void shouldNotBeActiveWhenEndDateIsInPast() {
             LocalDateTime now = LocalDateTime.now();
             ContractPeriod period = ContractPeriod.of(now.minusDays(100), now.minusDays(1));
@@ -179,8 +179,8 @@ class ContractTest {
 
             ContractPeriod period = ContractPeriod.of(start, end);
 
-            assertThat(period.startDate()).isEqualTo(start);
-            assertThat(period.endDate()).isEqualTo(end);
+            assertThat(period.getStartDate()).isEqualTo(start);
+            assertThat(period.getEndDate()).isEqualTo(end);
         }
 
         @Test
@@ -190,8 +190,8 @@ class ContractTest {
 
             ContractPeriod period = ContractPeriod.of(start, null);
 
-            assertThat(period.startDate()).isEqualTo(start);
-            assertThat(period.endDate()).isNull();
+            assertThat(period.getStartDate()).isEqualTo(start);
+            assertThat(period.getEndDate()).isNull();
         }
 
         @Test
@@ -217,7 +217,7 @@ class ContractTest {
 
             ContractCost cost = ContractCost.of(amount);
 
-            assertThat(cost.value()).isEqualByComparingTo(amount);
+            assertThat(cost.getValue()).isEqualByComparingTo(amount);
         }
 
         @Test

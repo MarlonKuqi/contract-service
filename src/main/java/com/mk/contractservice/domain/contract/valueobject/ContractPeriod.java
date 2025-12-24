@@ -1,69 +1,57 @@
 package com.mk.contractservice.domain.contract.valueobject;
 
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
+import com.mk.contractservice.domain.shared.ValueObject;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
 import java.util.function.BiPredicate;
 
-public final class ContractPeriod {
+@Value
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class ContractPeriod {
+
+    LocalDateTime startDate;
+
+    @Nullable
+    LocalDateTime endDate;
 
     public static final BiPredicate<@Nullable LocalDateTime, @Nullable LocalDateTime> END_IS_AFTER_START =
             (start, end) -> end == null || (start != null && end.isAfter(start));
-
-    private final LocalDateTime startDate;
-
-    private final @Nullable LocalDateTime endDate;
-
-
-    private ContractPeriod(final LocalDateTime startDate, final @Nullable LocalDateTime endDate) {
-        this.startDate = startDate;
-        this.endDate = endDate;
-    }
-
-    public static ContractPeriod of(@Nullable final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
-        final LocalDateTime normalizedStart = (startDate != null) ? startDate : LocalDateTime.now();
-        validate(normalizedStart, endDate);
-        return new ContractPeriod(normalizedStart, endDate);
-    }
-
-    private static void validate(final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
-        if (!END_IS_AFTER_START.test(startDate, endDate)) {
-            throw new InvalidContractPeriodException(
-                    "Contract end date must be after start date. " +
-                            "Start: " + startDate + ", End: " + endDate
-            );
-        }
-    }
 
     public boolean isActive() {
         LocalDateTime now = LocalDateTime.now();
         return endDate == null || now.isBefore(endDate);
     }
 
-    public LocalDateTime startDate() {
-        return startDate;
+    public static ContractPeriod of(@Nullable final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
+        return ValueObject.validateAndCreate(
+                startDate,
+                endDate,
+                ContractPeriod::normalize,
+                ContractPeriod::validate,
+                ContractPeriod::new
+        );
     }
 
-    public @Nullable LocalDateTime endDate() {
-        return endDate;
+    public static ContractPeriod reconstituteFromDatabase(final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
+        return ValueObject.guardNotNull(startDate, endDate, ContractPeriod::new, ContractPeriod.class);
     }
 
-    @Override
-    public boolean equals(@Nullable final Object o) {
-        return this == o || (o instanceof ContractPeriod other && Objects.equals(startDate, other.startDate)
-                && Objects.equals(endDate, other.endDate));
+    private static LocalDateTime normalize(final LocalDateTime startDate) {
+        return startDate == null ? LocalDateTime.now() : startDate;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(startDate, endDate);
-    }
-
-    @Override
-    public String toString() {
-        return "ContractPeriod{startDate=" + startDate + ", endDate=" + endDate + '}';
+    private static void validate(final LocalDateTime normalizedStart, @Nullable final LocalDateTime endDate) {
+        if (!END_IS_AFTER_START.test(normalizedStart, endDate)) {
+            throw new InvalidContractPeriodException(
+                    "Contract end date must be after start date. " +
+                            "Start: " + normalizedStart + ", End: " + endDate
+            );
+        }
     }
 }
 

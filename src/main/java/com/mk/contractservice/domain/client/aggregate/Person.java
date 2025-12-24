@@ -21,7 +21,7 @@ public final class Person extends Client {
 
     PersonBirthDate birthDate;
 
-    Person(
+    private Person(
             @Nullable final UUID id,
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
@@ -29,10 +29,13 @@ public final class Person extends Client {
             @Nullable final PersonBirthDate birthDate
     ) {
         super(id, name, email, phone);
+        this.birthDate = birthDate;
+    }
+
+    private static void validatePersonFields(@Nullable final PersonBirthDate birthDate) {
         if (birthDate == null) {
             throw InvalidClientException.forNullBirthDate();
         }
-        this.birthDate = birthDate;
     }
 
     public static Person of(
@@ -41,6 +44,9 @@ public final class Person extends Client {
             @Nullable final ClientPhoneNumber phone,
             @Nullable final PersonBirthDate birthDate
     ) {
+        validateCommonFields(name, email, phone);
+        validatePersonFields(birthDate);
+
         return builder()
                 .name(name)
                 .email(email)
@@ -49,7 +55,7 @@ public final class Person extends Client {
                 .build();
     }
 
-    public static Person reconstitute(
+    public static Person reconstituteFromDatabase(
             @Nullable final UUID id,
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
@@ -66,6 +72,7 @@ public final class Person extends Client {
     }
 
     public Person withCommonFields(final ClientName name, final ClientEmail clientEmail, final ClientPhoneNumber phone) {
+        validateCommonFields(name, clientEmail, phone);
         return toBuilder()
                 .name(name)
                 .email(clientEmail)
@@ -74,22 +81,25 @@ public final class Person extends Client {
     }
 
     public Person withName(final ClientName name) {
+        validateCommonFields(name, this.getEmail(), this.getPhone());
         return toBuilder().name(name).build();
     }
 
     public Person withEmail(final ClientEmail email) {
+        validateCommonFields(this.getName(), email, this.getPhone());
         return toBuilder().email(email).build();
     }
 
     public Person withPhone(final ClientPhoneNumber phone) {
+        validateCommonFields(this.getName(), this.getEmail(), phone);
         return toBuilder().phone(phone).build();
     }
 
-    public static PersonBuilder builder() {
+    private static PersonBuilder builder() {
         return new PersonBuilder();
     }
 
-    public PersonBuilder toBuilder() {
+    private PersonBuilder toBuilder() {
         return builder()
                 .id(this.getId())
                 .name(this.getName())
