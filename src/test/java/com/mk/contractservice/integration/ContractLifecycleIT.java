@@ -8,6 +8,7 @@ import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;
+import com.mk.contractservice.domain.contract.service.ContractService;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import com.mk.contractservice.web.contract.ContractController;
@@ -53,6 +54,9 @@ class ContractLifecycleIT {
 
     @Autowired
     private ContractJpaRepository contractJpaRepository;
+
+    @Autowired
+    private ContractService contractService;
 
     private Client testClient;
 

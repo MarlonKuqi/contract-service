@@ -1,13 +1,11 @@
 package com.mk.contractservice.web.controller;
 
 import com.mk.contractservice.application.contract.usecase.CreateContractUseCase;
-import com.mk.contractservice.application.contract.usecase.GetActiveContractsQuery;
-import com.mk.contractservice.application.contract.usecase.GetContractByIdQuery;
-import com.mk.contractservice.application.contract.usecase.SumActiveContractsQuery;
 import com.mk.contractservice.application.contract.usecase.UpdateContractCostUseCase;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
+import com.mk.contractservice.domain.contract.service.ContractService;
 import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import com.mk.contractservice.domain.exception.ClientNotFoundException;
@@ -65,17 +63,10 @@ class ContractControllerTest {
     private CreateContractUseCase createContractUseCase;
 
     @MockitoBean
-    private GetContractByIdQuery getContractByIdQuery;
-
-    @MockitoBean
-    private GetActiveContractsQuery getActiveContractsQuery;
-
-    @MockitoBean
     private UpdateContractCostUseCase updateContractCostUseCase;
 
     @MockitoBean
-    private SumActiveContractsQuery sumActiveContractsQuery;
-
+    private ContractService contractService;
 
     @Nested
     @DisplayName("POST /v2/contracts - Create Contract")
@@ -168,7 +159,7 @@ class ContractControllerTest {
                     ContractCost.of(new BigDecimal("1000.00"))
             );
 
-            when(getContractByIdQuery.execute(any(GetContractByIdQuery.GetContractQuery.class)))
+            when(contractService.getContractForClient(any(UUID.class), any(UUID.class)))
                     .thenReturn(contract);
 
             mockMvc.perform(get("/v2/contracts/{contractId}", contractId)
@@ -177,7 +168,7 @@ class ContractControllerTest {
                     .andExpect(jsonPath("$.id").value(contractId.toString()))
                     .andExpect(jsonPath("$.costAmount").value(1000.00));
 
-            verify(getContractByIdQuery).execute(any(GetContractByIdQuery.GetContractQuery.class));
+            verify(contractService).getContractForClient(any(UUID.class), any(UUID.class));
         }
 
         @Test
@@ -187,7 +178,7 @@ class ContractControllerTest {
             UUID clientId = UUID.randomUUID();
             UUID contractId = UUID.randomUUID();
 
-            when(getContractByIdQuery.execute(any(GetContractByIdQuery.GetContractQuery.class)))
+            when(contractService.getContractForClient(any(UUID.class), any(UUID.class)))
                     .thenThrow(new ContractNotFoundException("Contract not found: " + contractId));
 
 
@@ -221,7 +212,7 @@ class ContractControllerTest {
 
             Page<Contract> page = new PageImpl<>(List.of(contract), PageRequest.of(0, 20), 1);
 
-            when(getActiveContractsQuery.execute(any(GetActiveContractsQuery.GetActiveContractsQueryParams.class)))
+            when(contractService.getActiveContractsForClient(clientId, null, PageRequest.of(0, 20)))
                     .thenReturn(page);
 
             mockMvc.perform(get("/v2/contracts")
@@ -234,7 +225,7 @@ class ContractControllerTest {
                     .andExpect(jsonPath("$.totalElements").value(1))
                     .andExpect(jsonPath("$.totalPages").value(1));
 
-            verify(getActiveContractsQuery).execute(any(GetActiveContractsQuery.GetActiveContractsQueryParams.class));
+            verify(contractService).getActiveContractsForClient(clientId, null, PageRequest.of(0, 20));
         }
     }
 
@@ -300,7 +291,7 @@ class ContractControllerTest {
 
             UUID clientId = UUID.randomUUID();
 
-            when(sumActiveContractsQuery.execute(any(SumActiveContractsQuery.SumActiveContractsQueryParams.class)))
+            when(contractService.sumActiveContractsForClient(clientId))
                     .thenReturn(new BigDecimal("5000.00"));
 
             mockMvc.perform(get("/v2/contracts/sum")
@@ -308,7 +299,7 @@ class ContractControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(content().string("5000.00"));
 
-            verify(sumActiveContractsQuery).execute(any(SumActiveContractsQuery.SumActiveContractsQueryParams.class));
+            verify(contractService).sumActiveContractsForClient(clientId);
         }
     }
 }

@@ -1,11 +1,9 @@
 package com.mk.contractservice.web.contract;
 
 import com.mk.contractservice.application.contract.usecase.CreateContractUseCase;
-import com.mk.contractservice.application.contract.usecase.GetActiveContractsQuery;
-import com.mk.contractservice.application.contract.usecase.GetContractByIdQuery;
-import com.mk.contractservice.application.contract.usecase.SumActiveContractsQuery;
 import com.mk.contractservice.application.contract.usecase.UpdateContractCostUseCase;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
+import com.mk.contractservice.domain.contract.service.ContractService;
 import com.mk.contractservice.web.contract.dto.ContractResponse;
 import com.mk.contractservice.web.contract.dto.CostUpdateRequest;
 import com.mk.contractservice.web.contract.dto.CreateContractRequest;
@@ -54,14 +52,11 @@ public class ContractController {
     public static final String PATH_COST = PATH_ID + "/cost";
     public static final String PATH_CONTRACT_COST = PATH_CONTRACT + "/cost";
 
-    // Use Cases (injected directly - no more ContractApplicationService)
     CreateContractUseCase createContractUseCase;
-    GetContractByIdQuery getContractByIdQuery;
-    GetActiveContractsQuery getActiveContractsQuery;
     UpdateContractCostUseCase updateContractCostUseCase;
-    SumActiveContractsQuery sumActiveContractsQuery;
 
-    // Mapper
+    ContractService contractService;
+
     ContractDtoMapper contractMapper;
 
     @Operation(
@@ -177,10 +172,11 @@ public class ContractController {
             final Pageable pageable,
             final Locale locale
     ) {
-        final GetActiveContractsQuery.GetActiveContractsQueryParams query =
-                new GetActiveContractsQuery.GetActiveContractsQueryParams(clientId, updatedSince, pageable);
-
-        final Page<Contract> contracts = getActiveContractsQuery.execute(query);
+        final Page<Contract> contracts = contractService.getActiveContractsForClient(
+                clientId,
+                updatedSince,
+                pageable
+        );
         final Page<ContractResponse> responsePage = contracts.map(contractMapper::toResponse);
 
         final PagedContractResponse response = new PagedContractResponse(
@@ -225,10 +221,7 @@ public class ContractController {
             @RequestParam final UUID clientId,
             final Locale locale
     ) {
-        final GetContractByIdQuery.GetContractQuery query =
-                new GetContractByIdQuery.GetContractQuery(clientId, contractId);
-
-        final Contract contract = getContractByIdQuery.execute(query);
+        final Contract contract = contractService.getContractForClient(clientId, contractId);
         final ContractResponse response = contractMapper.toResponse(contract);
 
         return ResponseEntity.ok()
@@ -264,10 +257,7 @@ public class ContractController {
             @RequestParam final UUID clientId,
             final Locale locale
     ) {
-        final SumActiveContractsQuery.SumActiveContractsQueryParams query =
-                new SumActiveContractsQuery.SumActiveContractsQueryParams(clientId);
-
-        final BigDecimal sum = sumActiveContractsQuery.execute(query);
+        final BigDecimal sum = contractService.sumActiveContractsForClient(clientId);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
