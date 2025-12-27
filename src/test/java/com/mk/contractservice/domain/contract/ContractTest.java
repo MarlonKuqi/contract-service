@@ -107,7 +107,7 @@ class ContractTest {
 
             assertThatThrownBy(() -> contract.changeCost(null))
                     .isInstanceOf(InvalidContractException.class)
-                    .hasMessageContaining("New cost amount cannot be null");
+                    .hasMessageContaining(InvalidContractException.forNullCostAmount().getMessage());
 
             assertThat(contract.getCostAmount()).isEqualTo(initialCost);
         }

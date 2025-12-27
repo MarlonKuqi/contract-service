@@ -1,6 +1,7 @@
 package com.mk.contractservice.application.contract;
 
-import com.mk.contractservice.application.contract.usecase.CloseActiveContractsUseCase;
+import com.mk.contractservice.application.feature.contract.closeactive.core.CloseActiveContracts;
+import com.mk.contractservice.application.feature.contract.closeactive.eventlistener.ContractEventHandler;
 import com.mk.contractservice.domain.client.event.ClientDeletedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,7 @@ import static org.mockito.Mockito.verify;
 class ContractEventHandlerTest {
 
     @Mock
-    private CloseActiveContractsUseCase closeActiveContractsUseCase;
+    private CloseActiveContracts.Handler closeActiveContracts;
 
     @InjectMocks
     private ContractEventHandler handler;
@@ -37,9 +38,8 @@ class ContractEventHandlerTest {
         handler.onClientDeleted(event);
 
         // Then
-        ArgumentCaptor<CloseActiveContractsUseCase.CloseActiveContractsCommand> commandCaptor =
-                ArgumentCaptor.forClass(CloseActiveContractsUseCase.CloseActiveContractsCommand.class);
-        verify(closeActiveContractsUseCase).execute(commandCaptor.capture());
+        ArgumentCaptor<CloseActiveContracts.Command> commandCaptor = ArgumentCaptor.forClass(CloseActiveContracts.Command.class);
+        verify(closeActiveContracts).execute(commandCaptor.capture());
 
         assertThat(commandCaptor.getValue().clientId()).isEqualTo(clientId);
     }
@@ -58,9 +58,8 @@ class ContractEventHandlerTest {
         handler.onClientDeleted(event2);
 
         // Then
-        ArgumentCaptor<CloseActiveContractsUseCase.CloseActiveContractsCommand> commandCaptor =
-                ArgumentCaptor.forClass(CloseActiveContractsUseCase.CloseActiveContractsCommand.class);
-        verify(closeActiveContractsUseCase, times(2)).execute(commandCaptor.capture());
+        ArgumentCaptor<CloseActiveContracts.Command> commandCaptor = ArgumentCaptor.forClass(CloseActiveContracts.Command.class);
+        verify(closeActiveContracts, times(2)).execute(commandCaptor.capture());
 
         assertThat(commandCaptor.getAllValues()).hasSize(2);
         assertThat(commandCaptor.getAllValues().get(0).clientId()).isEqualTo(clientId1);

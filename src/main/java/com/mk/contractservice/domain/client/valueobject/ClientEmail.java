@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.client.valueobject;
 
 import com.mk.contractservice.domain.client.exception.InvalidEmailException;
-import com.mk.contractservice.domain.shared.ValueObject;
+import com.mk.contractservice.domain.shared.ValueObjectUtils;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -27,7 +27,7 @@ public class ClientEmail {
             email -> !email.matches(EMAIL_PATTERN);
 
     public static ClientEmail of(@Nullable final String rawValue) {
-        return ValueObject.validateAndCreate(
+        return ValueObjectUtils.validateAndCreate(
                 rawValue,
                 ClientEmail::normalize,
                 ClientEmail::validate,
@@ -36,7 +36,7 @@ public class ClientEmail {
     }
 
     public static ClientEmail reconstituteFromDatabase(final String trustedValue) {
-        return ValueObject.guardNotNull(trustedValue, ClientEmail::new, ClientEmail.class);
+        return ValueObjectUtils.guardNotNull(trustedValue, ClientEmail::new, ClientEmail.class);
     }
 
     private static String normalize(@Nullable final String rawValue) {

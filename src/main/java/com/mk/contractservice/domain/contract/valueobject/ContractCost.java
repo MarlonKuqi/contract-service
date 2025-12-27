@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.contract.valueobject;
 
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
-import com.mk.contractservice.domain.shared.ValueObject;
+import com.mk.contractservice.domain.shared.ValueObjectUtils;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -19,12 +19,14 @@ public class ContractCost {
     public static final Predicate<BigDecimal> IS_ZERO_OR_NEGATIVE =
             amount -> amount.compareTo(BigDecimal.ZERO) <= 0;
 
-    public static final Predicate<BigDecimal> HAS_INVALID_SCALE =
-            amount -> amount.scale() > 2;
+    public static final Predicate<BigDecimal> HAS_INVALID_SCALE = amount -> amount.scale() > 2;
 
+    public static ContractCost reconstituteFromDatabase(final BigDecimal trustedValue) {
+        return ValueObjectUtils.guardNotNull(trustedValue, ContractCost::new, ContractCost.class);
+    }
 
     public static ContractCost of(@Nullable final BigDecimal rawValue) {
-        return ValueObject.validateAndCreate(
+        return ValueObjectUtils.validateAndCreate(
                 rawValue,
                 ContractCost::normalize,
                 ContractCost::validate,
@@ -37,10 +39,6 @@ public class ContractCost {
             throw new InvalidContractCostException("Contract cost amount must not be null");
         }
         return rawValue;
-    }
-
-    public static ContractCost reconstituteFromDatabase(final BigDecimal trustedValue) {
-        return ValueObject.guardNotNull(trustedValue, ContractCost::new, ContractCost.class);
     }
 
     private static void validate(@Nullable final BigDecimal rawValue) {

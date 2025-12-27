@@ -1,10 +1,11 @@
 package com.mk.contractservice.integration;
 
+import com.mk.contractservice.application.feature.client.shared.constants.ClientEndpoints;
+import com.mk.contractservice.application.feature.contract.shared.constants.ContractEndpoints;
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.aggregate.Company;
 import com.mk.contractservice.domain.client.aggregate.Person;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
-import com.mk.contractservice.domain.client.service.ClientService;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
@@ -18,8 +19,6 @@ import com.mk.contractservice.infrastructure.persistence.client.ClientJpaReposit
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import com.mk.contractservice.integration.helper.TestDataHelper;
-import com.mk.contractservice.web.client.ClientController;
-import com.mk.contractservice.web.contract.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,7 +85,7 @@ class ClientCrudIT {
 
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, givenPerson.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, givenPerson.getId())
                 .then()
                 .statusCode(200)
                 .body("id", equalTo(givenPerson.getId().toString()))
@@ -113,7 +112,7 @@ class ClientCrudIT {
 
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, company.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, company.getId())
                 .then()
                 .statusCode(200)
                 .body("id", equalTo(company.getId().toString()))
@@ -132,7 +131,7 @@ class ClientCrudIT {
 
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, fakeId)
+                .get(ClientEndpoints.CLIENT_BY_ID, fakeId)
                 .then()
                 .statusCode(404);
     }
@@ -159,12 +158,12 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .put(ClientController.PATH_CLIENT, person.getId())
+                .put(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, person.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Alice After"))
@@ -198,12 +197,12 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .put(ClientController.PATH_CLIENT, company.getId())
+                .put(ClientEndpoints.CLIENT_BY_ID, company.getId())
                 .then()
                 .statusCode(204);
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, company.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, company.getId())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("New Corp"))
@@ -233,7 +232,7 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(invalidPayload)
                 .when()
-                .put(ClientController.PATH_CLIENT, client.getId())
+                .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(422);
     }
@@ -255,7 +254,7 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .put(ClientController.PATH_CLIENT, fakeId)
+                .put(ClientEndpoints.CLIENT_BY_ID, fakeId)
                 .then()
                 .statusCode(404);
     }
@@ -271,13 +270,13 @@ class ClientCrudIT {
         ));
         given()
                 .when()
-                .delete(ClientController.PATH_CLIENT, client.getId())
+                .delete(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, client.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(404);
     }
@@ -307,37 +306,37 @@ class ClientCrudIT {
         contractRepository.save(contract2);
         given()
                 .when()
-                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", client.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("3000.00"));
         given()
                 .when()
-                .delete(ClientController.PATH_CLIENT, client.getId())
+                .delete(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(204);
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, client.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(404);
         given()
                 .when()
-                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", client.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(anyOf(is(200), is(404)));
     }
 
     @Test
-    @DisplayName("SCENARIO: Delete non-existent client returns 404")
-    void shouldReturn404WhenDeletingNonExistentClient() {
+    @DisplayName("SCENARIO: Delete non-existent client is idempotent (returns 204)")
+    void shouldReturn204WhenDeletingNonExistentClient() {
         UUID fakeId = UUID.randomUUID();
 
         given()
                 .when()
-                .delete(ClientController.PATH_CLIENT, fakeId)
+                .delete(ClientEndpoints.CLIENT_BY_ID, fakeId)
                 .then()
-                .statusCode(404);
+                .statusCode(204);
     }
 
     @Test
@@ -362,12 +361,12 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .put(ClientController.PATH_CLIENT, person.getId())
+                .put(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, person.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(200)
                 .body("type", equalTo("PERSON"))
@@ -400,12 +399,12 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .put(ClientController.PATH_CLIENT, company.getId())
+                .put(ClientEndpoints.CLIENT_BY_ID, company.getId())
                 .then()
                 .statusCode(204);
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, company.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, company.getId())
                 .then()
                 .statusCode(200)
                 .body("type", equalTo("COMPANY"))
@@ -442,7 +441,7 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(update1)
                 .when()
-                .put(ClientController.PATH_CLIENT, client.getId())
+                .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(204);
 
@@ -450,12 +449,12 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(update2)
                 .when()
-                .put(ClientController.PATH_CLIENT, client.getId())
+                .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(204);
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, client.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Update 2"))
@@ -483,13 +482,13 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(patchPayload)
                 .when()
-                .patch((ClientController.PATH_BASE + ClientController.PATH_ID), person.getId())
+                .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get((ClientController.PATH_BASE + ClientController.PATH_ID), person.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Patched Name"))
@@ -519,13 +518,13 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(patchPayload)
                 .when()
-                .patch((ClientController.PATH_BASE + ClientController.PATH_ID), person.getId())
+                .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get((ClientController.PATH_BASE + ClientController.PATH_ID), person.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Test Person"))
@@ -555,13 +554,13 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(patchPayload)
                 .when()
-                .patch((ClientController.PATH_BASE + ClientController.PATH_ID), person.getId())
+                .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get((ClientController.PATH_BASE + ClientController.PATH_ID), person.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Test Person"))
@@ -595,13 +594,13 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(patchPayload)
                 .when()
-                .patch((ClientController.PATH_BASE + ClientController.PATH_ID), company.getId())
+                .patch(ClientEndpoints.CLIENT_BY_ID, company.getId())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get((ClientController.PATH_BASE + ClientController.PATH_ID), company.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, company.getId())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Patched Corp"))
@@ -630,7 +629,7 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(invalidPatchPayload)
                 .when()
-                .patch((ClientController.PATH_BASE + ClientController.PATH_ID), client.getId())
+                .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(anyOf(is(400), is(422)));
     }
@@ -655,7 +654,7 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(invalidPatchPayload)
                 .when()
-                .patch((ClientController.PATH_BASE + ClientController.PATH_ID), client.getId())
+                .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(anyOf(is(400), is(422)));
     }
@@ -675,7 +674,7 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(patchPayload)
                 .when()
-                .patch((ClientController.PATH_BASE + ClientController.PATH_ID), fakeId)
+                .patch(ClientEndpoints.CLIENT_BY_ID, fakeId)
                 .then()
                 .statusCode(404);
     }
@@ -697,13 +696,13 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(emptyPatchPayload)
                 .when()
-                .patch((ClientController.PATH_BASE + ClientController.PATH_ID), person.getId())
+                .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get((ClientController.PATH_BASE + ClientController.PATH_ID), person.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Test Person"))
@@ -728,7 +727,7 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(specialNamePayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .body("name", equalTo("François O'Brien-Müller"));
@@ -760,7 +759,7 @@ class ClientCrudIT {
                     .contentType(ContentType.JSON)
                     .body(payload)
                     .when()
-                    .post(ClientController.PATH_BASE)
+                    .post(ClientEndpoints.CLIENTS_BASE)
                     .then()
                     .statusCode(201);
         }
@@ -783,7 +782,7 @@ class ClientCrudIT {
                 .contentType(ContentType.JSON)
                 .body(oldBirthDatePayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .body("birthDate", equalTo("1920-01-01"));

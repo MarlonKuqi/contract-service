@@ -1,6 +1,6 @@
 package com.mk.contractservice.application.contract;
 
-import com.mk.contractservice.application.contract.usecase.CreateContractUseCase.CreateContractCommand;
+import com.mk.contractservice.application.feature.contract.create.core.CreateContract;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;
 import com.mk.contractservice.domain.contract.service.ContractValidationService;
@@ -23,7 +23,12 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateContractUseCase - Unit Tests")
@@ -36,7 +41,7 @@ class CreateContractUseCaseImplTest {
     private ContractRepository contractRepository;
 
     @InjectMocks
-    private CreateContractUseCaseImpl createContractUseCase;
+    private CreateContract.Handler createContract;
 
     @Nested
     @DisplayName("execute() - Happy Path")
@@ -51,7 +56,7 @@ class CreateContractUseCaseImplTest {
             LocalDateTime endDate = startDate.plusMonths(12);
             BigDecimal costAmount = new BigDecimal("1500.00");
 
-            CreateContractCommand command = new CreateContractCommand(
+            CreateContract.Command command = new CreateContract.Command(
                     clientId,
                     startDate,
                     endDate,
@@ -68,7 +73,7 @@ class CreateContractUseCaseImplTest {
             when(contractRepository.save(any(Contract.class))).thenReturn(expectedContract);
 
             // When
-            Contract result = createContractUseCase.execute(command);
+            Contract result = createContract.execute(command);
 
             // Then
             assertThat(result).isNotNull();
@@ -88,7 +93,7 @@ class CreateContractUseCaseImplTest {
             LocalDateTime endDate = LocalDateTime.of(2024, 12, 31, 23, 59);
             BigDecimal costAmount = new BigDecimal("2000.00");
 
-            CreateContractCommand command = new CreateContractCommand(
+            CreateContract.Command command = new CreateContract.Command(
                     clientId,
                     startDate,
                     endDate,
@@ -105,7 +110,7 @@ class CreateContractUseCaseImplTest {
             when(contractRepository.save(any(Contract.class))).thenReturn(savedContract);
 
             // When
-            createContractUseCase.execute(command);
+            createContract.execute(command);
 
             // Then
             ArgumentCaptor<Contract> contractCaptor = ArgumentCaptor.forClass(Contract.class);
@@ -125,7 +130,7 @@ class CreateContractUseCaseImplTest {
             LocalDateTime endDate = startDate.plusMonths(6);
             BigDecimal costAmount = new BigDecimal("999.99");
 
-            CreateContractCommand command = new CreateContractCommand(
+            CreateContract.Command command = new CreateContract.Command(
                     clientId,
                     startDate,
                     endDate,
@@ -142,7 +147,7 @@ class CreateContractUseCaseImplTest {
             when(contractRepository.save(any(Contract.class))).thenReturn(savedContract);
 
             // When
-            createContractUseCase.execute(command);
+            createContract.execute(command);
 
             // Then
             ArgumentCaptor<Contract> contractCaptor = ArgumentCaptor.forClass(Contract.class);
@@ -166,7 +171,7 @@ class CreateContractUseCaseImplTest {
             LocalDateTime endDate = startDate.plusMonths(12);
             BigDecimal costAmount = new BigDecimal("1500.00");
 
-            CreateContractCommand command = new CreateContractCommand(
+            CreateContract.Command command = new CreateContract.Command(
                     clientId,
                     startDate,
                     endDate,
@@ -177,7 +182,7 @@ class CreateContractUseCaseImplTest {
                     .when(contractValidationService).ensureClientExists(clientId);
 
             // When & Then
-            assertThatThrownBy(() -> createContractUseCase.execute(command))
+            assertThatThrownBy(() -> createContract.execute(command))
                     .isInstanceOf(ClientNotFoundException.class)
                     .hasMessageContaining(clientId.toString());
 
@@ -194,7 +199,7 @@ class CreateContractUseCaseImplTest {
             LocalDateTime endDate = startDate.plusMonths(12);
             BigDecimal costAmount = new BigDecimal("1500.00");
 
-            CreateContractCommand command = new CreateContractCommand(
+            CreateContract.Command command = new CreateContract.Command(
                     clientId,
                     startDate,
                     endDate,
@@ -211,7 +216,7 @@ class CreateContractUseCaseImplTest {
             when(contractRepository.save(any(Contract.class))).thenReturn(savedContract);
 
             // When
-            createContractUseCase.execute(command);
+            createContract.execute(command);
 
             // Then
             var ordered = inOrder(contractValidationService, contractRepository);
@@ -233,7 +238,7 @@ class CreateContractUseCaseImplTest {
             LocalDateTime endDate = startDate.plusMonths(1);
             BigDecimal costAmount = new BigDecimal("0.01");
 
-            CreateContractCommand command = new CreateContractCommand(
+            CreateContract.Command command = new CreateContract.Command(
                     clientId,
                     startDate,
                     endDate,
@@ -250,7 +255,7 @@ class CreateContractUseCaseImplTest {
             when(contractRepository.save(any(Contract.class))).thenReturn(savedContract);
 
             // When
-            Contract result = createContractUseCase.execute(command);
+            Contract result = createContract.execute(command);
 
             // Then
             assertThat(result).isNotNull();
@@ -267,7 +272,7 @@ class CreateContractUseCaseImplTest {
             LocalDateTime endDate = startDate.plusYears(5);
             BigDecimal costAmount = new BigDecimal("999999.99");
 
-            CreateContractCommand command = new CreateContractCommand(
+            CreateContract.Command command = new CreateContract.Command(
                     clientId,
                     startDate,
                     endDate,
@@ -284,7 +289,7 @@ class CreateContractUseCaseImplTest {
             when(contractRepository.save(any(Contract.class))).thenReturn(savedContract);
 
             // When
-            Contract result = createContractUseCase.execute(command);
+            Contract result = createContract.execute(command);
 
             // Then
             assertThat(result).isNotNull();

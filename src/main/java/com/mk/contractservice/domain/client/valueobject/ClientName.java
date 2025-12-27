@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.client.valueobject;
 
 import com.mk.contractservice.domain.client.exception.InvalidClientNameException;
-import com.mk.contractservice.domain.shared.ValueObject;
+import com.mk.contractservice.domain.shared.ValueObjectUtils;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -21,7 +21,7 @@ public class ClientName {
             name -> name.isEmpty() || name.length() > MAX_LENGTH;
 
     public static ClientName of(@Nullable final String rawValue) {
-        return ValueObject.validateAndCreate(
+        return ValueObjectUtils.validateAndCreate(
                 rawValue,
                 ClientName::normalize,
                 ClientName::validate,
@@ -30,7 +30,7 @@ public class ClientName {
     }
 
     public static ClientName reconstituteFromDatabase(final String trustedValue) {
-        return ValueObject.guardNotNull(trustedValue, ClientName::new, ClientName.class);
+        return ValueObjectUtils.guardNotNull(trustedValue, ClientName::new, ClientName.class);
     }
 
     private static String normalize(@Nullable final String rawValue) {

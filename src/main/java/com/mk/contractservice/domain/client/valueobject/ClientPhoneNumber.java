@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.client.valueobject;
 
 import com.mk.contractservice.domain.client.exception.InvalidPhoneNumberException;
-import com.mk.contractservice.domain.shared.ValueObject;
+import com.mk.contractservice.domain.shared.ValueObjectUtils;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -21,7 +21,7 @@ public class ClientPhoneNumber {
             phone -> !phone.matches(PHONE_PATTERN);
 
     public static ClientPhoneNumber of(@Nullable final String rawValue) {
-        return ValueObject.validateAndCreate(
+        return ValueObjectUtils.validateAndCreate(
                 rawValue,
                 ClientPhoneNumber::normalize,
                 ClientPhoneNumber::validate,
@@ -30,7 +30,7 @@ public class ClientPhoneNumber {
     }
 
     public static ClientPhoneNumber reconstituteFromDatabase(final String trustedValue) {
-        return ValueObject.guardNotNull(trustedValue, ClientPhoneNumber::new, ClientPhoneNumber.class);
+        return ValueObjectUtils.guardNotNull(trustedValue, ClientPhoneNumber::new, ClientPhoneNumber.class);
     }
 
     private static String normalize(@Nullable final String rawValue) {

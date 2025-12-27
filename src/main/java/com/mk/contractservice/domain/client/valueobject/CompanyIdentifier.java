@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.client.valueobject;
 
 import com.mk.contractservice.domain.client.exception.InvalidCompanyIdentifierException;
-import com.mk.contractservice.domain.shared.ValueObject;
+import com.mk.contractservice.domain.shared.ValueObjectUtils;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -21,7 +21,7 @@ public class CompanyIdentifier {
             identifier -> identifier.isEmpty() || identifier.length() > MAX_LENGTH;
 
     public static CompanyIdentifier of(@Nullable final String rawValue) {
-        return ValueObject.validateAndCreate(
+        return ValueObjectUtils.validateAndCreate(
                 rawValue,
                 CompanyIdentifier::normalize,
                 CompanyIdentifier::validate,
@@ -30,7 +30,7 @@ public class CompanyIdentifier {
     }
 
     public static CompanyIdentifier reconstituteFromDatabase(final String trustedValue) {
-        return ValueObject.guardNotNull(trustedValue, CompanyIdentifier::new, CompanyIdentifier.class);
+        return ValueObjectUtils.guardNotNull(trustedValue, CompanyIdentifier::new, CompanyIdentifier.class);
     }
 
     private static String normalize(@Nullable final String rawValue) {

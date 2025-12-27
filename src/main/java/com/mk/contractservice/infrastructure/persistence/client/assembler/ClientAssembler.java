@@ -38,6 +38,9 @@ public class ClientAssembler {
 
     ClientJpaEntity loadExistingClient(final Client domain) {
         final ClientJpaEntity existing = entityManager.find(ClientJpaEntity.class, domain.getId());
+        if (existing == null) {
+            throw new IllegalStateException("Client with id " + domain.getId() + " not found in database");
+        }
         existing.setName(domain.getName().getValue());
         existing.setEmail(domain.getEmail().getValue());
         existing.setPhone(domain.getPhone().getValue());

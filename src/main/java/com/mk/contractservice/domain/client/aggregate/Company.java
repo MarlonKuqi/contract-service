@@ -32,10 +32,8 @@ public final class Company extends Client {
         this.companyIdentifier = companyIdentifier;
     }
 
-    private static void validateCompanyFields(@Nullable final CompanyIdentifier companyIdentifier) {
-        if (companyIdentifier == null) {
-            throw InvalidClientException.forNullCompanyIdentifier();
-        }
+    private static CompanyIdentifier guardCompanyFields(@Nullable final CompanyIdentifier companyIdentifier) {
+        return guardNotNull(companyIdentifier, InvalidClientException::forNullCompanyIdentifier);
     }
 
     public static Company of(
@@ -44,14 +42,11 @@ public final class Company extends Client {
             @Nullable final ClientPhoneNumber phone,
             @Nullable final CompanyIdentifier companyIdentifier
     ) {
-        validateCommonFields(name, email, phone);
-        validateCompanyFields(companyIdentifier);
-
         return builder()
-                .name(name)
-                .email(email)
-                .phone(phone)
-                .companyIdentifier(companyIdentifier)
+                .name(guardName(name))
+                .email(guardEmail(email))
+                .phone(guardPhone(phone))
+                .companyIdentifier(guardCompanyFields(companyIdentifier))
                 .build();
     }
 
@@ -62,37 +57,38 @@ public final class Company extends Client {
             @Nullable final ClientPhoneNumber phone,
             @Nullable final CompanyIdentifier companyIdentifier
     ) {
+        final Class currentClass = Company.class;
         return builder()
-                .id(id)
-                .name(name)
-                .email(email)
-                .phone(phone)
-                .companyIdentifier(companyIdentifier)
+                .id(guardNotNull(id, "id", currentClass))
+                .name(guardNotNull(name, "name", currentClass))
+                .email(guardNotNull(email, "email", currentClass))
+                .phone(guardNotNull(phone, "phone", currentClass))
+                .companyIdentifier(guardNotNull(companyIdentifier, "companyIdentifier", currentClass))
                 .build();
     }
 
+    @Override
     public Company withCommonFields(final ClientName name, final ClientEmail email, final ClientPhoneNumber phone) {
-        validateCommonFields(name, email, phone);
         return toBuilder()
-                .name(name)
-                .email(email)
-                .phone(phone)
+                .name(guardName(name))
+                .email(guardEmail(email))
+                .phone(guardPhone(phone))
                 .build();
     }
 
+    @Override
     public Company withName(final ClientName name) {
-        validateCommonFields(name, this.getEmail(), this.getPhone());
-        return toBuilder().name(name).build();
+        return toBuilder().name(guardName(name)).build();
     }
 
+    @Override
     public Company withEmail(final ClientEmail email) {
-        validateCommonFields(this.getName(), email, this.getPhone());
-        return toBuilder().email(email).build();
+        return toBuilder().email(guardEmail(email)).build();
     }
 
+    @Override
     public Company withPhone(final ClientPhoneNumber phone) {
-        validateCommonFields(this.getName(), this.getEmail(), phone);
-        return toBuilder().phone(phone).build();
+        return toBuilder().phone(guardPhone(phone)).build();
     }
 
     private static CompanyBuilder builder() {
@@ -101,17 +97,17 @@ public final class Company extends Client {
 
     private CompanyBuilder toBuilder() {
         return builder()
-                .id(this.getId())
-                .name(this.getName())
-                .email(this.getEmail())
-                .phone(this.getPhone())
-                .companyIdentifier(this.companyIdentifier);
+                .id(getId())
+                .name(getName())
+                .email(getEmail())
+                .phone(getPhone())
+                .companyIdentifier(getCompanyIdentifier());
     }
 
     @NoArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
     @NullUnmarked
-    public static class CompanyBuilder {
+    private static class CompanyBuilder {
         UUID id;
         ClientName name;
         ClientEmail email;

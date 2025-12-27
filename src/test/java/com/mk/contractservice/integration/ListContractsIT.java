@@ -1,5 +1,6 @@
 package com.mk.contractservice.integration;
 
+import com.mk.contractservice.application.feature.contract.shared.constants.ContractEndpoints;
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.aggregate.Person;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
@@ -11,7 +12,6 @@ import com.mk.contractservice.domain.contract.service.ContractService;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
-import com.mk.contractservice.web.contract.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
@@ -88,7 +88,7 @@ class ListContractsIT {
             createContracts(25, 100);
             givenPaginationParams(0, pageSize)
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(206)
                     .header("Content-Range", org.hamcrest.Matchers.containsString("contracts 0-9/25"))
@@ -101,7 +101,7 @@ class ListContractsIT {
                     .body("isLast", equalTo(false));
             givenPaginationParams(1, pageSize)
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(206)
                     .header("Content-Range", org.hamcrest.Matchers.containsString("contracts 10-19/25"))
@@ -114,7 +114,7 @@ class ListContractsIT {
                     .body("isLast", equalTo(false));
             givenPaginationParams(2, pageSize)
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(206)
                     .header("Content-Range", org.hamcrest.Matchers.containsString("contracts 20-24/25"))
@@ -134,7 +134,7 @@ class ListContractsIT {
 
             givenPaginationParams(5, 10)
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(206)
                     .header("Content-Range", org.hamcrest.Matchers.matchesRegex("contracts .*/5"))
@@ -174,22 +174,30 @@ class ListContractsIT {
                     }
                     """;
 
+            // Create contracts with explicit delays to ensure distinct lastModified timestamps
             given().contentType(ContentType.JSON).body(middleContract)
-                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then().statusCode(201);
+
+            await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
 
             given().contentType(ContentType.JSON).body(oldContract)
-                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then().statusCode(201);
 
+            await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
+
             given().contentType(ContentType.JSON).body(recentContract)
-                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then().statusCode(201);
+
+            // Wait a bit to ensure all transactions are committed
+            await().pollDelay(Duration.ofMillis(50)).atMost(Duration.ofSeconds(1)).until(() -> true);
 
             given()
                     .queryParam("sort", "lastModified,desc")
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(200)
                     .body("content.size()", equalTo(3))
@@ -212,7 +220,7 @@ class ListContractsIT {
                         """, i * 100);
 
                 given().contentType(ContentType.JSON).body(oldContract)
-                        .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                        .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                         .then().statusCode(201);
             }
 
@@ -232,7 +240,7 @@ class ListContractsIT {
                         """, i * 100);
 
                 given().contentType(ContentType.JSON).body(recentContract)
-                        .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                        .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                         .then().statusCode(201);
             }
 
@@ -241,7 +249,7 @@ class ListContractsIT {
                     .queryParam("page", 0)
                     .queryParam("size", 5)
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(200)
                     .body("content.size()", equalTo(5))
@@ -256,7 +264,7 @@ class ListContractsIT {
 
             given()
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(206)
                     .body("content.size()", equalTo(20))
@@ -272,7 +280,7 @@ class ListContractsIT {
             given()
                     .queryParam("size", 5)
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(206)
                     .body("content.size()", equalTo(5))
@@ -282,7 +290,7 @@ class ListContractsIT {
             given()
                     .queryParam("size", 25)
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(206)
                     .body("content.size()", equalTo(25))
@@ -292,7 +300,7 @@ class ListContractsIT {
             given()
                     .queryParam("size", 50)
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(200)
                     .body("content.size()", equalTo(50))
@@ -310,7 +318,7 @@ class ListContractsIT {
             given()
                     .queryParam("size", 20)
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(200)
                     .body("content.size()", equalTo(3))
@@ -328,7 +336,7 @@ class ListContractsIT {
 
             given()
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(200)
                     .body("content.size()", equalTo(0))
@@ -354,7 +362,7 @@ class ListContractsIT {
                 given()
                         .contentType(ContentType.JSON)
                         .body(expiredContract)
-                        .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                        .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                         .then()
                         .statusCode(201);
             }
@@ -371,7 +379,7 @@ class ListContractsIT {
                 given()
                         .contentType(ContentType.JSON)
                         .body(activeContract)
-                        .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                        .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                         .then()
                         .statusCode(201);
             }
@@ -379,7 +387,7 @@ class ListContractsIT {
             given()
                     .queryParam("size", 5)
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(206)
                     .body("content.size()", equalTo(5))
@@ -393,7 +401,7 @@ class ListContractsIT {
             createContract(2500);
             given()
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(200)
                     .body("content.size()", equalTo(1))
@@ -411,7 +419,7 @@ class ListContractsIT {
             given()
                     .queryParam("size", 200)
                     .when()
-                    .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(400)
                     .body("title", equalTo("Invalid Parameter"))
@@ -430,7 +438,7 @@ class ListContractsIT {
             given()
                     .contentType(ContentType.JSON)
                     .body(contractPayload)
-                    .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
                     .statusCode(201);
         }

@@ -1,6 +1,6 @@
 package com.mk.contractservice.application.contract;
 
-import com.mk.contractservice.application.contract.usecase.CloseActiveContractsUseCase.CloseActiveContractsCommand;
+import com.mk.contractservice.application.feature.contract.closeactive.core.CloseActiveContracts;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,7 +27,7 @@ class CloseActiveContractsUseCaseImplTest {
     private ContractRepository contractRepository;
 
     @InjectMocks
-    private CloseActiveContractsUseCaseImpl closeActiveContractsUseCase;
+    private CloseActiveContracts.Handler closeActiveContracts;
 
     @Nested
     @DisplayName("execute() - Happy Path")
@@ -38,12 +38,12 @@ class CloseActiveContractsUseCaseImplTest {
         void shouldCloseAllActiveContracts() {
             // Given
             UUID clientId = UUID.randomUUID();
-            CloseActiveContractsCommand command = new CloseActiveContractsCommand(clientId);
+            CloseActiveContracts.Command command = new CloseActiveContracts.Command(clientId);
 
             doNothing().when(contractRepository).closeAllActiveByClientId(clientId);
 
             // When
-            closeActiveContractsUseCase.execute(command);
+            closeActiveContracts.execute(command);
 
             // Then
             verify(contractRepository).closeAllActiveByClientId(clientId);
@@ -54,12 +54,12 @@ class CloseActiveContractsUseCaseImplTest {
         void shouldCloseContractsForSpecificClientOnly() {
             // Given
             UUID clientId = UUID.randomUUID();
-            CloseActiveContractsCommand command = new CloseActiveContractsCommand(clientId);
+            CloseActiveContracts.Command command = new CloseActiveContracts.Command(clientId);
 
             doNothing().when(contractRepository).closeAllActiveByClientId(clientId);
 
             // When
-            closeActiveContractsUseCase.execute(command);
+            closeActiveContracts.execute(command);
 
             // Then
             ArgumentCaptor<UUID> clientIdCaptor = ArgumentCaptor.forClass(UUID.class);
@@ -76,16 +76,16 @@ class CloseActiveContractsUseCaseImplTest {
             UUID clientId2 = UUID.randomUUID();
             UUID clientId3 = UUID.randomUUID();
 
-            CloseActiveContractsCommand command1 = new CloseActiveContractsCommand(clientId1);
-            CloseActiveContractsCommand command2 = new CloseActiveContractsCommand(clientId2);
-            CloseActiveContractsCommand command3 = new CloseActiveContractsCommand(clientId3);
+            CloseActiveContracts.Command command1 = new CloseActiveContracts.Command(clientId1);
+            CloseActiveContracts.Command command2 = new CloseActiveContracts.Command(clientId2);
+            CloseActiveContracts.Command command3 = new CloseActiveContracts.Command(clientId3);
 
             doNothing().when(contractRepository).closeAllActiveByClientId(any(UUID.class));
 
             // When
-            closeActiveContractsUseCase.execute(command1);
-            closeActiveContractsUseCase.execute(command2);
-            closeActiveContractsUseCase.execute(command3);
+            closeActiveContracts.execute(command1);
+            closeActiveContracts.execute(command2);
+            closeActiveContracts.execute(command3);
 
             // Then
             verify(contractRepository).closeAllActiveByClientId(clientId1);
@@ -104,12 +104,12 @@ class CloseActiveContractsUseCaseImplTest {
         void shouldCallRepositoryOnce() {
             // Given
             UUID clientId = UUID.randomUUID();
-            CloseActiveContractsCommand command = new CloseActiveContractsCommand(clientId);
+            CloseActiveContracts.Command command = new CloseActiveContracts.Command(clientId);
 
             doNothing().when(contractRepository).closeAllActiveByClientId(clientId);
 
             // When
-            closeActiveContractsUseCase.execute(command);
+            closeActiveContracts.execute(command);
 
             // Then
             verify(contractRepository, times(1)).closeAllActiveByClientId(clientId);
@@ -120,13 +120,13 @@ class CloseActiveContractsUseCaseImplTest {
         void shouldCallRepositoryForEachExecution() {
             // Given
             UUID clientId = UUID.randomUUID();
-            CloseActiveContractsCommand command = new CloseActiveContractsCommand(clientId);
+            CloseActiveContracts.Command command = new CloseActiveContracts.Command(clientId);
 
             doNothing().when(contractRepository).closeAllActiveByClientId(clientId);
 
             // When
-            closeActiveContractsUseCase.execute(command);
-            closeActiveContractsUseCase.execute(command);
+            closeActiveContracts.execute(command);
+            closeActiveContracts.execute(command);
 
             // Then
             verify(contractRepository, times(2)).closeAllActiveByClientId(clientId);
@@ -137,12 +137,12 @@ class CloseActiveContractsUseCaseImplTest {
         void shouldDelegateToRepositoryWithoutTransformation() {
             // Given
             UUID clientId = UUID.randomUUID();
-            CloseActiveContractsCommand command = new CloseActiveContractsCommand(clientId);
+            CloseActiveContracts.Command command = new CloseActiveContracts.Command(clientId);
 
             doNothing().when(contractRepository).closeAllActiveByClientId(any(UUID.class));
 
             // When
-            closeActiveContractsUseCase.execute(command);
+            closeActiveContracts.execute(command);
 
             // Then
             ArgumentCaptor<UUID> captor = ArgumentCaptor.forClass(UUID.class);
@@ -162,13 +162,13 @@ class CloseActiveContractsUseCaseImplTest {
         void shouldCompleteSuccessfullyWhenNoActiveContracts() {
             // Given
             UUID clientId = UUID.randomUUID();
-            CloseActiveContractsCommand command = new CloseActiveContractsCommand(clientId);
+            CloseActiveContracts.Command command = new CloseActiveContracts.Command(clientId);
 
             // Repository doesn't throw exception when no contracts found
             doNothing().when(contractRepository).closeAllActiveByClientId(clientId);
 
             // When
-            closeActiveContractsUseCase.execute(command);
+            closeActiveContracts.execute(command);
 
             // Then
             verify(contractRepository).closeAllActiveByClientId(clientId);
@@ -179,12 +179,12 @@ class CloseActiveContractsUseCaseImplTest {
         void shouldCompleteSuccessfullyWhenOnlyClosedContracts() {
             // Given
             UUID clientId = UUID.randomUUID();
-            CloseActiveContractsCommand command = new CloseActiveContractsCommand(clientId);
+            CloseActiveContracts.Command command = new CloseActiveContracts.Command(clientId);
 
             doNothing().when(contractRepository).closeAllActiveByClientId(clientId);
 
             // When
-            closeActiveContractsUseCase.execute(command);
+            closeActiveContracts.execute(command);
 
             // Then
             verify(contractRepository).closeAllActiveByClientId(clientId);
@@ -195,12 +195,12 @@ class CloseActiveContractsUseCaseImplTest {
         void shouldDelegateToRepositoryEvenForNonExistentClient() {
             // Given - A client that doesn't exist
             UUID nonExistentClientId = UUID.randomUUID();
-            CloseActiveContractsCommand command = new CloseActiveContractsCommand(nonExistentClientId);
+            CloseActiveContracts.Command command = new CloseActiveContracts.Command(nonExistentClientId);
 
             doNothing().when(contractRepository).closeAllActiveByClientId(nonExistentClientId);
 
             // When
-            closeActiveContractsUseCase.execute(command);
+            closeActiveContracts.execute(command);
 
             // Then - Should still call repository, validation is repository's responsibility
             verify(contractRepository).closeAllActiveByClientId(nonExistentClientId);

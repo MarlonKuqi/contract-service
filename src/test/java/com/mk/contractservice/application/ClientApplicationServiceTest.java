@@ -359,7 +359,7 @@ class ClientApplicationServiceTest {
 
             // Vérifier que l'événement contient le bon clientId
             ClientDeletedEvent capturedEvent = eventCaptor.getValue();
-            assertThat(capturedEvent.clientId()).isEqualTo(personId);
+            assertThat(capturedevent.getClientId()).isEqualTo(personId);
             assertThat(capturedEvent.occurredAt()).isNotNull();
         }
     }

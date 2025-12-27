@@ -1,10 +1,10 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
+import com.mk.contractservice.application.feature.client.shared.constants.ClientEndpoints;
+import com.mk.contractservice.application.feature.contract.shared.constants.ContractEndpoints;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
+import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
-import com.mk.contractservice.web.client.ClientController;
-import com.mk.contractservice.web.contract.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,7 +68,7 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .header("Location", matchesPattern(".*" + "v2/clients/[0-9a-f-]{36}"))
@@ -82,7 +82,7 @@ class PersonLifecycleIT {
 
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, clientId)
+                .get(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("fr-CH"))
@@ -108,7 +108,7 @@ class PersonLifecycleIT {
                         }
                         """.formatted(UUID.randomUUID().toString().substring(0, 8)))
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .header("Content-Language", equalTo("en"));
@@ -126,7 +126,7 @@ class PersonLifecycleIT {
                         }
                         """.formatted(UUID.randomUUID().toString().substring(0, 8)))
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .header("Content-Language", equalTo("de-CH"));
@@ -144,7 +144,7 @@ class PersonLifecycleIT {
                         }
                         """.formatted(UUID.randomUUID().toString().substring(0, 8)))
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .header("Content-Language", equalTo("it-CH"));
@@ -166,7 +166,7 @@ class PersonLifecycleIT {
                         }
                         """.formatted(UUID.randomUUID().toString().substring(0, 8)))
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .header("Content-Language", equalTo("fr-CH"));
@@ -189,7 +189,7 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(invalidEmailPayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(422);
     }
@@ -211,7 +211,7 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(invalidPhonePayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(422);
     }
@@ -232,7 +232,7 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(missingEmailPayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(422);
 
@@ -248,7 +248,7 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(missingNamePayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(422);
     }
@@ -270,7 +270,7 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(futureBirthDatePayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(anyOf(is(400), is(422)));
     }
@@ -292,7 +292,7 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -310,13 +310,13 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .put(ClientController.PATH_CLIENT, clientId)
+                .put(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, clientId)
+                .get(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Frank Updated"))
@@ -342,7 +342,7 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(personPayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -359,25 +359,25 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", clientId)
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", clientId)
                 .then()
                 .statusCode(201);
 
         given()
                 .when()
-                .delete(ClientController.PATH_CLIENT, clientId)
+                .delete(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ClientController.PATH_CLIENT, clientId)
+                .get(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(404);
 
         given()
                 .when()
-                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", clientId)
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", clientId)
                 .then()
                 .statusCode(anyOf(is(200), is(404)));
     }
@@ -401,7 +401,7 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(firstPayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201);
 
@@ -419,7 +419,7 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(secondPayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(anyOf(is(409), is(400), is(422), is(500)));
     }
@@ -451,7 +451,7 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(person1Payload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -460,7 +460,7 @@ class PersonLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(person2Payload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -469,7 +469,7 @@ class PersonLifecycleIT {
                 .expect()
                 .body("id", not(equalTo(id1)))
                 .when()
-                .get(ClientController.PATH_CLIENT, id2)
+                .get(ClientEndpoints.CLIENT_BY_ID, id2)
                 .then()
                 .statusCode(200);
     }
@@ -492,7 +492,7 @@ class PersonLifecycleIT {
                 .header("Accept-Language", "fr-CH")
                 .body(createPayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .header("Content-Language", equalTo("fr-CH"))
@@ -501,7 +501,7 @@ class PersonLifecycleIT {
         given()
                 .header("Accept-Language", "fr-CH")
                 .when()
-                .get(ClientController.PATH_CLIENT, clientId)
+                .get(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("fr-CH"));
@@ -525,7 +525,7 @@ class PersonLifecycleIT {
                 .header("Accept-Language", "de-CH")
                 .body(createPayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .header("Content-Language", equalTo("de-CH"))
@@ -534,7 +534,7 @@ class PersonLifecycleIT {
         given()
                 .header("Accept-Language", "de-CH")
                 .when()
-                .get(ClientController.PATH_CLIENT, clientId)
+                .get(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("de-CH"));
@@ -558,7 +558,7 @@ class PersonLifecycleIT {
                 .header("Accept-Language", "fr-CH, de-CH;q=0.8, en;q=0.5")
                 .body(createPayload)
                 .when()
-                .post(ClientController.PATH_BASE)
+                .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
                 .header("Content-Language", equalTo("fr-CH")) // Should pick highest priority
@@ -567,7 +567,7 @@ class PersonLifecycleIT {
         given()
                 .header("Accept-Language", "it-CH")
                 .when()
-                .get(ClientController.PATH_CLIENT, clientId)
+                .get(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("it-CH"));

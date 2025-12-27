@@ -5,9 +5,7 @@ import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
-import com.mk.contractservice.domain.exception.ClientNotFoundException;
 import com.mk.contractservice.infrastructure.persistence.client.assembler.ClientAssembler;
-import com.mk.contractservice.infrastructure.persistence.client.entity.ClientJpaEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Repository;
@@ -37,9 +35,7 @@ public class JpaClientRepository implements ClientRepository {
 
     @Override
     public void deleteById(final UUID id) {
-        final ClientJpaEntity entity = jpa.findById(id)
-                .orElseThrow(() -> new ClientNotFoundException("Client with ID " + id + " not found"));
-        jpa.delete(entity);
+        jpa.deleteById(id);
     }
 
     @Override

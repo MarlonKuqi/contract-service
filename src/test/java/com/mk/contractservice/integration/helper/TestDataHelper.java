@@ -1,12 +1,11 @@
 package com.mk.contractservice.integration.helper;
 
+import lombok.NoArgsConstructor;
+
 import java.util.UUID;
 
+@NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public final class TestDataHelper {
-
-    private TestDataHelper() {
-        // Utility class
-    }
 
     public static String uniqueEmail(String prefix) {
         return prefix + "." + shortUuid() + "@example.com";

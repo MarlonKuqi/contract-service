@@ -18,7 +18,7 @@ public class ContractAssembler {
 
     public ContractJpaEntity toJpaEntity(final Contract domain) {
         if (domain.getId() != null) {
-            return updateExistingContract(domain);
+            return loadExistingContract(domain);
         }
         return createNewContract(domain);
     }
@@ -32,8 +32,11 @@ public class ContractAssembler {
         );
     }
 
-    private ContractJpaEntity updateExistingContract(final Contract domain) {
+    private ContractJpaEntity loadExistingContract(final Contract domain) {
         final ContractJpaEntity existing = entityManager.find(ContractJpaEntity.class, domain.getId());
+        if (existing == null) {
+            throw new IllegalStateException("Contract with id " + domain.getId() + " not found in database");
+        }
         existing.setClientId(domain.getClientId());
         existing.setStartDate(domain.getPeriod().getStartDate());
         existing.setEndDate(domain.getPeriod().getEndDate());

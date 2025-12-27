@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.contract.exception.ExpiredContractException
 import com.mk.contractservice.domain.contract.exception.InvalidContractException;
 import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
+import com.mk.contractservice.domain.shared.Entity;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -14,9 +15,9 @@ import org.jspecify.annotations.Nullable;
 import java.util.UUID;
 
 @Getter
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-public class Contract {
+public class Contract extends Entity {
 
     @Nullable
     UUID id;
@@ -37,32 +38,28 @@ public class Contract {
         this.costAmount = costAmount;
     }
 
-    private static void validateContractFields(
-            @Nullable final UUID clientId,
-            @Nullable final ContractPeriod period,
-            @Nullable final ContractCost costAmount
-    ) {
-        if (clientId == null) {
-            throw InvalidContractException.forNullClient();
-        }
-        if (period == null) {
-            throw InvalidContractException.forNullPeriod();
-        }
-        if (costAmount == null) {
-            throw InvalidContractException.forNullCostAmount();
-        }
+    private static UUID guardClientId(@Nullable final UUID clientId) {
+        return guardNotNull(clientId, InvalidContractException::forNullClient);
     }
+
+    private static ContractPeriod guardPeriod(@Nullable final ContractPeriod period) {
+        return guardNotNull(period, InvalidContractException::forNullPeriod);
+    }
+
+    private static ContractCost guardCostAmount(@Nullable final ContractCost costAmount) {
+        return guardNotNull(costAmount, InvalidContractException::forNullCostAmount);
+    }
+
 
     public static Contract of(
             @Nullable final UUID clientId,
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount
     ) {
-        validateContractFields(clientId, period, costAmount);
         return builder()
-                .clientId(clientId)
-                .period(period)
-                .costAmount(costAmount)
+                .clientId(guardClientId(clientId))
+                .period(guardPeriod(period))
+                .costAmount(guardCostAmount(costAmount))
                 .build();
     }
 
@@ -72,11 +69,12 @@ public class Contract {
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount
     ) {
+        final Class currentClass = Contract.class;
         return builder()
-                .id(id)
-                .clientId(clientId)
-                .period(period)
-                .costAmount(costAmount)
+                .id(guardNotNull(id, "id", currentClass))
+                .clientId(guardNotNull(clientId, "clientId", currentClass))
+                .period(guardNotNull(period, "period", currentClass))
+                .costAmount(guardNotNull(costAmount, "costAmount", currentClass))
                 .build();
     }
 
@@ -89,15 +87,12 @@ public class Contract {
     }
 
     public Contract changeCost(final ContractCost newAmount) {
-        if (newAmount == null) {
-            throw InvalidContractException.forNullNewCostAmount();
-        }
         if (isInactive()) {
             throw new ExpiredContractException(getId());
         }
-        validateContractFields(this.clientId, this.period, newAmount);
         return toBuilder()
-                .costAmount(newAmount)
+                .costAmount(guardCostAmount(newAmount))
                 .build();
     }
+
 }

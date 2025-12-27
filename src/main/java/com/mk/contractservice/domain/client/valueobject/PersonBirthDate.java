@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.client.valueobject;
 
 import com.mk.contractservice.domain.client.exception.InvalidPersonBirthDateException;
-import com.mk.contractservice.domain.shared.ValueObject;
+import com.mk.contractservice.domain.shared.ValueObjectUtils;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -20,7 +20,7 @@ public class PersonBirthDate {
             date -> date.isAfter(LocalDate.now());
 
     public static PersonBirthDate of(@Nullable final LocalDate value) {
-        return ValueObject.validateAndCreate(
+        return ValueObjectUtils.validateAndCreate(
                 value,
                 PersonBirthDate::normalize,
                 PersonBirthDate::validate,
@@ -29,7 +29,7 @@ public class PersonBirthDate {
     }
 
     public static PersonBirthDate reconstituteFromDatabase(final LocalDate trustedValue) {
-        return ValueObject.guardNotNull(trustedValue, PersonBirthDate::new, PersonBirthDate.class);
+        return ValueObjectUtils.guardNotNull(trustedValue, PersonBirthDate::new, PersonBirthDate.class);
     }
 
     private static LocalDate normalize(@Nullable final LocalDate rawValue) {

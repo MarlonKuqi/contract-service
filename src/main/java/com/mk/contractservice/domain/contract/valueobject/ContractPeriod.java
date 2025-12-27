@@ -1,7 +1,7 @@
 package com.mk.contractservice.domain.contract.valueobject;
 
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
-import com.mk.contractservice.domain.shared.ValueObject;
+import com.mk.contractservice.domain.shared.ValueObjectUtils;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -28,7 +28,7 @@ public class ContractPeriod {
     }
 
     public static ContractPeriod of(@Nullable final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
-        return ValueObject.validateAndCreate(
+        return ValueObjectUtils.validateAndCreate(
                 startDate,
                 endDate,
                 ContractPeriod::normalize,
@@ -38,7 +38,7 @@ public class ContractPeriod {
     }
 
     public static ContractPeriod reconstituteFromDatabase(final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
-        return ValueObject.guardNotNull(startDate, endDate, ContractPeriod::new, ContractPeriod.class);
+        return ValueObjectUtils.guardNotNull(startDate, endDate, ContractPeriod::new, ContractPeriod.class);
     }
 
     private static LocalDateTime normalize(final LocalDateTime startDate) {

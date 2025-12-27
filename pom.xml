@@ -252,25 +252,50 @@
 							<dataFile>target/jacoco-it.exec</dataFile>
 							<outputDirectory>target/jacoco-it</outputDirectory>
 							<excludes>
-								<exclude>**/web/**</exclude>
-								<exclude>**/ContractServiceApplication.class</exclude>
-								<exclude>**/application/**/dto/**</exclude>
-								<exclude>**/application/**/mapper/**</exclude>
-							</excludes>
+                                <exclude>**/application/feature/**/web/*Controller.class</exclude>
+                                <exclude>**/infrastructure/**</exclude>
+                                <exclude>**/ContractServiceApplication.class</exclude>
+                                <exclude>**/dto/**</exclude>
+                                <exclude>**/mapper/**</exclude>
+                                <exclude>**/constants/**</exclude>
+                                <exclude>**/exception/**</exclude>
+                                <exclude>**/event/**</exclude>
+                                <exclude>**/shared/**</exclude>
+                            </excludes>
 						</configuration>
 					</execution>
 				</executions>
 				<configuration>
-					<!-- Exclusions pour se concentrer sur le domaine -->
+                    <!-- Exclusions pour se concentrer sur le domaine et la logique métier -->
 					<excludes>
-						<exclude>**/web/**</exclude>
+                        <!-- Couche Web (Controllers uniquement, pas les use cases !) -->
+                        <exclude>**/application/feature/**/web/*Controller.class</exclude>
+
+                        <!-- Infrastructure -->
 						<exclude>**/infrastructure/**</exclude>
 						<exclude>**/config/**</exclude>
+                        <exclude>**/configuration/**</exclude>
+
+                        <!-- Application principale -->
 						<exclude>**/ContractServiceApplication.class</exclude>
-						<exclude>**/domain/exception/**</exclude>
-						<exclude>**/application/**/dto/**</exclude>
-						<exclude>**/application/**/mapper/**</exclude>
-						<exclude>**/application/**/usecase/**</exclude>
+
+                        <!-- Exceptions (pas de logique métier) -->
+                        <exclude>**/exception/**</exclude>
+
+                        <!-- DTOs et Records (pas de logique) -->
+                        <exclude>**/dto/**</exclude>
+
+                        <!-- Mappers (générés ou simples mappings) -->
+                        <exclude>**/mapper/**</exclude>
+
+                        <!-- Constantes (pas de logique) -->
+                        <exclude>**/constants/**</exclude>
+
+                        <!-- Events (simples objets de données) -->
+                        <exclude>**/event/**</exclude>
+
+                        <!-- Shared packages (DTOs, mappers, constants, exceptions partagés) -->
+                        <exclude>**/shared/**</exclude>
 					</excludes>
 					<!-- Règles de couverture -->
 					<rules>

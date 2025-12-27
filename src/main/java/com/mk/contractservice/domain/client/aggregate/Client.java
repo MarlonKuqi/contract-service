@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.client.exception.InvalidClientException;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
+import com.mk.contractservice.domain.shared.Entity;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -14,10 +15,10 @@ import java.util.UUID;
 
 
 @Getter
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
 @AllArgsConstructor(access = lombok.AccessLevel.PROTECTED)
-public abstract sealed class Client permits Person, Company {
+public abstract sealed class Client extends Entity permits Person, Company {
 
     @Nullable
     UUID id;
@@ -25,20 +26,16 @@ public abstract sealed class Client permits Person, Company {
     ClientEmail email;
     ClientPhoneNumber phone;
 
-    protected static void validateCommonFields(
-            @Nullable final ClientName name,
-            @Nullable final ClientEmail email,
-            @Nullable final ClientPhoneNumber phone
-    ) {
-        if (name == null) {
-            throw InvalidClientException.forNullName();
-        }
-        if (email == null) {
-            throw InvalidClientException.forNullEmail();
-        }
-        if (phone == null) {
-            throw InvalidClientException.forNullPhone();
-        }
+    protected static ClientName guardName(@Nullable final ClientName name) {
+        return guardNotNull(name, InvalidClientException::forNullName);
+    }
+
+    protected static ClientEmail guardEmail(@Nullable final ClientEmail email) {
+        return guardNotNull(email, InvalidClientException::forNullEmail);
+    }
+
+    protected static ClientPhoneNumber guardPhone(@Nullable final ClientPhoneNumber phone) {
+        return guardNotNull(phone, InvalidClientException::forNullPhone);
     }
 
     public abstract Client withCommonFields(

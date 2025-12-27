@@ -1,5 +1,6 @@
 package com.mk.contractservice.integration;
 
+import com.mk.contractservice.application.feature.contract.shared.constants.ContractEndpoints;
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.aggregate.Person;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
@@ -11,7 +12,6 @@ import com.mk.contractservice.domain.contract.repository.ContractRepository;
 import com.mk.contractservice.domain.contract.service.ContractService;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
-import com.mk.contractservice.web.contract.ContractController;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -92,10 +92,10 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201)
-                .header("Location", containsString(ContractController.PATH_BASE + "/"))
+                .header("Location", containsString(ContractEndpoints.CONTRACTS_BASE + "/"))
                 .header("Content-Language", equalTo("fr-CH"))
                 .body("id", notNullValue())
                 .body("costAmount", equalTo(5000.00f))
@@ -105,7 +105,7 @@ class ContractLifecycleIT {
 
         given()
                 .when()
-                .get(ContractController.PATH_CONTRACT + "?clientId={clientId}", contractId, testClient.getId())
+                .get(ContractEndpoints.CONTRACT_BY_ID + "?clientId={clientId}", contractId, testClient.getId())
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("fr-CH"))
@@ -124,13 +124,13 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .patch(ContractController.PATH_CONTRACT_COST + "?clientId={clientId}", contractId, testClient.getId())
+                .patch(ContractEndpoints.CONTRACT_COST + "?clientId={clientId}", contractId, testClient.getId())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", greaterThan(0));
@@ -165,20 +165,20 @@ class ContractLifecycleIT {
                 }
                 """, now.minusDays(3).toString(), now.plusMonths(3).toString());
 
-        given().contentType(ContentType.JSON).body(contract1).post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(contract2).post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(contract3).post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract1).post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract2).post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract3).post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
 
         given()
                 .when()
-                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("4250.50"));
 
         given()
                 .when()
-                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(3));
@@ -203,19 +203,19 @@ class ContractLifecycleIT {
                 }
                 """;
 
-        given().contentType(ContentType.JSON).body(expiredContract).post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(activeContract).post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(expiredContract).post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(activeContract).post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId()).then().statusCode(201);
 
         given()
                 .when()
-                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("5000.00"));
 
         given()
                 .when()
-                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(1))
@@ -237,7 +237,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(invalidPayload)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(anyOf(is(400), is(422), is(500)));
 
@@ -254,7 +254,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(invalidDateRange)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(anyOf(is(400), is(422)));
     }
@@ -276,7 +276,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(payload)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", fakeClientId)
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", fakeClientId)
                 .then()
                 .statusCode(404);
     }
@@ -296,7 +296,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201)
                 .extract().header("Location");
@@ -313,7 +313,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .patch(ContractController.PATH_CONTRACT_COST + "?clientId={clientId}", contractId, testClient.getId())
+                .patch(ContractEndpoints.CONTRACT_COST + "?clientId={clientId}", contractId, testClient.getId())
                 .then()
                 .statusCode(204);
 
@@ -321,7 +321,7 @@ class ContractLifecycleIT {
         given()
                 .queryParam("updatedSince", updatedSince)
                 .when()
-                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", greaterThanOrEqualTo(1));
@@ -343,13 +343,13 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201);
 
         given()
                 .when()
-                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(1))
@@ -357,7 +357,7 @@ class ContractLifecycleIT {
 
         given()
                 .when()
-                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("1500.00"));
@@ -378,7 +378,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201)
                 .extract().header("Location");
@@ -396,7 +396,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .patch(ContractController.PATH_CONTRACT_COST + "?clientId={clientId}", contractId, wrongClientId)
+                .patch(ContractEndpoints.CONTRACT_COST + "?clientId={clientId}", contractId, wrongClientId)
                 .then()
                 .statusCode(403)
                 .body("title", equalTo("Access Denied"))
@@ -418,7 +418,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201)
                 .extract().header("Location");
@@ -429,7 +429,7 @@ class ContractLifecycleIT {
 
         given()
                 .when()
-                .get(ContractController.PATH_CONTRACT + "?clientId={clientId}", contractId, wrongClientId)
+                .get(ContractEndpoints.CONTRACT_BY_ID + "?clientId={clientId}", contractId, wrongClientId)
                 .then()
                 .statusCode(403)
                 .body("title", equalTo("Access Denied"))
@@ -474,24 +474,24 @@ class ContractLifecycleIT {
                 """, now.minusDays(60), now.minusDays(30));
 
         given().contentType(ContentType.JSON).body(activeNoEndDatePayload)
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(201);
 
         given().contentType(ContentType.JSON).body(activeFutureEndPayload)
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(201);
 
         given().contentType(ContentType.JSON).body(expiredYesterdayPayload)
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(201);
 
         given().contentType(ContentType.JSON).body(expiredLastMonthPayload)
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(201);
 
         given()
                 .when()
-                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body("totalElements", equalTo(2))  // Only 2 active contracts
@@ -540,24 +540,24 @@ class ContractLifecycleIT {
                 """, now.minusDays(60), now.minusDays(30));
 
         given().contentType(ContentType.JSON).body(active1Payload)
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(201);
 
         given().contentType(ContentType.JSON).body(active2Payload)
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(201);
 
         given().contentType(ContentType.JSON).body(expired1Payload)
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(201);
 
         given().contentType(ContentType.JSON).body(expired2Payload)
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(201);
 
         given()
                 .when()
-                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("3000.00"));
@@ -579,7 +579,7 @@ class ContractLifecycleIT {
                 .header("Accept-Language", "it-CH")
                 .body(contractPayload)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201)
                 .header("Content-Language", equalTo("it-CH"));
@@ -587,7 +587,7 @@ class ContractLifecycleIT {
         given()
                 .header("Accept-Language", "it-CH")
                 .when()
-                .get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("it-CH"))
@@ -608,14 +608,14 @@ class ContractLifecycleIT {
         given()
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201);
 
         given()
                 .header("Accept-Language", "de-CH")
                 .when()
-                .get(ContractController.PATH_BASE + ContractController.PATH_SUM + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("de-CH"));
@@ -637,7 +637,7 @@ class ContractLifecycleIT {
                 .header("Accept-Language", "de-CH")
                 .body(contractPayload)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201)
                 .header("Content-Language", equalTo("de-CH"));
@@ -659,7 +659,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201)
                 .body("costAmount", equalTo(999999999.99f));
@@ -689,12 +689,12 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then()
                 .statusCode(201);
 
         given()
-                .when().get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .when().get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(200).body("content.size()", greaterThanOrEqualTo(1));
     }
 
@@ -712,12 +712,12 @@ class ContractLifecycleIT {
 
         for (int i = 0; i < 5; i++) {
             given().contentType(ContentType.JSON).body(contractPayload)
-                    .when().post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                    .when().post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then().statusCode(201);
         }
 
         given()
-                .when().get(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .when().get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(200).body("content.size()", equalTo(5));
     }
 
@@ -733,7 +733,7 @@ class ContractLifecycleIT {
                 }
                 """, now.minusDays(1));
         given().contentType(ContentType.JSON).body(zeroAmountPayload)
-                .when().post(ContractController.PATH_BASE + "?clientId={clientId}", testClient.getId())
+                .when().post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                 .then().statusCode(anyOf(is(400), is(422), is(500)));
     }
 }

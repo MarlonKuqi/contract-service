@@ -32,10 +32,8 @@ public final class Person extends Client {
         this.birthDate = birthDate;
     }
 
-    private static void validatePersonFields(@Nullable final PersonBirthDate birthDate) {
-        if (birthDate == null) {
-            throw InvalidClientException.forNullBirthDate();
-        }
+    private static PersonBirthDate guardPersonFields(@Nullable final PersonBirthDate birthDate) {
+        return guardNotNull(birthDate, InvalidClientException::forNullBirthDate);
     }
 
     public static Person of(
@@ -44,14 +42,11 @@ public final class Person extends Client {
             @Nullable final ClientPhoneNumber phone,
             @Nullable final PersonBirthDate birthDate
     ) {
-        validateCommonFields(name, email, phone);
-        validatePersonFields(birthDate);
-
         return builder()
-                .name(name)
-                .email(email)
-                .phone(phone)
-                .birthDate(birthDate)
+                .name(guardName(name))
+                .email(guardEmail(email))
+                .phone(guardPhone(phone))
+                .birthDate(guardPersonFields(birthDate))
                 .build();
     }
 
@@ -62,37 +57,38 @@ public final class Person extends Client {
             @Nullable final ClientPhoneNumber phone,
             @Nullable final PersonBirthDate birthDate
     ) {
+        final Class currentClass = Person.class;
         return builder()
-                .id(id)
-                .name(name)
-                .email(email)
-                .phone(phone)
-                .birthDate(birthDate)
+                .id(guardNotNull(id, "id", currentClass))
+                .name(guardNotNull(name, "name", currentClass))
+                .email(guardNotNull(email, "email", currentClass))
+                .phone(guardNotNull(phone, "phone", currentClass))
+                .birthDate(guardNotNull(birthDate, "birthDate", currentClass))
                 .build();
     }
 
+    @Override
     public Person withCommonFields(final ClientName name, final ClientEmail clientEmail, final ClientPhoneNumber phone) {
-        validateCommonFields(name, clientEmail, phone);
         return toBuilder()
-                .name(name)
-                .email(clientEmail)
-                .phone(phone)
+                .name(guardName(name))
+                .email(guardEmail(clientEmail))
+                .phone(guardPhone(phone))
                 .build();
     }
 
+    @Override
     public Person withName(final ClientName name) {
-        validateCommonFields(name, this.getEmail(), this.getPhone());
-        return toBuilder().name(name).build();
+        return toBuilder().name(guardName(name)).build();
     }
 
+    @Override
     public Person withEmail(final ClientEmail email) {
-        validateCommonFields(this.getName(), email, this.getPhone());
-        return toBuilder().email(email).build();
+        return toBuilder().email(guardEmail(email)).build();
     }
 
+    @Override
     public Person withPhone(final ClientPhoneNumber phone) {
-        validateCommonFields(this.getName(), this.getEmail(), phone);
-        return toBuilder().phone(phone).build();
+        return toBuilder().phone(guardPhone(phone)).build();
     }
 
     private static PersonBuilder builder() {
@@ -101,17 +97,17 @@ public final class Person extends Client {
 
     private PersonBuilder toBuilder() {
         return builder()
-                .id(this.getId())
-                .name(this.getName())
-                .email(this.getEmail())
-                .phone(this.getPhone())
-                .birthDate(this.birthDate);
+                .id(getId())
+                .name(getName())
+                .email(getEmail())
+                .phone(getPhone())
+                .birthDate(getBirthDate());
     }
 
     @NoArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
     @NullUnmarked
-    public static class PersonBuilder {
+    private static class PersonBuilder {
         UUID id;
         ClientName name;
         ClientEmail email;

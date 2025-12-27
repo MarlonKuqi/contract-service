@@ -29,18 +29,6 @@ public class JpaContractRepository implements ContractRepository {
     @Override
     @CacheEvict(value = "contractSums", key = "#contract.clientId")
     public Contract save(final Contract contract) {
-        if (contract.getId() != null) {
-            var entityOpt = contractJpaRepository.findById(contract.getId());
-            if (entityOpt.isPresent()) {
-                var entity = entityOpt.get();
-                entity.setClientId(contract.getClientId());
-                entity.setStartDate(contract.getPeriod().getStartDate());
-                entity.setEndDate(contract.getPeriod().getEndDate());
-                entity.setCostAmount(contract.getCostAmount().getValue());
-                var savedEntity = contractJpaRepository.save(entity);
-                return assembler.toDomain(savedEntity);
-            }
-        }
         var entity = assembler.toJpaEntity(contract);
         var savedEntity = contractJpaRepository.save(entity);
         return assembler.toDomain(savedEntity);

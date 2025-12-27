@@ -24,7 +24,6 @@ public class LocaleConfiguration {
                 Locale.of("it", "CH"),  // Italien suisse
                 Locale.of("it")         // Italien
         ));
-
         return resolver;
     }
 }
