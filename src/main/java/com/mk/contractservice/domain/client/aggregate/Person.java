@@ -57,7 +57,7 @@ public final class Person extends Client {
             @Nullable final ClientPhoneNumber phone,
             @Nullable final PersonBirthDate birthDate
     ) {
-        final Class currentClass = Person.class;
+        final Class<Person> currentClass = Person.class;
         return builder()
                 .id(guardNotNull(id, "id", currentClass))
                 .name(guardNotNull(name, "name", currentClass))

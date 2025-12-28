@@ -3,8 +3,6 @@ package com.mk.contractservice.infrastructure.persistence.client;
 
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
-import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
 import com.mk.contractservice.infrastructure.persistence.client.assembler.ClientAssembler;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -44,12 +42,12 @@ public class JpaClientRepository implements ClientRepository {
     }
 
     @Override
-    public boolean existsByEmail(final ClientEmail clientEmail) {
-        return jpa.existsByEmail(clientEmail.getValue());
+    public boolean existsByEmail(final String email) {
+        return jpa.existsByEmail(email);
     }
 
     @Override
-    public boolean existsByCompanyIdentifier(final CompanyIdentifier companyIdentifier) {
-        return jpa.existsByCompanyIdentifier(companyIdentifier.getValue());
+    public boolean existsByCompanyIdentifier(final String companyIdentifier) {
+        return jpa.existsByCompanyIdentifier(companyIdentifier);
     }
 }

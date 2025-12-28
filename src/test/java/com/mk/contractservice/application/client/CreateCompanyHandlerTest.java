@@ -69,8 +69,8 @@ class CreateCompanyHandlerTest {
                     CompanyIdentifier.of(companyIdentifier)
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
+            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
             when(clientRepository.save(any(Company.class))).thenReturn(expectedCompany);
 
             // When
@@ -83,8 +83,8 @@ class CreateCompanyHandlerTest {
             assertThat(result.getPhone().getValue()).isEqualTo(phone);
             assertThat(result.getCompanyIdentifier().getValue()).isEqualTo(companyIdentifier);
 
-            verify(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
-            verify(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+            verify(clientValidationService).ensureEmailIsUnique(any(String.class));
+            verify(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
             verify(clientRepository).save(any(Company.class));
         }
 
@@ -106,17 +106,17 @@ class CreateCompanyHandlerTest {
                     CompanyIdentifier.of(command.companyIdentifier())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
+            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
             when(clientRepository.save(any(Company.class))).thenReturn(company);
 
             // When
             createCompany.execute(command);
 
             // Then
-            ArgumentCaptor<ClientEmail> emailCaptor = ArgumentCaptor.forClass(ClientEmail.class);
+            ArgumentCaptor<String> emailCaptor = ArgumentCaptor.forClass(String.class);
             verify(clientValidationService).ensureEmailIsUnique(emailCaptor.capture());
-            assertThat(emailCaptor.getValue().getValue()).isEqualTo(command.email().toLowerCase());
+            assertThat(emailCaptor.getValue()).isEqualTo(command.email().toLowerCase());
         }
 
         @Test
@@ -137,17 +137,17 @@ class CreateCompanyHandlerTest {
                     CompanyIdentifier.of(command.companyIdentifier())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
+            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
             when(clientRepository.save(any(Company.class))).thenReturn(company);
 
             // When
             createCompany.execute(command);
 
             // Then
-            ArgumentCaptor<CompanyIdentifier> identifierCaptor = ArgumentCaptor.forClass(CompanyIdentifier.class);
+            ArgumentCaptor<String> identifierCaptor = ArgumentCaptor.forClass(String.class);
             verify(clientValidationService).ensureCompanyIdentifierIsUnique(identifierCaptor.capture());
-            assertThat(identifierCaptor.getValue().getValue()).isEqualTo(command.companyIdentifier());
+            assertThat(identifierCaptor.getValue()).isEqualTo(command.companyIdentifier());
         }
 
         @Test
@@ -168,8 +168,8 @@ class CreateCompanyHandlerTest {
                     CompanyIdentifier.of(command.companyIdentifier())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
+            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
             when(clientRepository.save(any(Company.class))).thenReturn(company);
 
             // When
@@ -177,8 +177,8 @@ class CreateCompanyHandlerTest {
 
             // Then
             var ordered = inOrder(clientValidationService, clientRepository);
-            ordered.verify(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
-            ordered.verify(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+            ordered.verify(clientValidationService).ensureEmailIsUnique(any(String.class));
+            ordered.verify(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
             ordered.verify(clientRepository).save(any(Company.class));
         }
     }
@@ -200,15 +200,15 @@ class CreateCompanyHandlerTest {
             );
 
             doThrow(new ClientAlreadyExistsException("Email already exists: " + duplicateEmail))
-                    .when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+                    .when(clientValidationService).ensureEmailIsUnique(any(String.class));
 
             // When & Then
             assertThatThrownBy(() -> createCompany.execute(command))
                     .isInstanceOf(ClientAlreadyExistsException.class)
                     .hasMessageContaining(duplicateEmail);
 
-            verify(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
-            verify(clientValidationService, never()).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+            verify(clientValidationService).ensureEmailIsUnique(any(String.class));
+            verify(clientValidationService, never()).ensureCompanyIdentifierIsUnique(any(String.class));
             verify(clientRepository, never()).save(any(Company.class));
         }
 
@@ -224,17 +224,17 @@ class CreateCompanyHandlerTest {
                     duplicateIdentifier
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
             doThrow(new ClientAlreadyExistsException("Company identifier already exists: " + duplicateIdentifier))
-                    .when(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+                    .when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
 
             // When & Then
             assertThatThrownBy(() -> createCompany.execute(command))
                     .isInstanceOf(ClientAlreadyExistsException.class)
                     .hasMessageContaining(duplicateIdentifier);
 
-            verify(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
-            verify(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+            verify(clientValidationService).ensureEmailIsUnique(any(String.class));
+            verify(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
             verify(clientRepository, never()).save(any(Company.class));
         }
     }
@@ -261,8 +261,8 @@ class CreateCompanyHandlerTest {
                     CompanyIdentifier.of(command.companyIdentifier())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
+            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
             when(clientRepository.save(any(Company.class))).thenReturn(company);
 
             // When
@@ -290,8 +290,8 @@ class CreateCompanyHandlerTest {
                     CompanyIdentifier.of(command.companyIdentifier())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
+            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
             when(clientRepository.save(any(Company.class))).thenReturn(company);
 
             // When
@@ -319,8 +319,8 @@ class CreateCompanyHandlerTest {
                     CompanyIdentifier.of(command.companyIdentifier())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
+            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
             when(clientRepository.save(any(Company.class))).thenReturn(company);
 
             // When

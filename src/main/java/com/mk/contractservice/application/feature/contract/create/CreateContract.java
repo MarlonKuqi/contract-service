@@ -1,10 +1,9 @@
 package com.mk.contractservice.application.feature.contract.create;
 
 import com.mk.contractservice.domain.contract.aggregate.Contract;
+import com.mk.contractservice.domain.contract.factory.ContractFactory;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;
 import com.mk.contractservice.domain.contract.service.ContractValidationService;
-import com.mk.contractservice.domain.contract.valueobject.ContractCost;
-import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
@@ -45,10 +44,13 @@ public sealed interface CreateContract permits CreateContract.Handler {
         public Contract execute(final Command command) {
             contractValidationService.ensureClientExists(command.clientId());
 
-            final ContractPeriod period = ContractPeriod.of(command.startDate(), command.endDate());
-            final ContractCost cost = ContractCost.of(command.costAmount());
+            final Contract contract = ContractFactory.create(
+                    command.clientId(),
+                    command.startDate(),
+                    command.endDate(),
+                    command.costAmount()
+            );
 
-            final Contract contract = Contract.of(command.clientId(), period, cost);
             return contractRepository.save(contract);
         }
     }

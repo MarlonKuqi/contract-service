@@ -57,7 +57,7 @@ public final class Company extends Client {
             @Nullable final ClientPhoneNumber phone,
             @Nullable final CompanyIdentifier companyIdentifier
     ) {
-        final Class currentClass = Company.class;
+        final Class<Company> currentClass = Company.class;
         return builder()
                 .id(guardNotNull(id, "id", currentClass))
                 .name(guardNotNull(name, "name", currentClass))

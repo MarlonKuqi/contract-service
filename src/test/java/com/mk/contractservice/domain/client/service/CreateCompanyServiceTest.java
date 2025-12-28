@@ -71,8 +71,8 @@ class CreateCompanyServiceTest {
         Company result = createCompany.execute(command);
 
         // Then
-        verify(clientValidationService).ensureEmailIsUnique(ClientEmail.of(email));
-        verify(clientValidationService).ensureCompanyIdentifierIsUnique(CompanyIdentifier.of(companyIdentifier));
+        verify(clientValidationService).ensureEmailIsUnique(email);
+        verify(clientValidationService).ensureCompanyIdentifierIsUnique(companyIdentifier);
         verify(clientRepository).save(any(Company.class));
 
         assertThat(result.getId()).isEqualTo(savedCompanyId);
@@ -94,15 +94,15 @@ class CreateCompanyServiceTest {
         );
 
         doThrow(new ClientAlreadyExistsException("Client already exists", "info@tech.com"))
-                .when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+                .when(clientValidationService).ensureEmailIsUnique(any(String.class));
 
         // When / Then
         assertThatThrownBy(() -> createCompany.execute(command))
                 .isInstanceOf(ClientAlreadyExistsException.class)
                 .hasMessageContaining("Client already exists");
 
-        verify(clientValidationService).ensureEmailIsUnique(ClientEmail.of("info@tech.com"));
-        verify(clientValidationService, never()).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+        verify(clientValidationService).ensureEmailIsUnique("info@tech.com");
+        verify(clientValidationService, never()).ensureCompanyIdentifierIsUnique(any(String.class));
         verify(clientRepository, never()).save(any(Company.class));
     }
 
@@ -120,15 +120,15 @@ class CreateCompanyServiceTest {
         doThrow(new CompanyIdentifierAlreadyExistsException(
                 "A company with identifier 'CHE-111.222.333' already exists",
                 "CHE-111.222.333"))
-                .when(clientValidationService).ensureCompanyIdentifierIsUnique(any(CompanyIdentifier.class));
+                .when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
 
         // When / Then
         assertThatThrownBy(() -> createCompany.execute(command))
                 .isInstanceOf(CompanyIdentifierAlreadyExistsException.class)
                 .hasMessageContaining("CHE-111.222.333");
 
-        verify(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
-        verify(clientValidationService).ensureCompanyIdentifierIsUnique(CompanyIdentifier.of("CHE-111.222.333"));
+        verify(clientValidationService).ensureEmailIsUnique(any(String.class));
+        verify(clientValidationService).ensureCompanyIdentifierIsUnique("CHE-111.222.333");
         verify(clientRepository, never()).save(any(Company.class));
     }
 

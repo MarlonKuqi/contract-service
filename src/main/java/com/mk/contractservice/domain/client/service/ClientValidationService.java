@@ -3,8 +3,6 @@ package com.mk.contractservice.domain.client.service;
 import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
-import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,18 +17,18 @@ public class ClientValidationService {
     ClientRepository clientRepository;
 
     @Transactional(readOnly = true)
-    public void ensureEmailIsUnique(final ClientEmail email) {
+    public void ensureEmailIsUnique(final String email) {
         if (clientRepository.existsByEmail(email)) {
-            throw new ClientAlreadyExistsException("Client already exists", email.getValue());
+            throw new ClientAlreadyExistsException("Client already exists", email);
         }
     }
 
     @Transactional(readOnly = true)
-    public void ensureCompanyIdentifierIsUnique(final CompanyIdentifier identifier) {
+    public void ensureCompanyIdentifierIsUnique(final String identifier) {
         if (clientRepository.existsByCompanyIdentifier(identifier)) {
             throw new CompanyIdentifierAlreadyExistsException(
-                    "A company with identifier '" + identifier.getValue() + "' already exists",
-                    identifier.getValue()
+                    "A company with identifier '" + identifier + "' already exists",
+                    identifier
             );
         }
     }

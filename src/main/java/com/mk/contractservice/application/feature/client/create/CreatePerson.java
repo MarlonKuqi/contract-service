@@ -1,12 +1,9 @@
 package com.mk.contractservice.application.feature.client.create;
 
 import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.domain.client.factory.PersonFactory;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
 import com.mk.contractservice.domain.client.service.ClientValidationService;
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
-import com.mk.contractservice.domain.client.valueobject.ClientName;
-import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
-import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
@@ -45,14 +42,15 @@ public sealed interface CreatePerson permits CreatePerson.Handler {
 
         @Override
         public Person execute(final Command command) {
-            final ClientName name = ClientName.of(command.name());
-            final ClientEmail email = ClientEmail.of(command.email());
-            final ClientPhoneNumber phone = ClientPhoneNumber.of(command.phoneNumber());
-            final PersonBirthDate birthDate = PersonBirthDate.of(command.birthDate());
+            clientValidationService.ensureEmailIsUnique(command.email());
 
-            clientValidationService.ensureEmailIsUnique(email);
+            final Person person = PersonFactory.create(
+                    command.name(),
+                    command.email(),
+                    command.phoneNumber(),
+                    command.birthDate()
+            );
 
-            final Person person = Person.of(name, email, phone, birthDate);
             return (Person) clientRepository.save(person);
         }
     }

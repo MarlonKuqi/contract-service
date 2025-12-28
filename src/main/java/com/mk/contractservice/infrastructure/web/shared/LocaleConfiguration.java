@@ -1,4 +1,4 @@
-package com.mk.contractservice.infrastructure.web;
+package com.mk.contractservice.infrastructure.web.shared;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -69,7 +69,7 @@ public class Contract extends Entity {
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount
     ) {
-        final Class currentClass = Contract.class;
+        final Class<Contract> currentClass = Contract.class;
         return builder()
                 .id(guardNotNull(id, "id", currentClass))
                 .clientId(guardNotNull(clientId, "clientId", currentClass))

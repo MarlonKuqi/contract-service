@@ -70,7 +70,7 @@ class CreatePersonHandlerTest {
                     PersonBirthDate.of(birthDate)
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
             when(clientRepository.save(any(Person.class))).thenReturn(expectedPerson);
 
             // When
@@ -83,7 +83,7 @@ class CreatePersonHandlerTest {
             assertThat(result.getPhone().getValue()).isEqualTo(phone);
             assertThat(result.getBirthDate().getValue()).isEqualTo(birthDate);
 
-            verify(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            verify(clientValidationService).ensureEmailIsUnique(any(String.class));
             verify(clientRepository).save(any(Person.class));
         }
 
@@ -105,16 +105,16 @@ class CreatePersonHandlerTest {
                     PersonBirthDate.of(command.birthDate())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
             when(clientRepository.save(any(Person.class))).thenReturn(person);
 
             // When
             createPerson.execute(command);
 
             // Then
-            ArgumentCaptor<ClientEmail> emailCaptor = ArgumentCaptor.forClass(ClientEmail.class);
+            ArgumentCaptor<String> emailCaptor = ArgumentCaptor.forClass(String.class);
             verify(clientValidationService).ensureEmailIsUnique(emailCaptor.capture());
-            assertThat(emailCaptor.getValue().getValue()).isEqualTo(command.email().toLowerCase());
+            assertThat(emailCaptor.getValue()).isEqualTo(command.email().toLowerCase());
         }
 
         @Test
@@ -135,7 +135,7 @@ class CreatePersonHandlerTest {
                     PersonBirthDate.of(command.birthDate())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
             when(clientRepository.save(any(Person.class))).thenReturn(person);
 
             // When
@@ -143,7 +143,7 @@ class CreatePersonHandlerTest {
 
             // Then
             var ordered = inOrder(clientValidationService, clientRepository);
-            ordered.verify(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            ordered.verify(clientValidationService).ensureEmailIsUnique(any(String.class));
             ordered.verify(clientRepository).save(any(Person.class));
         }
 
@@ -166,7 +166,7 @@ class CreatePersonHandlerTest {
                     PersonBirthDate.of(command.birthDate())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
             when(clientRepository.save(any(Person.class))).thenReturn(person);
 
             // When
@@ -194,14 +194,14 @@ class CreatePersonHandlerTest {
             );
 
             doThrow(new ClientAlreadyExistsException("Email already exists: " + duplicateEmail))
-                    .when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+                    .when(clientValidationService).ensureEmailIsUnique(any(String.class));
 
             // When & Then
             assertThatThrownBy(() -> createPerson.execute(command))
                     .isInstanceOf(ClientAlreadyExistsException.class)
                     .hasMessageContaining(duplicateEmail);
 
-            verify(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            verify(clientValidationService).ensureEmailIsUnique(any(String.class));
             verify(clientRepository, never()).save(any(Person.class));
         }
 
@@ -217,7 +217,7 @@ class CreatePersonHandlerTest {
             );
 
             doThrow(new ClientAlreadyExistsException("Email already exists"))
-                    .when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+                    .when(clientValidationService).ensureEmailIsUnique(any(String.class));
 
             // When & Then
             try {
@@ -252,7 +252,7 @@ class CreatePersonHandlerTest {
                     PersonBirthDate.of(command.birthDate())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
             when(clientRepository.save(any(Person.class))).thenReturn(person);
 
             // When
@@ -280,7 +280,7 @@ class CreatePersonHandlerTest {
                     PersonBirthDate.of(command.birthDate())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
             when(clientRepository.save(any(Person.class))).thenReturn(person);
 
             // When
@@ -309,7 +309,7 @@ class CreatePersonHandlerTest {
                     PersonBirthDate.of(command.birthDate())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
             when(clientRepository.save(any(Person.class))).thenReturn(person);
 
             // When
@@ -338,7 +338,7 @@ class CreatePersonHandlerTest {
                     PersonBirthDate.of(command.birthDate())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
             when(clientRepository.save(any(Person.class))).thenReturn(person);
 
             // When
@@ -366,7 +366,7 @@ class CreatePersonHandlerTest {
                     PersonBirthDate.of(command.birthDate())
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(ClientEmail.class));
+            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
             when(clientRepository.save(any(Person.class))).thenReturn(person);
 
             // When
