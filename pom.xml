@@ -252,7 +252,6 @@
 							<dataFile>target/jacoco-it.exec</dataFile>
 							<outputDirectory>target/jacoco-it</outputDirectory>
 							<excludes>
-                                <exclude>**/application/feature/**/web/*Controller.class</exclude>
                                 <exclude>**/infrastructure/**</exclude>
                                 <exclude>**/ContractServiceApplication.class</exclude>
                                 <exclude>**/dto/**</exclude>
@@ -268,9 +267,6 @@
 				<configuration>
                     <!-- Exclusions pour se concentrer sur le domaine et la logique métier -->
 					<excludes>
-                        <!-- Couche Web (Controllers uniquement, pas les use cases !) -->
-                        <exclude>**/application/feature/**/web/*Controller.class</exclude>
-
                         <!-- Infrastructure -->
 						<exclude>**/infrastructure/**</exclude>
 						<exclude>**/config/**</exclude>

@@ -2,7 +2,7 @@ package com.mk.contractservice.domain.client.service;
 
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
-import com.mk.contractservice.domain.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

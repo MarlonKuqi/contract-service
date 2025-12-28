@@ -1,7 +1,5 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.application.feature.client.shared.constants.ClientEndpoints;
-import com.mk.contractservice.application.feature.contract.shared.constants.ContractEndpoints;
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.aggregate.Company;
 import com.mk.contractservice.domain.client.aggregate.Person;
@@ -17,6 +15,8 @@ import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
+import com.mk.contractservice.infrastructure.web.client.shared.ClientEndpoints;
+import com.mk.contractservice.infrastructure.web.contract.shared.ContractEndpoints;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import com.mk.contractservice.integration.helper.TestDataHelper;
 import io.restassured.RestAssured;

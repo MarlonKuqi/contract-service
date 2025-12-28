@@ -1,6 +1,6 @@
 package com.mk.contractservice.application.client;
 
-import com.mk.contractservice.application.feature.client.update.core.UpdateClient;
+import com.mk.contractservice.application.feature.client.update.UpdateClient;
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.aggregate.Person;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
@@ -9,7 +9,7 @@ import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

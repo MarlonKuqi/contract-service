@@ -11,7 +11,7 @@ import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyP
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
-public class ArchitectureTest {
+class ArchitectureTest {
 
     private final JavaClasses classes = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
@@ -67,17 +67,6 @@ public class ArchitectureTest {
                 .that(areApplication)
                 .should()
                 .dependOnClassesThat(areInfrastructure)
-                .check(classes);
-    }
-
-    @Test
-    void feature_core_should_not_depend_on_feature_web() {
-        noClasses()
-                .that().resideInAPackage("..feature..core..")
-                .should()
-                .dependOnClassesThat().resideInAPackage("..feature..web..")
-                .because("Core business logic (use cases) must not depend on web adapters (controllers). " +
-                        "This ensures the use cases remain framework-agnostic and testable.")
                 .check(classes);
     }
 }

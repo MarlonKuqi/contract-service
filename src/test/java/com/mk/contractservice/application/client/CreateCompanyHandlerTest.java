@@ -1,7 +1,7 @@
 package com.mk.contractservice.application.client;
 
 
-import com.mk.contractservice.application.feature.client.create.core.CreateCompany;
+import com.mk.contractservice.application.feature.client.create.CreateCompany;
 import com.mk.contractservice.domain.client.aggregate.Company;
 import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.client.repository.ClientRepository;

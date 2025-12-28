@@ -1,6 +1,6 @@
 package com.mk.contractservice.domain.contract.exception;
 
-import com.mk.contractservice.domain.exception.DomainValidationException;
+import com.mk.contractservice.domain.shared.exception.DomainValidationException;
 
 public class InvalidContractPeriodException extends DomainValidationException {
 

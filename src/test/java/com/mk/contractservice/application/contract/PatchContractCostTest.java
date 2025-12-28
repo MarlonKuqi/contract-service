@@ -1,6 +1,6 @@
 package com.mk.contractservice.application.contract;
 
-import com.mk.contractservice.application.feature.contract.patchcost.core.PatchContractCost;
+import com.mk.contractservice.application.feature.contract.patchcost.PatchContractCost;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;

@@ -16,7 +16,7 @@ import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
 import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.shared.ClientNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
