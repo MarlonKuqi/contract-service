@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
 import java.util.UUID;
 
-public sealed interface GetContractById permits GetContractById.Handler {
+public interface GetContractById {
 
     record Query(UUID contractId, UUID clientId) {
         public Query {
@@ -25,7 +25,7 @@ public sealed interface GetContractById permits GetContractById.Handler {
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    non-sealed class Handler implements GetContractById {
+    class Handler implements GetContractById {
 
         ContractService contractService;
 

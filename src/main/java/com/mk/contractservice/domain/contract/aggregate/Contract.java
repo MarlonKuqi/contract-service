@@ -25,7 +25,7 @@ public class Contract extends Entity {
     ContractPeriod period;
     ContractCost costAmount;
 
-    @Builder(toBuilder = true)
+    @Builder(toBuilder = true, access = AccessLevel.PUBLIC)
     private Contract(
             @Nullable final UUID id,
             @Nullable final UUID clientId,

@@ -1,4 +1,4 @@
-package com.mk.contractservice.web.config;
+package com.mk.contractservice.infrastructure.web;
 
 import com.mk.contractservice.infrastructure.web.contract.pagination.PaginationConfig;
 import org.junit.jupiter.api.DisplayName;

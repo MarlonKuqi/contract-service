@@ -66,7 +66,7 @@ class ClientCrudIT {
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;  // ✅ FIX: Port manquant !
+        RestAssured.port = port;
 
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();

@@ -91,7 +91,7 @@ public final class Person extends Client {
         return toBuilder().phone(guardPhone(phone)).build();
     }
 
-    private static PersonBuilder builder() {
+    public static PersonBuilder builder() {
         return new PersonBuilder();
     }
 
@@ -107,7 +107,7 @@ public final class Person extends Client {
     @NoArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
     @NullUnmarked
-    private static class PersonBuilder {
+    public static class PersonBuilder {
         UUID id;
         ClientName name;
         ClientEmail email;

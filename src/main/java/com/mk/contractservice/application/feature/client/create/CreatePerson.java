@@ -13,7 +13,7 @@ import java.time.LocalDate;
 import java.util.Objects;
 
 
-public sealed interface CreatePerson permits CreatePerson.Handler {
+public interface CreatePerson {
 
     record Command(
             String name,
@@ -35,7 +35,7 @@ public sealed interface CreatePerson permits CreatePerson.Handler {
     @Transactional
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    non-sealed class Handler implements CreatePerson {
+    class Handler implements CreatePerson {
 
         ClientRepository clientRepository;
         ClientValidationService clientValidationService;

@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
 import java.util.UUID;
 
-public sealed interface DeleteClient permits DeleteClient.Handler {
+public interface DeleteClient {
 
     record Command(UUID clientId) {
         public Command {
@@ -25,7 +25,7 @@ public sealed interface DeleteClient permits DeleteClient.Handler {
     @Transactional
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    non-sealed class Handler implements DeleteClient {
+    class Handler implements DeleteClient {
 
         ClientRepository clientRepository;
         ApplicationEventPublisher eventPublisher;

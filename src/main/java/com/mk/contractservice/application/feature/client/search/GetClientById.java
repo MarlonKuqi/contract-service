@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
 import java.util.UUID;
 
-public sealed interface GetClientById permits GetClientById.Handler {
+public interface GetClientById {
 
     record Query(UUID clientId) {
         public Query {
@@ -24,7 +24,7 @@ public sealed interface GetClientById permits GetClientById.Handler {
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    non-sealed class Handler implements GetClientById {
+    class Handler implements GetClientById {
 
         ClientService clientService;
 

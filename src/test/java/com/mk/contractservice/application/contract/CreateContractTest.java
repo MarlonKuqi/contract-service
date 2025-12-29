@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateContractUseCase - Unit Tests")
-class CreateContractUseCaseImplTest {
+class CreateContractTest {
 
     @Mock
     private ContractValidationService contractValidationService;

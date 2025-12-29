@@ -31,7 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("CreatePersonUseCase - Unit Tests")
+@DisplayName("CreatePerson Handler")
 class CreatePersonHandlerTest {
 
     @Mock
@@ -44,11 +44,11 @@ class CreatePersonHandlerTest {
     private CreatePerson.Handler createPerson;
 
     @Nested
-    @DisplayName("execute() - Happy Path")
-    class ExecuteHappyPath {
+    @DisplayName("Création de personne")
+    class CreatePersonTest {
 
         @Test
-        @DisplayName("GIVEN valid command WHEN execute THEN should create and save person")
+        @DisplayName("GIVEN commande valide WHEN execute THEN crée et sauvegarde la personne")
         void shouldCreateAndSavePerson() {
             // Given
             String name = "John Doe";
@@ -88,7 +88,7 @@ class CreatePersonHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN valid command WHEN execute THEN should validate email uniqueness")
+        @DisplayName("GIVEN commande valide WHEN execute THEN valide l'unicité de l'email")
         void shouldValidateEmailUniqueness() {
             // Given
             CreatePerson.Command command = new CreatePerson.Command(
@@ -118,7 +118,7 @@ class CreatePersonHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN valid command WHEN execute THEN should validate before saving")
+        @DisplayName("GIVEN commande valide WHEN execute THEN valide avant de sauvegarder")
         void shouldValidateBeforeSaving() {
             // Given
             CreatePerson.Command command = new CreatePerson.Command(
@@ -148,7 +148,7 @@ class CreatePersonHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN person with different birth dates WHEN execute THEN should create person with correct birth date")
+        @DisplayName("GIVEN date de naissance différente WHEN execute THEN crée la personne avec la bonne date")
         void shouldCreatePersonWithCorrectBirthDate() {
             // Given
             LocalDate birthDate = LocalDate.of(1995, 12, 25);
@@ -178,11 +178,11 @@ class CreatePersonHandlerTest {
     }
 
     @Nested
-    @DisplayName("execute() - Validation Errors")
-    class ExecuteValidationErrors {
+    @DisplayName("Erreurs de validation")
+    class ValidationErrors {
 
         @Test
-        @DisplayName("GIVEN duplicate email WHEN execute THEN should throw ClientAlreadyExistsException")
+        @DisplayName("GIVEN email déjà existant WHEN execute THEN lève ClientAlreadyExistsException")
         void shouldThrowExceptionWhenEmailAlreadyExists() {
             // Given
             String duplicateEmail = "existing@example.com";
@@ -206,7 +206,7 @@ class CreatePersonHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN duplicate email WHEN execute THEN should not save person")
+        @DisplayName("GIVEN email déjà existant WHEN execute THEN ne sauvegarde pas la personne")
         void shouldNotSavePersonWhenEmailExists() {
             // Given
             CreatePerson.Command command = new CreatePerson.Command(

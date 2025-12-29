@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
-public sealed interface CreateCompany permits CreateCompany.Handler {
+public interface CreateCompany {
 
     record Command(
             String name,
@@ -33,7 +33,7 @@ public sealed interface CreateCompany permits CreateCompany.Handler {
     @Transactional
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    non-sealed class Handler implements CreateCompany {
+    class Handler implements CreateCompany {
 
         ClientRepository clientRepository;
         ClientValidationService clientValidationService;

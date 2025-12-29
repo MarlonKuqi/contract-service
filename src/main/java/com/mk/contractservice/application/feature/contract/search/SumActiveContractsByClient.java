@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 
-public sealed interface SumActiveContractsByClient permits SumActiveContractsByClient.Handler {
+public interface SumActiveContractsByClient {
 
     record Query(UUID clientId) {
         public Query {
@@ -24,7 +24,7 @@ public sealed interface SumActiveContractsByClient permits SumActiveContractsByC
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    non-sealed class Handler implements SumActiveContractsByClient {
+    class Handler implements SumActiveContractsByClient {
 
         ContractService contractService;
 

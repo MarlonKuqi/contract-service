@@ -91,7 +91,7 @@ public final class Company extends Client {
         return toBuilder().phone(guardPhone(phone)).build();
     }
 
-    private static CompanyBuilder builder() {
+    public static CompanyBuilder builder() {
         return new CompanyBuilder();
     }
 
@@ -107,7 +107,7 @@ public final class Company extends Client {
     @NoArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
     @NullUnmarked
-    private static class CompanyBuilder {
+    public static class CompanyBuilder {
         UUID id;
         ClientName name;
         ClientEmail email;

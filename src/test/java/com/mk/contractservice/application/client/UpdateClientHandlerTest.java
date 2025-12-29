@@ -31,7 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("UpdateClientUseCase - Unit Tests")
+@DisplayName("UpdateClient Handler")
 class UpdateClientHandlerTest {
 
     @Mock
@@ -41,14 +41,14 @@ class UpdateClientHandlerTest {
     private ClientService clientService;
 
     @InjectMocks
-    private UpdateClient.Handler updateClient;
+    private UpdateClient.Handler updateClientHandler;
 
     @Nested
-    @DisplayName("execute() - Happy Path")
-    class ExecuteHappyPath {
+    @DisplayName("Modification de client")
+    class UpdateClientTest {
 
         @Test
-        @DisplayName("GIVEN valid command WHEN execute THEN should update all client fields")
+        @DisplayName("GIVEN commande valide WHEN execute THEN met à jour tous les champs du client")
         void shouldUpdateAllClientFields() {
             // Given
             UUID clientId = UUID.randomUUID();
@@ -77,7 +77,7 @@ class UpdateClientHandlerTest {
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // When
-            Client result = updateClient.execute(command);
+            Client result = updateClientHandler.execute(command);
 
             // Then
             assertThat(result).isNotNull();
@@ -90,7 +90,7 @@ class UpdateClientHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN valid command WHEN execute THEN should use withCommonFields method")
+        @DisplayName("GIVEN commande valide WHEN execute THEN utilise la méthode withCommonFields")
         void shouldUseWithCommonFieldsMethod() {
             // Given
             UUID clientId = UUID.randomUUID();
@@ -112,7 +112,7 @@ class UpdateClientHandlerTest {
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // When
-            updateClient.execute(command);
+            updateClientHandler.execute(command);
 
             // Then
             ArgumentCaptor<Client> clientCaptor = ArgumentCaptor.forClass(Client.class);
@@ -125,7 +125,7 @@ class UpdateClientHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN valid command WHEN execute THEN should retrieve client before updating")
+        @DisplayName("GIVEN commande valide WHEN execute THEN récupère le client avant de le modifier")
         void shouldRetrieveClientBeforeUpdating() {
             // Given
             UUID clientId = UUID.randomUUID();
@@ -147,7 +147,7 @@ class UpdateClientHandlerTest {
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // When
-            updateClient.execute(command);
+            updateClientHandler.execute(command);
 
             // Then
             var ordered = inOrder(clientService, clientRepository);
@@ -156,7 +156,7 @@ class UpdateClientHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN command with new email WHEN execute THEN should update email")
+        @DisplayName("GIVEN nouvel email WHEN execute THEN met à jour l'email")
         void shouldUpdateEmail() {
             // Given
             UUID clientId = UUID.randomUUID();
@@ -178,14 +178,14 @@ class UpdateClientHandlerTest {
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // When
-            Client result = updateClient.execute(command);
+            Client result = updateClientHandler.execute(command);
 
             // Then
             assertThat(result.getEmail().getValue()).isEqualTo("new@example.com");
         }
 
         @Test
-        @DisplayName("GIVEN command with new phone WHEN execute THEN should update phone")
+        @DisplayName("GIVEN nouveau téléphone WHEN execute THEN met à jour le téléphone")
         void shouldUpdatePhone() {
             // Given
             UUID clientId = UUID.randomUUID();
@@ -207,14 +207,14 @@ class UpdateClientHandlerTest {
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // When
-            Client result = updateClient.execute(command);
+            Client result = updateClientHandler.execute(command);
 
             // Then
             assertThat(result.getPhone().getValue()).isEqualTo("+33999999999");
         }
 
         @Test
-        @DisplayName("GIVEN command with new name WHEN execute THEN should update name")
+        @DisplayName("GIVEN nouveau nom WHEN execute THEN met à jour le nom")
         void shouldUpdateName() {
             // Given
             UUID clientId = UUID.randomUUID();
@@ -236,7 +236,7 @@ class UpdateClientHandlerTest {
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // When
-            Client result = updateClient.execute(command);
+            Client result = updateClientHandler.execute(command);
 
             // Then
             assertThat(result.getName().getValue()).isEqualTo("New Name");
@@ -244,11 +244,11 @@ class UpdateClientHandlerTest {
     }
 
     @Nested
-    @DisplayName("execute() - Validation Errors")
-    class ExecuteValidationErrors {
+    @DisplayName("Erreurs de validation")
+    class ValidationErrors {
 
         @Test
-        @DisplayName("GIVEN non-existent client WHEN execute THEN should throw ClientNotFoundException")
+        @DisplayName("GIVEN client inexistant WHEN execute THEN lève ClientNotFoundException")
         void shouldThrowExceptionWhenClientNotFound() {
             // Given
             UUID clientId = UUID.randomUUID();
@@ -263,7 +263,7 @@ class UpdateClientHandlerTest {
                     .thenThrow(new ClientNotFoundException(clientId.toString()));
 
             // When & Then
-            assertThatThrownBy(() -> updateClient.execute(command))
+            assertThatThrownBy(() -> updateClientHandler.execute(command))
                     .isInstanceOf(ClientNotFoundException.class)
                     .hasMessageContaining(clientId.toString());
 
@@ -272,7 +272,7 @@ class UpdateClientHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN client not found WHEN execute THEN should not save")
+        @DisplayName("GIVEN client introuvable WHEN execute THEN ne sauvegarde pas")
         void shouldNotSaveWhenClientNotFound() {
             // Given
             UUID clientId = UUID.randomUUID();
@@ -288,7 +288,7 @@ class UpdateClientHandlerTest {
 
             // When & Then
             try {
-                updateClient.execute(command);
+                updateClientHandler.execute(command);
             } catch (ClientNotFoundException e) {
                 // Expected exception
             }
@@ -298,11 +298,11 @@ class UpdateClientHandlerTest {
     }
 
     @Nested
-    @DisplayName("execute() - Edge Cases")
-    class ExecuteEdgeCases {
+    @DisplayName("Cas limites")
+    class EdgeCases {
 
         @Test
-        @DisplayName("GIVEN email with uppercase WHEN execute THEN should normalize to lowercase")
+        @DisplayName("GIVEN email avec majuscules WHEN execute THEN normalise en minuscules")
         void shouldNormalizeEmailToLowercase() {
             // Given
             UUID clientId = UUID.randomUUID();
@@ -324,14 +324,14 @@ class UpdateClientHandlerTest {
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // When
-            Client result = updateClient.execute(command);
+            Client result = updateClientHandler.execute(command);
 
             // Then
             assertThat(result.getEmail().getValue()).isEqualTo("new@example.com");
         }
 
         @Test
-        @DisplayName("GIVEN name with special characters WHEN execute THEN should update correctly")
+        @DisplayName("GIVEN nom avec caractères spéciaux WHEN execute THEN met à jour correctement")
         void shouldUpdateNameWithSpecialCharacters() {
             // Given
             UUID clientId = UUID.randomUUID();
@@ -353,14 +353,14 @@ class UpdateClientHandlerTest {
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // When
-            Client result = updateClient.execute(command);
+            Client result = updateClientHandler.execute(command);
 
             // Then
             assertThat(result.getName().getValue()).isEqualTo("Jean-Pierre O'Connor");
         }
 
         @Test
-        @DisplayName("GIVEN international phone number WHEN execute THEN should update correctly")
+        @DisplayName("GIVEN numéro international WHEN execute THEN met à jour correctement")
         void shouldUpdateWithInternationalPhone() {
             // Given
             UUID clientId = UUID.randomUUID();
@@ -382,7 +382,7 @@ class UpdateClientHandlerTest {
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // When
-            Client result = updateClient.execute(command);
+            Client result = updateClientHandler.execute(command);
 
             // Then
             assertThat(result.getPhone().getValue()).isEqualTo("+441234567890");

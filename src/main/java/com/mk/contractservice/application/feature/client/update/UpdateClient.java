@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
 import java.util.UUID;
 
-public sealed interface UpdateClient permits UpdateClient.Handler {
+public interface UpdateClient {
 
     record Command(
             UUID clientId,
@@ -36,7 +36,7 @@ public sealed interface UpdateClient permits UpdateClient.Handler {
     @Transactional
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    non-sealed class Handler implements UpdateClient {
+    class Handler implements UpdateClient {
 
         ClientRepository clientRepository;
         ClientService clientService;

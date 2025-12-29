@@ -14,7 +14,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-public sealed interface ListActiveContractsByClient permits ListActiveContractsByClient.Handler {
+public interface ListActiveContractsByClient {
 
     record Query(
             UUID clientId,
@@ -34,7 +34,7 @@ public sealed interface ListActiveContractsByClient permits ListActiveContractsB
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    non-sealed class Handler implements ListActiveContractsByClient {
+    class Handler implements ListActiveContractsByClient {
 
         ContractService contractService;
 

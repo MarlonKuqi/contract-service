@@ -13,7 +13,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.util.Objects;
 import java.util.UUID;
 
-public sealed interface CloseActiveContracts permits CloseActiveContracts.Handler {
+public interface CloseActiveContracts {
 
     record Command(UUID clientId) {
         public Command {
@@ -28,7 +28,7 @@ public sealed interface CloseActiveContracts permits CloseActiveContracts.Handle
     @Transactional
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    non-sealed class Handler implements CloseActiveContracts {
+    class Handler implements CloseActiveContracts {
 
         ContractRepository contractRepository;
 

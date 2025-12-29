@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
-public sealed interface CreateContract permits CreateContract.Handler {
+public interface CreateContract {
 
     record Command(
             UUID clientId,
@@ -24,7 +24,6 @@ public sealed interface CreateContract permits CreateContract.Handler {
     ) {
         public Command {
             Objects.requireNonNull(clientId, "Client ID cannot be null");
-            Objects.requireNonNull(startDate, "Start date cannot be null");
             Objects.requireNonNull(costAmount, "Cost amount cannot be null");
         }
     }
@@ -35,7 +34,7 @@ public sealed interface CreateContract permits CreateContract.Handler {
     @Transactional
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    non-sealed class Handler implements CreateContract {
+    class Handler implements CreateContract {
 
         ContractValidationService contractValidationService;
         ContractRepository contractRepository;

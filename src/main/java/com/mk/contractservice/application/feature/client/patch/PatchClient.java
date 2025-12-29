@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
 import java.util.UUID;
 
-public sealed interface PatchClient permits PatchClient.Handler {
+public interface PatchClient {
 
     record Command(
             UUID clientId,
@@ -33,7 +33,7 @@ public sealed interface PatchClient permits PatchClient.Handler {
     @Transactional
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    non-sealed class Handler implements PatchClient {
+    class Handler implements PatchClient {
 
         ClientRepository clientRepository;
         ClientService clientService;

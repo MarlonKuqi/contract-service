@@ -30,7 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("CreateCompanyUseCase - Unit Tests")
+@DisplayName("CreateCompany Handler")
 class CreateCompanyHandlerTest {
 
     @Mock
@@ -43,11 +43,11 @@ class CreateCompanyHandlerTest {
     private CreateCompany.Handler createCompany;
 
     @Nested
-    @DisplayName("execute() - Happy Path")
-    class ExecuteHappyPath {
+    @DisplayName("Création d'entreprise")
+    class CreateCompanyTest {
 
         @Test
-        @DisplayName("GIVEN valid command WHEN execute THEN should create and save company")
+        @DisplayName("GIVEN commande valide WHEN execute THEN crée et sauvegarde l'entreprise")
         void shouldCreateAndSaveCompany() {
             // Given
             String name = "Tech Corp";
@@ -89,7 +89,7 @@ class CreateCompanyHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN valid command WHEN execute THEN should validate email uniqueness")
+        @DisplayName("GIVEN commande valide WHEN execute THEN valide l'unicité de l'email")
         void shouldValidateEmailUniqueness() {
             // Given
             CreateCompany.Command command = new CreateCompany.Command(
@@ -120,7 +120,7 @@ class CreateCompanyHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN valid command WHEN execute THEN should validate company identifier uniqueness")
+        @DisplayName("GIVEN commande valide WHEN execute THEN valide l'unicité de l'identifiant")
         void shouldValidateCompanyIdentifierUniqueness() {
             // Given
             CreateCompany.Command command = new CreateCompany.Command(
@@ -151,7 +151,7 @@ class CreateCompanyHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN valid command WHEN execute THEN should validate before saving")
+        @DisplayName("GIVEN commande valide WHEN execute THEN valide avant de sauvegarder")
         void shouldValidateBeforeSaving() {
             // Given
             CreateCompany.Command command = new CreateCompany.Command(

@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 
-public sealed interface PatchContractCost permits PatchContractCost.Handler {
+public interface PatchContractCost {
 
     record Command(
             UUID clientId,
@@ -33,7 +33,7 @@ public sealed interface PatchContractCost permits PatchContractCost.Handler {
     @Transactional
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    non-sealed class Handler implements PatchContractCost {
+    class Handler implements PatchContractCost {
 
         ContractRepository contractRepository;
         ContractService contractService;
