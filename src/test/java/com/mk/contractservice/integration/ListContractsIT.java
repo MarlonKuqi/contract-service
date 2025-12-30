@@ -463,14 +463,12 @@ class ListContractsIT {
         @Test
         @DisplayName("Should accept valid pagination parameters")
         void shouldAcceptValidPagination() {
-            UUID clientId = UUID.randomUUID();
-
             given()
-                    .param("clientId", clientId.toString())
+                    .param("clientId", testClient.getId())
                     .param("page", 0)
                     .param("size", 20)
                     .when()
-                    .get("/v2/contracts")
+                    .get(ContractEndpoints.CONTRACTS_BASE)
                     .then()
                     .statusCode(HttpStatus.OK.value());
         }
@@ -490,7 +488,7 @@ class ListContractsIT {
                     .param("page", page)
                     .param("size", size)
                     .when()
-                    .get("/v2/contracts")
+                    .get(ContractEndpoints.CONTRACTS_BASE)
                     .then()
                     .log().all()
                     .statusCode(HttpStatus.BAD_REQUEST.value())
@@ -506,14 +504,12 @@ class ListContractsIT {
         })
         @DisplayName("Should reject page size less than 1")
         void shouldRejectPageSizeLessThanOne(int page, int size, String expectedMessage) {
-            UUID clientId = UUID.randomUUID();
-
             given()
-                    .param("clientId", clientId.toString())
+                    .param("clientId", testClient.getId())
                     .param("page", page)
                     .param("size", size)
                     .when()
-                    .get("/v2/contracts")
+                    .get(ContractEndpoints.CONTRACTS_BASE)
                     .then()
                     .statusCode(HttpStatus.BAD_REQUEST.value())
                     .body("title", containsString("Invalid Parameter"))
@@ -528,14 +524,12 @@ class ListContractsIT {
         })
         @DisplayName("Should reject page size greater than max")
         void shouldRejectPageSizeGreaterThanMax(int page, int size, String expectedMessage) {
-            UUID clientId = UUID.randomUUID();
-
             given()
-                    .param("clientId", clientId.toString())
+                    .param("clientId", testClient.getId())
                     .param("page", page)
                     .param("size", size)
                     .when()
-                    .get("/v2/contracts")
+                    .get(ContractEndpoints.CONTRACTS_BASE)
                     .then()
                     .statusCode(HttpStatus.BAD_REQUEST.value())
                     .body("title", containsString("Invalid Parameter"))
@@ -545,14 +539,12 @@ class ListContractsIT {
         @Test
         @DisplayName("Should accept page size equal to max (100)")
         void shouldAcceptPageSizeEqualToMax() {
-            UUID clientId = UUID.randomUUID();
-
             given()
-                    .param("clientId", clientId.toString())
+                    .param("clientId", testClient.getId())
                     .param("page", 0)
                     .param("size", 100)
                     .when()
-                    .get("/v2/contracts")
+                    .get(ContractEndpoints.CONTRACTS_BASE)
                     .then()
                     .statusCode(HttpStatus.OK.value());
         }
@@ -564,14 +556,12 @@ class ListContractsIT {
         })
         @DisplayName("Should reject invalid number formats")
         void shouldRejectInvalidFormats(String page, String size, String expectedMessage) {
-            UUID clientId = UUID.randomUUID();
-
             given()
-                    .param("clientId", clientId.toString())
+                    .param("clientId", testClient.getId())
                     .param("page", page)
                     .param("size", size)
                     .when()
-                    .get("/v2/contracts")
+                    .get(ContractEndpoints.CONTRACTS_BASE)
                     .then()
                     .statusCode(HttpStatus.BAD_REQUEST.value())
                     .body("title", containsString("Invalid Parameter"))

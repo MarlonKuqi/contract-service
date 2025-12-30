@@ -9,6 +9,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.FieldDefaults;
 
 
 @Entity
@@ -18,10 +19,11 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public final class CompanyJpaEntity extends ClientJpaEntity {
 
     @Column(name = "company_identifier", nullable = false)
-    private String companyIdentifier;
+    String companyIdentifier;
 
     public CompanyJpaEntity(String name, String email, String phone, String companyIdentifier) {
         super(name, email, phone);

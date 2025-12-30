@@ -10,6 +10,13 @@ import java.util.UUID;
 public interface ClientJpaRepository extends JpaRepository<ClientJpaEntity, UUID> {
     boolean existsByEmail(String email);
 
-    @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM CompanyJpaEntity c WHERE c.companyIdentifier = :companyIdentifier")
+    @Query("SELECT " +
+            "   CASE " +
+            "       WHEN COUNT(c) > 0 " +
+            "       THEN true " +
+            "       ELSE false " +
+            "   END " +
+            "FROM CompanyJpaEntity c " +
+            "WHERE c.companyIdentifier = :companyIdentifier")
     boolean existsByCompanyIdentifier(@Param("companyIdentifier") String companyIdentifier);
 }

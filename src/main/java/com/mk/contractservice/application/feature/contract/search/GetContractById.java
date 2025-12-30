@@ -1,5 +1,6 @@
 package com.mk.contractservice.application.feature.contract.search;
 
+import com.mk.contractservice.domain.client.service.ClientValidationService;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.service.ContractService;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +28,12 @@ public interface GetContractById {
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements GetContractById {
 
+        ClientValidationService clientValidationService;
         ContractService contractService;
 
         @Override
         public Contract execute(final Query query) {
+            clientValidationService.ensureClientExists(query.clientId());
             return contractService.getContractForClient(
                     query.clientId(),
                     query.contractId()

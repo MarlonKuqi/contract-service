@@ -16,6 +16,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -194,6 +195,63 @@ class CompanyLifecycleIT {
     }
 
     @Test
+    @DisplayName("CRITICAL: Company identifier is IMMUTABLE - Cannot be updated")
+    void shouldNotUpdateCompanyIdentifierWhenUpdatingCompany() {
+        // GIVEN
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+        String originalIdentifier = "CHE-123.456.789";
+
+        String createPayload = String.format("""
+                {
+                    "type": "COMPANY",
+                    "name": "Immutable ID Corp",
+                    "email": "immutable.id.%s@example.com",
+                    "phone": "+41791111111",
+                    "companyIdentifier": "%s"
+                }
+                """, uniqueId, originalIdentifier);
+
+        String clientId = given()
+                .contentType(ContentType.JSON)
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("companyIdentifier", equalTo(originalIdentifier))
+                .extract().path("id");
+
+        // WHEN
+        String updateUniqueId = UUID.randomUUID().toString().substring(0, 8);
+        String newIdentifier = "CHE-999.888.777";
+
+        String updatePayloadWithNewIdentifier = String.format("""
+                {
+                    "type": "COMPANY",
+                    "name": "Immutable ID Corp Updated",
+                    "email": "immutable.updated.%s@example.com",
+                    "phone": "+41792222222",
+                    "companyIdentifier": "%s"
+                }
+                """, updateUniqueId, newIdentifier);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(updatePayloadWithNewIdentifier)
+                .when()
+                .put(ClientEndpoints.CLIENT_BY_ID, clientId)
+                .then()
+                .statusCode(anyOf(is(204), is(400), is(422)));  // Success or validation error
+        given()
+                .when()
+                .get(ClientEndpoints.CLIENT_BY_ID, clientId)
+                .then()
+                .statusCode(200)
+                .body("name", anyOf(equalTo("Immutable ID Corp Updated"), equalTo("Immutable ID Corp")))  // Name may or may not be updated
+                .body("companyIdentifier", equalTo(originalIdentifier));  // ← CRITICAL: Identifier MUST NOT change
+    }
+
+    @Test
     @DisplayName("SCENARIO: Delete company and verify contracts are closed")
     void shouldDeleteCompanyAndCloseContracts() {
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
@@ -216,7 +274,7 @@ class CompanyLifecycleIT {
                 .statusCode(201)
                 .extract().path("id");
 
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
         String contractPayload = String.format("""
                 {
                     "startDate": "%s",

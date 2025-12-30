@@ -1,9 +1,9 @@
 package com.mk.contractservice.application.contract;
 
 import com.mk.contractservice.application.feature.contract.create.CreateContract;
+import com.mk.contractservice.domain.client.service.ClientValidationService;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;
-import com.mk.contractservice.domain.contract.service.ContractValidationService;
 import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
@@ -35,7 +35,7 @@ import static org.mockito.Mockito.when;
 class CreateContractTest {
 
     @Mock
-    private ContractValidationService contractValidationService;
+    private ClientValidationService clientValidationService;
 
     @Mock
     private ContractRepository contractRepository;
@@ -69,7 +69,7 @@ class CreateContractTest {
                     ContractCost.of(costAmount)
             );
 
-            doNothing().when(contractValidationService).ensureClientExists(clientId);
+            doNothing().when(clientValidationService).ensureClientExists(clientId);
             when(contractRepository.save(any(Contract.class))).thenReturn(expectedContract);
 
             // When
@@ -80,7 +80,7 @@ class CreateContractTest {
             assertThat(result.getClientId()).isEqualTo(clientId);
             assertThat(result.getCostAmount().getValue()).isEqualByComparingTo(costAmount);
 
-            verify(contractValidationService).ensureClientExists(clientId);
+            verify(clientValidationService).ensureClientExists(clientId);
             verify(contractRepository).save(any(Contract.class));
         }
 
@@ -106,7 +106,7 @@ class CreateContractTest {
                     ContractCost.of(costAmount)
             );
 
-            doNothing().when(contractValidationService).ensureClientExists(clientId);
+            doNothing().when(clientValidationService).ensureClientExists(clientId);
             when(contractRepository.save(any(Contract.class))).thenReturn(savedContract);
 
             // When
@@ -143,7 +143,7 @@ class CreateContractTest {
                     ContractCost.of(costAmount)
             );
 
-            doNothing().when(contractValidationService).ensureClientExists(clientId);
+            doNothing().when(clientValidationService).ensureClientExists(clientId);
             when(contractRepository.save(any(Contract.class))).thenReturn(savedContract);
 
             // When
@@ -179,14 +179,14 @@ class CreateContractTest {
             );
 
             doThrow(new ClientNotFoundException(clientId.toString()))
-                    .when(contractValidationService).ensureClientExists(clientId);
+                    .when(clientValidationService).ensureClientExists(clientId);
 
             // When & Then
             assertThatThrownBy(() -> createContract.execute(command))
                     .isInstanceOf(ClientNotFoundException.class)
                     .hasMessageContaining(clientId.toString());
 
-            verify(contractValidationService).ensureClientExists(clientId);
+            verify(clientValidationService).ensureClientExists(clientId);
             verify(contractRepository, never()).save(any(Contract.class));
         }
 
@@ -212,15 +212,15 @@ class CreateContractTest {
                     ContractCost.of(costAmount)
             );
 
-            doNothing().when(contractValidationService).ensureClientExists(clientId);
+            doNothing().when(clientValidationService).ensureClientExists(clientId);
             when(contractRepository.save(any(Contract.class))).thenReturn(savedContract);
 
             // When
             createContract.execute(command);
 
             // Then
-            var ordered = inOrder(contractValidationService, contractRepository);
-            ordered.verify(contractValidationService).ensureClientExists(clientId);
+            var ordered = inOrder(clientValidationService, contractRepository);
+            ordered.verify(clientValidationService).ensureClientExists(clientId);
             ordered.verify(contractRepository).save(any(Contract.class));
         }
     }
@@ -251,7 +251,7 @@ class CreateContractTest {
                     ContractCost.of(costAmount)
             );
 
-            doNothing().when(contractValidationService).ensureClientExists(clientId);
+            doNothing().when(clientValidationService).ensureClientExists(clientId);
             when(contractRepository.save(any(Contract.class))).thenReturn(savedContract);
 
             // When
@@ -285,7 +285,7 @@ class CreateContractTest {
                     ContractCost.of(costAmount)
             );
 
-            doNothing().when(contractValidationService).ensureClientExists(clientId);
+            doNothing().when(clientValidationService).ensureClientExists(clientId);
             when(contractRepository.save(any(Contract.class))).thenReturn(savedContract);
 
             // When

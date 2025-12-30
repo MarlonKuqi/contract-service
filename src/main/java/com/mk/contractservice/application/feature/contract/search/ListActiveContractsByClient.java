@@ -1,5 +1,6 @@
 package com.mk.contractservice.application.feature.contract.search;
 
+import com.mk.contractservice.domain.client.service.ClientValidationService;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.service.ContractService;
 import lombok.RequiredArgsConstructor;
@@ -36,10 +37,12 @@ public interface ListActiveContractsByClient {
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements ListActiveContractsByClient {
 
+        ClientValidationService clientValidationService;
         ContractService contractService;
 
         @Override
         public Page<Contract> execute(final Query query) {
+            clientValidationService.ensureClientExists(query.clientId());
             return contractService.getActiveContractsForClient(
                     query.clientId(),
                     query.updatedSince().orElse(null),

@@ -3,11 +3,14 @@ package com.mk.contractservice.domain.client.service;
 import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
+import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +33,13 @@ public class ClientValidationService {
                     "A company with identifier '" + identifier + "' already exists",
                     identifier
             );
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public void ensureClientExists(final UUID clientId) {
+        if (!clientRepository.existsById(clientId)) {
+            throw ClientNotFoundException.forId(clientId);
         }
     }
 }

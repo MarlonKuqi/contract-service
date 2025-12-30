@@ -33,6 +33,7 @@ import java.util.Optional;
 })
 public class ContractControllerAdvice extends BaseControllerAdvice {
 
+    public static final String CONTEXT = "context";
     private static final Logger log = LoggerFactory.getLogger(ContractControllerAdvice.class);
 
     @ExceptionHandler(ClientNotFoundException.class)
@@ -40,7 +41,7 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
         log.debug("Client not found for contract: {}", ex.getMessage());
         ProblemDetail pd = problem(HttpStatus.NOT_FOUND, "Client Not Found",
                 ex.getMessage(), "clientNotFound");
-        pd.setProperty("context", "Cannot create contract for non-existent client");
+        pd.setProperty(CONTEXT, "Cannot create contract for non-existent client");
         return respond(pd);
     }
 
@@ -80,12 +81,12 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
             case InvalidFormatException ife -> String.format(
                     "Invalid value '%s' for field '%s'. Expected type: %s",
                     ife.getValue(),
-                    ife.getPath().get(0).getFieldName(),
+                    ife.getPath().getFirst().getFieldName(),
                     ife.getTargetType().getSimpleName()
             );
             case MismatchedInputException mie when !mie.getPath().isEmpty() -> String.format(
                     "Missing or invalid field: '%s'",
-                    mie.getPath().get(0).getFieldName()
+                    mie.getPath().getFirst().getFieldName()
             );
             default -> "Malformed JSON or invalid payload.";
         };
@@ -117,7 +118,7 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
         log.warn("Invalid contract cost: {}", ex.getMessage());
         ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid Contract Cost",
                 ex.getMessage(), "invalidContractCost");
-        pd.setProperty("context", "Contract cost validation failed");
+        pd.setProperty(CONTEXT, "Contract cost validation failed");
         return respond(pd);
     }
 
@@ -126,7 +127,7 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
         log.warn("Domain validation failed for contract: {}", ex.getMessage());
         ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Domain Validation Failed",
                 ex.getMessage(), ex.getCode() != null ? ex.getCode() : "domainValidationError");
-        pd.setProperty("context", "Contract domain validation failed");
+        pd.setProperty(CONTEXT, "Contract domain validation failed");
         return respond(pd);
     }
 
@@ -135,7 +136,7 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
         log.warn("Contract validation failed: {}", ex.getMessage());
         ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "Contract Validation Failed",
                 ex.getMessage(), "contractValidationError");
-        pd.setProperty("context", "Contract validation failed");
+        pd.setProperty(CONTEXT, "Contract validation failed");
         return respond(pd);
     }
 }

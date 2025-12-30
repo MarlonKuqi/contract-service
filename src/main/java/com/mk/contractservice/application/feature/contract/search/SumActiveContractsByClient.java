@@ -1,5 +1,6 @@
 package com.mk.contractservice.application.feature.contract.search;
 
+import com.mk.contractservice.domain.client.service.ClientValidationService;
 import com.mk.contractservice.domain.contract.service.ContractService;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,10 +27,12 @@ public interface SumActiveContractsByClient {
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements SumActiveContractsByClient {
 
+        ClientValidationService clientValidationService;
         ContractService contractService;
 
         @Override
         public BigDecimal execute(final Query query) {
+            clientValidationService.ensureClientExists(query.clientId());
             return contractService.sumActiveContractsForClient(query.clientId());
         }
     }

@@ -1,9 +1,9 @@
 package com.mk.contractservice.application.feature.contract.create;
 
+import com.mk.contractservice.domain.client.service.ClientValidationService;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.factory.ContractFactory;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;
-import com.mk.contractservice.domain.contract.service.ContractValidationService;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
@@ -36,12 +36,12 @@ public interface CreateContract {
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements CreateContract {
 
-        ContractValidationService contractValidationService;
+        ClientValidationService clientValidationService;
         ContractRepository contractRepository;
 
         @Override
         public Contract execute(final Command command) {
-            contractValidationService.ensureClientExists(command.clientId());
+            clientValidationService.ensureClientExists(command.clientId());
 
             final Contract contract = ContractFactory.create(
                     command.clientId(),

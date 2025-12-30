@@ -366,6 +366,15 @@ class ContractLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Updating cost with wrong clientId returns 403 Forbidden (authorization)")
     void shouldReturn403WhenUpdatingCostWithWrongClientId() {
+        // GIVEN
+        Client otherClient = Person.of(
+                ClientName.of("Sophie Dubois"),
+                ClientEmail.of("sophie.dubois." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of("+41791234569"),
+                PersonBirthDate.of(LocalDate.of(1988, 8, 10))
+        );
+        otherClient = clientRepository.save(otherClient);
+
         String contractPayload = """
                 {
                     "startDate": "2025-01-01T00:00:00",
@@ -385,7 +394,7 @@ class ContractLifecycleIT {
 
         String contractId = location.substring(location.lastIndexOf('/') + 1);
 
-        UUID wrongClientId = UUID.randomUUID();
+        // WHEN & THEN
         String updatePayload = """
                 {
                     "amount": "2000.00"
@@ -396,7 +405,7 @@ class ContractLifecycleIT {
                 .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
-                .patch(ContractEndpoints.CONTRACT_COST + "?clientId={clientId}", contractId, wrongClientId)
+                .patch(ContractEndpoints.CONTRACT_COST + "?clientId={clientId}", contractId, otherClient.getId())
                 .then()
                 .statusCode(403)
                 .body("title", equalTo("Access Denied"))
@@ -406,6 +415,15 @@ class ContractLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Get contract with wrong clientId returns 403 Forbidden")
     void shouldReturn403WhenGettingContractWithWrongClientId() {
+        // GIVEN
+        Client otherClient = Person.of(
+                ClientName.of("Pierre Martin"),
+                ClientEmail.of("pierre.martin." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of("+41791234568"),
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15))
+        );
+        otherClient = clientRepository.save(otherClient);
+
         String contractPayload = """
                 {
                     "startDate": "2025-01-01T00:00:00",
@@ -425,11 +443,10 @@ class ContractLifecycleIT {
 
         String contractId = location.substring(location.lastIndexOf('/') + 1);
 
-        UUID wrongClientId = UUID.randomUUID();
-
+        // WHEN & THEN
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACT_BY_ID + "?clientId={clientId}", contractId, wrongClientId)
+                .get(ContractEndpoints.CONTRACT_BY_ID + "?clientId={clientId}", contractId, otherClient.getId())
                 .then()
                 .statusCode(403)
                 .body("title", equalTo("Access Denied"))

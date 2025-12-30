@@ -90,6 +90,14 @@ class PersonLifecycleIT {
                 .body("type", equalTo("PERSON"))
                 .body("name", equalTo("Alice Martin"))
                 .body("birthDate", equalTo("1990-05-15"));
+
+        given()
+                .header("Accept-Language", "de-CH")
+                .when()
+                .get(ClientEndpoints.CLIENT_BY_ID, clientId)
+                .then()
+                .statusCode(200)
+                .header("Content-Language", equalTo("de-CH"));  // i18n: Respects requested locale
     }
 
     @Test
@@ -323,6 +331,57 @@ class PersonLifecycleIT {
                 .body("email", containsString("frank.updated"))
                 .body("phone", equalTo("+41792222222"))
                 .body("birthDate", equalTo("1988-04-20"));
+    }
+
+    @Test
+    @DisplayName("CRITICAL: Birthdate is IMMUTABLE - Cannot be updated (requirement from sujet.txt)")
+    void shouldNotUpdateBirthDateWhenUpdatingPerson() {
+        // GIVEN: Person with birthdate = 1990-05-15
+        String createPayload = """
+                {
+                    "type": "PERSON",
+                    "name": "Immutable Birth",
+                    "email": "immutable.birth.%s@example.com",
+                    "phone": "+41791111111",
+                    "birthDate": "1990-05-15"
+                }
+                """.formatted(UUID.randomUUID().toString().substring(0, 8));
+
+        String clientId = given()
+                .contentType(ContentType.JSON)
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("birthDate", equalTo("1990-05-15"))
+                .extract().path("id");
+
+        // WHEN
+        String updatePayloadWithNewBirthDate = """
+                {
+                    "type": "PERSON",
+                    "name": "Immutable Birth Updated",
+                    "email": "immutable.updated.%s@example.com",
+                    "phone": "+41792222222",
+                    "birthDate": "1995-12-25"
+                }
+                """.formatted(UUID.randomUUID().toString().substring(0, 8));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(updatePayloadWithNewBirthDate)
+                .when()
+                .put(ClientEndpoints.CLIENT_BY_ID, clientId)
+                .then()
+                .statusCode(anyOf(is(204), is(400), is(422)));
+        given()
+                .when()
+                .get(ClientEndpoints.CLIENT_BY_ID, clientId)
+                .then()
+                .statusCode(200)
+                .body("name", anyOf(equalTo("Immutable Birth Updated"), equalTo("Immutable Birth")))  // Name may or may not be updated
+                .body("birthDate", equalTo("1990-05-15"));  // ← CRITICAL: Birthdate MUST NOT change
     }
 
     @Test
