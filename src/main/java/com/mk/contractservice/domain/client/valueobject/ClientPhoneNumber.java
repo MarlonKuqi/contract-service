@@ -1,6 +1,6 @@
 package com.mk.contractservice.domain.client.valueobject;
 
-import com.mk.contractservice.domain.client.exception.InvalidPhoneNumberException;
+import com.mk.contractservice.domain.client.exception.InvalidClientPhoneNumberException;
 import com.mk.contractservice.domain.shared.ValueObjectUtils;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -35,14 +35,14 @@ public class ClientPhoneNumber {
 
     private static String normalize(@Nullable final String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
-            throw new InvalidPhoneNumberException("Phone number must not be null or blank");
+            throw new InvalidClientPhoneNumberException("Phone number must not be null or blank");
         }
         return rawValue.trim();
     }
 
     private static void validate(final String normalized) {
         if (HAS_INVALID_FORMAT.test(normalized)) {
-            throw new InvalidPhoneNumberException("Invalid phone number format: " + normalized);
+            throw new InvalidClientPhoneNumberException("Invalid phone number format: " + normalized);
         }
     }
 }

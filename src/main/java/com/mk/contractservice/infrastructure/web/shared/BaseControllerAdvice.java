@@ -62,29 +62,15 @@ public abstract class BaseControllerAdvice {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ProblemDetail> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        log.warn("Data integrity violation: {}", ex.getMessage());
+        log.warn("Data integrity violation (this should be rare - check business validations): {}", ex.getMessage());
 
-        String errorMessage = ex.getMessage();
-
-        if (errorMessage == null) {
-            return respond(problem(HttpStatus.CONFLICT, "Constraint Violation",
-                    "A data constraint violation occurred.", "dataIntegrityViolation"));
-        }
-
-        ConstraintType constraintType = detectConstraintType(errorMessage);
-        String message = switch (constraintType) {
-            case EMAIL -> "A client with this email address already exists.";
-            case COMPANY_IDENTIFIER -> "A company with this identifier already exists.";
-            case UNKNOWN -> "A data constraint violation occurred.";
-        };
-
-        String code = switch (constraintType) {
-            case EMAIL -> "emailAlreadyExists";
-            case COMPANY_IDENTIFIER -> "companyIdentifierAlreadyExists";
-            case UNKNOWN -> "dataIntegrityViolation";
-        };
-
-        return respond(problem(HttpStatus.CONFLICT, "Constraint Violation", message, code));
+        // Return a generic message to avoid leaking database schema details
+        return respond(problem(
+                HttpStatus.CONFLICT,
+                "Constraint Violation",
+                "The operation could not be completed due to a data constraint violation. Please verify your data and try again.",
+                "dataIntegrityViolation"
+        ));
     }
 
     @ExceptionHandler(Exception.class)
@@ -143,21 +129,6 @@ public abstract class BaseControllerAdvice {
         return sb.toString();
     }
 
-    protected enum ConstraintType {
-        EMAIL,
-        COMPANY_IDENTIFIER,
-        UNKNOWN
-    }
-
-    protected ConstraintType detectConstraintType(String errorMessage) {
-        if (errorMessage.contains("email")) {
-            return ConstraintType.EMAIL;
-        }
-        if (errorMessage.contains("company_identifier")) {
-            return ConstraintType.COMPANY_IDENTIFIER;
-        }
-        return ConstraintType.UNKNOWN;
-    }
 
     private boolean isProductionEnvironment() {
         String profile = System.getProperty("spring.profiles.active", "");

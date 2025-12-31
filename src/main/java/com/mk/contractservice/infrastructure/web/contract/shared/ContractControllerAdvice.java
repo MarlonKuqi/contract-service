@@ -6,6 +6,7 @@ import com.mk.contractservice.domain.contract.exception.ContractNotFoundExceptio
 import com.mk.contractservice.domain.contract.exception.ContractNotOwnedByClientException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
+import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.DomainValidationException;
 import com.mk.contractservice.infrastructure.web.contract.CreateContractController;
@@ -119,6 +120,15 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
         ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid Contract Cost",
                 ex.getMessage(), "invalidContractCost");
         pd.setProperty(CONTEXT, "Contract cost validation failed");
+        return respond(pd);
+    }
+
+    @ExceptionHandler(InvalidContractPeriodException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidContractPeriod(InvalidContractPeriodException ex) {
+        log.warn("Invalid contract period: {}", ex.getMessage());
+        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid Contract Period",
+                ex.getMessage(), "invalidContractPeriod");
+        pd.setProperty(CONTEXT, "Contract period validation failed");
         return respond(pd);
     }
 

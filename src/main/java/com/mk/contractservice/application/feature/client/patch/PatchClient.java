@@ -3,24 +3,22 @@ package com.mk.contractservice.application.feature.client.patch;
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
 import com.mk.contractservice.domain.client.service.ClientService;
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
-import com.mk.contractservice.domain.client.valueobject.ClientName;
-import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface PatchClient {
 
     record Command(
             UUID clientId,
-            String name,
-            String email,
-            String phoneNumber
+            Optional<String> name,
+            Optional<String> email,
+            Optional<String> phoneNumber
     ) {
         public Command {
             Objects.requireNonNull(clientId, "Client ID cannot be null");
@@ -43,22 +41,19 @@ public interface PatchClient {
             Client client = clientService.findClientById(command.clientId());
 
             boolean hasChanges = false;
-
-            if (command.name() != null) {
-                final ClientName name = ClientName.of(command.name());
-                client = client.withName(name);
+            final Optional<String> nameOpt = command.name();
+            if (nameOpt.isPresent()) {
+                client = client.changeName(nameOpt.get());
                 hasChanges = true;
             }
-
-            if (command.email() != null) {
-                final ClientEmail email = ClientEmail.of(command.email());
-                client = client.withEmail(email);
+            final Optional<String> emailOpt = command.email();
+            if (emailOpt.isPresent()) {
+                client = client.changeEmail(emailOpt.get());
                 hasChanges = true;
             }
-
-            if (command.phoneNumber() != null) {
-                final ClientPhoneNumber phone = ClientPhoneNumber.of(command.phoneNumber());
-                client = client.withPhone(phone);
+            final Optional<String> phoneNumberOpt = command.phoneNumber();
+            if (phoneNumberOpt.isPresent()) {
+                client = client.changePhone(phoneNumberOpt.get());
                 hasChanges = true;
             }
 

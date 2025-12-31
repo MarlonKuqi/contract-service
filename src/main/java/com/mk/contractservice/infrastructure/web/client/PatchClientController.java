@@ -73,9 +73,9 @@ public class PatchClientController {
     ) {
         patchClient.execute(new PatchClient.Command(
                 clientId,
-                request.name().orElse(null),
-                request.email().orElse(null),
-                request.phone().orElse(null)
+                request.name(),
+                request.email(),
+                request.phone()
         ));
         return ResponseEntity.noContent().build();
     }

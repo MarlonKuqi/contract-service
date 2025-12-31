@@ -15,7 +15,7 @@ public class CompanyIdentifier {
 
     String value;
 
-    private static final int MAX_LENGTH = 64;
+    public static final int MAX_LENGTH = 64;
 
     public static final Predicate<String> IS_NOT_VALID =
             identifier -> identifier.isEmpty() || identifier.length() > MAX_LENGTH;

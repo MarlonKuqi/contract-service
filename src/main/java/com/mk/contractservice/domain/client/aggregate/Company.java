@@ -68,27 +68,27 @@ public final class Company extends Client {
     }
 
     @Override
-    public Company withCommonFields(final ClientName name, final ClientEmail email, final ClientPhoneNumber phone) {
+    public Company changeCoreFields(@Nullable String name, @Nullable String email, @Nullable String phoneNumber) {
         return toBuilder()
-                .name(guardName(name))
-                .email(guardEmail(email))
-                .phone(guardPhone(phone))
+                .name(ClientName.of(name))
+                .email(ClientEmail.of(email))
+                .phone(ClientPhoneNumber.of(phoneNumber))
                 .build();
     }
 
     @Override
-    public Company withName(final ClientName name) {
-        return toBuilder().name(guardName(name)).build();
+    public Company changeName(@Nullable String name) {
+        return toBuilder().name(ClientName.of(name)).build();
     }
 
     @Override
-    public Company withEmail(final ClientEmail email) {
-        return toBuilder().email(guardEmail(email)).build();
+    public Company changeEmail(@Nullable String email) {
+        return toBuilder().email(ClientEmail.of(email)).build();
     }
 
     @Override
-    public Company withPhone(final ClientPhoneNumber phone) {
-        return toBuilder().phone(guardPhone(phone)).build();
+    public Company changePhone(@Nullable String phoneNumber) {
+        return toBuilder().phone(ClientPhoneNumber.of(phoneNumber)).build();
     }
 
     public static CompanyBuilder builder() {

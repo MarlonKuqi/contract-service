@@ -30,9 +30,5 @@ public class InvalidContractException extends DomainValidationException {
     public static InvalidContractException forNullCostAmount() {
         return new InvalidContractException("Cost amount cannot be null");
     }
-
-    public static InvalidContractException forNullNewCostAmount() {
-        return new InvalidContractException("New cost amount cannot be null");
-    }
 }
 

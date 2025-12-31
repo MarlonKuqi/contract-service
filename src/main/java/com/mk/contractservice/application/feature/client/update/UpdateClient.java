@@ -3,9 +3,6 @@ package com.mk.contractservice.application.feature.client.update;
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
 import com.mk.contractservice.domain.client.service.ClientService;
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
-import com.mk.contractservice.domain.client.valueobject.ClientName;
-import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
@@ -45,11 +42,12 @@ public interface UpdateClient {
         public Client execute(final Command command) {
             final Client client = clientService.findClientById(command.clientId());
 
-            final ClientName name = ClientName.of(command.name());
-            final ClientEmail email = ClientEmail.of(command.email());
-            final ClientPhoneNumber phone = ClientPhoneNumber.of(command.phoneNumber());
+            final Client updatedClient = client.changeCoreFields(
+                    command.name(),
+                    command.email(),
+                    command.phoneNumber()
+            );
 
-            final Client updatedClient = client.withCommonFields(name, email, phone);
             return clientRepository.save(updatedClient);
         }
     }

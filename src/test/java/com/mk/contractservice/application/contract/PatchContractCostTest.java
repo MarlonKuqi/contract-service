@@ -61,7 +61,7 @@ class PatchContractCostTest {
                     ContractCost.of(oldCost)
             );
 
-            Contract updatedContract = existingContract.changeCost(ContractCost.of(newCost));
+            Contract updatedContract = existingContract.changeCost(newCost);
 
             PatchContractCost.Command command = new PatchContractCost.Command(
                     clientId,

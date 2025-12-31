@@ -68,27 +68,27 @@ public final class Person extends Client {
     }
 
     @Override
-    public Person withCommonFields(final ClientName name, final ClientEmail clientEmail, final ClientPhoneNumber phone) {
+    public Person changeCoreFields(@Nullable String name, @Nullable String email, @Nullable String phoneNumber) {
         return toBuilder()
-                .name(guardName(name))
-                .email(guardEmail(clientEmail))
-                .phone(guardPhone(phone))
+                .name(ClientName.of(name))
+                .email(ClientEmail.of(email))
+                .phone(ClientPhoneNumber.of(phoneNumber))
                 .build();
     }
 
     @Override
-    public Person withName(final ClientName name) {
-        return toBuilder().name(guardName(name)).build();
+    public Person changeName(@Nullable String name) {
+        return toBuilder().name(ClientName.of(name)).build();
     }
 
     @Override
-    public Person withEmail(final ClientEmail email) {
-        return toBuilder().email(guardEmail(email)).build();
+    public Person changeEmail(@Nullable String email) {
+        return toBuilder().email(ClientEmail.of(email)).build();
     }
 
     @Override
-    public Person withPhone(final ClientPhoneNumber phone) {
-        return toBuilder().phone(guardPhone(phone)).build();
+    public Person changePhone(@Nullable String phoneNumber) {
+        return toBuilder().phone(ClientPhoneNumber.of(phoneNumber)).build();
     }
 
     public static PersonBuilder builder() {

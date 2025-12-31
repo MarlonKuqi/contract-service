@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Getter
@@ -86,13 +87,12 @@ public class Contract extends Entity {
         return !isActive();
     }
 
-    public Contract changeCost(final ContractCost newAmount) {
+    public Contract changeCost(@Nullable final BigDecimal newAmount) {
         if (isInactive()) {
             throw new ExpiredContractException(getId());
         }
         return toBuilder()
-                .costAmount(guardCostAmount(newAmount))
+                .costAmount(ContractCost.of(newAmount))
                 .build();
     }
-
 }

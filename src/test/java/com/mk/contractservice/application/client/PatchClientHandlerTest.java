@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,9 +61,9 @@ class PatchClientHandlerTest {
 
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    "New Name",
-                    "new@example.com",
-                    "+33222222222"
+                    Optional.of("New Name"),
+                    Optional.of("new@example.com"),
+                    Optional.of("+33222222222")
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingClient);
@@ -95,9 +96,9 @@ class PatchClientHandlerTest {
 
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    "New Name",
-                    null,
-                    null
+                    Optional.of("New Name"),
+                    Optional.empty(),
+                    Optional.empty()
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingClient);
@@ -130,9 +131,9 @@ class PatchClientHandlerTest {
 
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    null,
-                    "new@example.com",
-                    null
+                    Optional.empty(),
+                    Optional.of("new@example.com"),
+                    Optional.empty()
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingClient);
@@ -165,9 +166,9 @@ class PatchClientHandlerTest {
 
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    null,
-                    null,
-                    "+33999999999"
+                    Optional.empty(),
+                    Optional.empty(),
+                    Optional.of("+33999999999")
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingClient);
@@ -199,9 +200,9 @@ class PatchClientHandlerTest {
 
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    "New Name",
-                    "new@example.com",
-                    null
+                    Optional.of("New Name"),
+                    Optional.of("new@example.com"),
+                    Optional.empty()
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingClient);
@@ -233,9 +234,9 @@ class PatchClientHandlerTest {
 
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    "New Name",
-                    null,
-                    "+33999999999"
+                    Optional.of("New Name"),
+                    Optional.empty(),
+                    Optional.of("+33999999999")
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingClient);
@@ -267,9 +268,9 @@ class PatchClientHandlerTest {
 
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    null,
-                    "new@example.com",
-                    "+33999999999"
+                    Optional.empty(),
+                    Optional.of("new@example.com"),
+                    Optional.of("+33999999999")
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingClient);
@@ -304,9 +305,9 @@ class PatchClientHandlerTest {
 
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    null,
-                    null,
-                    null
+                    Optional.empty(),
+                    Optional.empty(),
+                    Optional.empty()
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingClient);
@@ -331,7 +332,7 @@ class PatchClientHandlerTest {
                     PersonBirthDate.of(LocalDate.of(1990, 1, 1))
             );
 
-            PatchClient.Command command = new PatchClient.Command(clientId, null, null, null);
+            PatchClient.Command command = new PatchClient.Command(clientId, Optional.empty(), Optional.empty(), Optional.empty());
 
             when(clientService.findClientById(clientId)).thenReturn(existingClient);
 
@@ -355,9 +356,9 @@ class PatchClientHandlerTest {
             UUID clientId = UUID.randomUUID();
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    "New Name",
-                    null,
-                    null
+                    Optional.of("New Name"),
+                    Optional.empty(),
+                    Optional.empty()
             );
 
             when(clientService.findClientById(clientId))
@@ -391,9 +392,9 @@ class PatchClientHandlerTest {
 
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    null,
-                    "New@EXAMPLE.COM",
-                    null
+                    Optional.empty(),
+                    Optional.of("New@EXAMPLE.COM"),
+                    Optional.empty()
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingClient);
@@ -420,9 +421,9 @@ class PatchClientHandlerTest {
 
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    "Jean-Pierre O'Connor",
-                    null,
-                    null
+                    Optional.of("Jean-Pierre O'Connor"),
+                    Optional.empty(),
+                    Optional.empty()
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingClient);
@@ -449,9 +450,9 @@ class PatchClientHandlerTest {
 
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    "New Name",
-                    null,
-                    null
+                    Optional.of("New Name"),
+                    Optional.empty(),
+                    Optional.empty()
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingClient);

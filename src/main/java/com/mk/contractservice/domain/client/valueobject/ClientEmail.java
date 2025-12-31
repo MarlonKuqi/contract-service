@@ -1,6 +1,6 @@
 package com.mk.contractservice.domain.client.valueobject;
 
-import com.mk.contractservice.domain.client.exception.InvalidEmailException;
+import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
 import com.mk.contractservice.domain.shared.ValueObjectUtils;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -41,17 +41,17 @@ public class ClientEmail {
 
     private static String normalize(@Nullable final String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
-            throw InvalidEmailException.forBlank();
+            throw InvalidClientEmailException.forBlank();
         }
         return rawValue.trim().toLowerCase(Locale.ROOT);
     }
 
     private static void validate(final String normalizedValue) {
         if (IS_INVALID_LENGTH.test(normalizedValue)) {
-            throw new InvalidEmailException("Email too long (max " + MAX_LENGTH + " characters per RFC 5321)");
+            throw new InvalidClientEmailException("Email too long (max " + MAX_LENGTH + " characters per RFC 5321)");
         }
         if (HAS_INVALID_FORMAT.test(normalizedValue)) {
-            throw InvalidEmailException.forInvalidFormat(normalizedValue);
+            throw InvalidClientEmailException.forInvalidFormat(normalizedValue);
         }
     }
 }

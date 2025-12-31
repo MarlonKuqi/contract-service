@@ -38,14 +38,14 @@ public abstract sealed class Client extends Entity permits Person, Company {
         return guardNotNull(phone, InvalidClientException::forNullPhone);
     }
 
-    public abstract Client withCommonFields(
-            final ClientName name,
-            final ClientEmail clientEmail,
-            final ClientPhoneNumber phone);
+    public abstract Client changeCoreFields(
+            @Nullable String name,
+            @Nullable String email,
+            @Nullable String phoneNumber);
 
-    public abstract Client withName(final ClientName name);
+    public abstract Client changeName(@Nullable String name);
 
-    public abstract Client withEmail(final ClientEmail email);
+    public abstract Client changeEmail(@Nullable String email);
 
-    public abstract Client withPhone(final ClientPhoneNumber phone);
+    public abstract Client changePhone(@Nullable String phoneNumber);
 }
