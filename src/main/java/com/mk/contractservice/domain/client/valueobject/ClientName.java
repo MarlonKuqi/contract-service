@@ -9,13 +9,15 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.function.Predicate;
 
+import static com.mk.contractservice.domain.shared.Assert.notNull;
+
 @Value
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ClientName {
 
     String value;
 
-    private static final int MAX_LENGTH = 200;
+    public static final int MAX_LENGTH = 200;
 
     public static final Predicate<String> IS_NOT_VALID_LENGTH =
             name -> name.isEmpty() || name.length() > MAX_LENGTH;
@@ -30,7 +32,7 @@ public class ClientName {
     }
 
     public static ClientName reconstituteFromDatabase(final String trustedValue) {
-        return ValueObjectUtils.guardNotNull(trustedValue, ClientName::new, ClientName.class);
+        return new ClientName(notNull(trustedValue));
     }
 
     private static String normalize(@Nullable final String rawValue) {

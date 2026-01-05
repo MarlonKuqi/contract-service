@@ -40,25 +40,25 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, @Nullable final LocalDateTime updatedSince, final Pageable pageable) {
-        if (updatedSince == null) {
-            return contractJpaRepository.findActiveByClientId(clientId, pageable)
+    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, @Nullable final Optional<LocalDateTime> updatedSince, final Pageable pageable) {
+        if (updatedSince.isPresent()) {
+            return contractJpaRepository.findActiveByClientIdAndUpdatedAfter(clientId, updatedSince.get(), pageable)
                     .map(assembler::toDomain);
         }
-        return contractJpaRepository.findActiveByClientIdAndUpdatedAfter(clientId, updatedSince, pageable)
-                .map(assembler::toDomain);
+        return contractJpaRepository.findActiveByClientId(clientId, pageable)
+                    .map(assembler::toDomain);
     }
 
-
-    @Override
-    @CacheEvict(value = "contractSums", key = "#clientId")
-    public void closeAllActiveByClientId(final UUID clientId) {
-        contractJpaRepository.closeAllActiveByClientId(clientId);
-    }
 
     @Override
     @Cacheable(value = "contractSums", key = "#clientId")
     public BigDecimal sumActiveByClientId(final UUID clientId) {
         return contractJpaRepository.sumActiveByClientId(clientId);
+    }
+
+    @Override
+    @CacheEvict(value = "contractSums", key = "#clientId")
+    public int closeAllActiveByClientId(final UUID clientId, final LocalDateTime closureDate) {
+        return contractJpaRepository.closeAllActiveByClientId(clientId, closureDate);
     }
 }

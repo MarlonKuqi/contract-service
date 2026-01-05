@@ -15,7 +15,7 @@ import jakarta.validation.constraints.Size;
                   "type": "COMPANY",
                   "name": "Acme Corporation",
                   "email": "contact@acme.com",
-                  "phone": "+41221234567",
+                  "phone": "+41 22 123 45 67",
                   "companyIdentifier": "CHE-123.456.789"
                 }
                 """
@@ -33,8 +33,16 @@ public record CreateCompanyRequest(
         String email,
 
         @NotBlank(message = "Phone number is required")
-        @Pattern(regexp = "\\+?[0-9 .()/-]{7,20}", message = "Phone number must be valid (7-20 characters, allowed: digits, +, -, ., (), /, spaces)")
-        @Schema(description = "Company phone number", example = "+41221234567", pattern = "\\+?[0-9 .()/-]{7,20}", minLength = 7, maxLength = 20, requiredMode = Schema.RequiredMode.REQUIRED)
+        @Pattern(
+                regexp = "^\\+(?:41|33|39|49)(?:\\s?\\d){9,11}$",
+                message = "Phone number must be in international format: Swiss (+41), French (+33), Italian (+39) or German (+49). Examples: '+41 22 123 45 67' or '+41221234567'"
+        )
+        @Schema(
+                description = "Company phone number (international format: +41, +33, +39, or +49)",
+                example = "+41 22 123 45 67",
+                pattern = "^\\+(?:41|33|39|49)(?:\\s?\\d){9,11}$",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         String phone,
 
         @NotBlank(message = "Company identifier is required")

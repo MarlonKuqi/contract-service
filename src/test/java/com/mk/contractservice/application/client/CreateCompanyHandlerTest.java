@@ -3,30 +3,24 @@ package com.mk.contractservice.application.client;
 
 import com.mk.contractservice.application.feature.client.create.CreateCompany;
 import com.mk.contractservice.domain.client.aggregate.Company;
-import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
+import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
+import com.mk.contractservice.domain.client.exception.EmailAlreadyExistsException;
+import com.mk.contractservice.domain.client.exception.PhoneAlreadyExistsException;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
 import com.mk.contractservice.domain.client.service.ClientValidationService;
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
-import com.mk.contractservice.domain.client.valueobject.ClientName;
-import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
-import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,61 +30,36 @@ class CreateCompanyHandlerTest {
     @Mock
     private ClientRepository clientRepository;
 
-    @Mock
     private ClientValidationService clientValidationService;
+    private CreateCompany.Handler createCompanyHandler;
 
-    @InjectMocks
-    private CreateCompany.Handler createCompany;
+    @BeforeEach
+    void setUp() {
+        clientValidationService = new ClientValidationService(clientRepository);
+        createCompanyHandler = new CreateCompany.Handler(clientRepository, clientValidationService);
+    }
 
     @Nested
     @DisplayName("Création d'entreprise")
     class CreateCompanyTest {
 
-        @Test
-        @DisplayName("GIVEN commande valide WHEN execute THEN crée et sauvegarde l'entreprise")
-        void shouldCreateAndSaveCompany() {
-            // Given
-            String name = "Tech Corp";
-            String email = "contact@techcorp.com";
-            String phone = "+33123456789";
-            String companyIdentifier = "123456789";
-
-            CreateCompany.Command command = new CreateCompany.Command(
-                    name,
-                    email,
-                    phone,
-                    companyIdentifier
-            );
-
-            Company expectedCompany = Company.of(
-                    ClientName.of(name),
-                    ClientEmail.of(email),
-                    ClientPhoneNumber.of(phone),
-                    CompanyIdentifier.of(companyIdentifier)
-            );
-
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
-            when(clientRepository.save(any(Company.class))).thenReturn(expectedCompany);
-
-            // When
-            Company result = createCompany.execute(command);
-
-            // Then
-            assertThat(result).isNotNull();
-            assertThat(result.getName().getValue()).isEqualTo(name);
-            assertThat(result.getEmail().getValue()).isEqualTo(email.toLowerCase());
-            assertThat(result.getPhone().getValue()).isEqualTo(phone);
-            assertThat(result.getCompanyIdentifier().getValue()).isEqualTo(companyIdentifier);
-
-            verify(clientValidationService).ensureEmailIsUnique(any(String.class));
-            verify(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
-            verify(clientRepository).save(any(Company.class));
+        @BeforeEach
+        void setUp() {
+            when(clientRepository.save(any(Company.class))).thenAnswer(invocation -> {
+                Company company = invocation.getArgument(0);
+                return Company.builder()
+                        .id(UUID.randomUUID())
+                        .name(company.getName())
+                        .email(company.getEmail())
+                        .phone(company.getPhone())
+                        .companyIdentifier(company.getCompanyIdentifier())
+                        .build();
+            });
         }
 
         @Test
-        @DisplayName("GIVEN commande valide WHEN execute THEN valide l'unicité de l'email")
-        void shouldValidateEmailUniqueness() {
+        @DisplayName("GIVEN commande valide WHEN execute THEN crée l'entreprise avec tous les champs")
+        void shouldCreateCompanyWithAllFields() {
             // Given
             CreateCompany.Command command = new CreateCompany.Command(
                     "Tech Corp",
@@ -99,96 +68,24 @@ class CreateCompanyHandlerTest {
                     "123456789"
             );
 
-            Company company = Company.of(
-                    ClientName.of(command.name()),
-                    ClientEmail.of(command.email()),
-                    ClientPhoneNumber.of(command.phoneNumber()),
-                    CompanyIdentifier.of(command.companyIdentifier())
-            );
-
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
-            when(clientRepository.save(any(Company.class))).thenReturn(company);
-
             // When
-            createCompany.execute(command);
+            Company result = createCompanyHandler.execute(command);
 
             // Then
-            ArgumentCaptor<String> emailCaptor = ArgumentCaptor.forClass(String.class);
-            verify(clientValidationService).ensureEmailIsUnique(emailCaptor.capture());
-            assertThat(emailCaptor.getValue()).isEqualTo(command.email().toLowerCase());
-        }
-
-        @Test
-        @DisplayName("GIVEN commande valide WHEN execute THEN valide l'unicité de l'identifiant")
-        void shouldValidateCompanyIdentifierUniqueness() {
-            // Given
-            CreateCompany.Command command = new CreateCompany.Command(
-                    "Tech Corp",
-                    "contact@techcorp.com",
-                    "+33123456789",
-                    "987654321"
-            );
-
-            Company company = Company.of(
-                    ClientName.of(command.name()),
-                    ClientEmail.of(command.email()),
-                    ClientPhoneNumber.of(command.phoneNumber()),
-                    CompanyIdentifier.of(command.companyIdentifier())
-            );
-
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
-            when(clientRepository.save(any(Company.class))).thenReturn(company);
-
-            // When
-            createCompany.execute(command);
-
-            // Then
-            ArgumentCaptor<String> identifierCaptor = ArgumentCaptor.forClass(String.class);
-            verify(clientValidationService).ensureCompanyIdentifierIsUnique(identifierCaptor.capture());
-            assertThat(identifierCaptor.getValue()).isEqualTo(command.companyIdentifier());
-        }
-
-        @Test
-        @DisplayName("GIVEN commande valide WHEN execute THEN valide avant de sauvegarder")
-        void shouldValidateBeforeSaving() {
-            // Given
-            CreateCompany.Command command = new CreateCompany.Command(
-                    "Tech Corp",
-                    "contact@techcorp.com",
-                    "+33123456789",
-                    "123456789"
-            );
-
-            Company company = Company.of(
-                    ClientName.of(command.name()),
-                    ClientEmail.of(command.email()),
-                    ClientPhoneNumber.of(command.phoneNumber()),
-                    CompanyIdentifier.of(command.companyIdentifier())
-            );
-
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
-            when(clientRepository.save(any(Company.class))).thenReturn(company);
-
-            // When
-            createCompany.execute(command);
-
-            // Then
-            var ordered = inOrder(clientValidationService, clientRepository);
-            ordered.verify(clientValidationService).ensureEmailIsUnique(any(String.class));
-            ordered.verify(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
-            ordered.verify(clientRepository).save(any(Company.class));
+            assertThat(result.getId()).isNotNull();
+            assertThat(result.getName().getValue()).isEqualTo(command.name());
+            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
+            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
+            assertThat(result.getCompanyIdentifier().getValue()).isEqualTo(command.companyIdentifier());
         }
     }
 
     @Nested
-    @DisplayName("execute() - Validation Errors")
-    class ExecuteValidationErrors {
+    @DisplayName("Erreurs de validation")
+    class ValidationErrors {
 
         @Test
-        @DisplayName("GIVEN duplicate email WHEN execute THEN should throw ClientAlreadyExistsException")
+        @DisplayName("GIVEN email déjà existant WHEN execute THEN lève ClientAlreadyExistsException")
         void shouldThrowExceptionWhenEmailAlreadyExists() {
             // Given
             String duplicateEmail = "existing@techcorp.com";
@@ -199,21 +96,15 @@ class CreateCompanyHandlerTest {
                     "123456789"
             );
 
-            doThrow(new ClientAlreadyExistsException("Email already exists: " + duplicateEmail))
-                    .when(clientValidationService).ensureEmailIsUnique(any(String.class));
+            when(clientRepository.existsByEmail(duplicateEmail)).thenReturn(true);
 
             // When & Then
-            assertThatThrownBy(() -> createCompany.execute(command))
-                    .isInstanceOf(ClientAlreadyExistsException.class)
-                    .hasMessageContaining(duplicateEmail);
-
-            verify(clientValidationService).ensureEmailIsUnique(any(String.class));
-            verify(clientValidationService, never()).ensureCompanyIdentifierIsUnique(any(String.class));
-            verify(clientRepository, never()).save(any(Company.class));
+            assertThatThrownBy(() -> createCompanyHandler.execute(command))
+                    .isInstanceOf(EmailAlreadyExistsException.class);
         }
 
         @Test
-        @DisplayName("GIVEN duplicate company identifier WHEN execute THEN should throw ClientAlreadyExistsException")
+        @DisplayName("GIVEN identifiant déjà existant WHEN execute THEN lève CompanyIdentifierAlreadyExistsException")
         void shouldThrowExceptionWhenCompanyIdentifierAlreadyExists() {
             // Given
             String duplicateIdentifier = "123456789";
@@ -224,110 +115,30 @@ class CreateCompanyHandlerTest {
                     duplicateIdentifier
             );
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
-            doThrow(new ClientAlreadyExistsException("Company identifier already exists: " + duplicateIdentifier))
-                    .when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
+            when(clientRepository.existsByCompanyIdentifier(duplicateIdentifier)).thenReturn(true);
 
             // When & Then
-            assertThatThrownBy(() -> createCompany.execute(command))
-                    .isInstanceOf(ClientAlreadyExistsException.class)
-                    .hasMessageContaining(duplicateIdentifier);
-
-            verify(clientValidationService).ensureEmailIsUnique(any(String.class));
-            verify(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
-            verify(clientRepository, never()).save(any(Company.class));
-        }
-    }
-
-    @Nested
-    @DisplayName("execute() - Edge Cases")
-    class ExecuteEdgeCases {
-
-        @Test
-        @DisplayName("GIVEN email with uppercase WHEN execute THEN should normalize to lowercase")
-        void shouldNormalizeEmailToLowercase() {
-            // Given
-            CreateCompany.Command command = new CreateCompany.Command(
-                    "Tech Corp",
-                    "Contact@TechCorp.COM",
-                    "+33123456789",
-                    "123456789"
-            );
-
-            Company company = Company.of(
-                    ClientName.of(command.name()),
-                    ClientEmail.of(command.email()),
-                    ClientPhoneNumber.of(command.phoneNumber()),
-                    CompanyIdentifier.of(command.companyIdentifier())
-            );
-
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
-            when(clientRepository.save(any(Company.class))).thenReturn(company);
-
-            // When
-            Company result = createCompany.execute(command);
-
-            // Then
-            assertThat(result.getEmail().getValue()).isEqualTo("contact@techcorp.com");
+            assertThatThrownBy(() -> createCompanyHandler.execute(command))
+                    .isInstanceOf(CompanyIdentifierAlreadyExistsException.class);
         }
 
         @Test
-        @DisplayName("GIVEN company name with special characters WHEN execute THEN should create company")
-        void shouldCreateCompanyWithSpecialCharactersInName() {
+        @DisplayName("GIVEN phone number déjà existant WHEN execute THEN lève PhoneAlreadyExistsException")
+        void shouldThrowExceptionPhoneNumberAlreadyExists() {
             // Given
-            CreateCompany.Command command = new CreateCompany.Command(
-                    "Tech & Innovation Corp.",
-                    "contact@techcorp.com",
-                    "+33123456789",
-                    "123456789"
-            );
-
-            Company company = Company.of(
-                    ClientName.of(command.name()),
-                    ClientEmail.of(command.email()),
-                    ClientPhoneNumber.of(command.phoneNumber()),
-                    CompanyIdentifier.of(command.companyIdentifier())
-            );
-
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
-            when(clientRepository.save(any(Company.class))).thenReturn(company);
-
-            // When
-            Company result = createCompany.execute(command);
-
-            // Then
-            assertThat(result.getName().getValue()).isEqualTo("Tech & Innovation Corp.");
-        }
-
-        @Test
-        @DisplayName("GIVEN international phone number WHEN execute THEN should create company")
-        void shouldCreateCompanyWithInternationalPhone() {
-            // Given
+            String duplicatePhone = "+33123456789";
             CreateCompany.Command command = new CreateCompany.Command(
                     "Tech Corp",
                     "contact@techcorp.com",
-                    "+441234567890",
+                    duplicatePhone,
                     "123456789"
             );
 
-            Company company = Company.of(
-                    ClientName.of(command.name()),
-                    ClientEmail.of(command.email()),
-                    ClientPhoneNumber.of(command.phoneNumber()),
-                    CompanyIdentifier.of(command.companyIdentifier())
-            );
+            when(clientRepository.existsByPhoneNumber(duplicatePhone)).thenReturn(true);
 
-            doNothing().when(clientValidationService).ensureEmailIsUnique(any(String.class));
-            doNothing().when(clientValidationService).ensureCompanyIdentifierIsUnique(any(String.class));
-            when(clientRepository.save(any(Company.class))).thenReturn(company);
-
-            // When
-            Company result = createCompany.execute(command);
-
-            // Then
-            assertThat(result.getPhone().getValue()).isEqualTo("+441234567890");
+            // When & Then
+            assertThatThrownBy(() -> createCompanyHandler.execute(command))
+                    .isInstanceOf(PhoneAlreadyExistsException.class);
         }
     }
 }

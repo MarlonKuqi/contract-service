@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -35,7 +36,7 @@ public class ContractService {
     @Transactional(readOnly = true)
     public Page<Contract> getActiveContractsForClient(
             final UUID clientId,
-            @Nullable final LocalDateTime updatedSince,
+            @Nullable final Optional<LocalDateTime> updatedSince,
             final Pageable pageable
     ) {
         return contractRepository.findActiveByClientIdPageable(clientId, updatedSince, pageable);

@@ -45,7 +45,7 @@ public interface ListActiveContractsByClient {
             clientValidationService.ensureClientExists(query.clientId());
             return contractService.getActiveContractsForClient(
                     query.clientId(),
-                    query.updatedSince().orElse(null),
+                    query.updatedSince(),
                     query.pageable()
             );
         }

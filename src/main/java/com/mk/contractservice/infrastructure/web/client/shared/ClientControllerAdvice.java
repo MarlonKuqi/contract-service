@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
+import com.mk.contractservice.domain.client.exception.PhoneAlreadyExistsException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.DomainValidationException;
 import com.mk.contractservice.infrastructure.web.client.CreateClientController;
@@ -106,6 +107,16 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
         final ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Company Identifier Already Exists",
                 ex.getMessage(), "companyIdentifierAlreadyExists");
         problemDetail.setProperty("companyIdentifier", ex.getCompanyIdentifier());
+        return respond(problemDetail);
+    }
+
+    @ExceptionHandler(PhoneAlreadyExistsException.class)
+    public ResponseEntity<ProblemDetail> handlePhoneAlreadyExists(final PhoneAlreadyExistsException ex) {
+        log.debug("Phone number already exists: {}", ex.getMessage());
+
+        final ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Phone Number Already Exists",
+                ex.getMessage(), "phoneAlreadyExists");
+        problemDetail.setProperty("phoneNumber", ex.getPhoneNumber());
         return respond(problemDetail);
     }
 

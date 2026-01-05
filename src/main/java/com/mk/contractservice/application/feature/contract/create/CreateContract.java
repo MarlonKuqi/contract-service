@@ -43,7 +43,7 @@ public interface CreateContract {
         public Contract execute(final Command command) {
             clientValidationService.ensureClientExists(command.clientId());
 
-            final Contract contract = ContractFactory.create(
+            final Contract contract = ContractFactory.createFromCommand(
                     command.clientId(),
                     command.startDate(),
                     command.endDate(),

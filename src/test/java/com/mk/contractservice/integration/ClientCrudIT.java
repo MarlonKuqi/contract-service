@@ -737,11 +737,11 @@ class ClientCrudIT {
     @DisplayName("EDGE CASE: International phone numbers should be validated")
     void shouldValidateInternationalPhoneNumbers() {
         String[] validPhones = {
-                "+41791234567",    // Switzerland
-                "+33612345678",    // France
-                "+4407123456789",  // UK
-                "+12025551234",    // USA
-                "+861234567890"    // China
+                "+41 79 123 45 67",    // Switzerland
+                "+33 6 12 34 56 78",    // France
+                "+39 345 123 4567",  // Italy (mobile)
+                "+49 151 12345678",    // Germany (mobile)
+                "+41211234567"    // Switzerland (without spaces)
         };
 
         for (String phone : validPhones) {

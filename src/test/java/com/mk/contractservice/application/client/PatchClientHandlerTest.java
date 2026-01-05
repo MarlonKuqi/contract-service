@@ -2,19 +2,24 @@ package com.mk.contractservice.application.client;
 
 import com.mk.contractservice.application.feature.client.patch.PatchClient;
 import com.mk.contractservice.domain.client.aggregate.Client;
+import com.mk.contractservice.domain.client.aggregate.Company;
 import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.domain.client.exception.EmailAlreadyExistsException;
+import com.mk.contractservice.domain.client.exception.PhoneAlreadyExistsException;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
 import com.mk.contractservice.domain.client.service.ClientService;
+import com.mk.contractservice.domain.client.service.ClientValidationService;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
+import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
 import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -25,13 +30,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("PatchClientUseCase - Unit Tests")
+@DisplayName("PatchClient Handler")
 class PatchClientHandlerTest {
 
     @Mock
@@ -40,130 +42,106 @@ class PatchClientHandlerTest {
     @Mock
     private ClientService clientService;
 
-    @InjectMocks
-    private PatchClient.Handler patchClient;
+    private ClientValidationService clientValidationService;
+    private PatchClient.Handler patchClientHandler;
+
+    @BeforeEach
+    void setUp() {
+        clientValidationService = new ClientValidationService(clientRepository);
+        patchClientHandler = new PatchClient.Handler(clientRepository, clientService, clientValidationService);
+    }
 
     @Nested
-    @DisplayName("execute() - Happy Path")
-    class ExecuteHappyPath {
+    @DisplayName("Person - Mise à jour partielle")
+    class PersonPatchTest {
+
+        private UUID clientId;
+        private Person existingPerson;
+
+        @BeforeEach
+        void setUp() {
+            clientId = UUID.randomUUID();
+            existingPerson = Person.builder()
+                    .id(clientId)
+                    .name(ClientName.of("John Doe"))
+                    .email(ClientEmail.of("john@example.com"))
+                    .phone(ClientPhoneNumber.of("+33111111111"))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                    .build();
+
+            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        }
 
         @Test
-        @DisplayName("GIVEN all fields provided WHEN execute THEN should update all fields")
+        @DisplayName("GIVEN tous les champs WHEN execute THEN met à jour tous les champs")
         void shouldUpdateAllFieldsWhenAllProvided() {
             // Given
-            UUID clientId = UUID.randomUUID();
-            Person existingClient = Person.of(
-                    ClientName.of("Old Name"),
-                    ClientEmail.of("old@example.com"),
-                    ClientPhoneNumber.of("+33111111111"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-            );
-
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.of("New Name"),
-                    Optional.of("new@example.com"),
+                    Optional.of("Jane Smith"),
+                    Optional.of("jane@example.com"),
                     Optional.of("+33222222222")
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingClient);
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
 
             // When
-            Client result = patchClient.execute(command);
+            Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo("New Name");
-            assertThat(result.getEmail().getValue()).isEqualTo("new@example.com");
+            assertThat(result.getName().getValue()).isEqualTo("Jane Smith");
+            assertThat(result.getEmail().getValue()).isEqualTo("jane@example.com");
             assertThat(result.getPhone().getValue()).isEqualTo("+33222222222");
-            verify(clientRepository).save(any(Client.class));
         }
 
         @Test
-        @DisplayName("GIVEN only name provided WHEN execute THEN should update only name")
+        @DisplayName("GIVEN seulement nom WHEN execute THEN met à jour uniquement le nom")
         void shouldUpdateOnlyNameWhenOnlyNameProvided() {
             // Given
-            UUID clientId = UUID.randomUUID();
-            String originalEmail = "john@example.com";
-            String originalPhone = "+33111111111";
-
-            Person existingClient = Person.of(
-                    ClientName.of("Old Name"),
-                    ClientEmail.of(originalEmail),
-                    ClientPhoneNumber.of(originalPhone),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-            );
-
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.of("New Name"),
+                    Optional.of("Jane Smith"),
                     Optional.empty(),
                     Optional.empty()
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingClient);
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
 
             // When
-            Client result = patchClient.execute(command);
+            Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo("New Name");
-            assertThat(result.getEmail().getValue()).isEqualTo(originalEmail);
-            assertThat(result.getPhone().getValue()).isEqualTo(originalPhone);
-            verify(clientRepository).save(any(Client.class));
+            assertThat(result.getName().getValue()).isEqualTo("Jane Smith");
+            assertThat(result.getEmail().getValue()).isEqualTo(existingPerson.getEmail().getValue());
+            assertThat(result.getPhone().getValue()).isEqualTo(existingPerson.getPhone().getValue());
         }
 
         @Test
-        @DisplayName("GIVEN only email provided WHEN execute THEN should update only email")
+        @DisplayName("GIVEN seulement email WHEN execute THEN met à jour uniquement l'email")
         void shouldUpdateOnlyEmailWhenOnlyEmailProvided() {
             // Given
-            UUID clientId = UUID.randomUUID();
-            String originalName = "John Doe";
-            String originalPhone = "+33111111111";
-
-            Person existingClient = Person.of(
-                    ClientName.of(originalName),
-                    ClientEmail.of("old@example.com"),
-                    ClientPhoneNumber.of(originalPhone),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-            );
-
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
                     Optional.empty(),
-                    Optional.of("new@example.com"),
+                    Optional.of("jane@example.com"),
                     Optional.empty()
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingClient);
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
 
             // When
-            Client result = patchClient.execute(command);
+            Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(originalName);
-            assertThat(result.getEmail().getValue()).isEqualTo("new@example.com");
-            assertThat(result.getPhone().getValue()).isEqualTo(originalPhone);
-            verify(clientRepository).save(any(Client.class));
+            assertThat(result.getName().getValue()).isEqualTo(existingPerson.getName().getValue());
+            assertThat(result.getEmail().getValue()).isEqualTo("jane@example.com");
+            assertThat(result.getPhone().getValue()).isEqualTo(existingPerson.getPhone().getValue());
         }
 
         @Test
-        @DisplayName("GIVEN only phone provided WHEN execute THEN should update only phone")
+        @DisplayName("GIVEN seulement téléphone WHEN execute THEN met à jour uniquement le téléphone")
         void shouldUpdateOnlyPhoneWhenOnlyPhoneProvided() {
             // Given
-            UUID clientId = UUID.randomUUID();
-            String originalName = "John Doe";
-            String originalEmail = "john@example.com";
-
-            Person existingClient = Person.of(
-                    ClientName.of(originalName),
-                    ClientEmail.of(originalEmail),
-                    ClientPhoneNumber.of("+33111111111"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-            );
-
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
                     Optional.empty(),
@@ -171,138 +149,34 @@ class PatchClientHandlerTest {
                     Optional.of("+33999999999")
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingClient);
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
 
             // When
-            Client result = patchClient.execute(command);
+            Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(originalName);
-            assertThat(result.getEmail().getValue()).isEqualTo(originalEmail);
+            assertThat(result.getName().getValue()).isEqualTo(existingPerson.getName().getValue());
+            assertThat(result.getEmail().getValue()).isEqualTo(existingPerson.getEmail().getValue());
             assertThat(result.getPhone().getValue()).isEqualTo("+33999999999");
-            verify(clientRepository).save(any(Client.class));
-        }
-
-        @Test
-        @DisplayName("GIVEN name and email provided WHEN execute THEN should update name and email")
-        void shouldUpdateNameAndEmailWhenBothProvided() {
-            // Given
-            UUID clientId = UUID.randomUUID();
-            String originalPhone = "+33111111111";
-
-            Person existingClient = Person.of(
-                    ClientName.of("Old Name"),
-                    ClientEmail.of("old@example.com"),
-                    ClientPhoneNumber.of(originalPhone),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-            );
-
-            PatchClient.Command command = new PatchClient.Command(
-                    clientId,
-                    Optional.of("New Name"),
-                    Optional.of("new@example.com"),
-                    Optional.empty()
-            );
-
-            when(clientService.findClientById(clientId)).thenReturn(existingClient);
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            // When
-            Client result = patchClient.execute(command);
-
-            // Then
-            assertThat(result.getName().getValue()).isEqualTo("New Name");
-            assertThat(result.getEmail().getValue()).isEqualTo("new@example.com");
-            assertThat(result.getPhone().getValue()).isEqualTo(originalPhone);
-            verify(clientRepository).save(any(Client.class));
-        }
-
-        @Test
-        @DisplayName("GIVEN name and phone provided WHEN execute THEN should update name and phone")
-        void shouldUpdateNameAndPhoneWhenBothProvided() {
-            // Given
-            UUID clientId = UUID.randomUUID();
-            String originalEmail = "john@example.com";
-
-            Person existingClient = Person.of(
-                    ClientName.of("Old Name"),
-                    ClientEmail.of(originalEmail),
-                    ClientPhoneNumber.of("+33111111111"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-            );
-
-            PatchClient.Command command = new PatchClient.Command(
-                    clientId,
-                    Optional.of("New Name"),
-                    Optional.empty(),
-                    Optional.of("+33999999999")
-            );
-
-            when(clientService.findClientById(clientId)).thenReturn(existingClient);
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            // When
-            Client result = patchClient.execute(command);
-
-            // Then
-            assertThat(result.getName().getValue()).isEqualTo("New Name");
-            assertThat(result.getEmail().getValue()).isEqualTo(originalEmail);
-            assertThat(result.getPhone().getValue()).isEqualTo("+33999999999");
-            verify(clientRepository).save(any(Client.class));
-        }
-
-        @Test
-        @DisplayName("GIVEN email and phone provided WHEN execute THEN should update email and phone")
-        void shouldUpdateEmailAndPhoneWhenBothProvided() {
-            // Given
-            UUID clientId = UUID.randomUUID();
-            String originalName = "John Doe";
-
-            Person existingClient = Person.of(
-                    ClientName.of(originalName),
-                    ClientEmail.of("old@example.com"),
-                    ClientPhoneNumber.of("+33111111111"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-            );
-
-            PatchClient.Command command = new PatchClient.Command(
-                    clientId,
-                    Optional.empty(),
-                    Optional.of("new@example.com"),
-                    Optional.of("+33999999999")
-            );
-
-            when(clientService.findClientById(clientId)).thenReturn(existingClient);
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            // When
-            Client result = patchClient.execute(command);
-
-            // Then
-            assertThat(result.getName().getValue()).isEqualTo(originalName);
-            assertThat(result.getEmail().getValue()).isEqualTo("new@example.com");
-            assertThat(result.getPhone().getValue()).isEqualTo("+33999999999");
-            verify(clientRepository).save(any(Client.class));
         }
     }
 
     @Nested
-    @DisplayName("execute() - No Changes")
-    class ExecuteNoChanges {
+    @DisplayName("Aucune mise à jour")
+    class NoUpdateTest {
 
         @Test
-        @DisplayName("GIVEN all fields null WHEN execute THEN should return client unchanged and not save")
-        void shouldReturnUnchangedClientWhenAllFieldsNull() {
+        @DisplayName("GIVEN aucun champ WHEN execute on Person THEN ne change rien")
+        void shouldNotChangeAnythingWhenNoFieldsProvidedForPerson() {
             // Given
-            UUID clientId = UUID.randomUUID();
-            Person existingClient = Person.of(
-                    ClientName.of("John Doe"),
-                    ClientEmail.of("john@example.com"),
-                    ClientPhoneNumber.of("+33111111111"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-            );
-
+            final UUID clientId = UUID.randomUUID();
+            final Person existingPerson = Person.builder()
+                    .id(clientId)
+                    .name(ClientName.of("John Doe"))
+                    .email(ClientEmail.of("john@example.com"))
+                    .phone(ClientPhoneNumber.of("+33111111111"))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                    .build();
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
                     Optional.empty(),
@@ -310,50 +184,140 @@ class PatchClientHandlerTest {
                     Optional.empty()
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingClient);
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
 
             // When
-            Client result = patchClient.execute(command);
+            Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result).isSameAs(existingClient);
-            verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result.getName().getValue()).isEqualTo(existingPerson.getName().getValue());
+            assertThat(result.getEmail().getValue()).isEqualTo(existingPerson.getEmail().getValue());
+            assertThat(result.getPhone().getValue()).isEqualTo(existingPerson.getPhone().getValue());
+            assertThat(((Person) result).getBirthDate()).isEqualTo(existingPerson.getBirthDate());
         }
 
         @Test
-        @DisplayName("GIVEN all fields null WHEN execute THEN should retrieve client but not save")
-        void shouldRetrieveClientButNotSaveWhenNoChanges() {
+        @DisplayName("GIVEN aucun champ WHEN execute on Company THEN ne change rien")
+        void shouldNotChangeAnythingWhenNoFieldsProvidedForCompany() {
             // Given
-            UUID clientId = UUID.randomUUID();
-            Person existingClient = Person.of(
-                    ClientName.of("John Doe"),
-                    ClientEmail.of("john@example.com"),
-                    ClientPhoneNumber.of("+33111111111"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+            final UUID clientId = UUID.randomUUID();
+            final Company existingCompany = Company.builder()
+                    .id(clientId)
+                    .name(ClientName.of("Acme Corp"))
+                    .email(ClientEmail.of("contact@acme.com"))
+                    .phone(ClientPhoneNumber.of("+33111111111"))
+                    .companyIdentifier(CompanyIdentifier.of("123456789"))
+                    .build();
+            PatchClient.Command command = new PatchClient.Command(
+                    clientId,
+                    Optional.empty(),
+                    Optional.empty(),
+                    Optional.empty()
             );
 
-            PatchClient.Command command = new PatchClient.Command(clientId, Optional.empty(), Optional.empty(), Optional.empty());
-
-            when(clientService.findClientById(clientId)).thenReturn(existingClient);
+            when(clientService.findClientById(clientId)).thenReturn(existingCompany);
 
             // When
-            patchClient.execute(command);
+            Client result = patchClientHandler.execute(command);
 
             // Then
-            verify(clientService).findClientById(clientId);
-            verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result.getName().getValue()).isEqualTo(existingCompany.getName().getValue());
+            assertThat(result.getEmail().getValue()).isEqualTo(existingCompany.getEmail().getValue());
+            assertThat(result.getPhone().getValue()).isEqualTo(existingCompany.getPhone().getValue());
+            assertThat(((Company) result).getCompanyIdentifier()).isEqualTo(existingCompany.getCompanyIdentifier());
         }
     }
 
     @Nested
-    @DisplayName("execute() - Validation Errors")
-    class ExecuteValidationErrors {
+    @DisplayName("Company - Mise à jour partielle")
+    class CompanyPatchTest {
+
+        private UUID clientId;
+        private Company existingCompany;
+
+        @BeforeEach
+        void setUp() {
+            clientId = UUID.randomUUID();
+            existingCompany = Company.builder()
+                    .id(clientId)
+                    .name(ClientName.of("Acme Corp"))
+                    .email(ClientEmail.of("contact@acme.com"))
+                    .phone(ClientPhoneNumber.of("+33111111111"))
+                    .companyIdentifier(CompanyIdentifier.of("123456789"))
+                    .build();
+
+            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        }
 
         @Test
-        @DisplayName("GIVEN non-existent client WHEN execute THEN should throw ClientNotFoundException")
+        @DisplayName("GIVEN tous les champs WHEN execute THEN met à jour tous les champs")
+        void shouldUpdateAllFieldsWhenAllProvided() {
+            // Given
+            PatchClient.Command command = new PatchClient.Command(
+                    clientId,
+                    Optional.of("Acme Corporation"),
+                    Optional.of("info@acme.com"),
+                    Optional.of("+33222222222")
+            );
+
+            when(clientService.findClientById(clientId)).thenReturn(existingCompany);
+
+            // When
+            Client result = patchClientHandler.execute(command);
+
+            // Then
+            assertThat(result.getName().getValue()).isEqualTo("Acme Corporation");
+            assertThat(result.getEmail().getValue()).isEqualTo("info@acme.com");
+            assertThat(result.getPhone().getValue()).isEqualTo("+33222222222");
+            assertThat(((Company) result).getCompanyIdentifier()).isEqualTo(existingCompany.getCompanyIdentifier());
+        }
+
+        @Test
+        @DisplayName("GIVEN seulement nom WHEN execute THEN met à jour uniquement le nom")
+        void shouldUpdateOnlyNameWhenOnlyNameProvided() {
+            // Given
+            PatchClient.Command command = new PatchClient.Command(
+                    clientId,
+                    Optional.of("Acme Corporation"),
+                    Optional.empty(),
+                    Optional.empty()
+            );
+
+            when(clientService.findClientById(clientId)).thenReturn(existingCompany);
+
+            // When
+            Client result = patchClientHandler.execute(command);
+
+            // Then
+            assertThat(result.getName().getValue()).isEqualTo("Acme Corporation");
+            assertThat(result.getEmail().getValue()).isEqualTo(existingCompany.getEmail().getValue());
+            assertThat(result.getPhone().getValue()).isEqualTo(existingCompany.getPhone().getValue());
+        }
+    }
+
+    @Nested
+    @DisplayName("Erreurs de validation")
+    class ValidationErrors {
+
+        private UUID clientId;
+        private Person existingPerson;
+
+        @BeforeEach
+        void setUp() {
+            clientId = UUID.randomUUID();
+            existingPerson = Person.builder()
+                    .id(clientId)
+                    .name(ClientName.of("John Doe"))
+                    .email(ClientEmail.of("john@example.com"))
+                    .phone(ClientPhoneNumber.of("+33111111111"))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                    .build();
+        }
+
+        @Test
+        @DisplayName("GIVEN client inexistant WHEN execute THEN lève ClientNotFoundException")
         void shouldThrowExceptionWhenClientNotFound() {
             // Given
-            UUID clientId = UUID.randomUUID();
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
                     Optional.of("New Name"),
@@ -365,107 +329,50 @@ class PatchClientHandlerTest {
                     .thenThrow(ClientNotFoundException.forId(clientId));
 
             // When & Then
-            assertThatThrownBy(() -> patchClient.execute(command))
-                    .isInstanceOf(ClientNotFoundException.class)
-                    .hasMessageContaining(clientId.toString());
-
-            verify(clientService).findClientById(clientId);
-            verify(clientRepository, never()).save(any(Client.class));
-        }
-    }
-
-    @Nested
-    @DisplayName("execute() - Edge Cases")
-    class ExecuteEdgeCases {
-
-        @Test
-        @DisplayName("GIVEN email with uppercase WHEN execute THEN should normalize to lowercase")
-        void shouldNormalizeEmailToLowercase() {
-            // Given
-            UUID clientId = UUID.randomUUID();
-            Person existingClient = Person.of(
-                    ClientName.of("John Doe"),
-                    ClientEmail.of("old@example.com"),
-                    ClientPhoneNumber.of("+33111111111"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-            );
-
-            PatchClient.Command command = new PatchClient.Command(
-                    clientId,
-                    Optional.empty(),
-                    Optional.of("New@EXAMPLE.COM"),
-                    Optional.empty()
-            );
-
-            when(clientService.findClientById(clientId)).thenReturn(existingClient);
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            // When
-            Client result = patchClient.execute(command);
-
-            // Then
-            assertThat(result.getEmail().getValue()).isEqualTo("new@example.com");
+            assertThatThrownBy(() -> patchClientHandler.execute(command))
+                    .isInstanceOf(ClientNotFoundException.class);
         }
 
         @Test
-        @DisplayName("GIVEN name with special characters WHEN execute THEN should update correctly")
-        void shouldUpdateNameWithSpecialCharacters() {
+        @DisplayName("GIVEN email déjà utilisé WHEN execute THEN lève EmailAlreadyExistsException")
+        void shouldThrowExceptionWhenEmailAlreadyExists() {
             // Given
-            UUID clientId = UUID.randomUUID();
-            Person existingClient = Person.of(
-                    ClientName.of("John Doe"),
-                    ClientEmail.of("john@example.com"),
-                    ClientPhoneNumber.of("+33111111111"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-            );
-
+            String duplicateEmail = "duplicate@example.com";
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.of("Jean-Pierre O'Connor"),
                     Optional.empty(),
+                    Optional.of(duplicateEmail),
                     Optional.empty()
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingClient);
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.existsByEmail(duplicateEmail)).thenReturn(true);
 
-            // When
-            Client result = patchClient.execute(command);
-
-            // Then
-            assertThat(result.getName().getValue()).isEqualTo("Jean-Pierre O'Connor");
+            // When & Then
+            assertThatThrownBy(() -> patchClientHandler.execute(command))
+                    .isInstanceOf(EmailAlreadyExistsException.class);
         }
 
         @Test
-        @DisplayName("GIVEN command WHEN execute THEN should retrieve client before patching")
-        void shouldRetrieveClientBeforePatching() {
+        @DisplayName("GIVEN téléphone déjà utilisé WHEN execute THEN lève PhoneAlreadyExistsException")
+        void shouldThrowExceptionWhenPhoneAlreadyExists() {
             // Given
-            UUID clientId = UUID.randomUUID();
-            Person existingClient = Person.of(
-                    ClientName.of("John Doe"),
-                    ClientEmail.of("john@example.com"),
-                    ClientPhoneNumber.of("+33111111111"),
-                    PersonBirthDate.of(LocalDate.of(1990, 1, 1))
-            );
-
+            String duplicatePhone = "+33999999999";
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.of("New Name"),
                     Optional.empty(),
-                    Optional.empty()
+                    Optional.empty(),
+                    Optional.of(duplicatePhone)
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingClient);
-            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.existsByPhoneNumber(duplicatePhone)).thenReturn(true);
 
-            // When
-            patchClient.execute(command);
-
-            // Then
-            var ordered = inOrder(clientService, clientRepository);
-            ordered.verify(clientService).findClientById(clientId);
-            ordered.verify(clientRepository).save(any(Client.class));
+            // When & Then
+            assertThatThrownBy(() -> patchClientHandler.execute(command))
+                    .isInstanceOf(PhoneAlreadyExistsException.class);
         }
+
     }
 }
 

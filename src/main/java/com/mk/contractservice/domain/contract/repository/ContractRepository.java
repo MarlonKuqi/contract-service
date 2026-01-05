@@ -15,9 +15,10 @@ public interface ContractRepository {
 
     Optional<Contract> findById(UUID contractId);
 
-    Page<Contract> findActiveByClientIdPageable(UUID clientId, @Nullable LocalDateTime updatedSince, Pageable pageable);
-
-    void closeAllActiveByClientId(UUID clientId);
+    Page<Contract> findActiveByClientIdPageable(UUID clientId, @Nullable Optional<LocalDateTime> updatedSince, Pageable pageable);
 
     BigDecimal sumActiveByClientId(UUID clientId);
+
+    int closeAllActiveByClientId(UUID clientId, LocalDateTime closureDate);
 }
+

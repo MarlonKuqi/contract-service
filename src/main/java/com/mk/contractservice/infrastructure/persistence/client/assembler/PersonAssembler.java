@@ -1,10 +1,7 @@
 package com.mk.contractservice.infrastructure.persistence.client.assembler;
 
 import com.mk.contractservice.domain.client.aggregate.Person;
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
-import com.mk.contractservice.domain.client.valueobject.ClientName;
-import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
-import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
+import com.mk.contractservice.domain.client.factory.PersonFactory;
 import com.mk.contractservice.infrastructure.persistence.client.entity.PersonJpaEntity;
 import org.springframework.stereotype.Component;
 
@@ -27,12 +24,12 @@ public class PersonAssembler {
     }
 
     public Person toDomain(final PersonJpaEntity entity) {
-        return Person.reconstituteFromDatabase(
+        return PersonFactory.buildFromDatabase(
                 entity.getId(),
-                ClientName.reconstituteFromDatabase(entity.getName()),
-                ClientEmail.reconstituteFromDatabase(entity.getEmail()),
-                ClientPhoneNumber.reconstituteFromDatabase(entity.getPhone()),
-                PersonBirthDate.reconstituteFromDatabase(entity.getBirthDate())
+                entity.getName(),
+                entity.getEmail(),
+                entity.getPhone(),
+                entity.getBirthDate()
         );
     }
 }

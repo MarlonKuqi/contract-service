@@ -1,11 +1,8 @@
 package com.mk.contractservice.domain.client.aggregate;
 
-import com.mk.contractservice.domain.client.exception.InvalidClientException;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
-import com.mk.contractservice.domain.shared.Entity;
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
@@ -13,12 +10,12 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
+import static com.mk.contractservice.domain.shared.Assert.notNull;
 
 @Getter
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode
 @FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
-@AllArgsConstructor(access = lombok.AccessLevel.PROTECTED)
-public abstract sealed class Client extends Entity permits Person, Company {
+public abstract sealed class Client permits Person, Company {
 
     @Nullable
     UUID id;
@@ -26,26 +23,26 @@ public abstract sealed class Client extends Entity permits Person, Company {
     ClientEmail email;
     ClientPhoneNumber phone;
 
-    protected static ClientName guardName(@Nullable final ClientName name) {
-        return guardNotNull(name, InvalidClientException::forNullName);
-    }
-
-    protected static ClientEmail guardEmail(@Nullable final ClientEmail email) {
-        return guardNotNull(email, InvalidClientException::forNullEmail);
-    }
-
-    protected static ClientPhoneNumber guardPhone(@Nullable final ClientPhoneNumber phone) {
-        return guardNotNull(phone, InvalidClientException::forNullPhone);
+    protected Client(
+            @Nullable final UUID id,
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone
+    ) {
+        this.id = id;
+        this.name = notNull(name);
+        this.email = notNull(email);
+        this.phone = notNull(phone);
     }
 
     public abstract Client changeCoreFields(
-            @Nullable String name,
-            @Nullable String email,
-            @Nullable String phoneNumber);
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phoneNumber);
 
-    public abstract Client changeName(@Nullable String name);
+    public abstract Client changeName(@Nullable final ClientName name);
 
-    public abstract Client changeEmail(@Nullable String email);
+    public abstract Client changeEmail(@Nullable final ClientEmail email);
 
-    public abstract Client changePhone(@Nullable String phoneNumber);
+    public abstract Client changePhone(@Nullable final ClientPhoneNumber phoneNumber);
 }

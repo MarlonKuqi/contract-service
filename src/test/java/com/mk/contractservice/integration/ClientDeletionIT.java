@@ -14,10 +14,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.hamcrest.Matchers.equalTo;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -61,7 +63,7 @@ class ClientDeletionIT {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // Contrat 1: endDate = null (actif indéfiniment)
+        // Contrat 1: endDate = null (actif indefiniment)
         String contract1Payload = """
                 {
                     "startDate": "2025-01-01T00:00:00",
@@ -70,7 +72,7 @@ class ClientDeletionIT {
                 }
                 """;
 
-        given()
+        String contract1Id = given()
                 .contentType(ContentType.JSON)
                 .body(contract1Payload)
                 .when()
@@ -88,7 +90,7 @@ class ClientDeletionIT {
                 }
                 """, now.minusDays(10), now.plusMonths(6));
 
-        given()
+        String contract2Id = given()
                 .contentType(ContentType.JSON)
                 .body(contract2Payload)
                 .when()
@@ -97,7 +99,7 @@ class ClientDeletionIT {
                 .statusCode(201)
                 .extract().path("id");
 
-        // Contrat 3: endDate dans le passé (déjà expiré)
+        // Contrat 3: endDate dans le passe (dejà expire)
         String contract3Payload = String.format("""
                 {
                     "startDate": "%s",
@@ -106,7 +108,7 @@ class ClientDeletionIT {
                 }
                 """, now.minusMonths(12), now.minusDays(30));
 
-        given()
+        String contract3Id = given()
                 .contentType(ContentType.JSON)
                 .body(contract3Payload)
                 .when()
@@ -125,12 +127,57 @@ class ClientDeletionIT {
                 .then()
                 .statusCode(204);
 
-        // THEN
+        LocalDateTime deletionTime = LocalDateTime.now();
+
+        // THEN: Le client est supprime
         given()
                 .when()
                 .get(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(404);
+
+        // ========================================
+        // THEN: Verification que les contrats ACTIFS ont ete fermes avec endDate = deletionTime
+        // ========================================
+
+        // Contrat 1 (etait actif indefiniment) => doit etre ferme avec endDate = deletionTime
+        String endDate1Str = given()
+                .when()
+                .get(ContractEndpoints.CONTRACT_BY_ID, contract1Id)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(contract1Id))
+                .extract().path("endDate");
+
+        assertThat(endDate1Str).isNotNull();
+        LocalDateTime endDate1 = LocalDateTime.parse(endDate1Str);
+        assertThat(endDate1).isCloseTo(deletionTime, within(10, ChronoUnit.SECONDS));
+
+        // Contrat 2 (etait actif avec endDate future) => doit etre ferme avec endDate = deletionTime
+        String endDate2Str = given()
+                .when()
+                .get(ContractEndpoints.CONTRACT_BY_ID, contract2Id)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(contract2Id))
+                .extract().path("endDate");
+
+        assertThat(endDate2Str).isNotNull();
+        LocalDateTime endDate2 = LocalDateTime.parse(endDate2Str);
+        assertThat(endDate2).isCloseTo(deletionTime, within(10, ChronoUnit.SECONDS));
+
+        // Contrat 3 (etait dejà expire) => endDate ne doit PAS avoir change (reste celle d'origine)
+        String endDate3Str = given()
+                .when()
+                .get(ContractEndpoints.CONTRACT_BY_ID, contract3Id)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(contract3Id))
+                .extract().path("endDate");
+
+        assertThat(endDate3Str).isNotNull();
+        LocalDateTime endDate3 = LocalDateTime.parse(endDate3Str);
+        assertThat(endDate3).isCloseTo(now.minusDays(30), within(1, ChronoUnit.SECONDS));
     }
 
     @Test
@@ -174,7 +221,7 @@ class ClientDeletionIT {
     @Test
     @DisplayName("CRITICAL: Deleting a client with ONLY expired contracts should succeed")
     void shouldSuccessfullyDeleteClientWithOnlyExpiredContracts() {
-        // GIVEN: Un client avec uniquement des contrats expirés
+        // GIVEN: Un client avec uniquement des contrats expires
         String clientPayload = """
                 {
                     "type": "PERSON",
@@ -195,15 +242,17 @@ class ClientDeletionIT {
                 .extract().path("id");
 
         LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expiredEndDate1 = now.minusMonths(3);
+        LocalDateTime expiredEndDate2 = now.minusDays(1);
 
-        // Créer 2 contrats expirés
+        // Creer 2 contrats expires
         String expiredContract1 = String.format("""
                 {
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "1000.00"
                 }
-                """, now.minusMonths(6), now.minusMonths(3));
+                """, now.minusMonths(6), expiredEndDate1);
 
         String expiredContract2 = String.format("""
                 {
@@ -211,23 +260,17 @@ class ClientDeletionIT {
                     "endDate": "%s",
                     "costAmount": "2000.00"
                 }
-                """, now.minusMonths(12), now.minusDays(1));
+                """, now.minusMonths(12), expiredEndDate2);
 
-        given().contentType(ContentType.JSON).body(expiredContract1)
+        String contract1Id = given().contentType(ContentType.JSON).body(expiredContract1)
                 .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", clientId)
-                .then().statusCode(201);
+                .then().statusCode(201)
+                .extract().path("id");
 
-        given().contentType(ContentType.JSON).body(expiredContract2)
+        String contract2Id = given().contentType(ContentType.JSON).body(expiredContract2)
                 .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", clientId)
-                .then().statusCode(201);
-
-        // Vérifier que la somme est 0 (tous expirés)
-        given()
-                .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", clientId)
-                .then()
-                .statusCode(200)
-                .body(anyOf(equalTo("0"), equalTo("0.00"), equalTo("0.0")));
+                .then().statusCode(201)
+                .extract().path("id");
 
         // WHEN: On supprime le client
         given()
@@ -236,12 +279,41 @@ class ClientDeletionIT {
                 .then()
                 .statusCode(204);
 
+        LocalDateTime deletionTime = LocalDateTime.now();
+
         // THEN: Le client n'existe plus
         given()
                 .when()
                 .get(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(404);
+
+        // THEN: Les contrats expires ne doivent PAS avoir change d'endDate (aucune modification)
+        String endDate1Str = given()
+                .when()
+                .get(ContractEndpoints.CONTRACT_BY_ID, contract1Id)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(contract1Id))
+                .extract().path("endDate");
+
+        assertThat(endDate1Str).isNotNull();
+        LocalDateTime endDate1 = LocalDateTime.parse(endDate1Str);
+        assertThat(endDate1).isCloseTo(expiredEndDate1, within(1, ChronoUnit.SECONDS));
+        assertThat(endDate1).isBefore(deletionTime.minusMonths(2));
+
+        String endDate2Str = given()
+                .when()
+                .get(ContractEndpoints.CONTRACT_BY_ID, contract2Id)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(contract2Id))
+                .extract().path("endDate");
+
+        assertThat(endDate2Str).isNotNull();
+        LocalDateTime endDate2 = LocalDateTime.parse(endDate2Str);
+        assertThat(endDate2).isCloseTo(expiredEndDate2, within(1, ChronoUnit.SECONDS));
+        assertThat(endDate2).isBefore(deletionTime.minusHours(1));
     }
 
     @Test
@@ -270,6 +342,7 @@ class ClientDeletionIT {
                 .statusCode(201)
                 .extract().path("id");
 
+        // Contrat actif indefiniment
         String contractPayload = """
                 {
                     "startDate": "2025-01-01T00:00:00",
@@ -278,13 +351,14 @@ class ClientDeletionIT {
                 }
                 """;
 
-        given()
+        String contractId = given()
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", clientId)
                 .then()
-                .statusCode(201);
+                .statusCode(201)
+                .extract().path("id");
 
         // WHEN: On supprime le client Company
         given()
@@ -293,12 +367,27 @@ class ClientDeletionIT {
                 .then()
                 .statusCode(204);
 
-        // THEN
+        LocalDateTime deletionTime = LocalDateTime.now();
+
+        // THEN: Le client n'existe plus
         given()
                 .when()
                 .get(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(404);
+
+        // THEN: Le contrat actif est ferme (endDate = now)
+        String endDateStr = given()
+                .when()
+                .get(ContractEndpoints.CONTRACT_BY_ID, contractId)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(contractId))
+                .extract().path("endDate");
+
+        assertThat(endDateStr).isNotNull();
+        LocalDateTime endDate = LocalDateTime.parse(endDateStr);
+        assertThat(endDate).isCloseTo(deletionTime, within(10, ChronoUnit.SECONDS));
     }
 }
 

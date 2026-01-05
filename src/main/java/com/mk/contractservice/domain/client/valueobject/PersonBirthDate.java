@@ -10,6 +10,8 @@ import org.jspecify.annotations.Nullable;
 import java.time.LocalDate;
 import java.util.function.Predicate;
 
+import static com.mk.contractservice.domain.shared.Assert.notNull;
+
 @Value
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class PersonBirthDate {
@@ -29,7 +31,7 @@ public class PersonBirthDate {
     }
 
     public static PersonBirthDate reconstituteFromDatabase(final LocalDate trustedValue) {
-        return ValueObjectUtils.guardNotNull(trustedValue, PersonBirthDate::new, PersonBirthDate.class);
+        return new PersonBirthDate(notNull(trustedValue));
     }
 
     private static LocalDate normalize(@Nullable final LocalDate rawValue) {

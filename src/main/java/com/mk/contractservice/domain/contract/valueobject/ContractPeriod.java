@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.contract.valueobject;
 
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
+import com.mk.contractservice.domain.contract.specification.ActiveContractSpecification;
 import com.mk.contractservice.domain.shared.ValueObjectUtils;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -9,6 +10,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.function.BiPredicate;
+
+import static com.mk.contractservice.domain.shared.Assert.notNull;
 
 @Value
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -38,7 +41,7 @@ public class ContractPeriod {
     }
 
     public static ContractPeriod reconstituteFromDatabase(final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
-        return ValueObjectUtils.guardNotNull(startDate, endDate, ContractPeriod::new, ContractPeriod.class);
+        return new ContractPeriod(notNull(startDate), endDate);
     }
 
     private static LocalDateTime normalize(final LocalDateTime startDate) {

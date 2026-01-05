@@ -36,11 +36,12 @@ public interface ContractJpaRepository extends JpaRepository<ContractJpaEntity, 
     @Modifying
     @Query("""
             UPDATE ContractJpaEntity c
-            SET c.endDate = CURRENT_TIMESTAMP, c.lastModified = CURRENT_TIMESTAMP
+            SET c.endDate = :closureDate, c.lastModified = :closureDate
             WHERE c.clientId = :clientId
-              AND (c.endDate IS NULL OR c.endDate > CURRENT_TIMESTAMP)
+              AND (c.endDate IS NULL OR c.endDate > :closureDate)
             """)
-    void closeAllActiveByClientId(@Param("clientId") UUID clientId);
+    int closeAllActiveByClientId(@Param("clientId") UUID clientId,
+                                 @Param("closureDate") LocalDateTime closureDate);
 
 
     @Query("""

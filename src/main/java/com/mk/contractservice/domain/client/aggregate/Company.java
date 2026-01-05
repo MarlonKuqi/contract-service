@@ -1,6 +1,5 @@
 package com.mk.contractservice.domain.client.aggregate;
 
-import com.mk.contractservice.domain.client.exception.InvalidClientException;
 import com.mk.contractservice.domain.client.valueobject.ClientEmail;
 import com.mk.contractservice.domain.client.valueobject.ClientName;
 import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
@@ -13,6 +12,8 @@ import org.jspecify.annotations.NullUnmarked;
 import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
+
+import static com.mk.contractservice.domain.shared.Assert.notNull;
 
 @Getter
 @EqualsAndHashCode(callSuper = true)
@@ -29,11 +30,7 @@ public final class Company extends Client {
             @Nullable final CompanyIdentifier companyIdentifier
     ) {
         super(id, name, email, phone);
-        this.companyIdentifier = companyIdentifier;
-    }
-
-    private static CompanyIdentifier guardCompanyFields(@Nullable final CompanyIdentifier companyIdentifier) {
-        return guardNotNull(companyIdentifier, InvalidClientException::forNullCompanyIdentifier);
+        this.companyIdentifier = notNull(companyIdentifier);
     }
 
     public static Company of(
@@ -43,10 +40,10 @@ public final class Company extends Client {
             @Nullable final CompanyIdentifier companyIdentifier
     ) {
         return builder()
-                .name(guardName(name))
-                .email(guardEmail(email))
-                .phone(guardPhone(phone))
-                .companyIdentifier(guardCompanyFields(companyIdentifier))
+                .name(notNull(name))
+                .email(notNull(email))
+                .phone(notNull(phone))
+                .companyIdentifier(notNull(companyIdentifier))
                 .build();
     }
 
@@ -57,38 +54,41 @@ public final class Company extends Client {
             @Nullable final ClientPhoneNumber phone,
             @Nullable final CompanyIdentifier companyIdentifier
     ) {
-        final Class<Company> currentClass = Company.class;
         return builder()
-                .id(guardNotNull(id, "id", currentClass))
-                .name(guardNotNull(name, "name", currentClass))
-                .email(guardNotNull(email, "email", currentClass))
-                .phone(guardNotNull(phone, "phone", currentClass))
-                .companyIdentifier(guardNotNull(companyIdentifier, "companyIdentifier", currentClass))
+                .id(notNull(id))
+                .name(notNull(name))
+                .email(notNull(email))
+                .phone(notNull(phone))
+                .companyIdentifier(notNull(companyIdentifier))
                 .build();
     }
 
     @Override
-    public Company changeCoreFields(@Nullable String name, @Nullable String email, @Nullable String phoneNumber) {
+    public Company changeCoreFields(
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phoneNumber
+    ) {
         return toBuilder()
-                .name(ClientName.of(name))
-                .email(ClientEmail.of(email))
-                .phone(ClientPhoneNumber.of(phoneNumber))
+                .name(notNull(name))
+                .email(notNull(email))
+                .phone(notNull(phoneNumber))
                 .build();
     }
 
     @Override
-    public Company changeName(@Nullable String name) {
-        return toBuilder().name(ClientName.of(name)).build();
+    public Company changeName(@Nullable final ClientName name) {
+        return toBuilder().name(notNull(name)).build();
     }
 
     @Override
-    public Company changeEmail(@Nullable String email) {
-        return toBuilder().email(ClientEmail.of(email)).build();
+    public Company changeEmail(@Nullable final ClientEmail email) {
+        return toBuilder().email(notNull(email)).build();
     }
 
     @Override
-    public Company changePhone(@Nullable String phoneNumber) {
-        return toBuilder().phone(ClientPhoneNumber.of(phoneNumber)).build();
+    public Company changePhone(@Nullable ClientPhoneNumber phoneNumber) {
+        return toBuilder().phone(notNull(phoneNumber)).build();
     }
 
     public static CompanyBuilder builder() {

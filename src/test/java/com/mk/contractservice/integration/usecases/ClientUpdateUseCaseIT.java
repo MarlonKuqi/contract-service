@@ -36,10 +36,6 @@ class ClientUpdateUseCaseIT {
         RestAssured.port = port;
     }
 
-    // ========================================
-    // UPDATE PERSON
-    // ========================================
-
     @Nested
     @DisplayName("Update Person Client")
     class UpdatePerson {
@@ -99,9 +95,7 @@ class ClientUpdateUseCaseIT {
         @Test
         @DisplayName("CRITICAL: Birthdate is IMMUTABLE - Cannot be updated (requirement from sujet.txt)")
         void shouldNotUpdateBirthDateWhenUpdatingPerson() {
-            // ========================================
-            // GIVEN: Person with birthdate = 1990-05-15
-            // ========================================
+            // GIVEN
             String createPayload = """
                     {
                         "type": "PERSON",
@@ -122,9 +116,7 @@ class ClientUpdateUseCaseIT {
                     .body("birthDate", equalTo("1990-05-15"))
                     .extract().path("id");
 
-            // ========================================
             // WHEN: Try to update with different birthdate
-            // ========================================
             String updatePayloadWithNewBirthDate = """
                     {
                         "type": "PERSON",
@@ -143,11 +135,7 @@ class ClientUpdateUseCaseIT {
                     .then()
                     .statusCode(anyOf(is(204), is(400), is(422)));  // Success or validation error
 
-            // ========================================
             // THEN: Birthdate MUST remain unchanged (1990-05-15)
-            // ========================================
-            // This is a CRITICAL business rule from sujet.txt:
-            // "Update all the fields, EXCEPT birthdate and company identifier"
             given()
                     .when()
                     .get(ClientEndpoints.CLIENT_BY_ID, clientId)
@@ -390,18 +378,15 @@ class ClientUpdateUseCaseIT {
                     .then()
                     .statusCode(anyOf(is(204), is(400), is(422)));  // Success or validation error
 
-            // ========================================
             // THEN: Company identifier MUST remain unchanged (CHE-123.456.789)
-            // ========================================
-            // This is a CRITICAL business rule from sujet.txt:
-            // "Update all the fields, EXCEPT birthdate and company identifier"
+
             given()
                     .when()
                     .get(ClientEndpoints.CLIENT_BY_ID, clientId)
                     .then()
                     .statusCode(200)
                     .body("name", anyOf(equalTo("Immutable ID Corp Updated"), equalTo("Immutable ID Corp")))
-                    .body("companyIdentifier", equalTo(originalIdentifier));  // ← CRITICAL: Identifier MUST NOT change
+                    .body("companyIdentifier", equalTo(originalIdentifier));
         }
 
         @Test

@@ -79,11 +79,10 @@ public class SearchContractController {
     @GetMapping(ContractEndpoints.PATH_VAR_CONTRACT_ID)
     public ResponseEntity<ContractResponse> getById(
             @PathVariable final UUID contractId,
-            @RequestParam final UUID clientId,
             final Locale locale
     ) {
         final Contract contract = getContractById.execute(
-                new GetContractById.Query(contractId, clientId)
+                new GetContractById.Query(contractId)
         );
 
         final ContractResponse response = contractMapper.toResponse(contract);

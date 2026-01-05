@@ -11,10 +11,6 @@ public class InvalidClientEmailException extends DomainValidationException {
         super(message, DEFAULT_CODE);
     }
 
-    public static InvalidClientEmailException forNull() {
-        return new InvalidClientEmailException("Email must not be null");
-    }
-
     public static InvalidClientEmailException forBlank() {
         return new InvalidClientEmailException("Email must not be blank");
     }

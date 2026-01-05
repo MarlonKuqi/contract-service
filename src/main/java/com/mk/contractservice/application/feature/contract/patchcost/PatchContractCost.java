@@ -3,6 +3,7 @@ package com.mk.contractservice.application.feature.contract.patchcost;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;
 import com.mk.contractservice.domain.contract.service.ContractService;
+import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
@@ -44,7 +45,7 @@ public interface PatchContractCost {
                     command.contractId()
             );
 
-            final Contract updatedContract = contract.changeCost(command.newCostAmount());
+            final Contract updatedContract = contract.changeCost(ContractCost.of(command.newCostAmount()));
 
             return contractRepository.save(updatedContract);
         }

@@ -1,8 +1,7 @@
 package com.mk.contractservice.infrastructure.persistence.contract.assembler;
 
 import com.mk.contractservice.domain.contract.aggregate.Contract;
-import com.mk.contractservice.domain.contract.valueobject.ContractCost;
-import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
+import com.mk.contractservice.domain.contract.factory.ContractFactory;
 import com.mk.contractservice.infrastructure.persistence.contract.entity.ContractJpaEntity;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -24,11 +23,12 @@ public class ContractAssembler {
     }
 
     public Contract toDomain(final ContractJpaEntity entity) {
-        return Contract.reconstituteFromDatabase(
+        return ContractFactory.buildFromDatabase(
                 entity.getId(),
                 entity.getClientId(),
-                ContractPeriod.reconstituteFromDatabase(entity.getStartDate(), entity.getEndDate()),
-                ContractCost.reconstituteFromDatabase(entity.getCostAmount())
+                entity.getStartDate(),
+                entity.getEndDate(),
+                entity.getCostAmount()
         );
     }
 

@@ -3,6 +3,10 @@ package com.mk.contractservice.application.feature.client.update;
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
 import com.mk.contractservice.domain.client.service.ClientService;
+import com.mk.contractservice.domain.client.service.ClientValidationService;
+import com.mk.contractservice.domain.client.valueobject.ClientEmail;
+import com.mk.contractservice.domain.client.valueobject.ClientName;
+import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
@@ -37,15 +41,23 @@ public interface UpdateClient {
 
         ClientRepository clientRepository;
         ClientService clientService;
+        ClientValidationService clientValidationService;
 
         @Override
         public Client execute(final Command command) {
             final Client client = clientService.findClientById(command.clientId());
-
+            final String commandEmail = command.email();
+            if (!Objects.equals(client.getEmail().getValue(), commandEmail)) {
+                clientValidationService.ensureEmailIsUnique(commandEmail);
+            }
+            final String commandPhoneNumber = command.phoneNumber();
+            if (!Objects.equals(client.getPhone().getValue(), commandPhoneNumber)) {
+                clientValidationService.ensurePhoneIsUnique(commandPhoneNumber);
+            }
             final Client updatedClient = client.changeCoreFields(
-                    command.name(),
-                    command.email(),
-                    command.phoneNumber()
+                    ClientName.of(command.name()),
+                    ClientEmail.of(commandEmail),
+                    ClientPhoneNumber.of(commandPhoneNumber)
             );
 
             return clientRepository.save(updatedClient);

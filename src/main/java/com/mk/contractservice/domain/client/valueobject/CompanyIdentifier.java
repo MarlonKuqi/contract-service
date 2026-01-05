@@ -9,6 +9,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.function.Predicate;
 
+import static com.mk.contractservice.domain.shared.Assert.notNull;
+
 @Value
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CompanyIdentifier {
@@ -30,7 +32,7 @@ public class CompanyIdentifier {
     }
 
     public static CompanyIdentifier reconstituteFromDatabase(final String trustedValue) {
-        return ValueObjectUtils.guardNotNull(trustedValue, CompanyIdentifier::new, CompanyIdentifier.class);
+        return new CompanyIdentifier(notNull(trustedValue));
     }
 
     private static String normalize(@Nullable final String rawValue) {

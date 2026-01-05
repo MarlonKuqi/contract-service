@@ -60,10 +60,6 @@ class ContractSumUseCaseIT {
         testClient = clientRepository.save(testClient);
     }
 
-    // ========================================
-    // CORE BUSINESS RULES
-    // ========================================
-
     @Nested
     @DisplayName("Sum Calculation Rules")
     class SumCalculationRules {
@@ -129,10 +125,7 @@ class ContractSumUseCaseIT {
                     .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then().statusCode(201);
 
-            // ========================================
-            // WHEN: Request sum of active contracts
-            // ========================================
-
+            // WHEN
             // THEN: Sum should be 3000.00 (1000 + 2000)
             // Expired contracts (500 + 700) are NOT included
             given()

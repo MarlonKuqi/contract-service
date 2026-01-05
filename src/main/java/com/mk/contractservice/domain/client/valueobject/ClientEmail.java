@@ -10,13 +10,15 @@ import org.jspecify.annotations.Nullable;
 import java.util.Locale;
 import java.util.function.Predicate;
 
+import static com.mk.contractservice.domain.shared.Assert.notNull;
+
 @Value
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ClientEmail {
 
     String value;
 
-    private static final int MAX_LENGTH = 254;
+    public static final int MAX_LENGTH = 254;
     private static final String EMAIL_PATTERN = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
 
     public static final Predicate<String> IS_INVALID_LENGTH =
@@ -36,7 +38,7 @@ public class ClientEmail {
     }
 
     public static ClientEmail reconstituteFromDatabase(final String trustedValue) {
-        return ValueObjectUtils.guardNotNull(trustedValue, ClientEmail::new, ClientEmail.class);
+        return new ClientEmail(notNull(trustedValue));
     }
 
     private static String normalize(@Nullable final String rawValue) {

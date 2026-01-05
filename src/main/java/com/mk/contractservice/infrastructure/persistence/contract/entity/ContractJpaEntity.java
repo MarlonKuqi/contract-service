@@ -1,5 +1,6 @@
 package com.mk.contractservice.infrastructure.persistence.contract.entity;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -36,13 +37,15 @@ public class ContractJpaEntity {
     @Column(name = "version", nullable = false)
     Long version = 0L;
 
+    @Nullable
     @Column(name = "client_id")
     UUID clientId;
 
     @Column(name = "start_date", nullable = false)
     LocalDateTime startDate;
 
-    @Column(name = "end_date", nullable = false)
+    @Nullable
+    @Column(name = "end_date")
     LocalDateTime endDate;
 
     @Column(name = "cost_amount", nullable = false, precision = 19, scale = 2)
@@ -57,9 +60,9 @@ public class ContractJpaEntity {
     LocalDateTime lastModified;
 
     public ContractJpaEntity(
-            final UUID clientId,
+            @Nullable final UUID clientId,
             final LocalDateTime startDate,
-            final LocalDateTime endDate,
+            @Nullable final LocalDateTime endDate,
             final BigDecimal costAmount
     ) {
         this.clientId = clientId;

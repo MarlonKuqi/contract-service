@@ -1,8 +1,8 @@
 package com.mk.contractservice.application.feature.contract.search;
 
-import com.mk.contractservice.domain.client.service.ClientValidationService;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
-import com.mk.contractservice.domain.contract.service.ContractService;
+import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
+import com.mk.contractservice.domain.contract.repository.ContractRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
@@ -13,10 +13,9 @@ import java.util.UUID;
 
 public interface GetContractById {
 
-    record Query(UUID contractId, UUID clientId) {
+    record Query(UUID contractId) {
         public Query {
             Objects.requireNonNull(contractId, "Contract ID cannot be null");
-            Objects.requireNonNull(clientId, "Client ID cannot be null");
         }
     }
 
@@ -28,16 +27,12 @@ public interface GetContractById {
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements GetContractById {
 
-        ClientValidationService clientValidationService;
-        ContractService contractService;
+        ContractRepository contractRepository;
 
         @Override
         public Contract execute(final Query query) {
-            clientValidationService.ensureClientExists(query.clientId());
-            return contractService.getContractForClient(
-                    query.clientId(),
-                    query.contractId()
-            );
+            return contractRepository.findById(query.contractId())
+                    .orElseThrow(() -> new ContractNotFoundException(query.contractId()));
         }
     }
 }

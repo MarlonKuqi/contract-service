@@ -1,8 +1,8 @@
 package com.mk.contractservice.integration;
 
-import com.mk.contractservice.domain.contract.service.ContractService;
-import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
+import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
+import com.mk.contractservice.infrastructure.web.contract.shared.ContractEndpoints;
 import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -125,12 +125,12 @@ class OptimisticLockingIT {
                 .body("""
                         {
                             "startDate": "2025-01-01T00:00:00",
-                            "endDate": "2026-01-01T00:00:00",
+                            "endDate": "2036-01-01T00:00:00",
                             "costAmount": "1000.00"
                         }
                         """)
                 .when()
-                .post("/v2/contracts")
+                .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
                 .extract().path("id");
@@ -146,14 +146,14 @@ class OptimisticLockingIT {
                     .contentType(ContentType.JSON)
                     .body(updatePayload)
                     .queryParam("clientId", clientId)
-                    .patch("/v2/contracts/{contractId}/cost", contractId)
+                    .patch(ContractEndpoints.CONTRACT_COST, contractId)
                     .then()
                     .statusCode(204);
         }
 
         given()
                 .queryParam("clientId", clientId)
-                .get("/v2/contracts/{contractId}", contractId)
+                .get(ContractEndpoints.CONTRACT_BY_ID, contractId)
                 .then()
                 .statusCode(200)
                 .body("costAmount", equalTo(1500.00f));

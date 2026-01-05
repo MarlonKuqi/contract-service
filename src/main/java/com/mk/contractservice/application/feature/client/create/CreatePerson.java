@@ -43,15 +43,16 @@ public interface CreatePerson {
         @Override
         public Person execute(final Command command) {
             clientValidationService.ensureEmailIsUnique(command.email());
+            clientValidationService.ensurePhoneIsUnique(command.phoneNumber());
 
-            final Person person = PersonFactory.create(
+            final Person person = PersonFactory.createFromCommand(
                     command.name(),
                     command.email(),
                     command.phoneNumber(),
                     command.birthDate()
             );
 
-            return (Person) clientRepository.save(person);
+            return clientRepository.save(person);
         }
     }
 }

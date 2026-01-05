@@ -1,7 +1,8 @@
 package com.mk.contractservice.domain.client.service;
 
-import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
+import com.mk.contractservice.domain.client.exception.EmailAlreadyExistsException;
+import com.mk.contractservice.domain.client.exception.PhoneAlreadyExistsException;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import lombok.AccessLevel;
@@ -22,7 +23,17 @@ public class ClientValidationService {
     @Transactional(readOnly = true)
     public void ensureEmailIsUnique(final String email) {
         if (clientRepository.existsByEmail(email)) {
-            throw new ClientAlreadyExistsException("Client already exists", email);
+            throw new EmailAlreadyExistsException("A Client with email '" + email + "' already exists", email);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public void ensurePhoneIsUnique(final String phoneNumber) {
+        if (clientRepository.existsByPhoneNumber(phoneNumber)) {
+            throw new PhoneAlreadyExistsException(
+                    "A client with phone number '" + phoneNumber + "' already exists",
+                    phoneNumber
+            );
         }
     }
 

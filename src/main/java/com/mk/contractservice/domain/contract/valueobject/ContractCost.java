@@ -10,6 +10,8 @@ import org.jspecify.annotations.Nullable;
 import java.math.BigDecimal;
 import java.util.function.Predicate;
 
+import static com.mk.contractservice.domain.shared.Assert.notNull;
+
 @Value
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ContractCost {
@@ -22,7 +24,7 @@ public class ContractCost {
     public static final Predicate<BigDecimal> HAS_INVALID_SCALE = amount -> amount.scale() > 2;
 
     public static ContractCost reconstituteFromDatabase(final BigDecimal trustedValue) {
-        return ValueObjectUtils.guardNotNull(trustedValue, ContractCost::new, ContractCost.class);
+        return new ContractCost(notNull(trustedValue));
     }
 
     public static ContractCost of(@Nullable final BigDecimal rawValue) {
