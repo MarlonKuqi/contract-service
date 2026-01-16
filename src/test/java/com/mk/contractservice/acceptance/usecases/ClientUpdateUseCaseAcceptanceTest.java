@@ -1,7 +1,8 @@
-package com.mk.contractservice.integration.usecases;
+package com.mk.contractservice.acceptance.usecases;
 
+import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientEndpoints;
-import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +26,7 @@ import static org.hamcrest.Matchers.is;
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @DisplayName("UC03: Update Client Use Case - Integration Tests")
-class ClientUpdateUseCaseIT {
+class ClientUpdateUseCaseAcceptanceTest {
 
     @LocalServerPort
     private int port;
@@ -44,15 +45,16 @@ class ClientUpdateUseCaseIT {
         @DisplayName("Should successfully update name, email, and phone for Person")
         void shouldUpdatePersonCommonFields() {
             // GIVEN: A Person client
+            String uniqueId = UUID.randomUUID().toString().substring(0, 8);
             String createPayload = """
                     {
                         "type": "PERSON",
                         "name": "Original Name",
                         "email": "original.%s@example.com",
-                        "phone": "+41791111111",
+                        "phone": "+41795000001",
                         "birthDate": "1988-04-20"
                     }
-                    """.formatted(UUID.randomUUID().toString().substring(0, 8));
+                    """.formatted(uniqueId);
 
             String clientId = given()
                     .contentType(ContentType.JSON)
@@ -96,15 +98,20 @@ class ClientUpdateUseCaseIT {
         @DisplayName("CRITICAL: Birthdate is IMMUTABLE - Cannot be updated (requirement from sujet.txt)")
         void shouldNotUpdateBirthDateWhenUpdatingPerson() {
             // GIVEN
-            String createPayload = """
+            String uniqueId1 = UUID.randomUUID().toString().substring(0, 8);
+            String uniqueId2 = UUID.randomUUID().toString().substring(0, 8);
+            String phone1 = TestDataHelper.randomSwissPhoneNumber();
+            String phone2 = TestDataHelper.randomSwissPhoneNumber();
+
+            String createPayload = String.format("""
                     {
                         "type": "PERSON",
                         "name": "Immutable Birth",
                         "email": "immutable.birth.%s@example.com",
-                        "phone": "+41791111111",
+                        "phone": "%s",
                         "birthDate": "1990-05-15"
                     }
-                    """.formatted(UUID.randomUUID().toString().substring(0, 8));
+                    """, uniqueId1, phone1);
 
             String clientId = given()
                     .contentType(ContentType.JSON)
@@ -117,15 +124,15 @@ class ClientUpdateUseCaseIT {
                     .extract().path("id");
 
             // WHEN: Try to update with different birthdate
-            String updatePayloadWithNewBirthDate = """
+            String updatePayloadWithNewBirthDate = String.format("""
                     {
                         "type": "PERSON",
                         "name": "Immutable Birth Updated",
                         "email": "immutable.updated.%s@example.com",
-                        "phone": "+41792222222",
+                        "phone": "%s",
                         "birthDate": "1995-12-25"
                     }
-                    """.formatted(UUID.randomUUID().toString().substring(0, 8));
+                    """, uniqueId2, phone2);
 
             given()
                     .contentType(ContentType.JSON)
@@ -149,15 +156,18 @@ class ClientUpdateUseCaseIT {
         @DisplayName("Should reject update with invalid email format")
         void shouldRejectInvalidEmailWhenUpdatingPerson() {
             // GIVEN: A Person client
-            String createPayload = """
+            String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+            String phone = TestDataHelper.randomSwissPhoneNumber();
+
+            String createPayload = String.format("""
                     {
                         "type": "PERSON",
                         "name": "Test Person",
                         "email": "test.person.%s@example.com",
-                        "phone": "+41791111111",
+                        "phone": "%s",
                         "birthDate": "1990-01-01"
                     }
-                    """.formatted(UUID.randomUUID().toString().substring(0, 8));
+                    """, uniqueId, phone);
 
             String clientId = given()
                     .contentType(ContentType.JSON)
@@ -169,14 +179,14 @@ class ClientUpdateUseCaseIT {
                     .extract().path("id");
 
             // WHEN: Try to update with invalid email
-            String updatePayloadInvalidEmail = """
+            String updatePayloadInvalidEmail = String.format("""
                     {
                         "type": "PERSON",
                         "name": "Test Person",
                         "email": "invalid-email-format",
-                        "phone": "+41791111111"
+                        "phone": "%s"
                     }
-                    """;
+                    """, phone);
 
             // THEN: Should reject with validation error
             given()
@@ -192,15 +202,16 @@ class ClientUpdateUseCaseIT {
         @DisplayName("Should reject update with invalid phone format")
         void shouldRejectInvalidPhoneWhenUpdatingPerson() {
             // GIVEN: A Person client
-            String createPayload = """
+            String phone = TestDataHelper.randomSwissPhoneNumber();
+            String createPayload = String.format("""
                     {
                         "type": "PERSON",
                         "name": "Test Person",
                         "email": "test.person.%s@example.com",
-                        "phone": "+41791111111",
+                        "phone": "%s",
                         "birthDate": "1990-01-01"
                     }
-                    """.formatted(UUID.randomUUID().toString().substring(0, 8));
+                    """, UUID.randomUUID().toString().substring(0, 8), phone);
 
             String clientId = given()
                     .contentType(ContentType.JSON)
@@ -212,14 +223,14 @@ class ClientUpdateUseCaseIT {
                     .extract().path("id");
 
             // WHEN: Try to update with invalid phone
-            String updatePayloadInvalidPhone = """
+            String updatePayloadInvalidPhone = String.format("""
                     {
                         "type": "PERSON",
                         "name": "Test Person",
                         "email": "test.person.%s@example.com",
                         "phone": "invalid-phone"
                     }
-                    """.formatted(UUID.randomUUID().toString().substring(0, 8));
+                    """, UUID.randomUUID().toString().substring(0, 8));
 
             // THEN: Should reject with validation error
             given()
@@ -238,14 +249,15 @@ class ClientUpdateUseCaseIT {
             UUID fakeClientId = UUID.randomUUID();
 
             // WHEN: Try to update
-            String updatePayload = """
+            String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+            String updatePayload = String.format("""
                     {
                         "type": "PERSON",
                         "name": "Test Person",
                         "email": "test.%s@example.com",
-                        "phone": "+41791111111"
+                        "phone": "%s"
                     }
-                    """.formatted(UUID.randomUUID().toString().substring(0, 8));
+                    """, uniqueId, TestDataHelper.randomSwissPhoneNumber());
 
             // THEN: Should return 404
             given()
@@ -272,16 +284,18 @@ class ClientUpdateUseCaseIT {
             // GIVEN: A Company client
             String uniqueId = UUID.randomUUID().toString().substring(0, 8);
             String companyIdPart = uniqueId.substring(0, 6);
+            String phone1 = TestDataHelper.randomSwissPhoneNumber();
+            String phone2 = TestDataHelper.randomSwissPhoneNumber();
 
             String createPayload = String.format("""
                     {
                         "type": "COMPANY",
                         "name": "Original Tech SA",
                         "email": "original.tech.%s@example.com",
-                        "phone": "+41791111111",
+                        "phone": "%s",
                         "companyIdentifier": "CHE-%s.222.333"
                     }
-                    """, uniqueId, companyIdPart);
+                    """, uniqueId, phone1, companyIdPart);
 
             String clientId = given()
                     .contentType(ContentType.JSON)
@@ -301,9 +315,9 @@ class ClientUpdateUseCaseIT {
                         "type": "COMPANY",
                         "name": "Updated Tech SA",
                         "email": "updated.tech.%s@example.com",
-                        "phone": "+41792222222"
+                        "phone": "%s"
                     }
-                    """, updateUniqueId);
+                    """, updateUniqueId, phone2);
 
             given()
                     .contentType(ContentType.JSON)
@@ -321,7 +335,7 @@ class ClientUpdateUseCaseIT {
                     .statusCode(200)
                     .body("name", equalTo("Updated Tech SA"))
                     .body("email", containsString("updated.tech"))
-                    .body("phone", equalTo("+41792222222"))
+                    .body("phone", equalTo(phone2))
                     .body("companyIdentifier", equalTo(originalIdentifier));
         }
 
@@ -333,16 +347,18 @@ class ClientUpdateUseCaseIT {
             // ========================================
             String uniqueId = UUID.randomUUID().toString().substring(0, 8);
             String originalIdentifier = "CHE-123.456.789";
+            String phoneNumber1 = TestDataHelper.randomSwissPhoneNumber();
+            String phoneNumber2 = TestDataHelper.randomSwissPhoneNumber();
 
             String createPayload = String.format("""
                     {
                         "type": "COMPANY",
                         "name": "Immutable ID Corp",
                         "email": "immutable.id.%s@example.com",
-                        "phone": "+41791111111",
+                        "phone": "%s",
                         "companyIdentifier": "%s"
                     }
-                    """, uniqueId, originalIdentifier);
+                    """, uniqueId, phoneNumber1, originalIdentifier);
 
             String clientId = given()
                     .contentType(ContentType.JSON)
@@ -365,10 +381,10 @@ class ClientUpdateUseCaseIT {
                         "type": "COMPANY",
                         "name": "Immutable ID Corp Updated",
                         "email": "immutable.updated.%s@example.com",
-                        "phone": "+41792222222",
+                        "phone": "%s",
                         "companyIdentifier": "%s"
                     }
-                    """, updateUniqueId, newIdentifier);
+                    """, updateUniqueId, phoneNumber2, newIdentifier);
 
             given()
                     .contentType(ContentType.JSON)
@@ -396,14 +412,15 @@ class ClientUpdateUseCaseIT {
             UUID fakeClientId = UUID.randomUUID();
 
             // WHEN: Try to update
-            String updatePayload = """
+            String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+            String updatePayload = String.format("""
                     {
                         "type": "COMPANY",
                         "name": "Test Company",
                         "email": "test.%s@example.com",
-                        "phone": "+41791111111"
+                        "phone": "%s"
                     }
-                    """.formatted(UUID.randomUUID().toString().substring(0, 8));
+                    """, uniqueId, TestDataHelper.randomSwissPhoneNumber());
 
             // THEN: Should return 404
             given()

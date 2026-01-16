@@ -6,7 +6,6 @@ import com.mk.contractservice.infrastructure.persistence.contract.assembler.Cont
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.jspecify.annotations.Nullable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -40,13 +39,10 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, @Nullable final Optional<LocalDateTime> updatedSince, final Pageable pageable) {
-        if (updatedSince.isPresent()) {
-            return contractJpaRepository.findActiveByClientIdAndUpdatedAfter(clientId, updatedSince.get(), pageable)
-                    .map(assembler::toDomain);
-        }
-        return contractJpaRepository.findActiveByClientId(clientId, pageable)
-                    .map(assembler::toDomain);
+    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, final Optional<LocalDateTime> updatedSince, final Pageable pageable) {
+        return updatedSince
+                .map(localDateTime -> contractJpaRepository.findActiveByClientIdAndUpdatedAfter(clientId, localDateTime, pageable).map(assembler::toDomain))
+                .orElseGet(() -> contractJpaRepository.findActiveByClientId(clientId, pageable).map(assembler::toDomain));
     }
 
 

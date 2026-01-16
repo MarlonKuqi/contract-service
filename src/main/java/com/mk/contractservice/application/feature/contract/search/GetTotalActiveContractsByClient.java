@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 
-public interface SumActiveContractsByClient {
+public interface GetTotalActiveContractsByClient {
 
     record Query(UUID clientId) {
         public Query {
@@ -25,7 +25,7 @@ public interface SumActiveContractsByClient {
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
     @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-    class Handler implements SumActiveContractsByClient {
+    class Handler implements GetTotalActiveContractsByClient {
 
         ClientValidationService clientValidationService;
         ContractService contractService;

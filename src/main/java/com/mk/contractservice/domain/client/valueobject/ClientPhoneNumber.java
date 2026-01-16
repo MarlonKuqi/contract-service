@@ -40,7 +40,7 @@ public class ClientPhoneNumber {
     private static final Predicate<String> IS_GERMAN_PHONE =
             phone -> (phone.length() == 13 || phone.length() == 14) && phone.matches(GERMAN_PREFIX.replace("+", "\\+") + "\\d{10,11}");
 
-    private static final Predicate<String> IS_INVALID_PHONE = (rawValue) ->
+    private static final Predicate<String> IS_INVALID_PHONE = rawValue ->
             Stream.of(IS_SWISS_PHONE, IS_FRENCH_PHONE, IS_ITALIAN_PHONE, IS_GERMAN_PHONE)
                     .noneMatch(p -> p.test(rawValue));
 

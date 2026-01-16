@@ -1,10 +1,11 @@
-package com.mk.contractservice.integration;
+package com.mk.contractservice.acceptance;
 
+import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientEndpoints;
 import com.mk.contractservice.infrastructure.web.contract.shared.ContractEndpoints;
-import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +33,7 @@ import static org.hamcrest.Matchers.startsWith;
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @DisplayName("Company Client Lifecycle Scenarios - Integration Tests")
-class CompanyLifecycleIT {
+class CompanyLifecycleAcceptanceTest {
 
     @LocalServerPort
     private int port;
@@ -103,7 +104,7 @@ class CompanyLifecycleIT {
                     "type": "COMPANY",
                     "name": "Bad Company",
                     "email": "%s",
-                    "phone": "+41791234567",
+                    "phone": "+41797000003",
                     "companyIdentifier": ""
                 }
                 """, uniqueEmail);
@@ -120,13 +121,14 @@ class CompanyLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Missing required company identifier should be rejected")
     void shouldRejectMissingCompanyIdentifier() {
-        String uniqueEmail = "incomplete." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+        String uniqueEmail = "incomplete." + uniqueId + "@example.com";
         String missingIdentifierPayload = String.format("""
                 {
                     "type": "COMPANY",
                     "name": "Incomplete Company",
                     "email": "%s",
-                    "phone": "+41791234567"
+                    "phone": "+41797000001"
                 }
                 """, uniqueEmail);
 
@@ -277,17 +279,18 @@ class CompanyLifecycleIT {
         LocalDateTime now = LocalDateTime.now();
         String contractPayload = String.format("""
                 {
+                    "clientId": "%s",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "10000.00"
                 }
-                """, now.minusDays(5));
+                """, clientId, now.minusDays(5));
 
         given()
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", clientId)
+                .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201);
 
@@ -422,26 +425,28 @@ class CompanyLifecycleIT {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         String contract1 = String.format("""
                 {
+                    "clientId": "%s",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "5000.00"
                 }
-                """, now.minusDays(30), now.plusMonths(12));
+                """, clientId, now.minusDays(30), now.plusMonths(12));
 
         String contract2 = String.format("""
                 {
+                    "clientId": "%s",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "7500.50"
                 }
-                """, now.minusDays(10));
+                """, clientId, now.minusDays(10));
 
-        given().contentType(ContentType.JSON).body(contract1).post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", clientId).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(contract2).post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", clientId).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract1).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
+        given().contentType(ContentType.JSON).body(contract2).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", clientId)
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", clientId)
                 .then()
                 .statusCode(200)
                 .body(equalTo("12500.50"));
@@ -451,15 +456,16 @@ class CompanyLifecycleIT {
     @DisplayName("VALIDATION: Should validate company email format correctly")
     void shouldValidateCompanyEmailFormat() {
         String uniqueId1 = UUID.randomUUID().toString().substring(0, 8);
+        String phoneNumber1 = TestDataHelper.randomSwissPhoneNumber();
         String validPayload = String.format("""
                 {
                     "type": "COMPANY",
                     "name": "Valid Email Company",
                     "email": "contact+sales.%s@company-name.co.uk",
-                    "phone": "+41791234567",
+                    "phone": "%s",
                     "companyIdentifier": "CHE-%s.456.789"
                 }
-                """, uniqueId1, uniqueId1);
+                """, uniqueId1, phoneNumber1, uniqueId1);
 
         given()
                 .contentType(ContentType.JSON)
@@ -478,15 +484,16 @@ class CompanyLifecycleIT {
 
         for (String invalidEmail : invalidEmails) {
             String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+            String phoneNumber = "+41791234567";
             String invalidPayload = String.format("""
                     {
                         "type": "COMPANY",
                     "name": "Invalid Email Company",
                         "email": "%s",
-                        "phone": "+41791234567",
+                        "phone": "%s",
                         "companyIdentifier": "CHE-%s.888.777"
                     }
-                    """, invalidEmail, uniqueId);
+                    """, invalidEmail, phoneNumber, uniqueId);
 
             given()
                     .contentType(ContentType.JSON)
@@ -544,30 +551,31 @@ class CompanyLifecycleIT {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         String contractPayload = String.format("""
                 {
+                    "clientId": "%s",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "1000.00"
                 }
-                """, now.minusDays(5));
+                """, id1, now.minusDays(5));
 
         given()
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", id1)
+                .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201);
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", id1)
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", id1)
                 .then()
                 .statusCode(200)
                 .body(equalTo("1000.00"));
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", id2)
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", id2)
                 .then()
                 .statusCode(200)
                 .body(equalTo("0"));

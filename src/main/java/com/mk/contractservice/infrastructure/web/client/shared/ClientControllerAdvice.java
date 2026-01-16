@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
+import com.mk.contractservice.domain.client.exception.EmailAlreadyExistsException;
 import com.mk.contractservice.domain.client.exception.PhoneAlreadyExistsException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.DomainValidationException;
@@ -47,12 +48,12 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
             case InvalidFormatException ife -> String.format(
                     "Invalid value '%s' for field '%s'. Expected type: %s",
                     ife.getValue(),
-                    ife.getPath().get(0).getFieldName(),
+                    ife.getPath().getFirst().getFieldName(),
                     ife.getTargetType().getSimpleName()
             );
             case MismatchedInputException mie when !mie.getPath().isEmpty() -> String.format(
                     "Missing or invalid field: '%s'",
-                    mie.getPath().get(0).getFieldName()
+                    mie.getPath().getFirst().getFieldName()
             );
             case null, default -> "Malformed JSON or invalid payload.";
         };
@@ -97,6 +98,16 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
         if (ex.getBusinessKey() != null) {
             problemDetail.setProperty("businessKey", ex.getBusinessKey());
         }
+        return respond(problemDetail);
+    }
+
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<ProblemDetail> handleEmailAlreadyExists(final EmailAlreadyExistsException ex) {
+        log.debug("Email already exists: {}", ex.getMessage());
+
+        final ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Email Already Exists",
+                ex.getMessage(), "emailAlreadyExists");
+        problemDetail.setProperty("email", ex.getEmail());
         return respond(problemDetail);
     }
 

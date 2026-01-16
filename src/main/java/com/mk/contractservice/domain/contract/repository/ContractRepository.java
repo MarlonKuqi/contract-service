@@ -1,7 +1,6 @@
 package com.mk.contractservice.domain.contract.repository;
 
 import com.mk.contractservice.domain.contract.aggregate.Contract;
-import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -15,7 +14,7 @@ public interface ContractRepository {
 
     Optional<Contract> findById(UUID contractId);
 
-    Page<Contract> findActiveByClientIdPageable(UUID clientId, @Nullable Optional<LocalDateTime> updatedSince, Pageable pageable);
+    Page<Contract> findActiveByClientIdPageable(UUID clientId, Optional<LocalDateTime> updatedSince, Pageable pageable);
 
     BigDecimal sumActiveByClientId(UUID clientId);
 

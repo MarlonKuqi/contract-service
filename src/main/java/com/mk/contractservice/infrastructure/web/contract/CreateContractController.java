@@ -24,7 +24,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -84,13 +83,12 @@ public class CreateContractController {
     )
     @PostMapping
     public ResponseEntity<ContractResponse> createContract(
-            @RequestParam final UUID clientId,
             @Valid @RequestBody final Request request,
             final UriComponentsBuilder uriBuilder,
             final Locale locale
     ) {
         final Contract contract = createContract.execute(new CreateContract.Command(
-                clientId,
+                request.clientId(),
                 request.startDate(),
                 request.endDate(),
                 request.costAmount()
@@ -109,6 +107,12 @@ public class CreateContractController {
     }
 
     public record Request(
+            @NotNull(message = "Client ID is required")
+            @Schema(description = "Client ID (owner of the contract)",
+                    example = "550e8400-e29b-41d4-a716-446655440000",
+                    requiredMode = Schema.RequiredMode.REQUIRED)
+            UUID clientId,
+
             @Schema(description = "Contract start date (defaults to now if not provided)", example = "2025-01-01T00:00:00", format = "date-time")
             LocalDateTime startDate,
 

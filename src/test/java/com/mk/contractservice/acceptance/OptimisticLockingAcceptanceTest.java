@@ -1,9 +1,9 @@
-package com.mk.contractservice.integration;
+package com.mk.contractservice.acceptance;
 
+import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.infrastructure.web.contract.shared.ContractEndpoints;
-import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.equalTo;
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @DisplayName("Optimistic Locking - Integration Tests")
-class OptimisticLockingIT {
+class OptimisticLockingAcceptanceTest {
 
     @LocalServerPort
     private int port;
@@ -121,14 +121,14 @@ class OptimisticLockingIT {
 
         String contractId = given()
                 .contentType(ContentType.JSON)
-                .queryParam("clientId", clientId)
-                .body("""
+                .body(String.format("""
                         {
-                            "startDate": "2025-01-01T00:00:00",
-                            "endDate": "2036-01-01T00:00:00",
+                            "clientId": "%s",
+                            "startDate": "2025-01-01T00:00:00Z",
+                            "endDate": "2036-01-01T00:00:00Z",
                             "costAmount": "1000.00"
                         }
-                        """)
+                        """, clientId))
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()

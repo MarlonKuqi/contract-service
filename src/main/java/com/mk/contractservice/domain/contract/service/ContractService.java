@@ -6,7 +6,6 @@ import com.mk.contractservice.domain.contract.repository.ContractRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,7 +35,7 @@ public class ContractService {
     @Transactional(readOnly = true)
     public Page<Contract> getActiveContractsForClient(
             final UUID clientId,
-            @Nullable final Optional<LocalDateTime> updatedSince,
+            final Optional<LocalDateTime> updatedSince,
             final Pageable pageable
     ) {
         return contractRepository.findActiveByClientIdPageable(clientId, updatedSince, pageable);

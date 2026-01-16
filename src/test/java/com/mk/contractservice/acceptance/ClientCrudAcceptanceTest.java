@@ -1,5 +1,7 @@
-package com.mk.contractservice.integration;
+package com.mk.contractservice.acceptance;
 
+import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.aggregate.Company;
 import com.mk.contractservice.domain.client.aggregate.Person;
@@ -17,8 +19,6 @@ import com.mk.contractservice.infrastructure.persistence.client.ClientJpaReposit
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientEndpoints;
 import com.mk.contractservice.infrastructure.web.contract.shared.ContractEndpoints;
-import com.mk.contractservice.integration.config.TestcontainersConfiguration;
-import com.mk.contractservice.integration.helper.TestDataHelper;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +46,7 @@ import static org.hamcrest.Matchers.nullValue;
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @DisplayName("Client CRUD Operations - Integration Tests")
-class ClientCrudIT {
+class ClientCrudAcceptanceTest {
 
     @LocalServerPort
     private int port;
@@ -75,10 +75,11 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: Read person client returns correct type and all fields")
     void shouldReadPersonClientWithAllFields() {
+        final String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
         Person givenPerson = Person.of(
                 ClientName.of("John Doe"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("john.doe")),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(phoneNumber),
                 PersonBirthDate.of(LocalDate.of(1990, 5, 15))
         );
         givenPerson = (Person) clientRepository.save(givenPerson);
@@ -92,7 +93,7 @@ class ClientCrudIT {
                 .body("type", equalTo("PERSON"))
                 .body("name", equalTo("John Doe"))
                 .body("email", containsString("john.doe"))
-                .body("phone", equalTo("+41791234567"))
+                .body("phone", equalTo(phoneNumber))
                 .body("birthDate", equalTo("1990-05-15"))
                 .body("companyIdentifier", nullValue());
     }
@@ -101,11 +102,12 @@ class ClientCrudIT {
     @DisplayName("SCENARIO: Read company client returns correct type and all fields")
     void shouldReadCompanyClientWithAllFields() {
         String companyId = TestDataHelper.uniqueCompanyIdentifier("CHE");
+        String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
 
         Company company = Company.of(
                 ClientName.of("Acme Corp"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("acme")),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(phoneNumber),
                 CompanyIdentifier.of(companyId)
         );
         company = (Company) clientRepository.save(company);
@@ -119,7 +121,7 @@ class ClientCrudIT {
                 .body("type", equalTo("COMPANY"))
                 .body("name", equalTo("Acme Corp"))
                 .body("email", containsString("acme"))
-                .body("phone", equalTo("+41791234567"))
+                .body("phone", equalTo(phoneNumber))
                 .body("companyIdentifier", equalTo(companyId))
                 .body("birthDate", nullValue());
     }
@@ -142,7 +144,7 @@ class ClientCrudIT {
         Person person = Person.of(
                 ClientName.of("Alice Before"),
                 ClientEmail.of("alice.before." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791111111"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1985, 3, 20))
         );
         person = (Person) clientRepository.save(person);
@@ -181,7 +183,7 @@ class ClientCrudIT {
         Company company = Company.of(
                 ClientName.of("Old Corp"),
                 ClientEmail.of("old." + uniqueId + "@example.com"),
-                ClientPhoneNumber.of("+41791111111"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 CompanyIdentifier.of(companyId)
         );
         company = (Company) clientRepository.save(company);
@@ -217,7 +219,7 @@ class ClientCrudIT {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
         String invalidPayload = """
@@ -265,7 +267,7 @@ class ClientCrudIT {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("To Delete"),
                 ClientEmail.of("delete." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
         given()
@@ -287,7 +289,7 @@ class ClientCrudIT {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Client With Contracts"),
                 ClientEmail.of("contracts." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
 
@@ -306,7 +308,7 @@ class ClientCrudIT {
         contractRepository.save(contract2);
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", client.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(200)
                 .body(equalTo("3000.00"));
@@ -322,7 +324,7 @@ class ClientCrudIT {
                 .statusCode(404);
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", client.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", client.getId())
                 .then()
                 .statusCode(anyOf(is(200), is(404)));
     }
@@ -345,7 +347,7 @@ class ClientCrudIT {
         Person person = Person.of(
                 ClientName.of("Person Type Test"),
                 ClientEmail.of("person.type." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         );
         person = (Person) clientRepository.save(person);
@@ -383,7 +385,7 @@ class ClientCrudIT {
         Company company = Company.of(
                 ClientName.of("Company Type Test"),
                 ClientEmail.of("company.type." + uniqueId + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 CompanyIdentifier.of(companyId)
         );
         company = (Company) clientRepository.save(company);
@@ -418,7 +420,7 @@ class ClientCrudIT {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Concurrent Test"),
                 ClientEmail.of("concurrent." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
         String update1 = """
@@ -464,10 +466,11 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: PATCH person client with only name updates only name")
     void shouldPatchPersonClientWithOnlyName() {
+        String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
         Person person = Person.of(
                 ClientName.of("Original Name"),
                 ClientEmail.of("original." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(phoneNumber),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         );
         person = (Person) clientRepository.save(person);
@@ -493,17 +496,18 @@ class ClientCrudIT {
                 .statusCode(200)
                 .body("name", equalTo("Patched Name"))
                 .body("email", containsString("original"))
-                .body("phone", equalTo("+41791234567"))
+                .body("phone", equalTo(phoneNumber))
                 .body("birthDate", equalTo("1990-01-01"));
     }
 
     @Test
     @DisplayName("SCENARIO: PATCH person client with only clientEmail updates only clientEmail")
     void shouldPatchPersonClientWithOnlyEmail() {
+        String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
         Person person = Person.of(
                 ClientName.of("Test Person"),
                 ClientEmail.of("old." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(phoneNumber),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         );
         person = (Person) clientRepository.save(person);
@@ -529,7 +533,7 @@ class ClientCrudIT {
                 .statusCode(200)
                 .body("name", equalTo("Test Person"))
                 .body("email", containsString("new"))
-                .body("phone", equalTo("+41791234567"))
+                .body("phone", equalTo(phoneNumber))
                 .body("birthDate", equalTo("1990-01-01"));
     }
 
@@ -539,7 +543,7 @@ class ClientCrudIT {
         Person person = Person.of(
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         );
         person = (Person) clientRepository.save(person);
@@ -574,11 +578,12 @@ class ClientCrudIT {
     void shouldPatchCompanyClientWithMultipleFields() {
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         String companyId = String.format("CHE-%s.999.888", uniqueId.substring(0, 6));
+        String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
 
         Company company = Company.of(
                 ClientName.of("Old Corp"),
                 ClientEmail.of("old." + uniqueId + "@example.com"),
-                ClientPhoneNumber.of("+41791111111"),
+                ClientPhoneNumber.of(phoneNumber),
                 CompanyIdentifier.of(companyId)
         );
         company = (Company) clientRepository.save(company);
@@ -605,7 +610,7 @@ class ClientCrudIT {
                 .statusCode(200)
                 .body("name", equalTo("Patched Corp"))
                 .body("email", containsString("patched"))
-                .body("phone", equalTo("+41791111111"))
+                .body("phone", equalTo(phoneNumber))
                 .body("companyIdentifier", equalTo(companyId));
     }
 
@@ -615,7 +620,7 @@ class ClientCrudIT {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
 
@@ -640,7 +645,7 @@ class ClientCrudIT {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         ));
 
@@ -682,10 +687,11 @@ class ClientCrudIT {
     @Test
     @DisplayName("SCENARIO: PATCH with empty body should succeed (no changes)")
     void shouldAcceptPatchWithEmptyBody() {
+        String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
         Person person = Person.of(
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientPhoneNumber.of(phoneNumber),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         );
         person = (Person) clientRepository.save(person);
@@ -707,7 +713,7 @@ class ClientCrudIT {
                 .statusCode(200)
                 .body("name", equalTo("Test Person"))
                 .body("email", containsString("test"))
-                .body("phone", equalTo("+41791234567"));
+                .body("phone", equalTo(phoneNumber));
     }
 
     @Test

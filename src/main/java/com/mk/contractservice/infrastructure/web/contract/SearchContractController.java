@@ -1,8 +1,8 @@
 package com.mk.contractservice.infrastructure.web.contract;
 
 import com.mk.contractservice.application.feature.contract.search.GetContractById;
+import com.mk.contractservice.application.feature.contract.search.GetTotalActiveContractsByClient;
 import com.mk.contractservice.application.feature.contract.search.ListActiveContractsByClient;
-import com.mk.contractservice.application.feature.contract.search.SumActiveContractsByClient;
 import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.infrastructure.web.contract.shared.ContractDtoMapper;
 import com.mk.contractservice.infrastructure.web.contract.shared.ContractEndpoints;
@@ -44,25 +44,18 @@ public class SearchContractController {
 
     GetContractById getContractById;
     ListActiveContractsByClient listActiveContractsByClient;
-    SumActiveContractsByClient sumActiveContractsByClient;
+    GetTotalActiveContractsByClient getTotalActiveContractsByClient;
     ContractDtoMapper contractMapper;
 
     @Operation(
             summary = "Get a contract by ID",
-            description = "Returns a contract by its unique identifier. "
-                    + "Validates that the contract belongs to the specified client (ownership verification)."
+            description = "Returns a contract by its unique identifier."
     )
     @ApiResponse(
             responseCode = "200",
             description = "Contract found and returned successfully",
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ContractResponse.class))
-    )
-    @ApiResponse(
-            responseCode = "403",
-            description = "Forbidden - Contract does not belong to the specified client",
-            content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class))
     )
     @ApiResponse(
             responseCode = "404",
@@ -181,13 +174,13 @@ public class SearchContractController {
 
     @Operation(
             summary = "Calculate total cost of all ACTIVE contracts for a client",
-            description = "Returns the sum of costAmount for all active contracts. "
+            description = "Returns the total of costAmount for all active contracts. "
                     + "Only contracts with endDate = null or endDate >= now are included. "
                     + "Returns 0 if no active contracts."
     )
     @ApiResponse(
             responseCode = "200",
-            description = "Sum calculated successfully",
+            description = "Total calculated successfully",
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = BigDecimal.class, example = "4500.00"))
     )
@@ -203,15 +196,15 @@ public class SearchContractController {
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
-    @GetMapping(ContractEndpoints.CONTRACT_SUM)
-    public ResponseEntity<BigDecimal> sumActive(
+    @GetMapping(ContractEndpoints.CONTRACT_TOTAL)
+    public ResponseEntity<BigDecimal> getTotalActive(
             @RequestParam final UUID clientId,
             final Locale locale
     ) {
-        final BigDecimal sum = sumActiveContractsByClient.execute(new SumActiveContractsByClient.Query(clientId));
+        final BigDecimal total = getTotalActiveContractsByClient.execute(new GetTotalActiveContractsByClient.Query(clientId));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
-                .body(sum);
+                .body(total);
     }
 }
 

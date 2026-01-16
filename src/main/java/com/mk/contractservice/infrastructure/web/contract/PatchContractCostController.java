@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
@@ -38,8 +37,7 @@ public class PatchContractCostController {
     @Operation(
             summary = "Update the cost amount of a contract",
             description = "Updates only the costAmount field. The lastModified field is automatically updated internally. "
-                    + "Business rule: Only active contracts (not expired) can be updated. "
-                    + "Validates that the contract belongs to the specified client."
+                    + "Business rule: Only active contracts (not expired) can be updated."
     )
     @ApiResponse(
             responseCode = "204",
@@ -48,12 +46,6 @@ public class PatchContractCostController {
     @ApiResponse(
             responseCode = "400",
             description = "Invalid input data (validation failed)",
-            content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class))
-    )
-    @ApiResponse(
-            responseCode = "403",
-            description = "Forbidden - Contract does not belong to this client",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
@@ -77,12 +69,10 @@ public class PatchContractCostController {
     )
     @PatchMapping(ContractEndpoints.RELATIVE_CONTRACT_COST)
     public ResponseEntity<Void> patchContractCost(
-            @RequestParam final UUID clientId,
             @PathVariable final UUID contractId,
             @Valid @RequestBody final Request request
     ) {
         patchContractCost.execute(new PatchContractCost.Command(
-                clientId,
                 contractId,
                 request.amount()
         ));

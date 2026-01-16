@@ -1,5 +1,7 @@
-package com.mk.contractservice.integration.usecases;
+package com.mk.contractservice.acceptance.usecases;
 
+import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.application.feature.contract.closeactive.CloseActiveContracts;
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.aggregate.Person;
@@ -12,7 +14,6 @@ import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;
 import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
-import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @DisplayName("UC: Close Active Contracts - Use Case Integration Tests (with real DB)")
-class CloseActiveContractsUseCaseIT {
+class CloseActiveContractsUseCaseAcceptanceTest {
 
     @Autowired
     private CloseActiveContracts closeActiveContracts;
@@ -48,10 +49,11 @@ class CloseActiveContractsUseCaseIT {
     @BeforeEach
     void setUp() {
         // Créer un client de test en vraie BDD
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         testClient = Person.of(
                 ClientName.of("Client To Delete"),
-                ClientEmail.of("delete.test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234567"),
+                ClientEmail.of("delete.test." + uniqueId + "@example.com"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1985, 3, 20))
         );
         testClient = clientRepository.save(testClient);
@@ -212,11 +214,11 @@ class CloseActiveContractsUseCaseIT {
     @DisplayName("Should NOT affect contracts of other clients")
     void shouldNotAffectOtherClientsContracts() {
         // GIVEN: Deux clients avec des contrats
-        Client otherClient = Person.of(
+        Person otherClient = Person.of(
                 ClientName.of("Other Client"),
-                ClientEmail.of("other." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
-                ClientPhoneNumber.of("+41791234568"),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                ClientEmail.of("other.client." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
+                PersonBirthDate.of(LocalDate.of(1990, 6, 15))
         );
         otherClient = clientRepository.save(otherClient);
 

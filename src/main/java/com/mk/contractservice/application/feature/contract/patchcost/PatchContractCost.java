@@ -1,8 +1,8 @@
 package com.mk.contractservice.application.feature.contract.patchcost;
 
 import com.mk.contractservice.domain.contract.aggregate.Contract;
+import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;
-import com.mk.contractservice.domain.contract.service.ContractService;
 import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -16,12 +16,10 @@ import java.util.UUID;
 public interface PatchContractCost {
 
     record Command(
-            UUID clientId,
             UUID contractId,
             BigDecimal newCostAmount
     ) {
         public Command {
-            Objects.requireNonNull(clientId, "Client ID cannot be null");
             Objects.requireNonNull(contractId, "Contract ID cannot be null");
             Objects.requireNonNull(newCostAmount, "New cost amount cannot be null");
         }
@@ -36,14 +34,11 @@ public interface PatchContractCost {
     class Handler implements PatchContractCost {
 
         ContractRepository contractRepository;
-        ContractService contractService;
 
         @Override
         public Contract execute(final Command command) {
-            final Contract contract = contractService.getContractForClient(
-                    command.clientId(),
-                    command.contractId()
-            );
+            final Contract contract = contractRepository.findById(command.contractId())
+                    .orElseThrow(() -> new ContractNotFoundException(command.contractId()));
 
             final Contract updatedContract = contract.changeCost(ContractCost.of(command.newCostAmount()));
 

@@ -4,7 +4,6 @@ import com.mk.contractservice.application.feature.contract.patchcost.PatchContra
 import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.contract.repository.ContractRepository;
-import com.mk.contractservice.domain.contract.service.ContractService;
 import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,14 +31,11 @@ class PatchContractCostTest {
     @Mock
     private ContractRepository contractRepository;
 
-    @Mock
-    private ContractService contractService;
-
     private PatchContractCost.Handler patchContractCostHandler;
 
     @BeforeEach
     void setUp() {
-        patchContractCostHandler = new PatchContractCost.Handler(contractRepository, contractService);
+        patchContractCostHandler = new PatchContractCost.Handler(contractRepository);
     }
 
     @Nested
@@ -49,6 +46,7 @@ class PatchContractCostTest {
         void setUp() {
             when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
         }
+
         @Test
         @DisplayName("GIVEN commande valide WHEN execute THEN met à jour le coût du contrat")
         void shouldUpdateContractCost() {
@@ -68,13 +66,12 @@ class PatchContractCostTest {
             );
 
             PatchContractCost.Command command = new PatchContractCost.Command(
-                    clientId,
                     contractId,
                     newCost
             );
 
-            when(contractService.getContractForClient(clientId, contractId))
-                    .thenReturn(existingContract);
+            when(contractRepository.findById(contractId))
+                    .thenReturn(Optional.of(existingContract));
 
             // When
             Contract result = patchContractCostHandler.execute(command);
@@ -103,13 +100,12 @@ class PatchContractCostTest {
             );
 
             PatchContractCost.Command command = new PatchContractCost.Command(
-                    clientId,
                     contractId,
                     newCost
             );
 
-            when(contractService.getContractForClient(clientId, contractId))
-                    .thenReturn(existingContract);
+            when(contractRepository.findById(contractId))
+                    .thenReturn(Optional.of(existingContract));
 
             // When
             Contract result = patchContractCostHandler.execute(command);
@@ -135,13 +131,12 @@ class PatchContractCostTest {
             );
 
             PatchContractCost.Command command = new PatchContractCost.Command(
-                    clientId,
                     contractId,
                     newCost
             );
 
-            when(contractService.getContractForClient(clientId, contractId))
-                    .thenReturn(existingContract);
+            when(contractRepository.findById(contractId))
+                    .thenReturn(Optional.of(existingContract));
 
             // When
             Contract result = patchContractCostHandler.execute(command);
@@ -159,17 +154,15 @@ class PatchContractCostTest {
         @DisplayName("GIVEN contrat inexistant WHEN execute THEN lève ContractNotFoundException")
         void shouldThrowExceptionWhenContractNotFound() {
             // Given
-            UUID clientId = UUID.randomUUID();
             UUID nonExistentContractId = UUID.randomUUID();
 
             PatchContractCost.Command command = new PatchContractCost.Command(
-                    clientId,
                     nonExistentContractId,
                     new BigDecimal("1000.00")
             );
 
-            when(contractService.getContractForClient(clientId, nonExistentContractId))
-                    .thenThrow(new ContractNotFoundException(nonExistentContractId));
+            when(contractRepository.findById(nonExistentContractId))
+                    .thenReturn(Optional.empty());
 
             // When & Then
             assertThatThrownBy(() -> patchContractCostHandler.execute(command))
@@ -177,4 +170,3 @@ class PatchContractCostTest {
         }
     }
 }
-

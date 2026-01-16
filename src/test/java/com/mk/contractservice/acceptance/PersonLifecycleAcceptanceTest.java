@@ -1,10 +1,11 @@
-package com.mk.contractservice.integration;
+package com.mk.contractservice.acceptance;
 
+import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientEndpoints;
 import com.mk.contractservice.infrastructure.web.contract.shared.ContractEndpoints;
-import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +32,7 @@ import static org.hamcrest.Matchers.notNullValue;
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @DisplayName("Person Client Lifecycle Scenarios - Integration Tests")
-class PersonLifecycleIT {
+class PersonLifecycleAcceptanceTest {
 
     @LocalServerPort
     private int port;
@@ -54,15 +55,18 @@ class PersonLifecycleIT {
     @Test
     @DisplayName("SCENARIO: Create person client with all valid data")
     void shouldCreatePersonClientSuccessfully() {
-        String createPayload = """
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+        String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
+
+        String createPayload = String.format("""
                 {
                     "type": "PERSON",
                     "name": "Alice Martin",
                     "email": "alice.martin.%s@example.com",
-                    "phone": "+41791234567",
+                    "phone": "%s",
                     "birthDate": "1990-05-15"
                 }
-                """.formatted(UUID.randomUUID().toString().substring(0, 8));
+                """, uniqueId, phoneNumber);
 
         String clientId = given()
                 .contentType(ContentType.JSON)
@@ -76,7 +80,7 @@ class PersonLifecycleIT {
                 .body("id", notNullValue())
                 .body("name", equalTo("Alice Martin"))
                 .body("email", containsString("alice.martin"))
-                .body("phone", equalTo("+41791234567"))
+                .body("phone", equalTo(phoneNumber))
                 .body("birthDate", equalTo("1990-05-15"))
                 .extract().path("id");
 
@@ -406,19 +410,20 @@ class PersonLifecycleIT {
                 .statusCode(201)
                 .extract().path("id");
 
-        String contractPayload = """
+        String contractPayload = String.format("""
                 {
+                    "clientId": "%s",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": null,
                     "costAmount": "3000.00"
                 }
-                """;
+                """, clientId);
 
         given()
                 .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
-                .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", clientId)
+                .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201);
 
@@ -436,7 +441,7 @@ class PersonLifecycleIT {
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_SUM + "?clientId={clientId}", clientId)
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", clientId)
                 .then()
                 .statusCode(anyOf(is(200), is(404)));
     }

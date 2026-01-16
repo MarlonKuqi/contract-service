@@ -19,5 +19,5 @@ public final class ContractEndpoints {
     // Composed paths (full paths for tests and API documentation)
     public static final String CONTRACT_BY_ID = CONTRACTS_BASE + PATH_VAR_CONTRACT_ID;
     public static final String CONTRACT_COST = CONTRACTS_BASE + RELATIVE_CONTRACT_COST;
-    public static final String CONTRACT_SUM = "/sum";
+    public static final String CONTRACT_TOTAL = "/total";
 }

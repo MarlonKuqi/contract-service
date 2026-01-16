@@ -1,5 +1,7 @@
-package com.mk.contractservice.integration;
+package com.mk.contractservice.acceptance;
 
+import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.domain.client.aggregate.Client;
 import com.mk.contractservice.domain.client.aggregate.Person;
 import com.mk.contractservice.domain.client.repository.ClientRepository;
@@ -11,7 +13,6 @@ import com.mk.contractservice.domain.contract.service.ContractService;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import com.mk.contractservice.infrastructure.web.contract.shared.ContractEndpoints;
-import com.mk.contractservice.integration.config.TestcontainersConfiguration;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
@@ -42,7 +43,7 @@ import static org.hamcrest.Matchers.equalTo;
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @DisplayName("List Contracts - Integration Tests")
-class ListContractsIT {
+class ListContractsAcceptanceTest {
 
     @LocalServerPort
     private int port;
@@ -67,12 +68,12 @@ class ListContractsIT {
 
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
-
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         testClient = Person.of(
-                ClientName.of("John Doe"),
-                ClientEmail.of("john.pagination." + java.util.UUID.randomUUID().toString().substring(0, 8) + "@test.com"),
-                ClientPhoneNumber.of("+33123456789"),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                ClientName.of("List Test Client"),
+                ClientEmail.of("list.test." + uniqueId + "@example.com"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20))
         );
         testClient = clientRepository.save(testClient);
     }
@@ -150,45 +151,48 @@ class ListContractsIT {
         @Test
         @DisplayName("Should sort contracts by lastModified descending")
         void shouldSortContractsByLastModifiedDescending() {
-            String oldContract = """
+            String oldContract = String.format("""
                     {
+                        "clientId": "%s",
                         "startDate": "2025-01-01T00:00:00",
                         "endDate": null,
                         "costAmount": "100.00"
                     }
-                    """;
+                    """, testClient.getId());
 
-            String middleContract = """
+            String middleContract = String.format("""
                     {
+                        "clientId": "%s",
                         "startDate": "2025-01-15T00:00:00",
                         "endDate": null,
                         "costAmount": "200.00"
                     }
-                    """;
+                    """, testClient.getId());
 
-            String recentContract = """
+            String recentContract = String.format("""
                     {
+                        "clientId": "%s",
                         "startDate": "2025-02-01T00:00:00",
                         "endDate": null,
                         "costAmount": "300.00"
                     }
-                    """;
+                    """, testClient.getId());
 
             // Create contracts with explicit delays to ensure distinct lastModified timestamps
             given().contentType(ContentType.JSON).body(middleContract)
-                    .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
             await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
 
             given().contentType(ContentType.JSON).body(oldContract)
-                    .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
             await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
 
             given().contentType(ContentType.JSON).body(recentContract)
-                    .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
             // Wait a bit to ensure all transactions are committed
@@ -213,14 +217,15 @@ class ListContractsIT {
             for (int i = 1; i <= 5; i++) {
                 String oldContract = String.format("""
                         {
-                            "startDate": "2025-01-01T00:00:00",
+                            "clientId": "%s",
+                            "startDate": "2025-01-01T00:00:00Z",
                             "endDate": null,
                             "costAmount": "%d.00"
                         }
-                        """, i * 100);
+                        """, testClient.getId(), i * 100);
 
                 given().contentType(ContentType.JSON).body(oldContract)
-                        .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                        .post(ContractEndpoints.CONTRACTS_BASE)
                         .then().statusCode(201);
             }
 
@@ -233,14 +238,15 @@ class ListContractsIT {
             for (int i = 6; i <= 10; i++) {
                 String recentContract = String.format("""
                         {
-                            "startDate": "2025-02-01T00:00:00",
+                            "clientId": "%s",
+                            "startDate": "2025-02-01T00:00:00Z",
                             "endDate": null,
                             "costAmount": "%d.00"
                         }
-                        """, i * 100);
+                        """, testClient.getId(), i * 100);
 
                 given().contentType(ContentType.JSON).body(recentContract)
-                        .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                        .post(ContractEndpoints.CONTRACTS_BASE)
                         .then().statusCode(201);
             }
 
@@ -353,16 +359,17 @@ class ListContractsIT {
             for (int i = 1; i <= 5; i++) {
                 String expiredContract = String.format("""
                         {
-                            "startDate": "2024-01-01T00:00:00",
-                            "endDate": "2024-12-31T23:59:59",
+                            "clientId": "%s",
+                            "startDate": "2024-01-01T00:00:00Z",
+                            "endDate": "2024-12-31T23:59:59Z",
                             "costAmount": "%d.00"
                         }
-                        """, i * 100);
+                        """, testClient.getId(), i * 100);
 
                 given()
                         .contentType(ContentType.JSON)
                         .body(expiredContract)
-                        .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                        .post(ContractEndpoints.CONTRACTS_BASE)
                         .then()
                         .statusCode(201);
             }
@@ -370,16 +377,17 @@ class ListContractsIT {
             for (int i = 6; i <= 15; i++) {
                 String activeContract = String.format("""
                         {
-                            "startDate": "2025-01-01T00:00:00",
+                            "clientId": "%s",
+                            "startDate": "2025-01-01T00:00:00Z",
                             "endDate": null,
                             "costAmount": "%d.00"
                         }
-                        """, i * 100);
+                        """, testClient.getId(), i * 100);
 
                 given()
                         .contentType(ContentType.JSON)
                         .body(activeContract)
-                        .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                        .post(ContractEndpoints.CONTRACTS_BASE)
                         .then()
                         .statusCode(201);
             }
@@ -429,16 +437,17 @@ class ListContractsIT {
         private void createContract(double costAmount) {
             String contractPayload = """
                     {
-                        "startDate": "2025-01-01T00:00:00",
+                        "clientId": "%s",
+                        "startDate": "2025-01-01T00:00:00Z",
                         "endDate": null,
                         "costAmount": "%s"
                     }
-                    """.formatted(String.format(java.util.Locale.US, "%.2f", costAmount));
+                    """.formatted(testClient.getId(), String.format(java.util.Locale.US, "%.2f", costAmount));
 
             given()
                     .contentType(ContentType.JSON)
                     .body(contractPayload)
-                    .post(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .post(ContractEndpoints.CONTRACTS_BASE)
                     .then()
                     .statusCode(201);
         }
