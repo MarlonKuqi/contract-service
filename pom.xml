@@ -179,8 +179,8 @@
 				<configuration>
 					<argLine>@{argLine} -Xmx1024m -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
 					<excludes>
-						<exclude>**/*IT.java</exclude>
-						<exclude>**/integration/**</exclude>
+						<exclude>**/*AcceptanceTest.java</exclude>
+						<exclude>**/acceptance/**</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
@@ -190,7 +190,7 @@
 				<configuration>
 					<argLine>${argLine} -Xmx1024m -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
 					<includes>
-						<include>**/*IT.java</include>
+						<include>**/*AcceptanceTest.java</include>
 					</includes>
 				</configuration>
 				<executions>
