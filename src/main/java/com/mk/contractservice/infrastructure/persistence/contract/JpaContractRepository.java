@@ -49,7 +49,7 @@ public class JpaContractRepository implements ContractRepository {
         var specification = ContractSpecifications.builder()
                 .active()
                 .withClientId(clientId)
-                .updatedAfter(updatedSince.orElse(null))
+                .updatedAfter(updatedSince)
                 .build();
 
         return contractJpaRepository.findAll(specification, pageable)
