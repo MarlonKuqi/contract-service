@@ -304,14 +304,11 @@ class ClientCrudAcceptanceTest {
                 .period(ContractPeriod.of(now.minusDays(10), now.plusDays(100)))
                 .costAmount(ContractCost.of(new BigDecimal("2000.00")))
                 .build();
-        contractRepository.save(contract1);
-        contractRepository.save(contract2);
-        given()
-                .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", client.getId())
-                .then()
-                .statusCode(200)
-                .body(equalTo("3000.00"));
+        Contract savedContract1 = contractRepository.save(contract1);
+        Contract savedContract2 = contractRepository.save(contract2);
+
+        // WHEN: Le client est supprimé
+        LocalDateTime deletionTime = LocalDateTime.now();
         given()
                 .when()
                 .delete(ClientEndpoints.CLIENT_BY_ID, client.getId())
@@ -324,9 +321,19 @@ class ClientCrudAcceptanceTest {
                 .statusCode(404);
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", client.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "/" + savedContract1.getId())
                 .then()
-                .statusCode(anyOf(is(200), is(404)));
+                .statusCode(200)
+                .body("active", is(false))
+                .body("endDate", containsString(deletionTime.toLocalDate().toString()));
+
+        given()
+                .when()
+                .get(ContractEndpoints.CONTRACTS_BASE + "/" + savedContract2.getId())
+                .then()
+                .statusCode(200)
+                .body("active", is(false))
+                .body("endDate", containsString(deletionTime.toLocalDate().toString()));
     }
 
     @Test

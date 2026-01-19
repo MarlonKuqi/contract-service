@@ -1,7 +1,6 @@
 package com.mk.contractservice.domain.contract.valueobject;
 
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
-import com.mk.contractservice.domain.contract.specification.ActiveContractSpecification;
 import com.mk.contractservice.domain.shared.ValueObjectUtils;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

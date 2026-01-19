@@ -64,7 +64,6 @@ public class JpaContractRepository implements ContractRepository {
         CriteriaQuery<BigDecimal> query = cb.createQuery(BigDecimal.class);
         Root<ContractJpaEntity> root = query.from(ContractJpaEntity.class);
 
-        // Utilise les mêmes critères que les Specifications
         var specification = ContractSpecifications.builder()
                 .active()
                 .withClientId(clientId)
