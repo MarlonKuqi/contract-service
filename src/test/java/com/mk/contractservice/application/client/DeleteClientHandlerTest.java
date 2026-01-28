@@ -1,8 +1,8 @@
 package com.mk.contractservice.application.client;
 
-import com.mk.contractservice.application.feature.client.delete.DeleteClient;
-import com.mk.contractservice.domain.client.event.ClientDeletedEvent;
-import com.mk.contractservice.domain.client.repository.ClientRepository;
+import com.mk.contractservice.application.feature.client.DeleteClient;
+import com.mk.contractservice.domain.client.ClientDeletedEvent;
+import com.mk.contractservice.domain.client.ClientRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

@@ -1,11 +1,11 @@
 package com.mk.contractservice.application.contract;
 
-import com.mk.contractservice.application.feature.contract.patchcost.PatchContractCost;
-import com.mk.contractservice.domain.contract.aggregate.Contract;
+import com.mk.contractservice.application.feature.contract.PatchContractCost;
+import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
-import com.mk.contractservice.domain.contract.repository.ContractRepository;
-import com.mk.contractservice.domain.contract.valueobject.ContractCost;
-import com.mk.contractservice.domain.contract.valueobject.ContractPeriod;
+import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.contract.ContractCost;
+import com.mk.contractservice.domain.contract.ContractPeriod;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

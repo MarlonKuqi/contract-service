@@ -1,8 +1,5 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
-import com.mk.contractservice.domain.client.valueobject.ClientName;
-import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;

@@ -1,6 +1,6 @@
 package com.mk.contractservice.infrastructure.web.client;
 
-import com.mk.contractservice.application.feature.client.update.UpdateClient;
+import com.mk.contractservice.application.feature.client.UpdateClient;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientEndpoints;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientSwaggerTags;
 import io.swagger.v3.oas.annotations.Operation;

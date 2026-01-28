@@ -1,6 +1,6 @@
 package com.mk.contractservice.infrastructure.web.contract.shared;
 
-import com.mk.contractservice.domain.contract.aggregate.Contract;
+import com.mk.contractservice.domain.contract.Contract;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")

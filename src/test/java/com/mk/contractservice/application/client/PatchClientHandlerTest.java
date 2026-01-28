@@ -1,19 +1,19 @@
 package com.mk.contractservice.application.client;
 
-import com.mk.contractservice.application.feature.client.patch.PatchClient;
-import com.mk.contractservice.domain.client.aggregate.Client;
-import com.mk.contractservice.domain.client.aggregate.Company;
-import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.application.feature.client.PatchClient;
+import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.Company;
+import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.exception.EmailAlreadyExistsException;
 import com.mk.contractservice.domain.client.exception.PhoneAlreadyExistsException;
-import com.mk.contractservice.domain.client.repository.ClientRepository;
-import com.mk.contractservice.domain.client.service.ClientService;
-import com.mk.contractservice.domain.client.service.ClientValidationService;
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
-import com.mk.contractservice.domain.client.valueobject.ClientName;
-import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
-import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
-import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
+import com.mk.contractservice.domain.client.ClientRepository;
+import com.mk.contractservice.domain.client.ClientService;
+import com.mk.contractservice.domain.client.ClientValidationService;
+import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientName;
+import com.mk.contractservice.domain.client.ClientPhoneNumber;
+import com.mk.contractservice.domain.client.CompanyIdentifier;
+import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.util.Optional;
+
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -78,9 +78,9 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.of("Jane Smith"),
-                    Optional.of("jane@example.com"),
-                    Optional.of("+33222222222")
+                    "Jane Smith",
+                    "jane@example.com",
+                    "+33222222222"
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingPerson);
@@ -100,9 +100,9 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.of("Jane Smith"),
-                    Optional.empty(),
-                    Optional.empty()
+                    "Jane Smith",
+                    null,
+                    null
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingPerson);
@@ -122,9 +122,9 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.empty(),
-                    Optional.of("jane@example.com"),
-                    Optional.empty()
+                    null,
+                    "jane@example.com",
+                    null
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingPerson);
@@ -144,9 +144,9 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.of("+33999999999")
+                    null,
+                    null,
+                    "+33999999999"
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingPerson);
@@ -179,9 +179,9 @@ class PatchClientHandlerTest {
                     .build();
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty()
+                    null,
+                    null,
+                    null
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingPerson);
@@ -210,9 +210,9 @@ class PatchClientHandlerTest {
                     .build();
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty()
+                    null,
+                    null,
+                    null
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingCompany);
@@ -255,9 +255,9 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.of("Acme Corporation"),
-                    Optional.of("info@acme.com"),
-                    Optional.of("+33222222222")
+                    "Acme Corporation",
+                    "info@acme.com",
+                    "+33222222222"
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingCompany);
@@ -278,9 +278,9 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.of("Acme Corporation"),
-                    Optional.empty(),
-                    Optional.empty()
+                    "Acme Corporation",
+                    null,
+                    null
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingCompany);
@@ -320,9 +320,9 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.of("New Name"),
-                    Optional.empty(),
-                    Optional.empty()
+                    "New Name",
+                    null,
+                    null
             );
 
             when(clientService.findClientById(clientId))
@@ -340,9 +340,9 @@ class PatchClientHandlerTest {
             String duplicateEmail = "duplicate@example.com";
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.empty(),
-                    Optional.of(duplicateEmail),
-                    Optional.empty()
+                    null,
+                    duplicateEmail,
+                    null
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingPerson);
@@ -360,9 +360,9 @@ class PatchClientHandlerTest {
             String duplicatePhone = "+33999999999";
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.of(duplicatePhone)
+                    null,
+                    null,
+                    duplicatePhone
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingPerson);

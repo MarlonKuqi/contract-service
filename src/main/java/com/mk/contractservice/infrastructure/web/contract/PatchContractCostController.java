@@ -1,6 +1,6 @@
 package com.mk.contractservice.infrastructure.web.contract;
 
-import com.mk.contractservice.application.feature.contract.patchcost.PatchContractCost;
+import com.mk.contractservice.application.feature.contract.PatchContractCost;
 import com.mk.contractservice.infrastructure.web.contract.shared.ContractEndpoints;
 import com.mk.contractservice.infrastructure.web.contract.shared.ContractSwaggerTags;
 import io.swagger.v3.oas.annotations.Operation;

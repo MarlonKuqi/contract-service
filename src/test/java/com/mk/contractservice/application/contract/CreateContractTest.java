@@ -1,10 +1,10 @@
 package com.mk.contractservice.application.contract;
 
-import com.mk.contractservice.application.feature.contract.create.CreateContract;
-import com.mk.contractservice.domain.client.repository.ClientRepository;
-import com.mk.contractservice.domain.client.service.ClientValidationService;
-import com.mk.contractservice.domain.contract.aggregate.Contract;
-import com.mk.contractservice.domain.contract.repository.ContractRepository;
+import com.mk.contractservice.application.feature.contract.CreateContract;
+import com.mk.contractservice.domain.client.ClientRepository;
+import com.mk.contractservice.domain.client.ClientValidationService;
+import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

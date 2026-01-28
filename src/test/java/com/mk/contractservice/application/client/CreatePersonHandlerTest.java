@@ -1,10 +1,10 @@
 package com.mk.contractservice.application.client;
 
-import com.mk.contractservice.application.feature.client.create.CreatePerson;
-import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.application.feature.client.CreatePerson;
+import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.exception.EmailAlreadyExistsException;
-import com.mk.contractservice.domain.client.repository.ClientRepository;
-import com.mk.contractservice.domain.client.service.ClientValidationService;
+import com.mk.contractservice.domain.client.ClientRepository;
+import com.mk.contractservice.domain.client.ClientValidationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

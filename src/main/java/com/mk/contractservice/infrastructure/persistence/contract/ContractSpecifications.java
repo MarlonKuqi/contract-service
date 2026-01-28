@@ -10,7 +10,6 @@ import org.springframework.data.jpa.domain.Specification;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -50,10 +49,10 @@ public final class ContractSpecifications {
             return this;
         }
 
-        public Builder updatedAfter(final Optional<LocalDateTime> updatedSince) {
-            updatedSince.ifPresent(date ->
-                    specifications.add(ContractSpecifications.updatedAfter(date))
-            );
+        public Builder withUpdatedAfter(@Nullable final LocalDateTime updatedSince) {
+            if (updatedSince != null) {
+                specifications.add(updatedAfter(updatedSince));
+            }
             return this;
         }
 

@@ -1,7 +1,7 @@
 package com.mk.contractservice.infrastructure.persistence.contract;
 
-import com.mk.contractservice.domain.contract.aggregate.Contract;
-import com.mk.contractservice.domain.contract.repository.ContractRepository;
+import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.assembler.ContractAssembler;
 import com.mk.contractservice.infrastructure.persistence.contract.entity.ContractJpaEntity;
 import jakarta.persistence.EntityManager;
@@ -45,11 +45,11 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, final Optional<LocalDateTime> updatedSince, final Pageable pageable) {
+    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, final LocalDateTime updatedSince, final Pageable pageable) {
         var specification = ContractSpecifications.builder()
                 .active()
                 .withClientId(clientId)
-                .updatedAfter(updatedSince)
+                .withUpdatedAfter(updatedSince)
                 .build();
 
         return contractJpaRepository.findAll(specification, pageable)
@@ -59,7 +59,7 @@ public class JpaContractRepository implements ContractRepository {
 
     @Override
     @Cacheable(value = "contractSums", key = "#clientId")
-    public BigDecimal sumActiveByClientId(final UUID clientId) {
+    public BigDecimal calculateTotalCostAmountForClient(final UUID clientId) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<BigDecimal> query = cb.createQuery(BigDecimal.class);
         Root<ContractJpaEntity> root = query.from(ContractJpaEntity.class);
@@ -69,11 +69,11 @@ public class JpaContractRepository implements ContractRepository {
                 .withClientId(clientId)
                 .build();
 
-        query.select(cb.coalesce(cb.sum(root.get("costAmount")), BigDecimal.ZERO))
-                .where(specification.toPredicate(root, query, cb));
+        query.select(cb.coalesce(cb.sum(root.get("costAmount")), BigDecimal.ZERO));
+        query.where(specification.toPredicate(root, query, cb));
 
-        BigDecimal result = entityManager.createQuery(query).getSingleResult();
-        return result != null ? result : BigDecimal.ZERO;
+        BigDecimal totalCostAmount = entityManager.createQuery(query).getSingleResult();
+        return totalCostAmount == null ? BigDecimal.ZERO : totalCostAmount;
     }
 
     @Override

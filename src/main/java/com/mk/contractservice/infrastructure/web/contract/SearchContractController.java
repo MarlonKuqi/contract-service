@@ -1,9 +1,9 @@
 package com.mk.contractservice.infrastructure.web.contract;
 
-import com.mk.contractservice.application.feature.contract.search.GetContractById;
-import com.mk.contractservice.application.feature.contract.search.GetTotalActiveContractsByClient;
-import com.mk.contractservice.application.feature.contract.search.ListActiveContractsByClient;
-import com.mk.contractservice.domain.contract.aggregate.Contract;
+import com.mk.contractservice.application.feature.contract.GetContractById;
+import com.mk.contractservice.application.feature.contract.GetTotalCostAmountOfActiveContractsByClient;
+import com.mk.contractservice.application.feature.contract.ListActiveContractsByClient;
+import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.infrastructure.web.contract.shared.ContractDtoMapper;
 import com.mk.contractservice.infrastructure.web.contract.shared.ContractEndpoints;
 import com.mk.contractservice.infrastructure.web.contract.shared.ContractResponse;
@@ -32,7 +32,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.UUID;
 
 @Tag(name = ContractSwaggerTags.NAME, description = ContractSwaggerTags.DESCRIPTION)
@@ -44,7 +43,7 @@ public class SearchContractController {
 
     GetContractById getContractById;
     ListActiveContractsByClient listActiveContractsByClient;
-    GetTotalActiveContractsByClient getTotalActiveContractsByClient;
+    GetTotalCostAmountOfActiveContractsByClient getTotalCostAmountOfActiveContractsByClient;
     ContractDtoMapper contractMapper;
 
     @Operation(
@@ -130,14 +129,15 @@ public class SearchContractController {
     public ResponseEntity<PagedContractResponse> listActive(
             @RequestParam final UUID clientId,
             @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final LocalDateTime updatedSince,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            final LocalDateTime updatedSince,
             final Pageable pageable,
             final Locale locale
     ) {
         final Page<Contract> contracts = listActiveContractsByClient.execute(
                 new ListActiveContractsByClient.Query(
                         clientId,
-                        Optional.ofNullable(updatedSince),
+                        updatedSince,
                         pageable
                 )
         );
@@ -201,7 +201,7 @@ public class SearchContractController {
             @RequestParam final UUID clientId,
             final Locale locale
     ) {
-        final BigDecimal total = getTotalActiveContractsByClient.execute(new GetTotalActiveContractsByClient.Query(clientId));
+        final BigDecimal total = getTotalCostAmountOfActiveContractsByClient.execute(new GetTotalCostAmountOfActiveContractsByClient.Query(clientId));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
                 .body(total);

@@ -1,7 +1,7 @@
 package com.mk.contractservice.infrastructure.persistence.contract.assembler;
 
-import com.mk.contractservice.domain.contract.aggregate.Contract;
-import com.mk.contractservice.domain.contract.factory.ContractFactory;
+import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.infrastructure.persistence.contract.entity.ContractJpaEntity;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;

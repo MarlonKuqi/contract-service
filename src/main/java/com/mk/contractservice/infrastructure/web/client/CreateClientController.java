@@ -1,9 +1,9 @@
 package com.mk.contractservice.infrastructure.web.client;
 
-import com.mk.contractservice.application.feature.client.create.CreateCompany;
-import com.mk.contractservice.application.feature.client.create.CreatePerson;
-import com.mk.contractservice.domain.client.aggregate.Company;
-import com.mk.contractservice.domain.client.aggregate.Person;
+import com.mk.contractservice.application.feature.client.CreateCompany;
+import com.mk.contractservice.application.feature.client.CreatePerson;
+import com.mk.contractservice.domain.client.Company;
+import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientDtoMapper;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientEndpoints;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientResponse;

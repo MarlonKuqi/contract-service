@@ -1,16 +1,10 @@
 package com.mk.contractservice.domain.client;
 
 
-import com.mk.contractservice.domain.client.aggregate.Company;
 import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
 import com.mk.contractservice.domain.client.exception.InvalidClientNameException;
 import com.mk.contractservice.domain.client.exception.InvalidClientPhoneNumberException;
 import com.mk.contractservice.domain.client.exception.InvalidCompanyIdentifierException;
-import com.mk.contractservice.domain.client.factory.CompanyFactory;
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
-import com.mk.contractservice.domain.client.valueobject.ClientName;
-import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
-import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

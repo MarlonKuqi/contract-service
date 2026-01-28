@@ -1,6 +1,6 @@
 package com.mk.contractservice.infrastructure.web.client;
 
-import com.mk.contractservice.application.feature.client.patch.PatchClient;
+import com.mk.contractservice.application.feature.client.PatchClient;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientEndpoints;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientSwaggerTags;
 import io.swagger.v3.oas.annotations.Operation;
@@ -73,9 +73,9 @@ public class PatchClientController {
     ) {
         patchClient.execute(new PatchClient.Command(
                 clientId,
-                request.name(),
-                request.email(),
-                request.phone()
+                request.name().orElse(null),
+                request.email().orElse(null),
+                request.phone().orElse(null)
         ));
         return ResponseEntity.noContent().build();
     }

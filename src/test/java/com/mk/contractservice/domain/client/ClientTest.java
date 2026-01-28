@@ -1,13 +1,6 @@
 package com.mk.contractservice.domain.client;
 
 
-import com.mk.contractservice.domain.client.aggregate.Company;
-import com.mk.contractservice.domain.client.aggregate.Person;
-import com.mk.contractservice.domain.client.valueobject.ClientEmail;
-import com.mk.contractservice.domain.client.valueobject.ClientName;
-import com.mk.contractservice.domain.client.valueobject.ClientPhoneNumber;
-import com.mk.contractservice.domain.client.valueobject.CompanyIdentifier;
-import com.mk.contractservice.domain.client.valueobject.PersonBirthDate;
 import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

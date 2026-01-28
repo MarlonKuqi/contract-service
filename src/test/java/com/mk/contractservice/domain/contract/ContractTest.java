@@ -1,11 +1,8 @@
 package com.mk.contractservice.domain.contract;
 
-import com.mk.contractservice.domain.contract.aggregate.Contract;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
-import com.mk.contractservice.domain.contract.factory.ContractFactory;
-import com.mk.contractservice.domain.contract.valueobject.ContractCost;
 import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

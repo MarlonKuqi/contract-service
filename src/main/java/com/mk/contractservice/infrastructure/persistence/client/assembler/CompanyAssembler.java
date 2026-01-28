@@ -1,7 +1,7 @@
 package com.mk.contractservice.infrastructure.persistence.client.assembler;
 
-import com.mk.contractservice.domain.client.aggregate.Company;
-import com.mk.contractservice.domain.client.factory.CompanyFactory;
+import com.mk.contractservice.domain.client.Company;
+import com.mk.contractservice.domain.client.CompanyFactory;
 import com.mk.contractservice.infrastructure.persistence.client.entity.CompanyJpaEntity;
 import org.springframework.stereotype.Component;
 

@@ -1,7 +1,7 @@
 package com.mk.contractservice.infrastructure.web.client;
 
-import com.mk.contractservice.application.feature.client.search.GetClientById;
-import com.mk.contractservice.domain.client.aggregate.Client;
+import com.mk.contractservice.application.feature.client.GetClientById;
+import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientDtoMapper;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientEndpoints;
 import com.mk.contractservice.infrastructure.web.client.shared.ClientResponse;

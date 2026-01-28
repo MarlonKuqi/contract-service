@@ -1,13 +1,13 @@
 package com.mk.contractservice.application.client;
 
 
-import com.mk.contractservice.application.feature.client.create.CreateCompany;
-import com.mk.contractservice.domain.client.aggregate.Company;
+import com.mk.contractservice.application.feature.client.CreateCompany;
+import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
 import com.mk.contractservice.domain.client.exception.EmailAlreadyExistsException;
 import com.mk.contractservice.domain.client.exception.PhoneAlreadyExistsException;
-import com.mk.contractservice.domain.client.repository.ClientRepository;
-import com.mk.contractservice.domain.client.service.ClientValidationService;
+import com.mk.contractservice.domain.client.ClientRepository;
+import com.mk.contractservice.domain.client.ClientValidationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
