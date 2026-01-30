@@ -30,9 +30,12 @@ class ArchitectureTest {
 
     private final DescribedPredicate<JavaClass> areCore = resideInAnyPackage("com.mk.contractservice.domain..");
 
-    private final DescribedPredicate<JavaClass> areApplication = resideInAnyPackage("com.mk.contractservice.application..");
+    private final DescribedPredicate<JavaClass> areFeatures = resideInAnyPackage("com.mk.contractservice.features..");
 
     private final DescribedPredicate<JavaClass> areInfrastructure = resideInAnyPackage("com.mk.contractservice.infrastructure..");
+    private final DescribedPredicate<JavaClass> areControllers = resideInAnyPackage("com.mk.contractservice.controllers..");
+
+    // ========== DDD Layer Tests ==========
 
     @Test
     void domain_should_not_depend_on_infrastructure() {
@@ -40,15 +43,27 @@ class ArchitectureTest {
                 .that(areCore)
                 .should()
                 .dependOnClassesThat(areInfrastructure)
+                .because("Domain must remain pure and not depend on infrastructure details (JPA, Spring Data, etc.)")
                 .check(classes);
     }
 
     @Test
-    void domain_should_not_depend_on_application() {
+    void domain_should_not_depend_on_features() {
         noClasses()
                 .that(areCore)
                 .should()
-                .dependOnClassesThat(areApplication)
+                .dependOnClassesThat(areFeatures)
+                .because("Domain is the core layer and should not depend on application use cases")
+                .check(classes);
+    }
+
+    @Test
+    void domain_should_not_depend_on_controllers() {
+        noClasses()
+                .that(areCore)
+                .should()
+                .dependOnClassesThat(areControllers)
+                .because("Domain must not depend on presentation layer (controllers)")
                 .check(classes);
     }
 
@@ -58,15 +73,17 @@ class ArchitectureTest {
                 .that(areCore)
                 .should()
                 .onlyDependOnClassesThat(areCore.or(areStandard))
+                .because("Domain should be independent and only use standard Java/Jakarta APIs")
                 .check(classes);
     }
 
     @Test
-    void application_should_not_depend_on_infrastructure() {
+    void features_should_not_depend_on_controllers() {
         noClasses()
-                .that(areApplication)
+                .that(areFeatures)
                 .should()
-                .dependOnClassesThat(areInfrastructure)
+                .dependOnClassesThat(areControllers)
+                .because("Features (application layer) must not depend on presentation layer (controllers)")
                 .check(classes);
     }
 }

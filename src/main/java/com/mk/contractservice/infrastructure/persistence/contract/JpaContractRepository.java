@@ -2,15 +2,16 @@ package com.mk.contractservice.infrastructure.persistence.contract;
 
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.infrastructure.persistence.contract.assembler.ContractAssembler;
-import com.mk.contractservice.infrastructure.persistence.contract.entity.ContractJpaEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.CriteriaUpdate;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.jspecify.annotations.Nullable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -45,15 +46,12 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, final LocalDateTime updatedSince, final Pageable pageable) {
-        var specification = ContractSpecifications.builder()
-                .active()
-                .withClientId(clientId)
-                .withUpdatedAfter(updatedSince)
-                .build();
-
-        return contractJpaRepository.findAll(specification, pageable)
-                .map(assembler::toDomain);
+    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, @Nullable final LocalDateTime updatedSince, final Pageable pageable) {
+        var specification = ContractSpecifications.isActiveWithClientId(clientId);
+        if (updatedSince != null) {
+            specification = specification.and(ContractSpecifications.updatedAfter(updatedSince));
+        }
+        return contractJpaRepository.findAll(specification, pageable).map(assembler::toDomain);
     }
 
 
@@ -64,10 +62,7 @@ public class JpaContractRepository implements ContractRepository {
         CriteriaQuery<BigDecimal> query = cb.createQuery(BigDecimal.class);
         Root<ContractJpaEntity> root = query.from(ContractJpaEntity.class);
 
-        var specification = ContractSpecifications.builder()
-                .active()
-                .withClientId(clientId)
-                .build();
+        var specification = ContractSpecifications.isActiveWithClientId(clientId);
 
         query.select(cb.coalesce(cb.sum(root.get("costAmount")), BigDecimal.ZERO));
         query.where(specification.toPredicate(root, query, cb));
@@ -79,6 +74,19 @@ public class JpaContractRepository implements ContractRepository {
     @Override
     @CacheEvict(value = "contractSums", key = "#clientId")
     public int closeAllActiveByClientId(final UUID clientId, final LocalDateTime closureDate) {
-        return contractJpaRepository.closeAllActiveByClientId(clientId, closureDate);
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaUpdate<ContractJpaEntity> update = cb.createCriteriaUpdate(ContractJpaEntity.class);
+        Root<ContractJpaEntity> root = update.from(ContractJpaEntity.class);
+
+        Predicate wherePredicate = cb.and(
+                ContractSpecifications.isActivePredicate(root, cb, closureDate),
+                ContractSpecifications.hasClientIdPredicate(root, cb, clientId)
+        );
+
+        update.set("endDate", closureDate);
+        update.set("lastModified", closureDate);
+        update.where(wherePredicate);
+
+        return entityManager.createQuery(update).executeUpdate();
     }
 }

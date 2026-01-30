@@ -1,6 +1,6 @@
 package com.mk.contractservice.infrastructure.persistence.client;
 
-import com.mk.contractservice.infrastructure.persistence.client.entity.ClientJpaEntity;
+import com.mk.contractservice.infrastructure.persistence.client.entities.ClientJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

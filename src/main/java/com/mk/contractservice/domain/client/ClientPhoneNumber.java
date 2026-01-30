@@ -48,7 +48,8 @@ public class ClientPhoneNumber {
         return ValueObjectUtils.validateAndCreate(
                 rawValue,
                 ClientPhoneNumber::normalize,
-                ClientPhoneNumber::validate, ClientPhoneNumber::create
+                ClientPhoneNumber::validate,
+                ClientPhoneNumber::create
         );
     }
 

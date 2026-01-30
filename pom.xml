@@ -253,6 +253,7 @@
 							<outputDirectory>target/jacoco-it</outputDirectory>
 							<excludes>
                                 <exclude>**/infrastructure/**</exclude>
+								<exclude>**/controllers/**</exclude>
                                 <exclude>**/ContractServiceApplication.class</exclude>
                                 <exclude>**/dto/**</exclude>
                                 <exclude>**/mapper/**</exclude>
@@ -269,6 +270,7 @@
 					<excludes>
                         <!-- Infrastructure -->
 						<exclude>**/infrastructure/**</exclude>
+						<exclude>**/controllers/**</exclude>
 						<exclude>**/config/**</exclude>
                         <exclude>**/configuration/**</exclude>
 

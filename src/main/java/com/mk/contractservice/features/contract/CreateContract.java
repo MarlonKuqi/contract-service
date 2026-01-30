@@ -1,0 +1,57 @@
+package com.mk.contractservice.features.contract;
+
+import com.mk.contractservice.domain.client.ClientValidationService;
+import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.UUID;
+
+public interface CreateContract {
+
+    record Command(
+            UUID clientId,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            BigDecimal costAmount
+    ) {
+        public Command {
+            Objects.requireNonNull(clientId, "Client ID cannot be null");
+            Objects.requireNonNull(costAmount, "Cost amount cannot be null");
+        }
+    }
+
+    Contract execute(Command command);
+
+    @Service
+    @Transactional
+    @RequiredArgsConstructor
+    @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+    class Handler implements CreateContract {
+
+        ClientValidationService clientValidationService;
+        ContractRepository contractRepository;
+
+        @Override
+        public Contract execute(final Command command) {
+            clientValidationService.ensureClientExists(command.clientId());
+
+            final Contract contract = ContractFactory.createFromCommand(
+                    command.clientId(),
+                    command.startDate(),
+                    command.endDate(),
+                    command.costAmount()
+            );
+
+            return contractRepository.save(contract);
+        }
+    }
+}
+

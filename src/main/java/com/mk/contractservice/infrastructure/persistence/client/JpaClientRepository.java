@@ -3,7 +3,7 @@ package com.mk.contractservice.infrastructure.persistence.client;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.infrastructure.persistence.client.assembler.ClientAssembler;
+import com.mk.contractservice.infrastructure.persistence.client.assemblers.ClientAssembler;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Repository;
