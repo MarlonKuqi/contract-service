@@ -1,5 +1,6 @@
 package com.mk.contractservice.controllers.contract.pagination;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;

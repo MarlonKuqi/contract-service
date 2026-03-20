@@ -1,6 +1,7 @@
 package com.mk.contractservice.controllers.contract.pagination;
 
 import com.mk.contractservice.controllers.shared.InvalidPaginationException;
+import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import org.springframework.core.MethodParameter;
 import org.springframework.data.domain.PageRequest;
