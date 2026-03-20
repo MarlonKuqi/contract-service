@@ -3,6 +3,7 @@ package com.mk.contractservice.features.contract;
 import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractService;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
@@ -33,7 +34,7 @@ public interface ListActiveContractsByClient {
     @Service
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
-    @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements ListActiveContractsByClient {
 
         ClientValidationService clientValidationService;

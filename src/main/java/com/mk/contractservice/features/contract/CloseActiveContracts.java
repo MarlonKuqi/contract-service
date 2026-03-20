@@ -2,6 +2,7 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientDeletedEvent;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,7 @@ public interface CloseActiveContracts {
     @Service
     @Transactional
     @RequiredArgsConstructor
-    @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements CloseActiveContracts {
 
         ContractRepository contractRepository;

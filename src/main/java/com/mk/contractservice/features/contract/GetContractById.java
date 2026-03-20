@@ -3,6 +3,7 @@ package com.mk.contractservice.features.contract;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,7 @@ public interface GetContractById {
     @Service
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
-    @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements GetContractById {
 
         ContractRepository contractRepository;

@@ -4,6 +4,7 @@ package com.mk.contractservice.infrastructure.persistence.client;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.infrastructure.persistence.client.assemblers.ClientAssembler;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Repository;
@@ -13,7 +14,7 @@ import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
-@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class JpaClientRepository implements ClientRepository {
 
     ClientJpaRepository jpa;
@@ -26,8 +27,8 @@ public class JpaClientRepository implements ClientRepository {
 
     @Override
     public Client save(final Client c) {
-        var entity = assembler.toJpaEntity(c);
-        var savedEntity = jpa.save(entity);
+        final var entity = assembler.toJpaEntity(c);
+        final var savedEntity = jpa.save(entity);
         return assembler.toDomain(savedEntity);
     }
 

@@ -39,7 +39,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping(ContractEndpoints.CONTRACTS_BASE)
 @RequiredArgsConstructor
-@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class SearchContractController {
 
     GetContractById getContractById;

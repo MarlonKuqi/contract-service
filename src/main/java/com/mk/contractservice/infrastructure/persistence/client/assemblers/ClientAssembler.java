@@ -7,13 +7,14 @@ import com.mk.contractservice.infrastructure.persistence.client.entities.ClientJ
 import com.mk.contractservice.infrastructure.persistence.client.entities.CompanyJpaEntity;
 import com.mk.contractservice.infrastructure.persistence.client.entities.PersonJpaEntity;
 import jakarta.persistence.EntityManager;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ClientAssembler {
 
     PersonAssembler personAssembler;

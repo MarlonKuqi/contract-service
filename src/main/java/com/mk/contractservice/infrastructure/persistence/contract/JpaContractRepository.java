@@ -35,8 +35,8 @@ public class JpaContractRepository implements ContractRepository {
     @Override
     @CacheEvict(value = "contractSums", key = "#contract.clientId")
     public Contract save(final Contract contract) {
-        var entity = assembler.toJpaEntity(contract);
-        var savedEntity = contractJpaRepository.save(entity);
+        final var entity = assembler.toJpaEntity(contract);
+        final var savedEntity = contractJpaRepository.save(entity);
         return assembler.toDomain(savedEntity);
     }
 
@@ -47,38 +47,38 @@ public class JpaContractRepository implements ContractRepository {
 
     @Override
     public Page<Contract> findActiveByClientIdPageable(final UUID clientId, @Nullable final LocalDateTime updatedSince, final Pageable pageable) {
-        var specification = ContractSpecifications.isActiveWithClientId(clientId);
-        if (updatedSince != null) {
-            specification = specification.and(ContractSpecifications.updatedAfter(updatedSince));
+        final var specification = ContractSpecifications.isActiveWithClientId(clientId);
+        if (updatedSince == null) {
+            return contractJpaRepository.findAll(specification, pageable).map(assembler::toDomain);
         }
-        return contractJpaRepository.findAll(specification, pageable).map(assembler::toDomain);
+        return contractJpaRepository.findAll(specification.and(ContractSpecifications.updatedAfter(updatedSince)), pageable).map(assembler::toDomain);
     }
 
 
     @Override
     @Cacheable(value = "contractSums", key = "#clientId")
     public BigDecimal calculateTotalCostAmountForClient(final UUID clientId) {
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<BigDecimal> query = cb.createQuery(BigDecimal.class);
-        Root<ContractJpaEntity> root = query.from(ContractJpaEntity.class);
+        final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        final CriteriaQuery<BigDecimal> query = cb.createQuery(BigDecimal.class);
+        final Root<ContractJpaEntity> root = query.from(ContractJpaEntity.class);
 
-        var specification = ContractSpecifications.isActiveWithClientId(clientId);
+        final var specification = ContractSpecifications.isActiveWithClientId(clientId);
 
         query.select(cb.coalesce(cb.sum(root.get("costAmount")), BigDecimal.ZERO));
         query.where(specification.toPredicate(root, query, cb));
 
-        BigDecimal totalCostAmount = entityManager.createQuery(query).getSingleResult();
+        final BigDecimal totalCostAmount = entityManager.createQuery(query).getSingleResult();
         return totalCostAmount == null ? BigDecimal.ZERO : totalCostAmount;
     }
 
     @Override
     @CacheEvict(value = "contractSums", key = "#clientId")
     public int closeAllActiveByClientId(final UUID clientId, final LocalDateTime closureDate) {
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaUpdate<ContractJpaEntity> update = cb.createCriteriaUpdate(ContractJpaEntity.class);
-        Root<ContractJpaEntity> root = update.from(ContractJpaEntity.class);
+        final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        final CriteriaUpdate<ContractJpaEntity> update = cb.createCriteriaUpdate(ContractJpaEntity.class);
+        final Root<ContractJpaEntity> root = update.from(ContractJpaEntity.class);
 
-        Predicate wherePredicate = cb.and(
+        final Predicate wherePredicate = cb.and(
                 ContractSpecifications.isActivePredicate(root, cb, closureDate),
                 ContractSpecifications.hasClientIdPredicate(root, cb, clientId)
         );

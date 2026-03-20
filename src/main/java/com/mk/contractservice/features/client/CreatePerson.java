@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonFactory;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,7 @@ public interface CreatePerson {
     @Service
     @Transactional
     @RequiredArgsConstructor
-    @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements CreatePerson {
 
         ClientRepository clientRepository;

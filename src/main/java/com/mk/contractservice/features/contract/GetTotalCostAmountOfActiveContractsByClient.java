@@ -2,6 +2,7 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.ContractService;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,7 @@ public interface GetTotalCostAmountOfActiveContractsByClient {
     @Service
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
-    @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements GetTotalCostAmountOfActiveContractsByClient {
 
         ClientValidationService clientValidationService;

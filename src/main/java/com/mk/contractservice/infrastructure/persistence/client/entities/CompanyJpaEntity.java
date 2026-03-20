@@ -25,12 +25,12 @@ public final class CompanyJpaEntity extends ClientJpaEntity {
     @Column(name = "company_identifier", nullable = false, length = 64, unique = true)
     String companyIdentifier;
 
-    public CompanyJpaEntity(String name, String email, String phone, String companyIdentifier) {
+    public CompanyJpaEntity(final String name, final String email, final String phone, final String companyIdentifier) {
         super(name, email, phone);
         this.companyIdentifier = companyIdentifier;
     }
 
-    public static CompanyJpaEntity create(String name, String email, String phone, String companyIdentifier) {
+    public static CompanyJpaEntity create(final String name, final String email, final String phone, final String companyIdentifier) {
         return new CompanyJpaEntity(name, email, phone, companyIdentifier);
     }
 }

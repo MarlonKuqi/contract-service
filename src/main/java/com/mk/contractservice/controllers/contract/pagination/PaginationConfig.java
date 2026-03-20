@@ -17,7 +17,7 @@ import java.util.List;
 @EnableSpringDataWebSupport(pageSerializationMode = EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO)
 @Getter
 @Setter
-@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class PaginationConfig implements WebMvcConfigurer {
 
     int defaultPageSize;

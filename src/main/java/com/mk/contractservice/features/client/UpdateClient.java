@@ -7,6 +7,7 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientService;
 import com.mk.contractservice.domain.client.ClientValidationService;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
@@ -36,7 +37,7 @@ public interface UpdateClient {
     @Service
     @Transactional
     @RequiredArgsConstructor
-    @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements UpdateClient {
 
         ClientRepository clientRepository;

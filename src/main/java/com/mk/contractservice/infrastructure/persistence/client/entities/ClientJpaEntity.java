@@ -58,7 +58,7 @@ public abstract class ClientJpaEntity {
     @Column(name = "phone", nullable = false, length = 14, unique = true)
     String phone;
 
-    protected ClientJpaEntity(String name, String email, String phone) {
+    protected ClientJpaEntity(final String name, final String email, final String phone) {
         this.name = name;
         this.email = email;
         this.phone = phone;

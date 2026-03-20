@@ -1,6 +1,5 @@
 package com.mk.contractservice.domain.contract;
 
-import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -20,15 +19,6 @@ import java.util.UUID;
 public class ContractService {
 
     ContractRepository contractRepository;
-    ContractValidationService contractValidationService;
-
-    @Transactional(readOnly = true)
-    public Contract getContractForClient(final UUID clientId, final UUID contractId) {
-        final Contract contract = contractRepository.findById(contractId)
-                .orElseThrow(() -> new ContractNotFoundException(contractId));
-        contractValidationService.ensureContractBelongsToClient(contract, clientId);
-        return contract;
-    }
 
     @Transactional(readOnly = true)
     public Page<Contract> getActiveContractsForClient(

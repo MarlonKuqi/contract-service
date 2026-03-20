@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.client;
 
+import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,7 +14,7 @@ import static com.mk.contractservice.domain.shared.Assert.notNull;
 
 @Getter
 @EqualsAndHashCode(callSuper = true)
-@FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public final class Company extends Client {
 
     CompanyIdentifier companyIdentifier;
@@ -101,7 +102,7 @@ public final class Company extends Client {
     }
 
     @NoArgsConstructor
-    @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
+    @FieldDefaults(level = AccessLevel.PRIVATE)
     @NullUnmarked
     public static class CompanyBuilder {
         UUID id;

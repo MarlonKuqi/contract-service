@@ -8,7 +8,6 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -19,14 +18,12 @@ public class ClientValidationService {
 
     ClientRepository clientRepository;
 
-    @Transactional(readOnly = true)
     public void ensureEmailIsUnique(final String email) {
         if (clientRepository.existsByEmail(email)) {
             throw new EmailAlreadyExistsException("A Client with email '" + email + "' already exists", email);
         }
     }
 
-    @Transactional(readOnly = true)
     public void ensurePhoneIsUnique(final String phoneNumber) {
         if (clientRepository.existsByPhoneNumber(phoneNumber)) {
             throw new PhoneAlreadyExistsException(
@@ -36,7 +33,6 @@ public class ClientValidationService {
         }
     }
 
-    @Transactional(readOnly = true)
     public void ensureCompanyIdentifierIsUnique(final String identifier) {
         if (clientRepository.existsByCompanyIdentifier(identifier)) {
             throw new CompanyIdentifierAlreadyExistsException(
@@ -46,7 +42,6 @@ public class ClientValidationService {
         }
     }
 
-    @Transactional(readOnly = true)
     public void ensureClientExists(final UUID clientId) {
         if (!clientRepository.existsById(clientId)) {
             throw ClientNotFoundException.forId(clientId);

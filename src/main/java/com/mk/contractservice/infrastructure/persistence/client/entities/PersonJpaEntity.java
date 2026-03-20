@@ -26,12 +26,12 @@ public final class PersonJpaEntity extends ClientJpaEntity {
     @Column(name = "birth_date", nullable = false)
     LocalDate birthDate;
 
-    public PersonJpaEntity(String name, String email, String phone, LocalDate birthDate) {
+    public PersonJpaEntity(final String name, final String email, final String phone, final LocalDate birthDate) {
         super(name, email, phone);
         this.birthDate = birthDate;
     }
 
-    public static PersonJpaEntity create(String name, String email, String phone, LocalDate birthDate) {
+    public static PersonJpaEntity create(final String name, final String email, final String phone, final LocalDate birthDate) {
         return new PersonJpaEntity(name, email, phone, birthDate);
     }
 }

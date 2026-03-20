@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.client;
 
+import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
@@ -11,7 +12,7 @@ import static com.mk.contractservice.domain.shared.Assert.notNull;
 
 @Getter
 @EqualsAndHashCode
-@FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public abstract sealed class Client permits Person, Company {
 
     @Nullable
