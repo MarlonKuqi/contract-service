@@ -9,6 +9,7 @@ import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -72,6 +73,7 @@ class CreatePersonAcceptanceTest {
                 .then()
                 .statusCode(201)
                 .header("Location", containsString(ClientEndpoints.CLIENTS_BASE + "/"))
+                .header("Content-Language", equalTo("fr-CH"))
                 .body("id", notNullValue())
                 .body("type", equalTo("PERSON"))
                 .body("name", equalTo("John Doe"))

@@ -73,10 +73,7 @@ public class PatchContractCostController {
             @PathVariable final UUID contractId,
             @Valid @RequestBody final Request request
     ) {
-        patchContractCost.execute(new PatchContractCost.Command(
-                contractId,
-                request.amount()
-        ));
+        patchContractCost.execute(new PatchContractCost.Command(contractId, request.amount()));
         return ResponseEntity.noContent().build();
     }
 

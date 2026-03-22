@@ -85,10 +85,12 @@ public class PatchClientController {
             @Schema(description = "Client name (optional)", example = "John Doe", maxLength = 200)
             Optional<String> name,
 
-            @Schema(description = "Client email address (optional)", example = "john.doe@example.com", format = "email", maxLength = 254)
+            @Schema(description = "Client email address (optional)", example = "john.doe@example.com",
+                    format = "email", maxLength = 254)
             Optional<String> email,
 
-            @Schema(description = "Client phone number (optional)", example = "+41791234567", pattern = "\\+?[0-9 .()/-]{7,20}", minLength = 7, maxLength = 20)
+            @Schema(description = "Client phone number (optional)", example = "+41791234567",
+                    pattern = "\\+?[0-9 .()/-]{7,20}", minLength = 7, maxLength = 20)
             Optional<String> phone
     ) {
     }

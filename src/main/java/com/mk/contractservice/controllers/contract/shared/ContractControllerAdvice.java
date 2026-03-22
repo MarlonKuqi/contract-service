@@ -40,37 +40,37 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
     @ExceptionHandler(ClientNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleClientNotFoundForContract(ClientNotFoundException ex) {
         log.debug("Client not found for contract: {}", ex.getMessage());
-        ProblemDetail pd = problem(HttpStatus.NOT_FOUND, "Client Not Found",
+        ProblemDetail problemDetail = problem(HttpStatus.NOT_FOUND, "Client Not Found",
                 ex.getMessage(), "clientNotFound");
-        pd.setProperty(CONTEXT, "Cannot create contract for non-existent client");
-        return respond(pd);
+        problemDetail.setProperty(CONTEXT, "Cannot create contract for non-existent client");
+        return respond(problemDetail);
     }
 
     @ExceptionHandler(ContractNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleContractNotFound(ContractNotFoundException ex) {
         log.debug("Contract not found: {}", ex.getMessage());
 
-        ProblemDetail pd = problem(HttpStatus.NOT_FOUND, "Contract Not Found",
+        ProblemDetail problemDetail = problem(HttpStatus.NOT_FOUND, "Contract Not Found",
                 ex.getMessage(), "contractNotFound");
-        return respond(pd);
+        return respond(problemDetail);
     }
 
     @ExceptionHandler(ContractNotOwnedByClientException.class)
     public ResponseEntity<ProblemDetail> handleContractNotOwnedByClient(ContractNotOwnedByClientException ex) {
         log.warn("Security: Attempt to access contract not owned by client: {}", ex.getMessage());
 
-        ProblemDetail pd = problem(HttpStatus.FORBIDDEN, "Access Denied",
+        ProblemDetail problemDetail = problem(HttpStatus.FORBIDDEN, "Access Denied",
                 "You do not have permission to access this contract", "contractAccessDenied");
-        return respond(pd);
+        return respond(problemDetail);
     }
 
     @ExceptionHandler(ExpiredContractException.class)
     public ResponseEntity<ProblemDetail> handleExpiredContract(ExpiredContractException ex) {
         log.warn("Business rule violation: {}", ex.getMessage());
 
-        ProblemDetail pd = problem(HttpStatus.CONFLICT, "Expired Contract",
+        ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Expired Contract",
                 ex.getMessage(), "contractExpired");
-        return respond(pd);
+        return respond(problemDetail);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -92,15 +92,15 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
             default -> "Malformed JSON or invalid payload.";
         };
 
-        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed", detail, "validationError");
-        return respond(pd);
+        ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed", detail, "validationError");
+        return respond(problemDetail);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException ex) {
         log.debug("Validation failed for contract request: {}", ex.getMessage());
 
-        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed",
+        ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed",
                 "One or more fields are invalid or missing.", "validationError");
 
         List<Map<String, Object>> errors = ex.getBindingResult().getFieldErrors().stream()
@@ -110,44 +110,44 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
                         "rejectedValue", Optional.ofNullable(fe.getRejectedValue()).orElse("null")))
                 .toList();
 
-        pd.setProperty("validations", errors);
-        return respond(pd);
+        problemDetail.setProperty("validations", errors);
+        return respond(problemDetail);
     }
 
     @ExceptionHandler(InvalidContractCostException.class)
     public ResponseEntity<ProblemDetail> handleInvalidContractCost(InvalidContractCostException ex) {
         log.warn("Invalid contract cost: {}", ex.getMessage());
-        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid Contract Cost",
+        ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid Contract Cost",
                 ex.getMessage(), "invalidContractCost");
-        pd.setProperty(CONTEXT, "Contract cost validation failed");
-        return respond(pd);
+        problemDetail.setProperty(CONTEXT, "Contract cost validation failed");
+        return respond(problemDetail);
     }
 
     @ExceptionHandler(InvalidContractPeriodException.class)
     public ResponseEntity<ProblemDetail> handleInvalidContractPeriod(InvalidContractPeriodException ex) {
         log.warn("Invalid contract period: {}", ex.getMessage());
-        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid Contract Period",
+        ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid Contract Period",
                 ex.getMessage(), "invalidContractPeriod");
-        pd.setProperty(CONTEXT, "Contract period validation failed");
-        return respond(pd);
+        problemDetail.setProperty(CONTEXT, "Contract period validation failed");
+        return respond(problemDetail);
     }
 
     @ExceptionHandler(DomainValidationException.class)
     public ResponseEntity<ProblemDetail> handleDomainValidation(DomainValidationException ex) {
         log.warn("Domain validation failed for contract: {}", ex.getMessage());
-        ProblemDetail pd = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Domain Validation Failed",
+        ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Domain Validation Failed",
                 ex.getMessage(), ex.getCode() != null ? ex.getCode() : "domainValidationError");
-        pd.setProperty(CONTEXT, "Contract domain validation failed");
-        return respond(pd);
+        problemDetail.setProperty(CONTEXT, "Contract domain validation failed");
+        return respond(problemDetail);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ProblemDetail> handleContractValidationError(IllegalArgumentException ex) {
         log.warn("Contract validation failed: {}", ex.getMessage());
-        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "Contract Validation Failed",
+        ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Contract Validation Failed",
                 ex.getMessage(), "contractValidationError");
-        pd.setProperty(CONTEXT, "Contract validation failed");
-        return respond(pd);
+        problemDetail.setProperty(CONTEXT, "Contract validation failed");
+        return respond(problemDetail);
     }
 }
 

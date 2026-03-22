@@ -3,7 +3,7 @@ package com.mk.contractservice.domain.client;
 import com.mk.contractservice.domain.client.exception.InvalidClientNameException;
 import com.mk.contractservice.domain.shared.ValueObjectUtils;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 
@@ -12,7 +12,7 @@ import java.util.function.Predicate;
 import static com.mk.contractservice.domain.shared.Assert.notNull;
 
 @Value
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class ClientName {
 
     String value;

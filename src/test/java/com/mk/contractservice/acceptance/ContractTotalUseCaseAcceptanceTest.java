@@ -2,6 +2,7 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
+import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientEmail;
@@ -359,6 +360,87 @@ class ContractTotalUseCaseAcceptanceTest {
             assertThat(duration)
                     .as("Sum endpoint should respond in less than 100 ms for 100 contracts")
                     .isLessThan(100);
+        }
+    }
+
+    @Nested
+    @DisplayName("Client Isolation")
+    class ClientIsolationTests {
+
+        @Test
+        @DisplayName("Should isolate contract sum per client - other clients contracts are not included")
+        void shouldIsolateContractSumPerClient() {
+            String uniqueId1 = UUID.randomUUID().toString().substring(0, 8);
+            String client1Payload = String.format("""
+                    {
+                        "type": "PERSON",
+                        "name": "Client Alpha",
+                        "email": "alpha.%s@example.com",
+                        "phone": "%s",
+                        "birthDate": "1990-01-01"
+                    }
+                    """, uniqueId1, TestDataHelper.randomSwissPhoneNumber());
+
+            String clientId1 = given()
+                    .contentType(ContentType.JSON)
+                    .body(client1Payload)
+                    .when()
+                    .post(ClientEndpoints.CLIENTS_BASE)
+                    .then()
+                    .statusCode(201)
+                    .extract().path("id");
+
+            String uniqueId2 = UUID.randomUUID().toString().substring(0, 8);
+            String client2Payload = String.format("""
+                    {
+                        "type": "PERSON",
+                        "name": "Client Beta",
+                        "email": "beta.%s@example.com",
+                        "phone": "%s",
+                        "birthDate": "1992-02-02"
+                    }
+                    """, uniqueId2, TestDataHelper.randomSwissPhoneNumber());
+
+            String clientId2 = given()
+                    .contentType(ContentType.JSON)
+                    .body(client2Payload)
+                    .when()
+                    .post(ClientEndpoints.CLIENTS_BASE)
+                    .then()
+                    .statusCode(201)
+                    .extract().path("id");
+
+            LocalDateTime now = LocalDateTime.now();
+            String contractPayload = String.format("""
+                    {
+                        "clientId": "%s",
+                        "startDate": "%s",
+                        "endDate": null,
+                        "costAmount": "1000.00"
+                    }
+                    """, clientId1, now.minusDays(5));
+
+            given()
+                    .contentType(ContentType.JSON)
+                    .body(contractPayload)
+                    .when()
+                    .post(ContractEndpoints.CONTRACTS_BASE)
+                    .then()
+                    .statusCode(201);
+
+            given()
+                    .when()
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", clientId1)
+                    .then()
+                    .statusCode(200)
+                    .body(equalTo("1000.00"));
+
+            given()
+                    .when()
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", clientId2)
+                    .then()
+                    .statusCode(200)
+                    .body(anyOf(equalTo("0"), equalTo("0.00"), equalTo("0.0")));
         }
     }
 }

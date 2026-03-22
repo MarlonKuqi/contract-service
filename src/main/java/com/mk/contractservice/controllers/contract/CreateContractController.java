@@ -114,10 +114,14 @@ public class CreateContractController {
                     requiredMode = Schema.RequiredMode.REQUIRED)
             UUID clientId,
 
-            @Schema(description = "Contract start date (defaults to now if not provided)", example = "2025-01-01T00:00:00", format = "date-time")
+            @Schema(description = "Contract start date (defaults to now if not provided)",
+                    example = "2025-01-01T00:00:00",
+                    format = "date-time")
             LocalDateTime startDate,
 
-            @Schema(description = "Contract end date (null means active/indefinite contract)", example = "2026-01-01T00:00:00", format = "date-time")
+            @Schema(description = "Contract end date (null means active/indefinite contract)",
+                    example = "2026-01-01T00:00:00",
+                    format = "date-time")
             LocalDateTime endDate,
 
             @NotNull(message = "Cost amount is required")

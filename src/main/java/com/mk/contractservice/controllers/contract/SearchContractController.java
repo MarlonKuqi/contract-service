@@ -75,12 +75,8 @@ public class SearchContractController {
             @PathVariable final UUID contractId,
             final Locale locale
     ) {
-        final Contract contract = getContractById.execute(
-                new GetContractById.Query(contractId)
-        );
-
+        final Contract contract = getContractById.execute(new GetContractById.Query(contractId));
         final ContractResponse response = contractMapper.toResponse(contract);
-
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
                 .body(response);
@@ -136,11 +132,7 @@ public class SearchContractController {
             final Locale locale
     ) {
         final Page<Contract> contracts = listActiveContractsByClient.execute(
-                new ListActiveContractsByClient.Query(
-                        clientId,
-                        updatedSince,
-                        pageable
-                )
+                new ListActiveContractsByClient.Query(clientId, updatedSince, pageable)
         );
 
         final Page<ContractResponse> responsePage = contracts.map(contractMapper::toResponse);
@@ -161,7 +153,6 @@ public class SearchContractController {
             final long firstElement = (long) responsePage.getNumber() * responsePage.getSize();
             final long lastElement = Math.min(firstElement + responsePage.getNumberOfElements() - 1, totalElements - 1);
             final boolean isPartialContent = totalElements > responsePage.getNumberOfElements() || responsePage.getNumber() > 0;
-
             if (isPartialContent) {
                 responseBuilder = ResponseEntity.status(206);
                 responseBuilder.header("Content-Range", String.format("contracts %d-%d/%d", firstElement, lastElement, totalElements));

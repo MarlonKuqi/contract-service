@@ -1,14 +1,14 @@
 package com.mk.contractservice.domain.client;
 
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.Value;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Value
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class ClientDeletedEvent {
     UUID clientId;
     LocalDateTime occurredAt;

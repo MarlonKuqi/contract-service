@@ -35,8 +35,6 @@ class ArchitectureTest {
     private final DescribedPredicate<JavaClass> areInfrastructure = resideInAnyPackage("com.mk.contractservice.infrastructure..");
     private final DescribedPredicate<JavaClass> areControllers = resideInAnyPackage("com.mk.contractservice.controllers..");
 
-    // ========== DDD Layer Tests ==========
-
     @Test
     void domain_should_not_depend_on_infrastructure() {
         noClasses()
