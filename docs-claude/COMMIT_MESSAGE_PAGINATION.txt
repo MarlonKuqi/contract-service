@@ -1,0 +1,50 @@
+feat(pagination): add validation for invalid pagination parameters
+
+Implement comprehensive validation for pagination parameters to reject
+invalid values (negative page numbers, zero/negative page sizes, etc.)
+at the HTTP layer before reaching controllers or repositories.
+
+Changes:
+- Create InvalidPaginationException for pagination-specific errors
+- Implement ValidatingPageableArgumentResolver to validate page/size params
+  * Reject page < 0
+  * Reject size < 1
+  * Reject size > maxPageSize (from config)
+  * Reject invalid number formats
+- Transform PaginationProperties from record to class for better
+  Spring @ConfigurationProperties compatibility
+- Add handler in GlobalExceptionHandler for InvalidPaginationException
+  returning 400 Bad Request with clear error messages
+- Add comprehensive integration tests using RestAssured
+- Fix Spring context loading twice in tests by adding missing
+  @ActiveProfiles and @Import annotations
+
+Technical details:
+- Validation occurs at HTTP layer (ValidatingPageableArgumentResolver)
+  BEFORE controller execution
+- PaginationProperties changed to class (records don't work well with
+  @ConfigurationProperties - Spring needs setters)
+- Removed constructor validation (Spring handles it at startup via @Min/@Max)
+- InvalidPaginationException avoids conflicts with ContractControllerAdvice
+  which also handles IllegalArgumentException
+
+Tests:
+- PaginationPropertiesTest: unit tests for configuration
+- PaginationValidationIT: integration tests with real HTTP requests
+  * Tests negative page numbers → 400
+  * Tests zero/negative page sizes → 400
+  * Tests oversized page sizes → 400
+  * Tests invalid formats → 400
+  * Tests valid requests → 200
+
+Documentation:
+- docs-claude/PAGINATION_ARCHITECTURE.md: complete architecture
+- docs-claude/PAGINATION_FLOW_EXPLAINED.md: detailed flow explanation
+- docs-claude/PAGINATION_FIX_SUMMARY.md: fixes applied
+- docs-claude/SPRING_CONTEXT_FIX.md: test context optimization
+
+Breaking changes: None
+This is a non-breaking addition of validation at the HTTP layer.
+
+Closes: #[issue-number] (si applicable)
+

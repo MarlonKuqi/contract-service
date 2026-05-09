@@ -1,0 +1,61 @@
+Introduction
+As an insurance company, we sell our products to individuals and companies. As a
+counselor, I want to have an application that allows me to create clients and create contracts
+for them. I also want to be able to manage my clients and their contracts.
+Your task as a software engineer is to create a backend system that exposes an API that will
+interact with clients and contracts.
+You are not asked to create the frontend app.
+Specifications
+Through a Rest API, I would like to be able to:
+• Create a client:
+o Different type of clients: Person, Company
+o Fill their phone, email, name, birthdate (for person), company identifier (for
+company) (example: aaa-123).
+• Read a client
+o Return all the fields of the client.
+• Update a client
+o Update all the fields, except birthdate and company identifier.
+• Delete a client
+o When a client is deleted the end date of their contracts should be updated to
+the current date.
+• Create a contract for a client.
+o Contract has a start date (if not provided, set it to the current date) and an end
+date (if not provided then put null value).
+o Contract cost amount.
+o Keep the update date (last modified date) internally, it should not be exposed
+in the api.
+• Update the cost amount it should automatically update the update date to the current
+date.
+• Get all the contracts for one client
+o It should return only the active contracts (current date < end date)
+o Possibility to filter by the update date.
+• A very performant endpoint that returns the sum of all the cost amount of the active
+contracts (current date < end date) for one client.
+
+Dates should respect the ISO 8601 format.
+The API should be RESTful and use JSON format.
+Implement validation on the dates, phone number, emails and numbers.
+
+
+
+Api Factory – Technical Exercise
+
+Non-Functional requirements
+• Code must be implemented using Java and Spring Boot framework.
+• You are free to use any database, but the data must persist if the app crashes or
+restarts.
+• We prefer descriptive code with good naming over comments.
+Deliverable
+• Ship your code in your GitHub account on a public repository.
+• Give us the link to the repository.
+• We should be able to run easily your application locally, create a README.md to
+explain how to run your application.
+• Provide proof or an explanation of why your API works.
+• Please provide an explanation (1000 chars max) of your chosen architecture/design
+in the README.
+• We do not accept any deliverables outside of the Git repository.
+Hints
+• You are welcome to use any AI tools, Stack overflow, …
+• Feel free to improve your code or the functionality if you want to demonstrate some of
+your specific knowledges.
+• You are welcome to push multiple commits, so we can see your coding flow.

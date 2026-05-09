@@ -17,35 +17,40 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 
 ## 📂 Collections par Controller
 
-### 1️⃣ PersonController
-**Fichier** : `PersonController.postman_collection.json`  
-**Endpoint** : `POST /v1/persons`  
-**Requêtes** : 3 exemples de création de personnes
-
-### 2️⃣ CompanyController
-**Fichier** : `CompanyController.postman_collection.json`  
-**Endpoint** : `POST /v1/companies`  
-**Requêtes** : 3 exemples de création de sociétés
-
-### 3️⃣ ClientController
+### 1️⃣ ClientController (Unified API - ✅ Recommended)
 **Fichier** : `ClientController.postman_collection.json`  
 **Endpoints** :
-- `GET /v1/clients/{clientId}` - Read
-- `PUT /v1/clients/{clientId}` - Update
-- `DELETE /v1/clients/{clientId}` - Delete
+- `POST /v2/clients` - Create client (Person or Company) with type discriminator
+- `GET /v2/clients/{id}` - Read client
+- `PUT /v2/clients/{id}` - Update client
+- `DELETE /v2/clients/{id}` - Delete client
 
-**Requêtes** : 3 (Read, Update, Delete)
+**Requêtes** : CRUD complet sur les clients
 
-### 4️⃣ ContractController
+**⚠️ Note:** Les collections PersonController et CompanyController ont été **supprimées** en v2.0.0. 
+Utilisez cette collection unifiée pour créer des clients Person ou Company.
+
+### 2️⃣ ContractController
 **Fichier** : `ContractController.postman_collection.json`  
 **Endpoints** :
-- `POST /v1/clients/{clientId}/contracts` - Create
-- `GET /v1/clients/{clientId}/contracts` - List active
-- `GET /v1/clients/{clientId}/contracts?updatedSince=...` - Filter
-- `PATCH /v1/clients/{clientId}/contracts/{contractId}/cost` - Update cost
-- `GET /v1/clients/{clientId}/contracts/sum` - Aggregation
+- `POST /v1/contracts?clientId={clientId}` - Create contract
+- `GET /v1/contracts?clientId={clientId}` - List active contracts (paginated)
+- `GET /v1/contracts?clientId={clientId}&updatedSince=...` - Filter by update date
+- `GET /v1/contracts/{contractId}?clientId={clientId}` - Get specific contract
+- `PATCH /v1/contracts/{contractId}/cost?clientId={clientId}` - Update cost
+- `GET /v1/contracts/sum?clientId={clientId}` - Sum of active contracts
 
-**Requêtes** : 7 (Create, Read, Update, Aggregate)
+**Requêtes** : CRUD complet + agrégation sur les contrats
+
+---
+
+## 🗑️ Collections Obsolètes
+
+Les collections suivantes sont **obsolètes** et ont été remplacées par `ClientController.postman_collection.json` :
+- ~~`PersonController.postman_collection.json`~~ → Migré vers ClientController
+- ~~`CompanyController.postman_collection.json`~~ → Migré vers ClientController
+
+Ces fichiers sont conservés pour référence historique mais ne devraient plus être utilisés.
 
 ---
 
@@ -89,11 +94,6 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 
 Chaque collection définit ses propres variables :
 
-### PersonController & CompanyController
-| Variable | Valeur par défaut |
-|----------|-------------------|
-| `baseUrl` | `http://localhost:8080` |
-
 ### ClientController
 | Variable | Valeur par défaut |
 |----------|-------------------|
@@ -116,27 +116,50 @@ Chaque collection définit ses propres variables :
 
 ## 🎯 Workflow d'Utilisation
 
-### Étape 1 : Créer une Personne
-1. Importer `PersonController.postman_collection.json`
-2. Exécuter "Create Person"
+### Créer un Client (Person)
+
+1. Importer `ClientController.postman_collection.json`
+2. Exécuter "Create Person" avec payload :
+   ```json
+   {
+     "type": "PERSON",
+     "name": "Jane Doe",
+     "email": "jane@example.com",
+     "phone": "+41791234567",
+     "birthDate": "1985-03-20"
+   }
+   ```
 3. Copier l'`id` retourné dans la réponse
 
-### Étape 2 : Lire le Client
+### Créer un Client (Company)
+
 1. Importer `ClientController.postman_collection.json`
-2. Modifier la variable `clientId` avec l'UUID copié
-3. Exécuter "Read Client"
+2. Exécuter "Create Company" avec payload :
+   ```json
+   {
+     "type": "COMPANY",
+     "name": "Tech Solutions SA",
+     "email": "info@techsolutions.ch",
+     "phone": "+41791234567",
+     "companyIdentifier": "CHE-987.654.321"
+   }
+   ```
+3. Copier l'`id` retourné
 
-### Étape 3 : Créer un Contrat
+### Créer un Contrat
+
 1. Importer `ContractController.postman_collection.json`
-2. Modifier la variable `clientId` avec l'UUID du client
+2. Modifier la variable `clientId` avec l'UUID copié
 3. Exécuter "Create Contract - Default Dates"
-4. Copier l'`id` du contrat retourné
+4. Le contrat est créé et l'`id` est retourné
 
-### Étape 4 : Mettre à Jour le Coût
+### Mettre à Jour le Coût
+
 1. Modifier la variable `contractId` avec l'UUID du contrat
 2. Exécuter "Update Contract Cost"
 
-### Étape 5 : Calculer la Somme
+### Calculer la Somme
+
 1. Exécuter "Get Sum of Active Contracts"
 
 ---

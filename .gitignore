@@ -40,3 +40,11 @@ spring-boot-devtools.properties
 *.db
 *.sqlite
 
+# API Collections
+api-collections/ClientController/*
+api-collections/ContractController/*
+
+# Docs
+docs-claude/*
+commit*
+

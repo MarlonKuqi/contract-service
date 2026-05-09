@@ -3,7 +3,7 @@ CREATE TABLE contracts.client (
     type             VARCHAR(16)    NOT NULL CHECK (type IN ('PERSON','COMPANY')),
     name             VARCHAR(200)   NOT NULL,
     email            VARCHAR(254)   NOT NULL UNIQUE,
-    phone            VARCHAR(32)    NOT NULL
+    phone            VARCHAR(14)    NOT NULL UNIQUE
 );
 
 CREATE TABLE contracts.person (
@@ -21,7 +21,7 @@ CREATE TABLE contracts.contract (
     client_id      UUID REFERENCES contracts.client(id) ON DELETE SET NULL,
     start_date     TIMESTAMPTZ NOT NULL,
     end_date       TIMESTAMPTZ NULL,
-    cost_amount    NUMERIC(12,2) NOT NULL CHECK (cost_amount > 0),
+    cost_amount    NUMERIC(12,2) NOT NULL,
     last_modified  TIMESTAMPTZ   NOT NULL
 );
 
