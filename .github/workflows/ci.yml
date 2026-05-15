@@ -152,11 +152,15 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Get week number for NVD cache key
+        id: date
+        run: echo "week=$(date +'%Y-%U')" >> $GITHUB_OUTPUT
+
       - name: Cache NVD Database
         uses: actions/cache@v3
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-db-${{ github.run_id }}
+          key: nvd-db-${{ steps.date.outputs.week }}
           restore-keys: |
             nvd-db-
 
