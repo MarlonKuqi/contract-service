@@ -4,9 +4,7 @@ import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.domain.contract.ContractRepository;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,11 +32,10 @@ public interface CreateContract {
     @Service
     @Transactional
     @RequiredArgsConstructor
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements CreateContract {
 
-        ClientValidationService clientValidationService;
-        ContractRepository contractRepository;
+        private final ClientValidationService clientValidationService;
+        private final ContractRepository contractRepository;
 
         @Override
         public Contract execute(final Command command) {

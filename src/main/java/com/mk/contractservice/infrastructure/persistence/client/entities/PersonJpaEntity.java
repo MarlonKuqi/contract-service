@@ -9,7 +9,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
 
@@ -20,11 +19,10 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@FieldDefaults(level = AccessLevel.PRIVATE)
 public final class PersonJpaEntity extends ClientJpaEntity {
 
     @Column(name = "birth_date", nullable = false)
-    LocalDate birthDate;
+    private LocalDate birthDate;
 
     public PersonJpaEntity(final String name, final String email, final String phone, final LocalDate birthDate) {
         super(name, email, phone);

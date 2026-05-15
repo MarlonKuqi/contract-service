@@ -2,9 +2,7 @@ package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientService;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,10 +22,9 @@ public interface GetClientById {
     @Service
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements GetClientById {
 
-        ClientService clientService;
+        private final ClientService clientService;
 
         @Override
         public Client execute(final Query query) {

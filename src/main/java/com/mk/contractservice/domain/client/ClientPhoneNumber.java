@@ -59,7 +59,7 @@ public class ClientPhoneNumber {
 
     private static ClientPhoneNumber create(final String normalizedValue) {
         final String prefix = normalizedValue.substring(0, 3);
-        String base = normalizedValue.substring(3);
+        final String base = normalizedValue.substring(3);
         return new ClientPhoneNumber(prefix, base, normalizedValue);
     }
 

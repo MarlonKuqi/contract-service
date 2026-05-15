@@ -7,9 +7,7 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientService;
 import com.mk.contractservice.domain.client.ClientValidationService;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,12 +35,11 @@ public interface UpdateClient {
     @Service
     @Transactional
     @RequiredArgsConstructor
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements UpdateClient {
 
-        ClientRepository clientRepository;
-        ClientService clientService;
-        ClientValidationService clientValidationService;
+        private final ClientRepository clientRepository;
+        private final ClientService clientService;
+        private final ClientValidationService clientValidationService;
 
         @Override
         public Client execute(final Command command) {

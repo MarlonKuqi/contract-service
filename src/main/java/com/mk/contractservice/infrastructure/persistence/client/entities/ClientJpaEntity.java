@@ -15,7 +15,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -29,34 +28,33 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@FieldDefaults(level = AccessLevel.PRIVATE)
 public abstract class ClientJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false, updatable = false)
-    UUID id;
+    private UUID id;
 
     @Version
     @Column(name = "version", nullable = false)
-    Long version = 0L;
+    private Long version = 0L;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    LocalDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @UpdateTimestamp
     @Column(name = "last_modified", nullable = false)
-    LocalDateTime lastModified;
+    private LocalDateTime lastModified;
 
     @Column(name = "name", nullable = false, length = 200)
-    String name;
+    private String name;
 
     @Column(name = "email", nullable = false, length = 254, unique = true)
-    String email;
+    private String email;
 
     @Column(name = "phone", nullable = false, length = 14, unique = true)
-    String phone;
+    private String phone;
 
     protected ClientJpaEntity(final String name, final String email, final String phone) {
         this.name = name;

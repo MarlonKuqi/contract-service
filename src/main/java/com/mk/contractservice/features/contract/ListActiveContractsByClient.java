@@ -3,9 +3,7 @@ package com.mk.contractservice.features.contract;
 import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractService;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,11 +32,10 @@ public interface ListActiveContractsByClient {
     @Service
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements ListActiveContractsByClient {
 
-        ClientValidationService clientValidationService;
-        ContractService contractService;
+        private final ClientValidationService clientValidationService;
+        private final ContractService contractService;
 
         @Override
         public Page<Contract> execute(final Query query) {

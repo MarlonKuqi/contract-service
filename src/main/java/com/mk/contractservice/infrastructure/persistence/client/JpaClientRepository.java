@@ -4,9 +4,7 @@ package com.mk.contractservice.infrastructure.persistence.client;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.infrastructure.persistence.client.assemblers.ClientAssembler;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -14,11 +12,10 @@ import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class JpaClientRepository implements ClientRepository {
 
-    ClientJpaRepository jpa;
-    ClientAssembler assembler;
+    private final ClientJpaRepository jpa;
+    private final ClientAssembler assembler;
 
     @Override
     public Optional<Client> findById(final UUID id) {

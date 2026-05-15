@@ -15,9 +15,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -34,12 +32,11 @@ import java.util.Locale;
 @RestController
 @RequestMapping(ClientEndpoints.CLIENTS_BASE)
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CreateClientController {
 
-    CreatePerson createPerson;
-    CreateCompany createCompany;
-    ClientDtoMapper clientDtoMapper;
+    private final CreatePerson createPerson;
+    private final CreateCompany createCompany;
+    private final ClientDtoMapper clientDtoMapper;
 
     @Operation(
             summary = "Create a client (Person or Company)",

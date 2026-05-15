@@ -16,9 +16,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -37,11 +35,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping(ContractEndpoints.CONTRACTS_BASE)
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CreateContractController {
 
-    CreateContract createContract;
-    ContractDtoMapper contractMapper;
+    private final CreateContract createContract;
+    private final ContractDtoMapper contractMapper;
 
     @Operation(
             summary = "Create a contract for a client",

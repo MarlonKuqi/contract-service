@@ -12,9 +12,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -30,10 +28,9 @@ import java.util.UUID;
 @RestController
 @RequestMapping(ContractEndpoints.CONTRACTS_BASE)
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PatchContractCostController {
 
-    PatchContractCost patchContractCost;
+    private final PatchContractCost patchContractCost;
 
     @Operation(
             summary = "Update the cost amount of a contract",

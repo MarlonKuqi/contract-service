@@ -25,7 +25,7 @@ public class ContractPeriod {
             (start, end) -> end == null || (start != null && end.isAfter(start));
 
     public boolean isActive() {
-        LocalDateTime now = LocalDateTime.now();
+        final LocalDateTime now = LocalDateTime.now();
         return endDate == null || now.isBefore(endDate);
     }
 

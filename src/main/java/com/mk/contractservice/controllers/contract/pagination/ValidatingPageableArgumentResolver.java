@@ -1,8 +1,6 @@
 package com.mk.contractservice.controllers.contract.pagination;
 
 import com.mk.contractservice.controllers.shared.InvalidPaginationException;
-import lombok.AccessLevel;
-import lombok.experimental.FieldDefaults;
 import org.springframework.core.MethodParameter;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -12,13 +10,12 @@ import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class ValidatingPageableArgumentResolver extends PageableHandlerMethodArgumentResolver {
 
-    int defaultPageSize;
-    int maxPageSize;
+    private final int defaultPageSize;
+    private final int maxPageSize;
 
-    public ValidatingPageableArgumentResolver(int defaultPageSize, int maxPageSize) {
+    public ValidatingPageableArgumentResolver(final int defaultPageSize, final int maxPageSize) {
         this.defaultPageSize = defaultPageSize;
         this.maxPageSize = maxPageSize;
         setFallbackPageable(PageRequest.of(0, defaultPageSize,
@@ -27,13 +24,13 @@ public class ValidatingPageableArgumentResolver extends PageableHandlerMethodArg
     }
 
     @Override
-    public Pageable resolveArgument(MethodParameter methodParameter,
-                                    ModelAndViewContainer mavContainer,
-                                    NativeWebRequest webRequest,
-                                    WebDataBinderFactory binderFactory) {
+    public Pageable resolveArgument(final MethodParameter methodParameter,
+                                    final ModelAndViewContainer mavContainer,
+                                    final NativeWebRequest webRequest,
+                                    final WebDataBinderFactory binderFactory) {
 
-        String pageParam = webRequest.getParameter(getPageParameterName());
-        String sizeParam = webRequest.getParameter(getSizeParameterName());
+        final String pageParam = webRequest.getParameter(getPageParameterName());
+        final String sizeParam = webRequest.getParameter(getSizeParameterName());
 
         if (pageParam != null) {
             try {

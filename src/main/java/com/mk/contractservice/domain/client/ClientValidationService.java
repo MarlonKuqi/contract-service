@@ -4,19 +4,16 @@ import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyEx
 import com.mk.contractservice.domain.client.exception.EmailAlreadyExistsException;
 import com.mk.contractservice.domain.client.exception.PhoneAlreadyExistsException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ClientValidationService {
 
-    ClientRepository clientRepository;
+    private final ClientRepository clientRepository;
 
     public void ensureEmailIsUnique(final String email) {
         if (clientRepository.existsByEmail(email)) {

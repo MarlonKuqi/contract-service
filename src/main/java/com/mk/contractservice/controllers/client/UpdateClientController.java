@@ -13,9 +13,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,10 +28,9 @@ import java.util.UUID;
 @RestController
 @RequestMapping(ClientEndpoints.CLIENTS_BASE)
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UpdateClientController {
 
-    UpdateClient updateClient;
+    private final UpdateClient updateClient;
 
     @Operation(
             summary = "Update a client (all fields except birthDate/companyIdentifier)",

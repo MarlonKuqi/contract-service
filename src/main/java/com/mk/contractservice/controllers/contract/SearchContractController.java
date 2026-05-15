@@ -15,9 +15,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,13 +38,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping(ContractEndpoints.CONTRACTS_BASE)
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class SearchContractController {
 
-    GetContractById getContractById;
-    ListActiveContractsByClient listActiveContractsByClient;
-    GetTotalCostAmountOfActiveContractsByClient getTotalCostAmountOfActiveContractsByClient;
-    ContractDtoMapper contractMapper;
+    private final GetContractById getContractById;
+    private final ListActiveContractsByClient listActiveContractsByClient;
+    private final GetTotalCostAmountOfActiveContractsByClient getTotalCostAmountOfActiveContractsByClient;
+    private final ContractDtoMapper contractMapper;
 
     @Operation(
             summary = "Get a contract by ID",

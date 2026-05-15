@@ -8,9 +8,7 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.CriteriaUpdate;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -25,12 +23,11 @@ import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class JpaContractRepository implements ContractRepository {
 
-    ContractJpaRepository contractJpaRepository;
-    ContractAssembler assembler;
-    EntityManager entityManager;
+    private final ContractJpaRepository contractJpaRepository;
+    private final ContractAssembler assembler;
+    private final EntityManager entityManager;
 
     @Override
     @CacheEvict(value = "contractSums", key = "#contract.clientId")

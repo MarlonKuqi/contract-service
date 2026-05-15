@@ -29,6 +29,7 @@
 	<properties>
 		<java.version>21</java.version>
 		<argLine/>
+		<lombok.version>1.18.46</lombok.version>
 		<groovy.version>4.0.24</groovy.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<rest-assured.version>5.5.6</rest-assured.version>

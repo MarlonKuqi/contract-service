@@ -1,10 +1,8 @@
 package com.mk.contractservice.domain.client;
 
-import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.NullUnmarked;
 import org.jspecify.annotations.Nullable;
 
@@ -14,10 +12,9 @@ import static com.mk.contractservice.domain.shared.Assert.notNull;
 
 @Getter
 @EqualsAndHashCode(callSuper = true)
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public final class Company extends Client {
 
-    CompanyIdentifier companyIdentifier;
+    private final CompanyIdentifier companyIdentifier;
 
     private Company(
             @Nullable final UUID id,
@@ -102,14 +99,13 @@ public final class Company extends Client {
     }
 
     @NoArgsConstructor
-    @FieldDefaults(level = AccessLevel.PRIVATE)
     @NullUnmarked
     public static class CompanyBuilder {
-        UUID id;
-        ClientName name;
-        ClientEmail email;
-        ClientPhoneNumber phone;
-        CompanyIdentifier companyIdentifier;
+        private UUID id;
+        private ClientName name;
+        private ClientEmail email;
+        private ClientPhoneNumber phone;
+        private CompanyIdentifier companyIdentifier;
 
         public CompanyBuilder id(final UUID id) {
             this.id = id;

@@ -5,7 +5,6 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
@@ -14,13 +13,12 @@ import static com.mk.contractservice.domain.shared.Assert.notNull;
 
 @Getter
 @EqualsAndHashCode
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class Contract {
 
-    @Nullable UUID id;
-    @Nullable UUID clientId;
-    ContractPeriod period;
-    ContractCost costAmount;
+    private final @Nullable UUID id;
+    private final @Nullable UUID clientId;
+    private final ContractPeriod period;
+    private final ContractCost costAmount;
 
     @Builder(toBuilder = true, access = AccessLevel.PUBLIC)
     private Contract(

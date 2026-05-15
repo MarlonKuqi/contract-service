@@ -1,9 +1,7 @@
 package com.mk.contractservice.domain.client;
 
-import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
@@ -12,14 +10,13 @@ import static com.mk.contractservice.domain.shared.Assert.notNull;
 
 @Getter
 @EqualsAndHashCode
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public abstract sealed class Client permits Person, Company {
 
     @Nullable
-    UUID id;
-    ClientName name;
-    ClientEmail email;
-    ClientPhoneNumber phone;
+    private final UUID id;
+    private final ClientName name;
+    private final ClientEmail email;
+    private final ClientPhoneNumber phone;
 
     protected Client(
             @Nullable final UUID id,

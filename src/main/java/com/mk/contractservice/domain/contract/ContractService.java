@@ -1,8 +1,6 @@
 package com.mk.contractservice.domain.contract;
 
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,10 +13,9 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class ContractService {
 
-    ContractRepository contractRepository;
+    private final ContractRepository contractRepository;
 
     @Transactional(readOnly = true)
     public Page<Contract> getActiveContractsForClient(

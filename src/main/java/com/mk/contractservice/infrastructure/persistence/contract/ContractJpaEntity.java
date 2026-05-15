@@ -12,7 +12,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -25,39 +24,38 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@FieldDefaults(level = AccessLevel.PRIVATE)
 public class ContractJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false, updatable = false)
-    UUID id;
+    private UUID id;
 
     @Version
     @Column(name = "version", nullable = false)
-    Long version = 0L;
+    private Long version = 0L;
 
     @Nullable
     @Column(name = "client_id")
-    UUID clientId;
+    private UUID clientId;
 
     @Column(name = "start_date", nullable = false)
-    LocalDateTime startDate;
+    private LocalDateTime startDate;
 
     @Nullable
     @Column(name = "end_date")
-    LocalDateTime endDate;
+    private LocalDateTime endDate;
 
     @Column(name = "cost_amount", nullable = false, precision = 12, scale = 2)
-    BigDecimal costAmount;
+    private BigDecimal costAmount;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    LocalDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @UpdateTimestamp
     @Column(name = "last_modified", nullable = false)
-    LocalDateTime lastModified;
+    private LocalDateTime lastModified;
 
     public ContractJpaEntity(
             @Nullable final UUID clientId,

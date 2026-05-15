@@ -2,9 +2,7 @@ package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.ClientDeletedEvent;
 import com.mk.contractservice.domain.client.ClientRepository;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,11 +23,10 @@ public interface DeleteClient {
     @Service
     @Transactional
     @RequiredArgsConstructor
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements DeleteClient {
 
-        ClientRepository clientRepository;
-        ApplicationEventPublisher eventPublisher;
+        private final ClientRepository clientRepository;
+        private final ApplicationEventPublisher eventPublisher;
 
         @Override
         public void execute(final Command command) {

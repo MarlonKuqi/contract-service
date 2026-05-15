@@ -1,7 +1,8 @@
 package com.mk.contractservice.controllers.contract.pagination;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import lombok.Setter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.web.config.EnableSpringDataWebSupport;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -12,10 +13,11 @@ import java.util.List;
 @Configuration(proxyBeanMethods = false)
 @EnableSpringDataWebSupport(pageSerializationMode = EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO)
 @RequiredArgsConstructor
-@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+@Getter
+@Setter
 public class PaginationConfig implements WebMvcConfigurer {
 
-    PaginationProperties properties;
+    private final PaginationProperties properties;
 
     @Override
     public void addArgumentResolvers(final List<HandlerMethodArgumentResolver> resolvers) {

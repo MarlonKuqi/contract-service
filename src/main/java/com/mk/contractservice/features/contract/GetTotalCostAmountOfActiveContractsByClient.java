@@ -2,9 +2,7 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.ContractService;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,11 +23,10 @@ public interface GetTotalCostAmountOfActiveContractsByClient {
     @Service
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements GetTotalCostAmountOfActiveContractsByClient {
 
-        ClientValidationService clientValidationService;
-        ContractService contractService;
+        private final ClientValidationService clientValidationService;
+        private final ContractService contractService;
 
         @Override
         public BigDecimal execute(final Query query) {

@@ -2,9 +2,7 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientDeletedEvent;
 import com.mk.contractservice.domain.contract.ContractRepository;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,10 +28,9 @@ public interface CloseActiveContracts {
     @Service
     @Transactional
     @RequiredArgsConstructor
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     class Handler implements CloseActiveContracts {
 
-        ContractRepository contractRepository;
+        private final ContractRepository contractRepository;
 
         @Override
         public void execute(final Command command) {

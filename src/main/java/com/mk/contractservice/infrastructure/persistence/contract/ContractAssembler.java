@@ -3,17 +3,14 @@ package com.mk.contractservice.infrastructure.persistence.contract;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFactory;
 import jakarta.persistence.EntityManager;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ContractAssembler {
 
-    EntityManager entityManager;
+    private final EntityManager entityManager;
 
     public ContractJpaEntity toJpaEntity(final Contract domain) {
         if (domain.getId() == null) {
