@@ -152,11 +152,15 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Get week number for NVD cache key
+        id: date
+        run: echo "week=$(date +'%Y-%U')" >> $GITHUB_OUTPUT
+
       - name: Cache NVD Database
         uses: actions/cache@v3
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-db-${{ github.run_id }}
+          key: nvd-db-${{ steps.date.outputs.week }}
           restore-keys: |
             nvd-db-
 
@@ -175,11 +179,19 @@ jobs:
           MAVEN_OPTS: "--add-modules jdk.incubator.vector"
         continue-on-error: true
 
+      - name: Truncate SARIF rule IDs (GitHub Code Scanning limit is 255 chars)
+        if: always()
+        run: |
+          jq '
+            (.runs[].tool.driver.rules[].id) |= if length > 255 then .[0:255] else . end |
+            (.runs[].results[].ruleId) |= if length > 255 then .[0:255] else . end
+          ' target/dependency-check-report.sarif > target/dependency-check-report-truncated.sarif
+
       - name: Upload Dependency-Check results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: 'target/dependency-check-report.sarif'
+          sarif_file: 'target/dependency-check-report-truncated.sarif'
           category: 'dependency-check'
 
       - name: Upload Dependency-Check HTML report

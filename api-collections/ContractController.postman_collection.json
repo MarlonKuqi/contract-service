@@ -229,14 +229,14 @@
       }
     },
     {
-      "name": "Get Sum of Active Contracts",
+      "name": "Get Total of Active Contracts",
       "request": {
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts/sum?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts/total?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v2", "contracts", "sum"],
+          "path": ["v2", "contracts", "total"],
           "query": [
             {
               "key": "clientId",
@@ -245,7 +245,7 @@
             }
           ]
         },
-        "description": "Very performant endpoint using database aggregation. Returns the sum of costAmount for all active contracts of a client."
+        "description": "Very performant endpoint using database aggregation. Returns the total of costAmount for all active contracts of a client."
       }
     }
   ]

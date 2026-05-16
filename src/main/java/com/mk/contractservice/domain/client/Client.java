@@ -1,48 +1,43 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
+import static com.mk.contractservice.domain.shared.Assert.notNull;
 
 @Getter
-@FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
+@EqualsAndHashCode
 public abstract sealed class Client permits Person, Company {
 
-    public static final String NULL_NAME_MSG = "ClientName must not be null";
-    public static final String NULL_EMAIL_MSG = "Email must not be null";
-    public static final String NULL_PHONE_MSG = "PhoneNumber must not be null";
-
     @Nullable
-    UUID id;
-    ClientName name;
-    Email email;
-    PhoneNumber phone;
+    private final UUID id;
+    private final ClientName name;
+    private final ClientEmail email;
+    private final ClientPhoneNumber phone;
 
-    protected Client(@Nullable final UUID id, @Nullable final ClientName name, @Nullable final Email email, @Nullable final PhoneNumber phone) {
-        if (name == null) {
-            throw new IllegalArgumentException(NULL_NAME_MSG);
-        }
-        if (email == null) {
-            throw new IllegalArgumentException(NULL_EMAIL_MSG);
-        }
-        if (phone == null) {
-            throw new IllegalArgumentException(NULL_PHONE_MSG);
-        }
-
+    protected Client(
+            @Nullable final UUID id,
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone
+    ) {
         this.id = id;
-        this.name = name;
-        this.email = email;
-        this.phone = phone;
+        this.name = notNull(name);
+        this.email = notNull(email);
+        this.phone = notNull(phone);
     }
 
-    public abstract Client updatePartial(
+    public abstract Client changeCoreFields(
             @Nullable final ClientName name,
-            @Nullable final Email email,
-            @Nullable final PhoneNumber phone);
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phoneNumber);
+
+    public abstract Client changeName(@Nullable final ClientName name);
+
+    public abstract Client changeEmail(@Nullable final ClientEmail email);
+
+    public abstract Client changePhone(@Nullable final ClientPhoneNumber phoneNumber);
 }

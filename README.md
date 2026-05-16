@@ -27,7 +27,7 @@ docker-compose up --build
 
 This project follows **Domain-Driven Design (DDD)** with clean separation:
 
-**Domain Layer**: Aggregates (Client with Person/Company sealed hierarchy, Contract) enforce business invariants. Value Objects (Email, PhoneNumber, ContractCost, ContractPeriod) are immutable and self-validating, ensuring rules at creation time (email format, positive cost, endDate > startDate). Domain exceptions provide clear business errors (InvalidEmailException, ExpiredContractException).
+**Domain Layer**: Aggregates (Client with Person/Company sealed hierarchy, Contract) enforce business invariants. Value Objects (Email, PhoneNumber, ContractCost, ContractPeriod) are immutable and self-validating, ensuring rules at creation time (clientEmail format, positive cost, endDate > startDate). Domain exceptions provide clear business errors (InvalidEmailException, ExpiredContractException).
 
 **Application Layer**: Services orchestrate domain logic within transaction boundaries (@Transactional). Caching strategy (@Cacheable) optimizes frequent queries.
 
@@ -57,7 +57,7 @@ curl -X POST http://localhost:8080/v2/clients \
   -d '{
     "type": "PERSON",
     "name": "Alice Martin",
-    "email": "alice@example.com",
+    "clientEmail": "alice@example.com",
     "phone": "+41791234567",
     "birthDate": "1990-05-15"
   }'
@@ -71,7 +71,7 @@ curl -X POST http://localhost:8080/v2/clients \
   -d '{
     "type": "COMPANY",
     "name": "TechCorp SA",
-    "email": "contact@techcorp.ch",
+    "clientEmail": "contact@techcorp.ch",
     "phone": "+41221234567",
     "companyIdentifier": "CHE-123.456.789"
   }'
@@ -131,7 +131,7 @@ Run all tests:
 **Test Categories:**
 - ✅ **Integration Tests** (9 pagination tests, lifecycle tests, CRUD)
 - ✅ **Performance Tests** (sum < 100ms for 1000 contracts)
-- ✅ **Validation Tests** (email, phone, dates ISO-8601, business rules)
+- ✅ **Validation Tests** (clientEmail, phone, dates ISO-8601, business rules)
 - ✅ **Edge Cases** (empty lists, expired contracts, conflicts)
 - ✅ **Testcontainers** (real PostgreSQL database)
 
@@ -150,7 +150,7 @@ Import from `api-collections/` for complete API examples:
 |--------|----------|-------------|
 | POST | `/v1/clients` | Create client (Person or Company, discriminator: `type`) |
 | GET | `/v1/clients/{id}` | Get client details (all fields) |
-| PUT | `/v1/clients/{id}` | Update client (name, email, phone - NOT birthDate/companyIdentifier) |
+| PUT | `/v1/clients/{id}` | Update client (name, clientEmail, phone - NOT birthDate/companyIdentifier) |
 | DELETE | `/v1/clients/{id}` | Delete client & auto-close all contracts |
 
 ### Contract Endpoints (v2)
@@ -247,7 +247,7 @@ All error messages and `Content-Language` headers adapt automatically.
 - **Caching**: Caffeine cache on sum queries (`@Cacheable`)
   - ⚠️ **Single-instance only** (suitable for demo/evaluation)
   - For multi-instance production → Migrate to Redis (see [docs-claude/CAFFEINE_CACHE_MULTI_INSTANCE_PROBLEM.md](docs-claude/CAFFEINE_CACHE_MULTI_INSTANCE_PROBLEM.md))
-- **Indexes**: On clientId, dates, email, companyIdentifier
+- **Indexes**: On clientId, dates, clientEmail, companyIdentifier
 
 ---
 
@@ -306,7 +306,7 @@ src/test/
 - **[docs-claude/](docs-claude/)** - Documentation générée lors des sessions de développement
   - [Pagination Architecture](docs-claude/PAGINATION_ARCHITECTURE.md)
   - [Docker Build Guide](docs-claude/DOCKER_BUILD_GUIDE.md)
-  - [Et plus...](docs-claude/README.md)
+  - [Et plus...](docs/DDD/README.md)
 
 ---
 

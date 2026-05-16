@@ -1,99 +1,110 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.NullUnmarked;
 import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
+import static com.mk.contractservice.domain.shared.Assert.notNull;
+
 @Getter
-@FieldDefaults(makeFinal = true, level = lombok.AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 public final class Person extends Client {
 
-    PersonBirthDate birthDate;
+    private final PersonBirthDate birthDate;
 
     private Person(
             @Nullable final UUID id,
             @Nullable final ClientName name,
-            @Nullable final Email email,
-            @Nullable final PhoneNumber phone,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone,
             @Nullable final PersonBirthDate birthDate
     ) {
         super(id, name, email, phone);
-        if (birthDate == null) {
-            throw new IllegalArgumentException("Birth date must not be null");
-        }
-        this.birthDate = birthDate;
+        this.birthDate = notNull(birthDate);
     }
 
-    public static Person of(final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
+    public static Person of(
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone,
+            @Nullable final PersonBirthDate birthDate
+    ) {
         return builder()
-                .name(name)
-                .email(email)
-                .phone(phone)
-                .birthDate(birthDate)
+                .name(notNull(name))
+                .email(notNull(email))
+                .phone(notNull(phone))
+                .birthDate(notNull(birthDate))
                 .build();
     }
 
-    public static Person reconstitute(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
+    public static Person reconstituteFromDatabase(
+            @Nullable final UUID id,
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone,
+            @Nullable final PersonBirthDate birthDate
+    ) {
         return builder()
-                .id(id)
-                .name(name)
-                .email(email)
-                .phone(phone)
-                .birthDate(birthDate)
-                .build();
-    }
-
-    public Person withCommonFields(final ClientName name, final Email email, final PhoneNumber phone) {
-        return toBuilder()
-                .name(name)
-                .email(email)
-                .phone(phone)
+                .id(notNull(id))
+                .name(notNull(name))
+                .email(notNull(email))
+                .phone(notNull(phone))
+                .birthDate(notNull(birthDate))
                 .build();
     }
 
     @Override
-    public Person updatePartial(
+    public Person changeCoreFields(
             @Nullable final ClientName name,
-            @Nullable final Email email,
-            @Nullable final PhoneNumber phone
-    ) {
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phoneNumber) {
         return toBuilder()
-                .name(name != null ? name : this.getName())
-                .email(email != null ? email : this.getEmail())
-                .phone(phone != null ? phone : this.getPhone())
+                .name(notNull(name))
+                .email(notNull(email))
+                .phone(notNull(phoneNumber))
                 .build();
+    }
+
+    @Override
+    public Person changeName(@Nullable final ClientName name) {
+        return toBuilder().name(notNull(name)).build();
+    }
+
+    @Override
+    public Person changeEmail(@Nullable final ClientEmail email) {
+        return toBuilder().email(notNull(email)).build();
+    }
+
+    @Override
+    public Person changePhone(@Nullable final ClientPhoneNumber phoneNumber) {
+        return toBuilder().phone(notNull(phoneNumber)).build();
     }
 
     public static PersonBuilder builder() {
         return new PersonBuilder();
     }
 
-    public PersonBuilder toBuilder() {
+    private PersonBuilder toBuilder() {
         return builder()
-                .id(this.getId())
-                .name(this.getName())
-                .email(this.getEmail())
-                .phone(this.getPhone())
-                .birthDate(this.birthDate);
+                .id(getId())
+                .name(getName())
+                .email(getEmail())
+                .phone(getPhone())
+                .birthDate(getBirthDate());
     }
 
     @NoArgsConstructor
-    @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
     @NullUnmarked
     public static class PersonBuilder {
-        UUID id;
-        ClientName name;
-        Email email;
-        PhoneNumber phone;
-        PersonBirthDate birthDate;
+        private UUID id;
+        private ClientName name;
+        private ClientEmail email;
+        private ClientPhoneNumber phone;
+        private PersonBirthDate birthDate;
 
         public PersonBuilder id(final UUID id) {
             this.id = id;
@@ -105,12 +116,12 @@ public final class Person extends Client {
             return this;
         }
 
-        public PersonBuilder email(final Email email) {
+        public PersonBuilder email(final ClientEmail email) {
             this.email = email;
             return this;
         }
 
-        public PersonBuilder phone(final PhoneNumber phone) {
+        public PersonBuilder phone(final ClientPhoneNumber phone) {
             this.phone = phone;
             return this;
         }
