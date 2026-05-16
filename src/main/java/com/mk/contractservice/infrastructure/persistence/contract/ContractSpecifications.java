@@ -32,6 +32,16 @@ public final class ContractSpecifications {
         return cb.equal(root.get(FIELD_CLIENT_ID), clientId);
     }
 
+    public static Predicate isActiveWithClientIdPredicate(final Root<ContractJpaEntity> root,
+                                                          final CriteriaBuilder cb,
+                                                          final UUID clientId,
+                                                          final LocalDateTime referenceDate) {
+        return cb.and(
+                isActivePredicate(root, cb, referenceDate),
+                hasClientIdPredicate(root, cb, clientId)
+        );
+    }
+
     public static Predicate updatedAfterPredicate(final Root<ContractJpaEntity> root,
                                                   final CriteriaBuilder cb,
                                                   final LocalDateTime updatedSince) {
@@ -50,11 +60,11 @@ public final class ContractSpecifications {
         return (contract, query, cb) -> hasClientIdPredicate(contract, cb, clientId);
     }
 
-    public static Specification<ContractJpaEntity> updatedAfter(final LocalDateTime updatedSince) {
-        return (contract, query, cb) -> updatedAfterPredicate(contract, cb, updatedSince);
+    public static Specification<ContractJpaEntity> isActiveWithClientId(final UUID clientId) {
+        return (contract, query, cb) -> isActiveWithClientIdPredicate(contract, cb, clientId, LocalDateTime.now());
     }
 
-    public static Specification<ContractJpaEntity> isActiveWithClientId(final UUID clientId) {
-        return Specification.where(isActive()).and(hasClientId(clientId));
+    public static Specification<ContractJpaEntity> updatedAfter(final LocalDateTime updatedSince) {
+        return (contract, query, cb) -> updatedAfterPredicate(contract, cb, updatedSince);
     }
 }

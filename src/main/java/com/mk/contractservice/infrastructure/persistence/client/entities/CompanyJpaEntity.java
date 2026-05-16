@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "company")
+@Table(name = "company", schema = "contracts")
 @DiscriminatorValue("COMPANY")
 @PrimaryKeyJoinColumn(name = "id")
 @Getter

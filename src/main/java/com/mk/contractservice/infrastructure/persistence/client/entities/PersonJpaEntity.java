@@ -13,7 +13,7 @@ import lombok.Setter;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "person")
+@Table(name = "person", schema = "contracts")
 @DiscriminatorValue("PERSON")
 @PrimaryKeyJoinColumn(name = "id")
 @Getter

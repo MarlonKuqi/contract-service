@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "contract")
+@Table(name = "contract", schema = "contracts")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -69,4 +69,3 @@ public class ContractJpaEntity {
         this.costAmount = costAmount;
     }
 }
-

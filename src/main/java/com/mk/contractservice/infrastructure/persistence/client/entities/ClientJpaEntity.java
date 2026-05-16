@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "client")
+@Table(name = "client", schema = "contracts")
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.STRING)
 @Getter
@@ -62,4 +62,3 @@ public abstract class ClientJpaEntity {
         this.phone = phone;
     }
 }
-

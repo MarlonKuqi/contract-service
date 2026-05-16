@@ -1,9 +1,10 @@
 package com.mk.contractservice.infrastructure.persistence.client;
 
-
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.infrastructure.persistence.client.assemblers.ClientAssembler;
+import com.mk.contractservice.domain.client.Company;
+import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.infrastructure.persistence.client.entities.ClientJpaEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -15,18 +16,28 @@ import java.util.UUID;
 public class JpaClientRepository implements ClientRepository {
 
     private final ClientJpaRepository jpa;
-    private final ClientAssembler assembler;
+    private final CompanyJpaRepository companyJpa;
 
     @Override
     public Optional<Client> findById(final UUID id) {
-        return jpa.findById(id).map(assembler::toDomain);
+        return jpa.findById(id).map(ClientJpaMapper::toDomain);
     }
 
     @Override
-    public Client save(final Client c) {
-        final var entity = assembler.toJpaEntity(c);
-        final var savedEntity = jpa.save(entity);
-        return assembler.toDomain(savedEntity);
+    public Client save(final Client client) {
+        final ClientJpaEntity entity;
+        if (client.getId() == null) {
+            entity = switch (client) {
+                case Person person -> ClientJpaMapper.toNewPersonEntity(person);
+                case Company company -> ClientJpaMapper.toNewCompanyEntity(company);
+            };
+        } else {
+            entity = jpa.findById(client.getId()).orElseThrow(
+                    () -> new IllegalStateException("Client with id " + client.getId() + " not found in database")
+            );
+            ClientJpaMapper.mergeIntoExisting(client, entity);
+        }
+        return ClientJpaMapper.toDomain(jpa.save(entity));
     }
 
     @Override
@@ -51,6 +62,6 @@ public class JpaClientRepository implements ClientRepository {
 
     @Override
     public boolean existsByCompanyIdentifier(final String companyIdentifier) {
-        return jpa.existsByCompanyIdentifier(companyIdentifier);
+        return companyJpa.existsByCompanyIdentifier(companyIdentifier);
     }
 }
