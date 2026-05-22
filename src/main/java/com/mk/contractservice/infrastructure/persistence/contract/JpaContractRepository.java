@@ -2,6 +2,7 @@ package com.mk.contractservice.infrastructure.persistence.contract;
 
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.infrastructure.cache.CacheConfig;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -29,7 +30,7 @@ public class JpaContractRepository implements ContractRepository {
     private final EntityManager entityManager;
 
     @Override
-    @CacheEvict(value = "contractSums", key = "#contract.clientId")
+    @CacheEvict(value = CacheConfig.CONTRACT_SUMS_CACHE, key = "#contract.clientId")
     public Contract save(final Contract contract) {
         final ContractJpaEntity entity;
         if (contract.getId() == null) {
@@ -58,7 +59,7 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    @Cacheable(value = "contractSums", key = "#clientId")
+    @Cacheable(value = CacheConfig.CONTRACT_SUMS_CACHE, key = "#clientId")
     public BigDecimal calculateTotalCostAmountForClient(final UUID clientId) {
         final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         final CriteriaQuery<BigDecimal> query = cb.createQuery(BigDecimal.class);
@@ -74,7 +75,7 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    @CacheEvict(value = "contractSums", key = "#clientId")
+    @CacheEvict(value = CacheConfig.CONTRACT_SUMS_CACHE, key = "#clientId")
     public int closeAllActiveByClientId(final UUID clientId, final LocalDateTime closureDate) {
         final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         final CriteriaUpdate<ContractJpaEntity> update = cb.createCriteriaUpdate(ContractJpaEntity.class);

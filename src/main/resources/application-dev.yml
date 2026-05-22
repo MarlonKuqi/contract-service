@@ -14,6 +14,10 @@ spring:
       hibernate:
         format_sql: true
 
+app:
+  cache:
+    maximum-size: 1000
+
 logging:
   level:
     root: INFO
