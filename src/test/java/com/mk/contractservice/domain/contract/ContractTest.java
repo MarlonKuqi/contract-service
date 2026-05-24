@@ -72,7 +72,10 @@ class ContractTest {
                 new Object[]{now.minusDays(1), now.plusDays(1)},
                 new Object[]{now.minusMonths(1), now.plusMonths(1)},
                 new Object[]{now.minusDays(365), now.plusDays(365)},
-                new Object[]{now.minusHours(1), null}  // Open-ended
+                new Object[]{now.minusHours(1), null},  // Open-ended
+                new Object[]{now.plusDays(1), now.plusDays(2)},
+                new Object[]{now.plusMonths(1), now.plusMonths(2)},
+                new Object[]{now.plusHours(1), null}
         );
     }
 
