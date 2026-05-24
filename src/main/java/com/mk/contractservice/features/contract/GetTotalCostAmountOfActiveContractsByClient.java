@@ -1,9 +1,9 @@
 package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientValidationService;
-import com.mk.contractservice.domain.contract.ContractService;
+import com.mk.contractservice.domain.contract.ContractQueryPort;
+import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -20,18 +20,18 @@ public interface GetTotalCostAmountOfActiveContractsByClient {
 
     BigDecimal execute(Query query);
 
-    @Service
+    @UseCase
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
     class Handler implements GetTotalCostAmountOfActiveContractsByClient {
 
         private final ClientValidationService clientValidationService;
-        private final ContractService contractService;
+        private final ContractQueryPort contractQueryPort;
 
         @Override
         public BigDecimal execute(final Query query) {
             clientValidationService.ensureClientExists(query.clientId());
-            return contractService.calculateTotalCostAmountForClient(query.clientId());
+            return contractQueryPort.calculateTotalCostAmountForClient(query.clientId());
         }
     }
 }

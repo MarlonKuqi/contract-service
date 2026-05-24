@@ -237,8 +237,8 @@ class ContractTest {
             LocalDateTime startDate = LocalDateTime.now().minusDays(10);
             Contract contract = ContractFactory.createFromCommand(testClientId, startDate, null, new BigDecimal("1000.00"));
 
-            assertThat(contract.isActive()).isTrue();
-            assertThat(contract.isInactive()).isFalse();
+            assertThat(contract.isCurrentlyActive()).isTrue();
+            assertThat(contract.isCurrentlyInactive()).isFalse();
         }
 
         @Test
@@ -248,8 +248,8 @@ class ContractTest {
             LocalDateTime endDate = LocalDateTime.now().plusDays(30);
             Contract contract = ContractFactory.createFromCommand(testClientId, startDate, endDate, new BigDecimal("1000.00"));
 
-            assertThat(contract.isActive()).isTrue();
-            assertThat(contract.isInactive()).isFalse();
+            assertThat(contract.isCurrentlyActive()).isTrue();
+            assertThat(contract.isCurrentlyInactive()).isFalse();
         }
 
         @Test
@@ -260,8 +260,8 @@ class ContractTest {
 
             Contract contract = ContractFactory.createFromCommand(testClientId, pastStart, pastEnd, new BigDecimal("1000.00"));
 
-            assertThat(contract.isActive()).isFalse();
-            assertThat(contract.isInactive()).isTrue();
+            assertThat(contract.isCurrentlyActive()).isFalse();
+            assertThat(contract.isCurrentlyInactive()).isTrue();
         }
 
         @ParameterizedTest
@@ -270,7 +270,7 @@ class ContractTest {
         void shouldBeActiveForVariousPeriods(LocalDateTime startDate, LocalDateTime endDate) {
             Contract contract = ContractFactory.createFromCommand(testClientId, startDate, endDate, new BigDecimal("500.00"));
 
-            assertThat(contract.isActive()).isTrue();
+            assertThat(contract.isCurrentlyActive()).isTrue();
         }
     }
 }

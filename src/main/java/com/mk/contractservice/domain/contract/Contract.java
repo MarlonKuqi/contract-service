@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static com.mk.contractservice.domain.shared.Assert.notNull;
@@ -59,20 +60,24 @@ public class Contract {
                 .build();
     }
 
-    public boolean isActive() {
-        return period.isActive();
+    public boolean isCurrentlyActive() {
+        return getPeriod().isEffectiveAt(LocalDateTime.now());
     }
 
-    public boolean isInactive() {
-        return !isActive();
+    public boolean isCurrentlyInactive() {
+        return !isCurrentlyActive();
     }
 
     public Contract changeCost(@Nullable final ContractCost newCost) {
-        if (isInactive()) {
-            throw new ExpiredContractException(getId());
-        }
+        assertCurrentlyModifiable();
         return toBuilder()
                 .costAmount(notNull(newCost))
                 .build();
+    }
+
+    private void assertCurrentlyModifiable() {
+        if (isCurrentlyInactive()) {
+            throw new ExpiredContractException(getId());
+        }
     }
 }

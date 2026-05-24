@@ -7,8 +7,8 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientService;
 import com.mk.contractservice.domain.client.ClientValidationService;
+import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
@@ -32,7 +32,7 @@ public interface UpdateClient {
 
     Client execute(Command command);
 
-    @Service
+    @UseCase
     @Transactional
     @RequiredArgsConstructor
     class Handler implements UpdateClient {

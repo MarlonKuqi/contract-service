@@ -12,7 +12,7 @@ public interface ContractDtoMapper {
                 contract.getClientId(),
                 contract.getPeriod().getStartDate(),
                 contract.getPeriod().getEndDate(),
-                contract.isActive(),
+                contract.isCurrentlyActive(),
                 contract.getCostAmount().getValue()
         );
     }

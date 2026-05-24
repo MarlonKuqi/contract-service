@@ -4,8 +4,8 @@ import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractCost;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
+import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -26,7 +26,7 @@ public interface PatchContractCost {
 
     Contract execute(Command command);
 
-    @Service
+    @UseCase
     @Transactional
     @RequiredArgsConstructor
     class Handler implements PatchContractCost {

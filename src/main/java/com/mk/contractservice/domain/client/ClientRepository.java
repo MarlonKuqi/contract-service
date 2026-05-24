@@ -1,8 +1,11 @@
 package com.mk.contractservice.domain.client;
 
+import com.mk.contractservice.domain.shared.RepositoryPort;
+
 import java.util.Optional;
 import java.util.UUID;
 
+@RepositoryPort
 public interface ClientRepository {
     Optional<Client> findById(final UUID id);
 

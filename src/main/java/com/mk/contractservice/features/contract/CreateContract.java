@@ -4,8 +4,8 @@ import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -29,7 +29,7 @@ public interface CreateContract {
 
     Contract execute(Command command);
 
-    @Service
+    @UseCase
     @Transactional
     @RequiredArgsConstructor
     class Handler implements CreateContract {

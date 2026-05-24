@@ -2,9 +2,9 @@ package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.ClientDeletedEvent;
 import com.mk.contractservice.domain.client.ClientRepository;
+import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
@@ -20,7 +20,7 @@ public interface DeleteClient {
 
     void execute(final Command command);
 
-    @Service
+    @UseCase
     @Transactional
     @RequiredArgsConstructor
     class Handler implements DeleteClient {

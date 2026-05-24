@@ -21,11 +21,20 @@ class ArchitectureTest {
             "",
             "java..",
             "javax..",
-            "jakarta..",  // Jakarta EE (Spring Boot 3+)
+            "jakarta..",
             "org.slf4j..",
-            "org.jspecify..",  // JSpecify annotations
-            "lombok..",
-            "org.springframework.."  // Spring Framework (pragmatic choice)
+            "org.jspecify..",
+            "lombok.."
+    );
+
+    /**
+     * Documented compromise: {@code Page} and {@code Pageable} from Spring Data are stable,
+     * widely adopted pagination abstractions. Replacing them with custom domain types would
+     * add complexity without meaningful benefit at this project scale.
+     * All other Spring packages are forbidden in the domain layer.
+     */
+    private final DescribedPredicate<JavaClass> areAllowedSpringInDomain = resideInAnyPackage(
+            "org.springframework.data.domain.."
     );
 
     private final DescribedPredicate<JavaClass> areCore = resideInAnyPackage("com.mk.contractservice.domain..");
@@ -70,8 +79,9 @@ class ArchitectureTest {
         classes()
                 .that(areCore)
                 .should()
-                .onlyDependOnClassesThat(areCore.or(areStandard))
-                .because("Domain should be independent and only use standard Java/Jakarta APIs")
+                .onlyDependOnClassesThat(areCore.or(areStandard).or(areAllowedSpringInDomain))
+                .because("Domain must be framework-agnostic. Only standard Java/Jakarta APIs and " +
+                         "Spring Data pagination types (Page, Pageable) are tolerated as a documented compromise.")
                 .check(classes);
     }
 

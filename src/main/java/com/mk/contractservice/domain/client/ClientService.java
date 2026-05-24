@@ -1,12 +1,12 @@
 package com.mk.contractservice.domain.client;
 
+import com.mk.contractservice.domain.shared.DomainService;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
-@Service
+@DomainService
 @RequiredArgsConstructor
 public class ClientService {
 

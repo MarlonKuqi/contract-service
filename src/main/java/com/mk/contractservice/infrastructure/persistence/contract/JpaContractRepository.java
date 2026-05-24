@@ -2,22 +2,19 @@ package com.mk.contractservice.infrastructure.persistence.contract;
 
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.contract.ContractSearchCriteria;
 import com.mk.contractservice.infrastructure.cache.CacheConfig;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.CriteriaUpdate;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,28 +47,9 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    public Page<Contract> findActiveByClientIdPageable(final UUID clientId, @Nullable final LocalDateTime updatedSince, final Pageable pageable) {
-        final var specification = ContractSpecifications.isActiveWithClientId(clientId);
-        if (updatedSince == null) {
-            return contractJpaRepository.findAll(specification, pageable).map(ContractJpaMapper::toDomain);
-        }
-        return contractJpaRepository.findAll(specification.and(ContractSpecifications.updatedAfter(updatedSince)), pageable).map(ContractJpaMapper::toDomain);
-    }
-
-    @Override
-    @Cacheable(value = CacheConfig.CONTRACT_SUMS_CACHE, key = "#clientId")
-    public BigDecimal calculateTotalCostAmountForClient(final UUID clientId) {
-        final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        final CriteriaQuery<BigDecimal> query = cb.createQuery(BigDecimal.class);
-        final Root<ContractJpaEntity> root = query.from(ContractJpaEntity.class);
-
-        final var specification = ContractSpecifications.isActiveWithClientId(clientId);
-
-        query.select(cb.coalesce(cb.sum(root.get("costAmount")), BigDecimal.ZERO));
-        query.where(specification.toPredicate(root, query, cb));
-
-        final BigDecimal totalCostAmount = entityManager.createQuery(query).getSingleResult();
-        return totalCostAmount == null ? BigDecimal.ZERO : totalCostAmount;
+    public Page<Contract> findByCriteria(final ContractSearchCriteria criteria, final Pageable pageable) {
+        return contractJpaRepository.findAll(ContractCriteriaAdapter.toSpecification(criteria), pageable)
+                .map(ContractJpaMapper::toDomain);
     }
 
     @Override

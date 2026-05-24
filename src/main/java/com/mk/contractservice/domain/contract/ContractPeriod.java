@@ -21,12 +21,11 @@ public class ContractPeriod {
     @Nullable
     LocalDateTime endDate;
 
-    public static final BiPredicate<@Nullable LocalDateTime, @Nullable LocalDateTime> END_IS_AFTER_START =
-            (start, end) -> end == null || (start != null && end.isAfter(start));
+    private static final BiPredicate<LocalDateTime, @Nullable LocalDateTime> START_IS_AFTER_END =
+            (start, end) -> end != null && !end.isAfter(start);
 
-    public boolean isActive() {
-        final LocalDateTime now = LocalDateTime.now();
-        return endDate == null || now.isBefore(endDate);
+    public boolean isEffectiveAt(final LocalDateTime referenceDate) {
+        return endDate == null || referenceDate.isBefore(endDate);
     }
 
     public static ContractPeriod of(@Nullable final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
@@ -48,7 +47,7 @@ public class ContractPeriod {
     }
 
     private static void validate(final LocalDateTime normalizedStart, @Nullable final LocalDateTime endDate) {
-        if (!END_IS_AFTER_START.test(normalizedStart, endDate)) {
+        if (START_IS_AFTER_END.test(normalizedStart, endDate)) {
             throw new InvalidContractPeriodException(
                     "Contract end date must be after start date. " +
                             "Start: " + normalizedStart + ", End: " + endDate
@@ -56,4 +55,3 @@ public class ContractPeriod {
         }
     }
 }
-

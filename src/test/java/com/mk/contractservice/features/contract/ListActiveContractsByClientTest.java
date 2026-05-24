@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.contract.ContractSearchCriteria;
 import com.mk.contractservice.domain.contract.ContractService;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,7 +72,7 @@ class ListActiveContractsByClientTest {
         Page<Contract> expectedPage = Page.empty();
 
         when(clientRepository.existsById(clientId)).thenReturn(true);
-        when(contractRepository.findActiveByClientIdPageable(clientId, null, Pageable.unpaged()))
+        when(contractRepository.findByCriteria(ContractSearchCriteria.activeForClient(clientId), Pageable.unpaged()))
                 .thenReturn(expectedPage);
 
         Page<Contract> result = handler.execute(new ListActiveContractsByClient.Query(clientId, null, Pageable.unpaged()));

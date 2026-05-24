@@ -3,11 +3,11 @@ package com.mk.contractservice.features.contract;
 import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractService;
+import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -29,7 +29,7 @@ public interface ListActiveContractsByClient {
 
     Page<Contract> execute(Query query);
 
-    @Service
+    @UseCase
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
     class Handler implements ListActiveContractsByClient {

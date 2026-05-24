@@ -3,8 +3,8 @@ package com.mk.contractservice.features.contract;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
+import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
@@ -20,7 +20,7 @@ public interface GetContractById {
 
     Contract execute(Query query);
 
-    @Service
+    @UseCase
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
     class Handler implements GetContractById {

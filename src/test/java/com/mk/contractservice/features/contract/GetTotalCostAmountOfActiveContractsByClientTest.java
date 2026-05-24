@@ -2,8 +2,7 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientValidationService;
-import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.domain.contract.ContractService;
+import com.mk.contractservice.domain.contract.ContractQueryPort;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,15 +26,14 @@ class GetTotalCostAmountOfActiveContractsByClientTest {
     private ClientRepository clientRepository;
 
     @Mock
-    private ContractRepository contractRepository;
+    private ContractQueryPort contractQueryPort;
 
     private GetTotalCostAmountOfActiveContractsByClient.Handler handler;
 
     @BeforeEach
     void setUp() {
         ClientValidationService clientValidationService = new ClientValidationService(clientRepository);
-        ContractService contractService = new ContractService(contractRepository);
-        handler = new GetTotalCostAmountOfActiveContractsByClient.Handler(clientValidationService, contractService);
+        handler = new GetTotalCostAmountOfActiveContractsByClient.Handler(clientValidationService, contractQueryPort);
     }
 
     @Test
@@ -56,13 +54,13 @@ class GetTotalCostAmountOfActiveContractsByClientTest {
     }
 
     @Test
-    @DisplayName("GIVEN existing client WHEN execute THEN return total cost amount from ContractService")
+    @DisplayName("GIVEN existing client WHEN execute THEN return total cost amount from ContractQueryPort")
     void shouldReturnTotalCostForExistingClient() {
         UUID clientId = UUID.randomUUID();
         BigDecimal expectedTotal = new BigDecimal("1500.00");
 
         when(clientRepository.existsById(clientId)).thenReturn(true);
-        when(contractRepository.calculateTotalCostAmountForClient(clientId)).thenReturn(expectedTotal);
+        when(contractQueryPort.calculateTotalCostAmountForClient(clientId)).thenReturn(expectedTotal);
 
         BigDecimal result = handler.execute(new GetTotalCostAmountOfActiveContractsByClient.Query(clientId));
 

@@ -2,8 +2,8 @@ package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientService;
+import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
@@ -19,7 +19,7 @@ public interface GetClientById {
 
     Client execute(Query query);
 
-    @Service
+    @UseCase
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
     class Handler implements GetClientById {
