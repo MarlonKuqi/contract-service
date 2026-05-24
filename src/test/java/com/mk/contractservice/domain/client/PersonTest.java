@@ -1,170 +1,268 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
+
+import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
+import com.mk.contractservice.domain.client.exception.InvalidClientNameException;
+import com.mk.contractservice.domain.client.exception.InvalidClientPhoneNumberException;
+import com.mk.contractservice.domain.client.exception.InvalidPersonBirthDateException;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.LocalDate;
-import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("Person - Domain Entity Tests")
+@DisplayName("Person - Domain Tests")
 class PersonTest {
-
-    @Test
-    @DisplayName("Should create Person with all required fields")
-    void shouldCreatePersonWithAllRequiredFields() {
-        ClientName name = ClientName.of("John Doe");
-        Email email = Email.of("john.doe@example.com");
-        PhoneNumber phone = PhoneNumber.of("+33123456789");
-        PersonBirthDate birthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15));
-        Person person = Person.of(name, email, phone, birthDate);
-        assertThat(person.getName()).isEqualTo(name);
-        assertThat(person.getEmail()).isEqualTo(email);
-        assertThat(person.getPhone()).isEqualTo(phone);
-        assertThat(person.getBirthDate()).isEqualTo(birthDate);
-    }
-
-    @Test
-    @DisplayName("Should reject null PersonBirthDate in constructor - domain protection")
-    void shouldRejectNullPersonBirthDateInConstructor() {
-        ClientName name = ClientName.of("John Doe");
-        Email email = Email.of("john@example.com");
-        PhoneNumber phone = PhoneNumber.of("+33123456789");
-
-        assertThatThrownBy(() -> Person.of(name, email, phone, null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Birth date must not be null");
-    }
-
-    @Test
-    @DisplayName("Should keep birthdate immutable when updating common fields")
-    void shouldKeepBirthdateImmutable() {
-        PersonBirthDate originalBirthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15));
-        Person person = Person.of(
-                ClientName.of("John Doe"),
-                Email.of("john.doe@example.com"),
-                PhoneNumber.of("+33123456789"),
-                originalBirthDate);
-
-        Person updated = person.withCommonFields(
-                ClientName.of("Jane Doe"),
-                Email.of("jane.doe@example.com"),
-                PhoneNumber.of("+33987654321")
+    static Stream<LocalDate> validBirthDates() {
+        return Stream.of(
+                LocalDate.now(),
+                LocalDate.of(1990, 5, 15),
+                LocalDate.of(1950, 1, 1),
+                LocalDate.of(2000, 12, 31),
+                LocalDate.now().minusYears(18),
+                LocalDate.now().minusDays(1)
         );
-
-        // Updated instance has new common fields
-        assertThat(updated.getName().value()).isEqualTo("Jane Doe");
-        assertThat(updated.getEmail().value()).isEqualTo("jane.doe@example.com");
-        assertThat(updated.getPhone().value()).isEqualTo("+33987654321");
-
-        // But birthdate remains the same
-        assertThat(updated.getBirthDate()).isEqualTo(originalBirthDate);
-
-        // Original instance is unchanged
-        assertThat(person.getName().value()).isEqualTo("John Doe");
-        assertThat(person.getBirthDate()).isEqualTo(originalBirthDate);
     }
 
-    @Test
-    @DisplayName("Should be instance of Client")
-    void shouldBeInstanceOfClient() {
-        Person person = Person.of(
-                ClientName.of("John Doe"),
-                Email.of("john@example.com"),
-                PhoneNumber.of("+33123456789"),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15)));
-
-        assertThat(person).isInstanceOf(Client.class);
-        assertThat(person).isInstanceOf(Person.class);
-    }
-
-    @Test
-    @DisplayName("Should reconstitute Person with ID from database")
-    void shouldReconstitutPersonWithId() {
-        UUID id = UUID.randomUUID();
-        ClientName name = ClientName.of("John Doe");
-        Email email = Email.of("john@example.com");
-        PhoneNumber phone = PhoneNumber.of("+33123456789");
-        PersonBirthDate birthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15));
-
-        Person person = Person.reconstitute(id, name, email, phone, birthDate);
-
-        assertThat(person.getId()).isEqualTo(id);
-        assertThat(person.getName()).isEqualTo(name);
-        assertThat(person.getEmail()).isEqualTo(email);
-        assertThat(person.getPhone()).isEqualTo(phone);
-        assertThat(person.getBirthDate()).isEqualTo(birthDate);
-    }
-
-
-    @Test
-    @DisplayName("Should update partial fields keeping others unchanged")
-    void shouldUpdatePartialFields() {
-        Person person = Person.of(
-                ClientName.of("John Doe"),
-                Email.of("john@example.com"),
-                PhoneNumber.of("+33123456789"),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15))
-        );
-
-        Person updated = person.updatePartial(
-                ClientName.of("Jane Doe"),
+    static Stream<LocalDate> invalidBirthDates() {
+        return Stream.of(
                 null,
-                null
+                LocalDate.now().plusDays(1),
+                LocalDate.now().plusWeeks(1),
+                LocalDate.now().plusMonths(1),
+                LocalDate.now().plusYears(1),
+                LocalDate.now().plusYears(10),
+                LocalDate.of(2100, 1, 1),
+                LocalDate.MAX
         );
-
-        assertThat(updated.getName().value()).isEqualTo("Jane Doe");
-        assertThat(updated.getEmail().value()).isEqualTo("john@example.com");
-        assertThat(updated.getPhone().value()).isEqualTo("+33123456789");
-        assertThat(updated.getBirthDate().value()).isEqualTo(LocalDate.of(1990, 5, 15));
     }
 
-    @Test
-    @DisplayName("Should update all fields when all provided in updatePartial")
-    void shouldUpdateAllFieldsWhenAllProvided() {
-        Person person = Person.of(
-                ClientName.of("John Doe"),
-                Email.of("john@example.com"),
-                PhoneNumber.of("+33123456789"),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15))
-        );
+    @Nested
+    @DisplayName("Creation")
+    class Creation {
 
-        Person updated = person.updatePartial(
-                ClientName.of("Jane Smith"),
-                Email.of("jane@example.com"),
-                PhoneNumber.of("+33987654321")
-        );
+        @Nested
+        @DisplayName("From Command")
+        class FromCommand {
 
-        assertThat(updated.getName().value()).isEqualTo("Jane Smith");
-        assertThat(updated.getEmail().value()).isEqualTo("jane@example.com");
-        assertThat(updated.getPhone().value()).isEqualTo("+33987654321");
-        assertThat(updated.getBirthDate().value()).isEqualTo(LocalDate.of(1990, 5, 15));
+            @ParameterizedTest
+            @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidNames")
+            @DisplayName("GIVEN invalid name WHEN creating Person THEN throw exception")
+            void shouldRejectInvalidName(String name) {
+                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                        name,
+                        "john@example.com",
+                        "+33123456789",
+                        LocalDate.of(1990, 5, 15)
+                )).isInstanceOf(InvalidClientNameException.class);
+            }
+
+            @ParameterizedTest
+            @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidEmails")
+            @DisplayName("GIVEN invalid email WHEN creating Person THEN throw exception")
+            void shouldRejectInvalidEmail(String email) {
+                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                        "John Doe",
+                        email,
+                        "+33123456789",
+                        LocalDate.of(1990, 5, 15)
+                )).isInstanceOf(InvalidClientEmailException.class);
+            }
+
+            @ParameterizedTest
+            @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidPhones")
+            @DisplayName("GIVEN invalid phone WHEN creating Person THEN throw exception")
+            void shouldRejectInvalidPhone(String phone) {
+                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                        "John Doe",
+                        "john@example.com",
+                        phone,
+                        LocalDate.of(1990, 5, 15)
+                )).isInstanceOf(InvalidClientPhoneNumberException.class);
+            }
+
+
+            @Test
+            @DisplayName("GIVEN null birthDate WHEN creating Person THEN throw InvalidClientException")
+            void shouldRejectNullPersonBirthDate() {
+                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                        "John Doe",
+                        "john@example.com",
+                        "+33123456789",
+                        null
+                )).isInstanceOf(InvalidPersonBirthDateException.class);
+            }
+
+            @ParameterizedTest
+            @MethodSource("com.mk.contractservice.domain.client.ClientTestData#validPersons")
+            @DisplayName("GIVEN various valid combinations of fields WHEN creating Person THEN person is created with all correct values")
+            void shouldCreatePersonWithValidCombinations(ClientTestData.ValidPersonData data) {
+                Person person = PersonFactory.createFromCommand(
+                        data.name(),
+                        data.email(),
+                        data.phone(),
+                        data.birthDate()
+                );
+
+                assertThat(person.getName().getValue()).isEqualTo(data.name());
+                assertThat(person.getEmail().getValue()).isEqualTo(data.email());
+                assertThat(person.getPhone().getValue()).isEqualTo(data.expectedPhone());
+                assertThat(person.getBirthDate().getValue()).isEqualTo(data.birthDate());
+            }
+        }
+
+        @Nested
+        @DisplayName("PersonBirthDate Validation")
+        class PersonBirthDateValidation {
+
+            @ParameterizedTest
+            @MethodSource("com.mk.contractservice.domain.client.PersonTest#validBirthDates")
+            @DisplayName("GIVEN various valid birth dates WHEN creating Person THEN person is created")
+            void shouldAcceptValidBirthDates(LocalDate birthDate) {
+                final Person person = PersonFactory.createFromCommand(
+                        "John Doe",
+                        "john@example.com",
+                        "+33123456789",
+                        birthDate
+                );
+
+                assertThat(person.getBirthDate().getValue()).isEqualTo(birthDate);
+            }
+
+            @ParameterizedTest
+            @MethodSource("com.mk.contractservice.domain.client.PersonTest#invalidBirthDates")
+            @DisplayName("GIVEN various valid birth dates WHEN creating Person THEN throw InvalidPersonBirthDateException")
+            void shouldRejectInvalidBirthDates(LocalDate birthDate) {
+                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                        "John Doe",
+                        "john@example.com",
+                        "+33123456789",
+                        birthDate
+                )).isInstanceOf(InvalidPersonBirthDateException.class);
+            }
+        }
     }
 
-    @Test
-    @DisplayName("Should keep birthdate immutable on updatePartial")
-    void shouldKeepBirthdateImmutableOnUpdatePartial() {
-        PersonBirthDate originalBirthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15));
-        Person person = Person.of(
-                ClientName.of("John Doe"),
-                Email.of("john@example.com"),
-                PhoneNumber.of("+33123456789"),
-                originalBirthDate
-        );
+    @Nested
+    @DisplayName("Update")
+    class Update {
 
-        Person updated = person.updatePartial(
-                ClientName.of("Jane Doe"),
-                Email.of("jane@example.com"),
-                PhoneNumber.of("+33987654321")
-        );
+        @Test
+        @DisplayName("GIVEN person WHEN updating common fields THEN birthdate remains unchanged")
+        void shouldKeepBirthdateImmutableWhenUpdating() {
+            PersonBirthDate originalBirthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15));
+            Person person = Person.of(
+                    ClientName.of("John Doe"),
+                    ClientEmail.of("john.doe@example.com"),
+                    ClientPhoneNumber.of("+33123456789"),
+                    originalBirthDate
+            );
 
-        assertThat(updated.getBirthDate()).isEqualTo(originalBirthDate);
+            Person updated = person.changeCoreFields(
+                    ClientName.of("Jane Doe"),
+                    ClientEmail.of("jane.doe@example.com"),
+                    ClientPhoneNumber.of("+33987654321")
+            );
+
+            assertThat(updated.getName().getValue()).isEqualTo("Jane Doe");
+            assertThat(updated.getEmail().getValue()).isEqualTo("jane.doe@example.com");
+            assertThat(updated.getPhone().getValue()).isEqualTo("+33987654321");
+            assertThat(updated.getBirthDate()).isEqualTo(originalBirthDate);
+
+            assertThat(person.getName().getValue()).isEqualTo("John Doe");
+            assertThat(person.getBirthDate()).isEqualTo(originalBirthDate);
+        }
+
+        @Test
+        @DisplayName("GIVEN person WHEN updating with same values THEN returns new instance with same data")
+        void shouldReturnNewInstanceWithSameData() {
+            Person person = PersonFactory.createFromCommand(
+                    "John Doe",
+                    "john@example.com",
+                    "+33123456789",
+                    LocalDate.of(1990, 5, 15)
+            );
+
+            Person updated = person.changeCoreFields(
+                    ClientName.of("John Doe"),
+                    ClientEmail.of("john@example.com"),
+                    ClientPhoneNumber.of("+33123456789")
+            );
+
+            assertThat(updated).isNotSameAs(person);
+            assertThat(updated.getName().getValue()).isEqualTo(person.getName().getValue());
+            assertThat(updated.getEmail().getValue()).isEqualTo(person.getEmail().getValue());
+            assertThat(updated.getPhone().getValue()).isEqualTo(person.getPhone().getValue());
+        }
+
+        @Test
+        @DisplayName("GIVEN person WHEN updating only name THEN only name changes")
+        void shouldUpdateOnlyName() {
+            Person person = PersonFactory.createFromCommand(
+                    "John Doe",
+                    "john@example.com",
+                    "+33123456789",
+                    LocalDate.of(1990, 5, 15)
+            );
+
+            Person updated = person.changeCoreFields(
+                    ClientName.of("Jane Doe"),
+                    person.getEmail(),
+                    person.getPhone()
+            );
+
+            assertThat(updated.getName().getValue()).isEqualTo("Jane Doe");
+            assertThat(updated.getEmail()).isEqualTo(person.getEmail());
+            assertThat(updated.getPhone()).isEqualTo(person.getPhone());
+            assertThat(updated.getBirthDate()).isEqualTo(person.getBirthDate());
+        }
+
+        @Test
+        @DisplayName("GIVEN person WHEN updating only email THEN only email changes")
+        void shouldUpdateOnlyEmail() {
+            Person person = PersonFactory.createFromCommand(
+                    "John Doe",
+                    "john@example.com",
+                    "+33123456789",
+                    LocalDate.of(1990, 5, 15)
+            );
+
+            Person updated = person.changeCoreFields(
+                    person.getName(),
+                    ClientEmail.of("newemail@example.com"),
+                    person.getPhone()
+            );
+
+            assertThat(updated.getName()).isEqualTo(person.getName());
+            assertThat(updated.getEmail().getValue()).isEqualTo("newemail@example.com");
+            assertThat(updated.getPhone()).isEqualTo(person.getPhone());
+        }
+
+        @Test
+        @DisplayName("GIVEN person WHEN updating only phone THEN only phone changes")
+        void shouldUpdateOnlyPhone() {
+            Person person = PersonFactory.createFromCommand(
+                    "John Doe",
+                    "john@example.com",
+                    "+33123456789",
+                    LocalDate.of(1990, 5, 15)
+            );
+
+            Person updated = person.changeCoreFields(
+                    person.getName(),
+                    person.getEmail(),
+                    ClientPhoneNumber.of("+33999999999")
+            );
+
+            assertThat(updated.getName()).isEqualTo(person.getName());
+            assertThat(updated.getEmail()).isEqualTo(person.getEmail());
+            assertThat(updated.getPhone().getValue()).isEqualTo("+33999999999");
+        }
     }
 }
-

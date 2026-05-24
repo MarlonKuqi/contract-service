@@ -1,89 +1,83 @@
 package com.mk.contractservice.domain.contract;
 
-import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.exception.ExpiredContractException;
-import com.mk.contractservice.domain.exception.InvalidContractException;
-import com.mk.contractservice.domain.valueobject.ContractCost;
-import com.mk.contractservice.domain.valueobject.ContractPeriod;
+import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import lombok.AccessLevel;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.experimental.FieldDefaults;
 import org.jspecify.annotations.Nullable;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static com.mk.contractservice.domain.shared.Assert.notNull;
+
 @Getter
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+@EqualsAndHashCode
 public class Contract {
 
-    @Nullable
-    UUID id;
+    private final @Nullable UUID id;
+    private final @Nullable UUID clientId;
+    private final ContractPeriod period;
+    private final ContractCost costAmount;
 
-    Client client;
-
-    ContractPeriod period;
-
-    ContractCost costAmount;
-
-    @Builder(toBuilder = true)
+    @Builder(toBuilder = true, access = AccessLevel.PUBLIC)
     private Contract(
             @Nullable final UUID id,
-            @Nullable final Client client,
+            @Nullable final UUID clientId,
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount
     ) {
-        if (client == null) {
-            throw InvalidContractException.forNullClient();
-        }
-        if (period == null) {
-            throw InvalidContractException.forNullPeriod();
-        }
-        if (costAmount == null) {
-            throw InvalidContractException.forNullCostAmount();
-        }
         this.id = id;
-        this.client = client;
+        this.clientId = clientId;
         this.period = period;
         this.costAmount = costAmount;
     }
 
-    public static Contract of(final Client client, final ContractPeriod period, final ContractCost costAmount) {
+    public static Contract of(
+            @Nullable final UUID clientId,
+            @Nullable final ContractPeriod period,
+            @Nullable final ContractCost costAmount
+    ) {
         return builder()
-                .client(client)
-                .period(period)
-                .costAmount(costAmount)
+                .clientId(notNull(clientId))
+                .period(notNull(period))
+                .costAmount(notNull(costAmount))
                 .build();
     }
 
-    public static Contract reconstitute(final UUID id, final Client client, final ContractPeriod period, final ContractCost costAmount) {
+    public static Contract reconstituteFromDatabase(
+            @Nullable final UUID id,
+            @Nullable final UUID clientId,
+            @Nullable final ContractPeriod period,
+            @Nullable final ContractCost costAmount
+    ) {
         return builder()
-                .id(id)
-                .client(client)
-                .period(period)
-                .costAmount(costAmount)
+                .id(notNull(id))
+                .clientId(clientId)
+                .period(notNull(period))
+                .costAmount(notNull(costAmount))
                 .build();
     }
 
-    public boolean isActive() {
-        return period.isActive();
+    public boolean isCurrentlyActive() {
+        return getPeriod().isEffectiveAt(LocalDateTime.now());
     }
 
-    public boolean isInactive() {
-        return !isActive();
+    public boolean isCurrentlyInactive() {
+        return !isCurrentlyActive();
     }
 
-    @SuppressWarnings("ConstantConditions")
-    public Contract changeCost(final ContractCost newAmount) {
-        if (newAmount == null) {
-            throw InvalidContractException.forNullNewCostAmount();
-        }
-        if (isInactive()) {
+    public Contract changeCost(@Nullable final ContractCost newCost) {
+        assertCurrentlyModifiable();
+        return toBuilder()
+                .costAmount(notNull(newCost))
+                .build();
+    }
+
+    private void assertCurrentlyModifiable() {
+        if (isCurrentlyInactive()) {
             throw new ExpiredContractException(getId());
         }
-        return toBuilder()
-                .costAmount(newAmount)
-                .build();
     }
 }
-

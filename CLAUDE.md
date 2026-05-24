@@ -26,6 +26,17 @@ This application is a backend API built using:
 The domain involves managing clients (people or companies) and contracts.  
 Domain rules are important. Code must reflect business invariants (domain-driven mindset).
 
+### Key domain rules (sourced from sujet.txt)
+
+**Active contract definition** — a contract is active if:
+```
+endDate IS NULL  OR  endDate > now()
+```
+A contract with a `startDate` in the future **is considered active** by this definition.  
+"Active" here means "not yet expired", NOT "currently running".  
+See `docs-claude/ADR_CONTRACT_ACTIVE_DEFINITION.md` for the full rationale.  
+Do NOT add a `startDate <= now()` condition without an explicit business requirement.
+
 ## Development rules
 
 ### Architectural principles
