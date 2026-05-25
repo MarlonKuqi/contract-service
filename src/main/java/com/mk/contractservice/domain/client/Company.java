@@ -1,38 +1,110 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.CompanyIdentifier;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.jspecify.annotations.NullUnmarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
-@Getter
-public final class Company extends Client {
+import static com.mk.contractservice.domain.shared.Assert.notNull;
 
-    private static final String COMPANY_IDENTIFIER_NULL_MESSAGE = "Company identifier must not be null";
+@Getter
+@EqualsAndHashCode(callSuper = true)
+public final class Company extends Client {
 
     private final CompanyIdentifier companyIdentifier;
 
-    private Company(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final CompanyIdentifier companyIdentifier) {
+    private Company(
+            @Nullable final UUID id,
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone,
+            @Nullable final CompanyIdentifier companyIdentifier
+    ) {
         super(id, name, email, phone);
-        if (companyIdentifier == null) {
-            throw new IllegalArgumentException(COMPANY_IDENTIFIER_NULL_MESSAGE);
-        }
-        this.companyIdentifier = companyIdentifier;
+        this.companyIdentifier = notNull(companyIdentifier);
     }
 
+    public static Company of(
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone,
+            @Nullable final CompanyIdentifier companyIdentifier
+    ) {
+        return builder()
+                .name(notNull(name))
+                .email(notNull(email))
+                .phone(notNull(phone))
+                .companyIdentifier(notNull(companyIdentifier))
+                .build();
+    }
+
+    public static Company reconstituteFromDatabase(
+            @Nullable final UUID id,
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone,
+            @Nullable final CompanyIdentifier companyIdentifier
+    ) {
+        return builder()
+                .id(notNull(id))
+                .name(notNull(name))
+                .email(notNull(email))
+                .phone(notNull(phone))
+                .companyIdentifier(notNull(companyIdentifier))
+                .build();
+    }
+
+    @Override
+    public Company changeCoreFields(
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phoneNumber
+    ) {
+        return toBuilder()
+                .name(notNull(name))
+                .email(notNull(email))
+                .phone(notNull(phoneNumber))
+                .build();
+    }
+
+    @Override
+    public Company changeName(@Nullable final ClientName name) {
+        return toBuilder().name(notNull(name)).build();
+    }
+
+    @Override
+    public Company changeEmail(@Nullable final ClientEmail email) {
+        return toBuilder().email(notNull(email)).build();
+    }
+
+    @Override
+    public Company changePhone(@Nullable ClientPhoneNumber phoneNumber) {
+        return toBuilder().phone(notNull(phoneNumber)).build();
+    }
 
     public static CompanyBuilder builder() {
         return new CompanyBuilder();
     }
 
+    private CompanyBuilder toBuilder() {
+        return builder()
+                .id(getId())
+                .name(getName())
+                .email(getEmail())
+                .phone(getPhone())
+                .companyIdentifier(getCompanyIdentifier());
+    }
+
+    @NoArgsConstructor
+    @NullUnmarked
     public static class CompanyBuilder {
         private UUID id;
         private ClientName name;
-        private Email email;
-        private PhoneNumber phone;
+        private ClientEmail email;
+        private ClientPhoneNumber phone;
         private CompanyIdentifier companyIdentifier;
 
         public CompanyBuilder id(final UUID id) {
@@ -45,12 +117,12 @@ public final class Company extends Client {
             return this;
         }
 
-        public CompanyBuilder email(final Email email) {
+        public CompanyBuilder email(final ClientEmail email) {
             this.email = email;
             return this;
         }
 
-        public CompanyBuilder phone(final PhoneNumber phone) {
+        public CompanyBuilder phone(final ClientPhoneNumber phone) {
             this.phone = phone;
             return this;
         }
@@ -65,3 +137,4 @@ public final class Company extends Client {
         }
     }
 }
+
