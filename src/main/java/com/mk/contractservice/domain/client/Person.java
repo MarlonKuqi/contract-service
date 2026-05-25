@@ -1,36 +1,109 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.valueobject.ClientName;
-import com.mk.contractservice.domain.valueobject.Email;
-import com.mk.contractservice.domain.valueobject.PersonBirthDate;
-import com.mk.contractservice.domain.valueobject.PhoneNumber;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.jspecify.annotations.NullUnmarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
+import static com.mk.contractservice.domain.shared.Assert.notNull;
+
 @Getter
+@EqualsAndHashCode(callSuper = true)
 public final class Person extends Client {
 
     private final PersonBirthDate birthDate;
 
-    private Person(final UUID id, final ClientName name, final Email email, final PhoneNumber phone, final PersonBirthDate birthDate) {
+    private Person(
+            @Nullable final UUID id,
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone,
+            @Nullable final PersonBirthDate birthDate
+    ) {
         super(id, name, email, phone);
-        if (birthDate == null) {
-            throw new IllegalArgumentException("Birth date must not be null");
-        }
-        this.birthDate = birthDate;
+        this.birthDate = notNull(birthDate);
     }
 
+    public static Person of(
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone,
+            @Nullable final PersonBirthDate birthDate
+    ) {
+        return builder()
+                .name(notNull(name))
+                .email(notNull(email))
+                .phone(notNull(phone))
+                .birthDate(notNull(birthDate))
+                .build();
+    }
+
+    public static Person reconstituteFromDatabase(
+            @Nullable final UUID id,
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phone,
+            @Nullable final PersonBirthDate birthDate
+    ) {
+        return builder()
+                .id(notNull(id))
+                .name(notNull(name))
+                .email(notNull(email))
+                .phone(notNull(phone))
+                .birthDate(notNull(birthDate))
+                .build();
+    }
+
+    @Override
+    public Person changeCoreFields(
+            @Nullable final ClientName name,
+            @Nullable final ClientEmail email,
+            @Nullable final ClientPhoneNumber phoneNumber) {
+        return toBuilder()
+                .name(notNull(name))
+                .email(notNull(email))
+                .phone(notNull(phoneNumber))
+                .build();
+    }
+
+    @Override
+    public Person changeName(@Nullable final ClientName name) {
+        return toBuilder().name(notNull(name)).build();
+    }
+
+    @Override
+    public Person changeEmail(@Nullable final ClientEmail email) {
+        return toBuilder().email(notNull(email)).build();
+    }
+
+    @Override
+    public Person changePhone(@Nullable final ClientPhoneNumber phoneNumber) {
+        return toBuilder().phone(notNull(phoneNumber)).build();
+    }
 
     public static PersonBuilder builder() {
         return new PersonBuilder();
     }
 
+    private PersonBuilder toBuilder() {
+        return builder()
+                .id(getId())
+                .name(getName())
+                .email(getEmail())
+                .phone(getPhone())
+                .birthDate(getBirthDate());
+    }
+
+    @NoArgsConstructor
+    @NullUnmarked
     public static class PersonBuilder {
         private UUID id;
         private ClientName name;
-        private Email email;
-        private PhoneNumber phone;
+        private ClientEmail email;
+        private ClientPhoneNumber phone;
         private PersonBirthDate birthDate;
 
         public PersonBuilder id(final UUID id) {
@@ -43,12 +116,12 @@ public final class Person extends Client {
             return this;
         }
 
-        public PersonBuilder email(final Email email) {
+        public PersonBuilder email(final ClientEmail email) {
             this.email = email;
             return this;
         }
 
-        public PersonBuilder phone(final PhoneNumber phone) {
+        public PersonBuilder phone(final ClientPhoneNumber phone) {
             this.phone = phone;
             return this;
         }
@@ -63,3 +136,4 @@ public final class Person extends Client {
         }
     }
 }
+

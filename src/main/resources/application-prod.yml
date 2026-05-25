@@ -16,6 +16,10 @@ logging:
     com.mk.contractservice: INFO
     org.hibernate.SQL: WARN
 
+app:
+  cache:
+    maximum-size: 50000
+
 server:
   error:
     include-message: never
