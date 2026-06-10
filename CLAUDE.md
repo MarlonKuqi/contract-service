@@ -26,6 +26,17 @@ This application is a backend API built using:
 The domain involves managing clients (people or companies) and contracts.  
 Domain rules are important. Code must reflect business invariants (domain-driven mindset).
 
+### Key domain rules (sourced from sujet.txt)
+
+**Active contract definition** — a contract is active if:
+```
+endDate IS NULL  OR  endDate > now()
+```
+A contract with a `startDate` in the future **is considered active** by this definition.  
+"Active" here means "not yet expired", NOT "currently running".  
+See `docs-claude/ADR_CONTRACT_ACTIVE_DEFINITION.md` for the full rationale.  
+Do NOT add a `startDate <= now()` condition without an explicit business requirement.
+
 ## Development rules
 
 ### Architectural principles
@@ -59,6 +70,43 @@ src/main/java/com/project
 - Use records when possible.
 - Always validate invariants in constructor.
 - Avoid null; prefer Optional when absent is meaningful.
+
+### Domain Entities Validation
+- **Entities must be "always valid"**: No entity can exist in an invalid state.
+- **Use private constructors** + factory methods (`of()`, `reconstitute()`, `withCommonFields()`, `updatePartial()`).
+- **Builder pattern**: Use manual builders (not Lombok) with private access to enforce factory method usage.
+- **Validation in constructors**: Call `checkInvariants()` after all fields are assigned.
+- **Inheritance validation**: Subclasses override `checkInvariants()`, call `super.checkInvariants()` first, then validate their own fields.
+
+Example:
+```java
+// Parent entity
+protected void checkInvariants() {
+    if (name == null) throw new IllegalArgumentException("Name must not be null");
+    if (email == null) throw new IllegalArgumentException("Email must not be null");
+}
+
+// Child entity
+@Override
+protected void checkInvariants() {
+    super.checkInvariants();  // Validate parent fields first
+    if (birthDate == null) throw new IllegalArgumentException("Birth date must not be null");
+}
+```
+
+This approach is:
+- Simple and maintainable (single method, classic inheritance pattern)
+- Follows DDD "always valid" principle
+- Easy to understand and extend
+
+**Required tests for each entity**:
+- ✅ Test `of()` with valid data
+- ✅ Test `of()` with null fields (validation)
+- ✅ Test `reconstitute()` with valid ID
+- ✅ Test `reconstitute()` rejecting null ID
+- ✅ Test `withCommonFields()` (full update)
+- ✅ Test `updatePartial()` (partial update with nulls)
+- ✅ Test immutability of specific fields (birthDate, companyIdentifier)
 
 ## Database and Flyway migrations
 - Every schema change must go through a numbered Flyway migration.
@@ -103,5 +151,7 @@ Response format:
 - Step 1: reasoning outline
 - Step 2: proposed change or improvement
 - Step 3: generated code (if needed)
+
+Do not add comments to code.
 
 If the request is unclear, ask questions.
