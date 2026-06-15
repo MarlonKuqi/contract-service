@@ -307,4 +307,44 @@ class PatchClientAcceptanceTest {
                 .body("email", containsString("test"))
                 .body("phone", equalTo(phoneNumber));
     }
+
+    @Test
+    @DisplayName("GIVEN same values as existing WHEN patch THEN succeeds without conflict")
+    void shouldSucceedWhenPatchingWithSameValues() {
+        String email = "same." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
+        Person person = Person.of(
+                ClientName.of("Same Name"),
+                ClientEmail.of(email),
+                ClientPhoneNumber.of(phoneNumber),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+        );
+        person = (Person) clientRepository.save(person);
+
+        String patchPayload = """
+                {
+                    "name": "Same Name",
+                    "email": "%s",
+                    "phone": "%s"
+                }
+                """.formatted(email, phoneNumber);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(patchPayload)
+                .when()
+                .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
+                .then()
+                .statusCode(204);
+
+        given()
+                .when()
+                .get(ClientEndpoints.CLIENT_BY_ID, person.getId())
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("Same Name"))
+                .body("email", equalTo(email))
+                .body("phone", equalTo(phoneNumber))
+                .body("birthDate", equalTo("1990-01-01"));
+    }
 }

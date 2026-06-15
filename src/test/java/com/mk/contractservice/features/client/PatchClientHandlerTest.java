@@ -371,6 +371,37 @@ class PatchClientHandlerTest {
                     .isInstanceOf(PhoneAlreadyExistsException.class);
         }
 
+        @Test
+        @DisplayName("GIVEN même email que l'existant WHEN execute THEN ne lève pas d'erreur de doublon")
+        void shouldNotThrowWhenEmailIsIdenticalToExisting() {
+            // Given
+            String existingEmail = existingPerson.getEmail().getValue();
+            PatchClient.Command command = new PatchClient.Command(clientId, null, existingEmail, null);
+
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+
+            // When
+            Client result = patchClientHandler.execute(command);
+
+            // Then
+            assertThat(result.getEmail().getValue()).isEqualTo(existingEmail);
+        }
+
+        @Test
+        @DisplayName("GIVEN même téléphone que l'existant WHEN execute THEN ne lève pas d'erreur de doublon")
+        void shouldNotThrowWhenPhoneIsIdenticalToExisting() {
+            // Given
+            String existingPhone = existingPerson.getPhone().getValue();
+            PatchClient.Command command = new PatchClient.Command(clientId, null, null, existingPhone);
+
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+
+            // When
+            Client result = patchClientHandler.execute(command);
+
+            // Then
+            assertThat(result.getPhone().getValue()).isEqualTo(existingPhone);
+        }
+
     }
 }
-

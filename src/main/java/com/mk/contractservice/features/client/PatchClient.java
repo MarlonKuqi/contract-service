@@ -45,24 +45,20 @@ public interface PatchClient {
 
             boolean hasChanges = false;
             final String newEmail = command.email();
-            if (newEmail != null) {
-                if (!Objects.equals(client.getEmail().getValue(), newEmail)) {
-                    clientValidationService.ensureEmailIsUnique(newEmail);
-                }
+            if (newEmail != null && !Objects.equals(client.getEmail().getValue(), newEmail)) {
+                clientValidationService.ensureEmailIsUnique(newEmail);
                 client = client.changeEmail(ClientEmail.of(newEmail));
                 hasChanges = true;
             }
             final String phoneNumber = command.phoneNumber();
-            if (phoneNumber != null) {
-                if (!Objects.equals(client.getPhone().getValue(), phoneNumber)) {
-                    clientValidationService.ensurePhoneIsUnique(phoneNumber);
-                }
+            if (phoneNumber != null && !Objects.equals(client.getPhone().getValue(), phoneNumber)) {
+                clientValidationService.ensurePhoneIsUnique(phoneNumber);
                 client = client.changePhone(ClientPhoneNumber.of(phoneNumber));
                 hasChanges = true;
             }
-
-            if (command.name() != null) {
-                client = client.changeName(ClientName.of(command.name()));
+            final String newName = command.name();
+            if (newName != null && !Objects.equals(client.getName().getValue(), newName)) {
+                client = client.changeName(ClientName.of(newName));
                 hasChanges = true;
             }
 
