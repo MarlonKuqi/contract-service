@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import static com.mk.contractservice.domain.shared.Assert.notNull;
 
@@ -19,14 +20,15 @@ public class ClientEmail {
     String value;
 
     public static final int MAX_LENGTH = 254;
-    private static final String EMAIL_PATTERN = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
+    private static final String EMAIL_PATTERN = "^[a-zA-Z0-9._+%-]++@[a-zA-Z0-9-]++\\.[a-zA-Z0-9-]++$";
+    private static final Pattern COMPILED_EMAIL_PATTERN = Pattern.compile(EMAIL_PATTERN);
 
     public static final Predicate<String> IS_INVALID_LENGTH =
             email -> email.isEmpty() || email.length() > MAX_LENGTH;
 
 
     public static final Predicate<String> HAS_INVALID_FORMAT =
-            email -> !email.matches(EMAIL_PATTERN);
+            email -> !COMPILED_EMAIL_PATTERN.matcher(email).matches();
 
     public static ClientEmail of(@Nullable final String rawValue) {
         return ValueObjectUtils.validateAndCreate(
