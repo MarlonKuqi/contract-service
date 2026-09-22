@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           java-version: '27'
-          distribution: 'openjdk'
+          distribution: 'zulu'
           cache: maven
 
       - name: Cache Maven packages
@@ -107,7 +107,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           java-version: '27'
-          distribution: 'openjdk'
+          distribution: 'zulu'
           cache: maven
 
       - name: Cache Maven packages
@@ -149,7 +149,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           java-version: '27'
-          distribution: 'openjdk'
+          distribution: 'zulu'
           cache: maven
 
       - name: Get week number for NVD cache key
