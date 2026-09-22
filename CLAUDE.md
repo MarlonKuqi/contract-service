@@ -16,8 +16,8 @@ You must not:
 
 ## Project context
 This application is a backend API built using:
-- Java 17+
-- Spring Boot 5.7
+- Java 27 (Latest LTS release)
+- Spring Boot 4.1.1
 - RESTful API design principles
 - PostgreSQL as database
 - Flyway for database migrations

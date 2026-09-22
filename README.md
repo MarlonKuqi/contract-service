@@ -8,6 +8,7 @@ A RESTful API for managing insurance clients (persons and companies) and their c
 
 ### Prerequisites
 - Docker Desktop ([Download](https://www.docker.com/products/docker-desktop/))
+- The provided Docker image builds on `openjdk:27-rc-jdk` and runs on a custom Java 27 `jlink` runtime
 
 ### Run with Docker Compose (Recommended)
 
@@ -177,7 +178,7 @@ Import from `api-collections/` for complete API examples:
 ✅ **ISO 8601 dates** (e.g., `2025-01-01T00:00:00`)  
 ✅ **Validation** (emails, phone numbers, dates, positive amounts)  
 ✅ **RESTful + JSON** (proper HTTP codes, Content-Type)  
-✅ **Java 21 + Spring Boot 3**  
+✅ **Java 27 + Spring Boot 4.1** (Latest LTS versions)  
 ✅ **PostgreSQL persistence** (survives crashes/restarts)  
 ✅ **Descriptive code** (DDD, clear naming, minimal comments)  
 
@@ -204,7 +205,7 @@ Import from `api-collections/` for complete API examples:
 
 ## 🔧 Alternative: Run with JAR
 
-**Prerequisites:** Java 21 + PostgreSQL 12+
+**Prerequisites:** Java 27 + PostgreSQL 12+
 
 ```bash
 # 1. Create database
@@ -254,6 +255,7 @@ All error messages and `Content-Language` headers adapt automatically.
 ## 🔐 Security Notes
 
 - Default credentials (`postgres`/`postgres`) are for **development only**
+- Docker build uses **OpenJDK 27** and runtime uses a **custom Java 27 `jlink` image**
 - Docker image runs as non-root user `appuser`
 - Use environment variables for production credentials
 - Dependencies scanned for vulnerabilities (OWASP)
@@ -299,7 +301,7 @@ src/test/
 
 ### Architecture & Design
 - **[docs/DDD_SERVICES_ARCHITECTURE.md](docs/DDD_SERVICES_ARCHITECTURE.md)** - Architecture DDD détaillée
-- **[docs/DOCKER_OPTIMIZATION.md](docs/DOCKER_OPTIMIZATION.md)** - Optimisation de l'image Docker
+- **[docs-claude/DOCKER_OPTIMIZATION.md](docs-claude/DOCKER_OPTIMIZATION.md)** - Optimisation de l'image Docker
 - **[docs/MIGRATION_GUIDE_V2.md](docs/MIGRATION_GUIDE_V2.md)** - Guide de migration vers v2
 
 ### Documentation Technique (sessions Claude)
