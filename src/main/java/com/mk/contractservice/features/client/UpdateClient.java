@@ -44,21 +44,22 @@ public interface UpdateClient {
         @Override
         public Client execute(final Command command) {
             final Client client = clientService.findClientById(command.clientId());
-            final String commandEmail = command.email();
+            validateCommand(client, command.email(), command.phoneNumber());
+            final Client updatedClient = client.changeCoreFields(
+                    ClientName.of(command.name()),
+                    ClientEmail.of(command.email()),
+                    ClientPhoneNumber.of(command.phoneNumber())
+            );
+            return clientRepository.save(updatedClient);
+        }
+
+        private void validateCommand(final Client client, final String commandEmail, final String commandPhoneNumber) {
             if (!Objects.equals(client.getEmail().getValue(), commandEmail)) {
                 clientValidationService.ensureEmailIsUnique(commandEmail);
             }
-            final String commandPhoneNumber = command.phoneNumber();
             if (!Objects.equals(client.getPhone().getValue(), commandPhoneNumber)) {
                 clientValidationService.ensurePhoneIsUnique(commandPhoneNumber);
             }
-            final Client updatedClient = client.changeCoreFields(
-                    ClientName.of(command.name()),
-                    ClientEmail.of(commandEmail),
-                    ClientPhoneNumber.of(commandPhoneNumber)
-            );
-
-            return clientRepository.save(updatedClient);
         }
     }
 }
