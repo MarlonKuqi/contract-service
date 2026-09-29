@@ -220,7 +220,7 @@ class CloseActiveContractsUseCaseAcceptanceTest {
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 6, 15))
         );
-        otherClient = clientRepository.save(otherClient);
+        otherClient = (Person) clientRepository.save(otherClient);
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime closureDate = now;

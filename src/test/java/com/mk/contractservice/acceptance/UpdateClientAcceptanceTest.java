@@ -63,7 +63,7 @@ class UpdateClientAcceptanceTest {
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1985, 3, 20))
         );
-        person = clientRepository.save(person);
+        person = (Person) clientRepository.save(person);
         String updatePayload = """
                 {
                     "name": "Alice After",
@@ -188,7 +188,7 @@ class UpdateClientAcceptanceTest {
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1))
         );
-        person = clientRepository.save(person);
+        person = (Person) clientRepository.save(person);
         String updatePayload = """
                 {
                     "name": "Updated Person",
@@ -314,7 +314,7 @@ class UpdateClientAcceptanceTest {
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 5, 15))
         );
-        person = clientRepository.save(person);
+        person = (Person) clientRepository.save(person);
 
         // WHEN: Try to update with different birthdate
         String updatePayloadWithNewBirthDate = """
