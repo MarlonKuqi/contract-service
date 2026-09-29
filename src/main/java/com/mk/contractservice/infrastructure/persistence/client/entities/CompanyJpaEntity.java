@@ -17,7 +17,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public final class CompanyJpaEntity extends ClientJpaEntity {
+public class CompanyJpaEntity extends ClientJpaEntity {
 
     @Column(name = "company_identifier", nullable = false, length = 64, unique = true)
     private String companyIdentifier;

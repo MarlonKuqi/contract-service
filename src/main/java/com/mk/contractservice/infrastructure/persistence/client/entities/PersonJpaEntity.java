@@ -19,7 +19,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public final class PersonJpaEntity extends ClientJpaEntity {
+public class PersonJpaEntity extends ClientJpaEntity {
 
     @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
