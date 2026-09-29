@@ -26,8 +26,4 @@ public class CompanyJpaEntity extends ClientJpaEntity {
         super(name, email, phone);
         this.companyIdentifier = companyIdentifier;
     }
-
-    public static CompanyJpaEntity create(final String name, final String email, final String phone, final String companyIdentifier) {
-        return new CompanyJpaEntity(name, email, phone, companyIdentifier);
-    }
 }

@@ -27,7 +27,7 @@ public final class ClientJpaMapper {
     }
 
     public static PersonJpaEntity toNewPersonEntity(final Person person) {
-        return PersonJpaEntity.create(
+        return new PersonJpaEntity(
                 person.getName().getValue(),
                 person.getEmail().getValue(),
                 person.getPhone().getValue(),
@@ -36,7 +36,7 @@ public final class ClientJpaMapper {
     }
 
     public static CompanyJpaEntity toNewCompanyEntity(final Company company) {
-        return CompanyJpaEntity.create(
+        return new CompanyJpaEntity(
                 company.getName().getValue(),
                 company.getEmail().getValue(),
                 company.getPhone().getValue(),

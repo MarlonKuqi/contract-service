@@ -28,8 +28,4 @@ public class PersonJpaEntity extends ClientJpaEntity {
         super(name, email, phone);
         this.birthDate = birthDate;
     }
-
-    public static PersonJpaEntity create(final String name, final String email, final String phone, final LocalDate birthDate) {
-        return new PersonJpaEntity(name, email, phone, birthDate);
-    }
 }
