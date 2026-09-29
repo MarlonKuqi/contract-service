@@ -30,11 +30,12 @@ public class JpaContractRepository implements ContractRepository {
     @CacheEvict(value = CacheConfig.CONTRACT_SUMS_CACHE, key = "#contract.clientId")
     public Contract save(final Contract contract) {
         final ContractJpaEntity entity;
-        if (contract.getId() == null) {
+        final UUID contractId = contract.getId();
+        if (contractId == null) {
             entity = ContractJpaMapper.toNewEntity(contract);
         } else {
-            entity = contractJpaRepository.findById(contract.getId()).orElseThrow(
-                    () -> new IllegalStateException("Contract with id " + contract.getId() + " not found in database")
+            entity = contractJpaRepository.findById(contractId).orElseThrow(
+                    () -> new IllegalStateException("Contract with id " + contractId + " not found in database")
             );
             ContractJpaMapper.mergeIntoExisting(contract, entity);
         }
@@ -43,6 +44,9 @@ public class JpaContractRepository implements ContractRepository {
 
     @Override
     public Optional<Contract> findById(final UUID id) {
+        if (id == null) {
+            return Optional.empty();
+        }
         return contractJpaRepository.findById(id).map(ContractJpaMapper::toDomain);
     }
 

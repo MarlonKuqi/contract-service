@@ -9,7 +9,7 @@ import java.util.UUID;
 public interface ClientRepository {
     Optional<Client> findById(final UUID id);
 
-    <T extends Client> T save(T client);
+    Client save(final Client client);
 
     void deleteById(final UUID id);
 

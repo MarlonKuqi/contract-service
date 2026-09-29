@@ -20,20 +20,24 @@ public class JpaClientRepository implements ClientRepository {
 
     @Override
     public Optional<Client> findById(final UUID id) {
+        if (id == null) {
+            return Optional.empty();
+        }
         return jpa.findById(id).map(ClientJpaMapper::toDomain);
     }
 
     @Override
     public Client save(final Client client) {
         final ClientJpaEntity entity;
-        if (client.getId() == null) {
+        final UUID clientId = client.getId();
+        if (clientId == null) {
             entity = switch (client) {
                 case Person person -> ClientJpaMapper.toNewPersonEntity(person);
                 case Company company -> ClientJpaMapper.toNewCompanyEntity(company);
             };
         } else {
-            entity = jpa.findById(client.getId()).orElseThrow(
-                    () -> new IllegalStateException("Client with id " + client.getId() + " not found in database")
+            entity = jpa.findById(clientId).orElseThrow(
+                    () -> new IllegalStateException("Client with id " + clientId + " not found in database")
             );
             ClientJpaMapper.mergeIntoExisting(client, entity);
         }
