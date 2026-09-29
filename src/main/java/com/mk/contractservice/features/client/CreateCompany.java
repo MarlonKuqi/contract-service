@@ -49,7 +49,7 @@ public interface CreateCompany {
                     command.companyIdentifier()
             );
 
-            return clientRepository.save(company);
+            return (Company) clientRepository.save(company);
         }
     }
 }

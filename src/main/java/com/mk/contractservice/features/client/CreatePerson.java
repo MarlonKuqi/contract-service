@@ -50,7 +50,7 @@ public interface CreatePerson {
                     command.birthDate()
             );
 
-            return clientRepository.save(person);
+            return (Person) clientRepository.save(person);
         }
     }
 }
