@@ -37,6 +37,7 @@
 		<jspecify.version>1.0.0</jspecify.version>
 		<archunit.version>1.5.0</archunit.version>
 		<jacoco.version>0.8.15</jacoco.version>
+		<caffeine.version>3.3.0</caffeine.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -134,6 +135,7 @@
 		<dependency>
 			<groupId>com.github.ben-manes.caffeine</groupId>
 			<artifactId>caffeine</artifactId>
+			<version>${caffeine.version}</version>
 		</dependency>
         <dependency>
             <groupId>com.tngtech.archunit</groupId>
