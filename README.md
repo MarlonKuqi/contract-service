@@ -24,20 +24,31 @@ docker-compose up --build
 
 ---
 
-## 🏗️ Architecture & Design (1000 chars max - as required)
+## 🏗️ Architecture & Design
 
-This project follows **Domain-Driven Design (DDD)** with clean separation:
+**Vertical Slice + Clean Architecture with DDD Principles**
 
-**Domain Layer**: Aggregates (Client with Person/Company sealed hierarchy, Contract) enforce business invariants. Value Objects (Email, PhoneNumber, ContractCost, ContractPeriod) are immutable and self-validating, ensuring rules at creation time (clientEmail format, positive cost, endDate > startDate). Domain exceptions provide clear business errors (InvalidEmailException, ExpiredContractException).
+This project combines **Vertical Slice Architecture** (feature-driven organization) with **Clean Architecture** (onion
+layers) following **Domain-Driven Design**. Each feature (e.g., CreateClient, UpdateContract) is isolated end-to-end
+across all layers—domain logic → application orchestration → infrastructure persistence → REST API. This decomposition
+enables **independent testing of each feature, clear separation of concerns, easy evolution, and long-term
+maintainability**.
 
-**Application Layer**: Services orchestrate domain logic within transaction boundaries (@Transactional). Caching strategy (@Cacheable) optimizes frequent queries.
+**Domain Layer** (innermost) enforces invariants via Aggregates (Client sealed hierarchy: Person | Company, Contract)
+and immutable self-validating Value Objects (Email, PhoneNumber, ContractCost, ContractPeriod). **Validation at creation ensures "Always Valid" state**: business rules are encoded at instantiation (email format, positive cost, endDate > startDate), and immutability prevents subsequent invalid mutations. Once created, objects are guaranteed to satisfy all invariants—there is no intermediate invalid state. Domain exceptions (InvalidEmailException, ExpiredContractException) communicate failures clearly.
 
-**Infrastructure**: JPA repositories with optimized fetch strategies (LAZY default, EAGER with join fetch to avoid N+1 queries). Hibernate unproxy handles lazy proxies. Assemblers convert JPA entities ↔ domain objects. PostgreSQL + Flyway for versioned migrations.
+**Application Layer** orchestrates domain logic within transactional boundaries, coordinating use cases without exposing
+infrastructure details.
 
-**Web Layer**: REST controllers expose clean endpoints. DTOs with Jakarta Validation (@NotBlank, @Email, @Positive). Specialized ControllerAdvice returns proper HTTP codes (422 validation, 404 not found, 409 conflict, 403 forbidden). OpenAPI documentation.
+**Infrastructure Layer** abstracts technical concerns: JPA repositories with optimized fetch strategies (LAZY default,
+EAGER with join fetch to prevent N+1), Assemblers for bidirectional conversion (JPA ↔ domain), PostgreSQL + Flyway
+versioned migrations.
 
-**Performance**: Sum endpoint uses native SQL aggregation (<100ms for 1000+ contracts).  
-**Quality**: 80%+ test coverage with Testcontainers integration tests.
+**Web Layer** exposes REST endpoints with DTO validation (Jakarta Validation), specialized exception handlers returning
+proper HTTP codes (422, 404, 409, 403).
+
+This architecture ensures business logic remains independent of frameworks, databases, and delivery mechanisms ;
+maximizing code reusability, testability, and resilience to technology changes.
 
 ---
 
