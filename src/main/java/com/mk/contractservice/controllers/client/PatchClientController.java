@@ -3,6 +3,7 @@ package com.mk.contractservice.controllers.client;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.client.shared.ClientSwaggerTags;
 import com.mk.contractservice.features.client.PatchClient;
+import com.mk.contractservice.infrastructure.security.ApplicationRoles;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -66,6 +68,7 @@ public class PatchClientController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @PatchMapping(ClientEndpoints.PATH_VAR_ID)
+    @PreAuthorize(ApplicationRoles.HAS_ADMIN)
     public ResponseEntity<Void> patchClient(
             @PathVariable("id") final UUID clientId,
             @Valid @RequestBody final Request request
