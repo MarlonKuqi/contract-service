@@ -70,7 +70,7 @@ RUN ./mvnw -B package -DskipTests && \
         --output ${JRE_HOME}
 
 # Stage 3: Runtime image - custom minimal JRE on standard Debian slim
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 ARG BUILD_WORKDIR
 ARG EXTRACT_DIR
