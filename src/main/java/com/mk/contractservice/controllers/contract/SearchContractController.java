@@ -9,6 +9,7 @@ import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.features.contract.GetContractById;
 import com.mk.contractservice.features.contract.GetTotalCostAmountOfActiveContractsByClient;
 import com.mk.contractservice.features.contract.ListActiveContractsByClient;
+import com.mk.contractservice.infrastructure.security.ApplicationRoles;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -23,6 +24,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -70,6 +72,7 @@ public class SearchContractController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @GetMapping(ContractEndpoints.PATH_VAR_CONTRACT_ID)
+    @PreAuthorize(ApplicationRoles.HAS_ADMIN_OR_COUNSELOR)
     public ResponseEntity<ContractResponse> getById(
             @PathVariable final UUID contractId,
             final Locale locale
@@ -123,6 +126,7 @@ public class SearchContractController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @GetMapping
+    @PreAuthorize(ApplicationRoles.HAS_ADMIN_OR_COUNSELOR)
     public ResponseEntity<PagedContractResponse> listActive(
             @RequestParam final UUID clientId,
             @RequestParam(required = false)
@@ -189,6 +193,7 @@ public class SearchContractController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @GetMapping(ContractEndpoints.CONTRACT_TOTAL)
+    @PreAuthorize(ApplicationRoles.HAS_ADMIN_OR_COUNSELOR)
     public ResponseEntity<BigDecimal> getTotalActive(
             @RequestParam final UUID clientId,
             final Locale locale

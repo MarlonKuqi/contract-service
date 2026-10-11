@@ -4,6 +4,7 @@ import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractSwaggerTags;
 import com.mk.contractservice.domain.contract.ContractCost;
 import com.mk.contractservice.features.contract.PatchContractCost;
+import com.mk.contractservice.infrastructure.security.ApplicationRoles;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,6 +17,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -75,6 +77,7 @@ public class PatchContractCostController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @PatchMapping(ContractEndpoints.RELATIVE_CONTRACT_COST)
+    @PreAuthorize(ApplicationRoles.HAS_ADMIN)
     public ResponseEntity<Void> patchContractCost(
             @PathVariable final UUID contractId,
             @Valid @RequestBody final Request request

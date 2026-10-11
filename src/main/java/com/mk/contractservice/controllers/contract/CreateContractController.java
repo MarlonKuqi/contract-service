@@ -7,6 +7,7 @@ import com.mk.contractservice.controllers.contract.shared.ContractSwaggerTags;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractCost;
 import com.mk.contractservice.features.contract.CreateContract;
+import com.mk.contractservice.infrastructure.security.ApplicationRoles;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -21,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -83,6 +85,7 @@ public class CreateContractController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @PostMapping
+    @PreAuthorize(ApplicationRoles.HAS_ADMIN)
     public ResponseEntity<ContractResponse> createContract(
             @Valid @RequestBody final Request request,
             final UriComponentsBuilder uriBuilder,
