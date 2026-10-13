@@ -7,6 +7,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,6 +17,7 @@ public class KeycloakJwtConverter implements Converter<Jwt, Collection<GrantedAu
     private static final String REALM_ACCESS_CLAIM = "realm_access";
     private static final String RESOURCE_ACCESS_CLAIM = "resource_access";
     private static final String ROLES_CLAIM = "roles";
+
 
     @Override
     public Collection<GrantedAuthority> convert(final Jwt jwt) {
@@ -28,7 +30,7 @@ public class KeycloakJwtConverter implements Converter<Jwt, Collection<GrantedAu
     private Collection<GrantedAuthority> extractRealmRoles(final Jwt jwt) {
         final Map<String, Object> realmAccess = jwt.getClaimAsMap(REALM_ACCESS_CLAIM);
         if (realmAccess == null || !realmAccess.containsKey(ROLES_CLAIM)) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
         @SuppressWarnings("unchecked") final List<String> roles = (List<String>) realmAccess.get(ROLES_CLAIM);
         return roles.stream()
@@ -39,7 +41,7 @@ public class KeycloakJwtConverter implements Converter<Jwt, Collection<GrantedAu
     private Collection<GrantedAuthority> extractResourceRoles(final Jwt jwt) {
         final Map<String, Object> resourceAccess = jwt.getClaimAsMap(RESOURCE_ACCESS_CLAIM);
         if (resourceAccess == null) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
 
         final Collection<GrantedAuthority> authorities = new ArrayList<>();
