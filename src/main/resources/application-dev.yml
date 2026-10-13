@@ -1,22 +1,12 @@
 spring:
-  config:
-    activate:
-      on-profile: dev
-
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/contract}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  docker:
+    compose:
+      enabled: true
 
   jpa:
-    show-sql: true
     properties:
       hibernate:
         format_sql: true
-
-app:
-  cache:
-    maximum-size: 1000
 
 logging:
   level:

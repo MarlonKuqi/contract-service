@@ -2,11 +2,7 @@ spring:
   application:
     name: contract-service
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:prod}
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/contract}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -19,6 +15,9 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     default-schema: contracts
+  docker:
+    compose:
+      enabled: false
 
 server:
   port: 8080
@@ -53,4 +52,3 @@ app:
     max-page-size: 100
   cache:
     maximum-size: 1000
-

@@ -2,13 +2,12 @@ services:
   postgres:
     image: postgres:18.0-trixie
     pull_policy: missing
-    container_name: postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: contract
     ports:
-      - "5432:5432"
+      - "5432"
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:
@@ -26,6 +25,7 @@ services:
 
   contract-service:
     image: contract-service:2.0.0
+    profiles: ["full"]
     pull_policy: missing
     container_name: contract-service
     ports:
