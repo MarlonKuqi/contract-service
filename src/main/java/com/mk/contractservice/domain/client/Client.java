@@ -30,6 +30,18 @@ public abstract sealed class Client permits Person, Company {
         this.phone = notNull(phone);
     }
 
+    public boolean hasName(final ClientName otherName) {
+        return name.equals(otherName);
+    }
+
+    public boolean hasEmail(final ClientEmail otherEmail) {
+        return email.equals(otherEmail);
+    }
+
+    public boolean hasPhone(final ClientPhoneNumber otherPhone) {
+        return phone.equals(otherPhone);
+    }
+
     public abstract Client changeCoreFields(
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
