@@ -265,6 +265,107 @@ class CreatePersonAcceptanceTest {
     }
 
     @Test
+    @DisplayName("SCENARIO: Freelancer registered as person and company with same email and phone succeeds")
+    void shouldAcceptPersonAndCompanySharingContactDetails() {
+        String sharedEmail = TestDataHelper.uniqueEmail("freelance");
+        String sharedPhone = TestDataHelper.randomSwissPhoneNumber();
+
+        String personPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Jane Freelance",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1988-03-12"
+                }
+                """, sharedEmail, sharedPhone);
+
+        String companyPayload = String.format("""
+                {
+                    "type": "COMPANY",
+                    "name": "Jane Freelance Consulting",
+                    "email": "%s",
+                    "phone": "%s",
+                    "companyIdentifier": "%s"
+                }
+                """, sharedEmail, sharedPhone, TestDataHelper.uniqueCompanyIdentifier("CHE"));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(personPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(companyPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("email", equalTo(sharedEmail))
+                .body("phone", equalTo(sharedPhone));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person with phone in human-friendly format returns E.164 phone")
+    void shouldNormalizeFormattedPhoneToE164() {
+        String e164Phone = TestDataHelper.randomSwissPhoneNumber();
+        String formattedPhone = "%s-%s-%s-%s-%s".formatted(
+                e164Phone.substring(0, 3),
+                e164Phone.substring(3, 5),
+                e164Phone.substring(5, 8),
+                e164Phone.substring(8, 10),
+                e164Phone.substring(10));
+
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Formatted Phone",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1990-01-01"
+                }
+                """, TestDataHelper.uniqueEmail("formatted"), formattedPhone);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("phone", equalTo(e164Phone));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person with uppercase email returns lowercase email")
+    void shouldNormalizeEmailToLowercase() {
+        String email = TestDataHelper.uniqueEmail("case");
+
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Uppercase Email",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1990-01-01"
+                }
+                """, email.toUpperCase(Locale.ROOT), TestDataHelper.randomSwissPhoneNumber());
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("email", equalTo(email.toLowerCase(Locale.ROOT)));
+    }
+
+    @Test
     @DisplayName("SCENARIO: Create person without birthDate fails")
     void shouldRejectPersonWithoutBirthDate() {
         String email = "nobirth." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";

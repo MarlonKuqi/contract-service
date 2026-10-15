@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 @JsonTypeName("COMPANY")
@@ -35,17 +34,9 @@ public record CreateCompanyRequest(
         String email,
 
         @NotBlank(message = "Phone number is required")
-        @Pattern(
-                regexp = "^\\+(?:41|33|39|49)(?:\\s?\\d){9,11}$",
-                message = """ 
-                        Phone number must be in international format: Swiss (+41), French (+33), Italian (+39) or German (+49).
-                        Examples: '+41 22 123 45 67' or '+41221234567'
-                        """
-        )
         @Schema(
-                description = "Company phone number (international format: +41, +33, +39, or +49)",
+                description = "Company phone number in international format (+41, +33, +39 or +49). Normalized to E.164 in the response.",
                 example = "+41 22 123 45 67",
-                pattern = "^\\+(?:41|33|39|49)(?:\\s?\\d){9,11}$",
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
         String phone,

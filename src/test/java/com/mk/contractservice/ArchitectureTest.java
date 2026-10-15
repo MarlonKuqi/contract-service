@@ -24,7 +24,8 @@ class ArchitectureTest {
             "jakarta..",
             "org.slf4j..",
             "org.jspecify..",
-            "lombok.."
+            "lombok..",
+            "com.google.i18n.phonenumbers.."
     );
 
     /**
@@ -81,7 +82,7 @@ class ArchitectureTest {
                 .should()
                 .onlyDependOnClassesThat(areCore.or(areStandard).or(areAllowedSpringInDomain))
                 .because("Domain must be framework-agnostic. Only standard Java/Jakarta APIs and " +
-                         "Spring Data pagination types (Page, Pageable) are tolerated as a documented compromise.")
+                        "Spring Data pagination types (Page, Pageable) are tolerated as a documented compromise.")
                 .check(classes);
     }
 
