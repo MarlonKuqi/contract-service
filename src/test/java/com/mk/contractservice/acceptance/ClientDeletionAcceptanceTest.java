@@ -1,6 +1,7 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
@@ -14,10 +15,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -39,6 +43,9 @@ class ClientDeletionAcceptanceTest {
 
     @Autowired
     private ContractJpaRepository contractJpaRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setUp() {
@@ -415,6 +422,127 @@ class ClientDeletionAcceptanceTest {
         assertThat(endDateStr).isNotNull();
         LocalDateTime endDate = LocalDateTime.parse(endDateStr);
         assertThat(endDate).isCloseTo(deletionTime, within(10, ChronoUnit.SECONDS));
+    }
+
+    @Test
+    @DisplayName("SOFT DELETE: Deleted client and its contracts stay in database, closed at the deletion instant")
+    void shouldKeepDeletedClientAndContractHistoryInDatabase() {
+        String clientId = createPerson();
+        String contractId = createOpenEndedContract(clientId);
+
+        given().when().delete(ClientEndpoints.CLIENT_BY_ID, clientId).then().statusCode(204);
+
+        LocalDateTime deletedAt = jdbcTemplate.queryForObject(
+                "SELECT deleted_at FROM contracts.client WHERE id = ?::uuid", LocalDateTime.class, clientId);
+        Map<String, Object> contractRow = jdbcTemplate.queryForMap(
+                "SELECT client_id, end_date FROM contracts.contract WHERE id = ?::uuid", contractId);
+
+        assertThat(deletedAt).isNotNull();
+        assertThat(contractRow.get("client_id")).hasToString(clientId);
+        assertThat(((Timestamp) contractRow.get("end_date")).toLocalDateTime()).isEqualTo(deletedAt);
+    }
+
+    @Test
+    @DisplayName("SOFT DELETE: Deleting an unknown or already deleted client returns 404")
+    void shouldReturn404WhenDeletingUnknownOrAlreadyDeletedClient() {
+        String clientId = createPerson();
+
+        given().when().delete(ClientEndpoints.CLIENT_BY_ID, clientId).then().statusCode(204);
+
+        given().when().delete(ClientEndpoints.CLIENT_BY_ID, clientId).then().statusCode(404);
+        given().when().delete(ClientEndpoints.CLIENT_BY_ID, UUID.randomUUID()).then().statusCode(404);
+    }
+
+    @Test
+    @DisplayName("SOFT DELETE: A deleted client cannot receive new contracts")
+    void shouldRejectContractCreationForDeletedClient() {
+        String clientId = createPerson();
+
+        given().when().delete(ClientEndpoints.CLIENT_BY_ID, clientId).then().statusCode(204);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                            "clientId": "%s",
+                            "costAmount": "100.00"
+                        }
+                        """.formatted(clientId))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @DisplayName("SOFT DELETE: The identifier of a deleted company cannot be reused")
+    void shouldKeepCompanyIdentifierReservedAfterDeletion() {
+        String companyIdentifier = TestDataHelper.uniqueCompanyIdentifier("CHE");
+        String companyPayload = """
+                {
+                    "type": "COMPANY",
+                    "name": "Deleted Corp",
+                    "email": "%s",
+                    "phone": "%s",
+                    "companyIdentifier": "%s"
+                }
+                """;
+
+        String companyId = given()
+                .contentType(ContentType.JSON)
+                .body(companyPayload.formatted(TestDataHelper.uniqueEmail("deleted.corp"), TestDataHelper.randomSwissPhoneNumber(), companyIdentifier))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract().path("id");
+
+        given().when().delete(ClientEndpoints.CLIENT_BY_ID, companyId).then().statusCode(204);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(companyPayload.formatted(TestDataHelper.uniqueEmail("new.corp"), TestDataHelper.randomSwissPhoneNumber(), companyIdentifier))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(409)
+                .body("code", equalTo("companyIdentifierAlreadyExists"));
+    }
+
+    private String createPerson() {
+        return given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                            "type": "PERSON",
+                            "name": "Soft Deleted Person",
+                            "email": "%s",
+                            "phone": "%s",
+                            "birthDate": "1990-05-15"
+                        }
+                        """.formatted(TestDataHelper.uniqueEmail("soft.delete"), TestDataHelper.randomSwissPhoneNumber()))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract().path("id");
+    }
+
+    private String createOpenEndedContract(final String clientId) {
+        return given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                            "clientId": "%s",
+                            "startDate": "%s",
+                            "costAmount": "100.00"
+                        }
+                        """.formatted(clientId, LocalDateTime.now().minusDays(10)))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract().path("id");
     }
 }
 

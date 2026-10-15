@@ -28,13 +28,12 @@ public class DeleteClientController {
 
     @Operation(
             summary = "Delete a client",
-            description = "Deletes a client (and its Person or Company subtype via database cascade) "
-                    + "and automatically closes their active contracts by setting endDate=now. "
-                    + "This ensures referential integrity and data consistency."
+            description = "Deletes a client and automatically closes their active contracts by setting endDate=now. "
+                    + "The client is no longer returned by the API; its data and contract history are kept."
     )
     @ApiResponse(
             responseCode = "204",
-            description = "Client deleted successfully (including Person/Company record and contract closure)"
+            description = "Client deleted successfully and active contracts closed"
     )
     @ApiResponse(
             responseCode = "404",

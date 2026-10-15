@@ -69,7 +69,7 @@ class ContractLifecycleAcceptanceTest {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
 
-        clientJpaRepository.deleteAll();
+        contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
 
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
