@@ -23,6 +23,10 @@ public class ContractCost {
 
     public static final Predicate<BigDecimal> HAS_INVALID_SCALE = amount -> amount.scale() > 2;
 
+    public boolean isSameAmountAs(final ContractCost other) {
+        return value.compareTo(notNull(other).value) == 0;
+    }
+
     public static ContractCost reconstituteFromDatabase(final BigDecimal trustedValue) {
         return new ContractCost(notNull(trustedValue));
     }

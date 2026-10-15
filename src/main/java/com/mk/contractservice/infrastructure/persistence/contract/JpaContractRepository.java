@@ -61,8 +61,6 @@ public class JpaContractRepository implements ContractRepository {
 
         final Predicate wherePredicate = ContractSpecifications.isActiveWithClientIdPredicate(root, cb, clientId, closureDate);
 
-        // Bulk CriteriaUpdate bypasses Hibernate lifecycle callbacks (@UpdateTimestamp is not triggered).
-        // lastModified must be set explicitly here to keep audit fields consistent.
         update.set("endDate", closureDate);
         update.set("lastModified", closureDate);
         update.where(wherePredicate);

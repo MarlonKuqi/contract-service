@@ -20,29 +20,34 @@ public class Contract {
     private final @Nullable UUID clientId;
     private final ContractPeriod period;
     private final ContractCost costAmount;
+    private final LocalDateTime lastModified;
 
-    @Builder(toBuilder = true, access = AccessLevel.PUBLIC)
+    @Builder(toBuilder = true, access = AccessLevel.PRIVATE)
     private Contract(
             @Nullable final UUID id,
             @Nullable final UUID clientId,
             @Nullable final ContractPeriod period,
-            @Nullable final ContractCost costAmount
+            @Nullable final ContractCost costAmount,
+            @Nullable final LocalDateTime lastModified
     ) {
         this.id = id;
         this.clientId = clientId;
         this.period = period;
         this.costAmount = costAmount;
+        this.lastModified = lastModified;
     }
 
     public static Contract of(
             @Nullable final UUID clientId,
             @Nullable final ContractPeriod period,
-            @Nullable final ContractCost costAmount
+            @Nullable final ContractCost costAmount,
+            @Nullable final LocalDateTime now
     ) {
         return builder()
                 .clientId(notNull(clientId))
                 .period(notNull(period))
                 .costAmount(notNull(costAmount))
+                .lastModified(notNull(now))
                 .build();
     }
 
@@ -50,13 +55,15 @@ public class Contract {
             @Nullable final UUID id,
             @Nullable final UUID clientId,
             @Nullable final ContractPeriod period,
-            @Nullable final ContractCost costAmount
+            @Nullable final ContractCost costAmount,
+            @Nullable final LocalDateTime lastModified
     ) {
         return builder()
                 .id(notNull(id))
                 .clientId(clientId)
                 .period(notNull(period))
                 .costAmount(notNull(costAmount))
+                .lastModified(notNull(lastModified))
                 .build();
     }
 
@@ -70,8 +77,12 @@ public class Contract {
 
     public Contract changeCost(@Nullable final ContractCost newCost, final LocalDateTime now) {
         assertModifiableAt(now);
+        if (costAmount.isSameAmountAs(notNull(newCost))) {
+            return this;
+        }
         return toBuilder()
-                .costAmount(notNull(newCost))
+                .costAmount(newCost)
+                .lastModified(now)
                 .build();
     }
 

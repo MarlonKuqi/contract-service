@@ -10,8 +10,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractCost;
-import com.mk.contractservice.domain.contract.ContractPeriod;
+import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.features.contract.CloseActiveContracts;
 import org.junit.jupiter.api.BeforeEach;
@@ -256,11 +255,7 @@ class CloseActiveContractsUseCaseAcceptanceTest {
     }
 
     private Contract createContract(UUID clientId, LocalDateTime startDate, LocalDateTime endDate, BigDecimal costAmount) {
-        Contract contract = Contract.builder()
-                .clientId(clientId)
-                .period(ContractPeriod.of(startDate, endDate, LocalDateTime.now()))
-                .costAmount(ContractCost.of(costAmount))
-                .build();
+        Contract contract = ContractFactory.createFromCommand(clientId, startDate, endDate, costAmount, LocalDateTime.now());
 
         return contractRepository.save(contract);
     }

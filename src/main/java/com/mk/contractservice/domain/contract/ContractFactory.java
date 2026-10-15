@@ -18,7 +18,7 @@ public final class ContractFactory {
     ) {
         final ContractPeriod period = ContractPeriod.of(startDate, endDate, now);
         final ContractCost cost = ContractCost.of(costAmount);
-        return Contract.of(clientId, period, cost);
+        return Contract.of(clientId, period, cost, now);
     }
 
     public static Contract buildFromDatabase(
@@ -26,12 +26,13 @@ public final class ContractFactory {
             final UUID clientId,
             final LocalDateTime startDate,
             final LocalDateTime endDate,
-            final BigDecimal costAmount
+            final BigDecimal costAmount,
+            final LocalDateTime lastModified
     ) {
         final ContractPeriod period = ContractPeriod.reconstituteFromDatabase(startDate, endDate);
         final ContractCost cost = ContractCost.reconstituteFromDatabase(costAmount);
 
-        return Contract.reconstituteFromDatabase(id, clientId, period, cost);
+        return Contract.reconstituteFromDatabase(id, clientId, period, cost, lastModified);
     }
 }
 
