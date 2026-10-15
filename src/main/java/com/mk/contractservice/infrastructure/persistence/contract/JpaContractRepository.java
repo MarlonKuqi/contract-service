@@ -63,6 +63,7 @@ public class JpaContractRepository implements ContractRepository {
 
         update.set("endDate", closureDate);
         update.set("lastModified", closureDate);
+        update.set(root.<Long>get("version"), cb.sum(root.<Long>get("version"), 1L));
         update.where(wherePredicate);
 
         return entityManager.createQuery(update).executeUpdate();
