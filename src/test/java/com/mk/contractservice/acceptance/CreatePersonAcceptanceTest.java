@@ -17,6 +17,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.Locale;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -173,8 +174,8 @@ class CreatePersonAcceptanceTest {
     }
 
     @Test
-    @DisplayName("SCENARIO: Create person with duplicate email fails")
-    void shouldRejectPersonWithDuplicateEmail() {
+    @DisplayName("SCENARIO: Create person with an email already used by another client succeeds")
+    void shouldAcceptPersonWithSharedEmail() {
         String duplicateEmail = "duplicate." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         String phoneNumber1 = TestDataHelper.randomSwissPhoneNumber();
         String phoneNumber2 = TestDataHelper.randomSwissPhoneNumber();
@@ -215,12 +216,13 @@ class CreatePersonAcceptanceTest {
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
-                .statusCode(409);
+                .statusCode(201)
+                .body("email", equalTo(duplicateEmail));
     }
 
     @Test
-    @DisplayName("SCENARIO: Create person with duplicate phone fails")
-    void shouldRejectPersonWithDuplicatePhone() {
+    @DisplayName("SCENARIO: Create person with a phone already used by another client succeeds")
+    void shouldAcceptPersonWithSharedPhone() {
         String duplicatePhone = TestDataHelper.randomSwissPhoneNumber();
         String email1 = "person1." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         String email2 = "person2." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
@@ -261,7 +263,8 @@ class CreatePersonAcceptanceTest {
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
-                .statusCode(409);
+                .statusCode(201)
+                .body("phone", equalTo(duplicatePhone));
     }
 
     @Test

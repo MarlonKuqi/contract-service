@@ -6,13 +6,10 @@ import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientService;
-import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.CompanyIdentifier;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
-import com.mk.contractservice.domain.client.exception.EmailAlreadyExistsException;
-import com.mk.contractservice.domain.client.exception.PhoneAlreadyExistsException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +25,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,13 +39,11 @@ class PatchClientHandlerTest {
     @Mock
     private ClientService clientService;
 
-    private ClientValidationService clientValidationService;
     private PatchClient.Handler patchClientHandler;
 
     @BeforeEach
     void setUp() {
-        clientValidationService = new ClientValidationService(clientRepository);
-        patchClientHandler = new PatchClient.Handler(clientRepository, clientService, clientValidationService);
+        patchClientHandler = new PatchClient.Handler(clientRepository, clientService);
     }
 
     @Nested
@@ -64,7 +61,7 @@ class PatchClientHandlerTest {
                     .name(ClientName.of("John Doe"))
                     .email(ClientEmail.of("john@example.com"))
                     .phone(ClientPhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now()))
                     .build();
 
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -173,7 +170,7 @@ class PatchClientHandlerTest {
                     .name(ClientName.of("John Doe"))
                     .email(ClientEmail.of("john@example.com"))
                     .phone(ClientPhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now()))
                     .build();
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
@@ -308,7 +305,7 @@ class PatchClientHandlerTest {
                     .name(ClientName.of("John Doe"))
                     .email(ClientEmail.of("john@example.com"))
                     .phone(ClientPhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now()))
                     .build();
         }
 
@@ -332,47 +329,7 @@ class PatchClientHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN email déjà utilisé WHEN execute THEN lève EmailAlreadyExistsException")
-        void shouldThrowExceptionWhenEmailAlreadyExists() {
-            // Given
-            String duplicateEmail = "duplicate@example.com";
-            PatchClient.Command command = new PatchClient.Command(
-                    clientId,
-                    null,
-                    duplicateEmail,
-                    null
-            );
-
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
-            when(clientRepository.existsByEmail(duplicateEmail)).thenReturn(true);
-
-            // When & Then
-            assertThatThrownBy(() -> patchClientHandler.execute(command))
-                    .isInstanceOf(EmailAlreadyExistsException.class);
-        }
-
-        @Test
-        @DisplayName("GIVEN téléphone déjà utilisé WHEN execute THEN lève PhoneAlreadyExistsException")
-        void shouldThrowExceptionWhenPhoneAlreadyExists() {
-            // Given
-            String duplicatePhone = "+33999999999";
-            PatchClient.Command command = new PatchClient.Command(
-                    clientId,
-                    null,
-                    null,
-                    duplicatePhone
-            );
-
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
-            when(clientRepository.existsByPhoneNumber(duplicatePhone)).thenReturn(true);
-
-            // When & Then
-            assertThatThrownBy(() -> patchClientHandler.execute(command))
-                    .isInstanceOf(PhoneAlreadyExistsException.class);
-        }
-
-        @Test
-        @DisplayName("GIVEN même email que l'existant WHEN execute THEN ne lève pas d'erreur de doublon")
+        @DisplayName("GIVEN même email que l'existant WHEN execute THEN conserve l'email")
         void shouldNotThrowWhenEmailIsIdenticalToExisting() {
             // Given
             String existingEmail = existingPerson.getEmail().getValue();
@@ -388,7 +345,7 @@ class PatchClientHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN même téléphone que l'existant WHEN execute THEN ne lève pas d'erreur de doublon")
+        @DisplayName("GIVEN même téléphone que l'existant WHEN execute THEN conserve le téléphone")
         void shouldNotThrowWhenPhoneIsIdenticalToExisting() {
             // Given
             String existingPhone = existingPerson.getPhone().getValue();
@@ -403,5 +360,30 @@ class PatchClientHandlerTest {
             assertThat(result.getPhone().getValue()).isEqualTo(existingPhone);
         }
 
+        @Test
+        @DisplayName("GIVEN même téléphone dans un autre format WHEN execute THEN ne sauvegarde pas")
+        void shouldNotSaveWhenSamePhoneInAnotherFormat() {
+            PatchClient.Command command = new PatchClient.Command(clientId, null, null, "+33 1 11 11 11 11");
+
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+
+            Client result = patchClientHandler.execute(command);
+
+            verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result.getPhone()).isEqualTo(existingPerson.getPhone());
+        }
+
+        @Test
+        @DisplayName("GIVEN même email dans une autre casse WHEN execute THEN ne sauvegarde pas")
+        void shouldNotSaveWhenSameEmailInAnotherCase() {
+            PatchClient.Command command = new PatchClient.Command(clientId, null, "JOHN@Example.com", null);
+
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+
+            Client result = patchClientHandler.execute(command);
+
+            verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result.getEmail()).isEqualTo(existingPerson.getEmail());
+        }
     }
 }

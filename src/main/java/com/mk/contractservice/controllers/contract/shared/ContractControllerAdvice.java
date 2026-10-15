@@ -23,6 +23,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,6 +37,10 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
 
     public static final String CONTEXT = "context";
     private static final Logger log = LoggerFactory.getLogger(ContractControllerAdvice.class);
+
+    public ContractControllerAdvice(final Clock clock) {
+        super(clock);
+    }
 
     @ExceptionHandler(ClientNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleClientNotFoundForContract(ClientNotFoundException ex) {

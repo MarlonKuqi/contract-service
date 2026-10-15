@@ -63,7 +63,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Original Name"),
                 ClientEmail.of("original." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
         );
         person = (Person) clientRepository.save(person);
 
@@ -100,7 +100,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("old." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
         );
         person = (Person) clientRepository.save(person);
 
@@ -136,7 +136,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
         );
         person = (Person) clientRepository.save(person);
 
@@ -213,7 +213,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
         ));
 
         String invalidPatchPayload = """
@@ -238,7 +238,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
         ));
 
         String invalidPatchPayload = """
@@ -284,7 +284,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
         );
         person = (Person) clientRepository.save(person);
 
@@ -317,7 +317,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Same Name"),
                 ClientEmail.of(email),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1))
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
         );
         person = (Person) clientRepository.save(person);
 

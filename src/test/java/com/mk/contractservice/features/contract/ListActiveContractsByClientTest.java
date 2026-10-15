@@ -16,6 +16,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,13 +36,15 @@ class ListActiveContractsByClientTest {
     @Mock
     private ContractRepository contractRepository;
 
+    private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-06-01T10:00:00Z"), ZoneOffset.UTC);
+
     private ListActiveContractsByClient.Handler handler;
 
     @BeforeEach
     void setUp() {
         ClientValidationService clientValidationService = new ClientValidationService(clientRepository);
         ContractService contractService = new ContractService(contractRepository);
-        handler = new ListActiveContractsByClient.Handler(clientValidationService, contractService);
+        handler = new ListActiveContractsByClient.Handler(clientValidationService, contractService, FIXED_CLOCK);
     }
 
     @Test
@@ -66,13 +72,14 @@ class ListActiveContractsByClientTest {
     }
 
     @Test
-    @DisplayName("GIVEN existing client WHEN execute THEN return contracts page from ContractService")
+    @DisplayName("GIVEN existing client WHEN execute THEN return contracts active at clock time")
     void shouldReturnContractsPageForExistingClient() {
         UUID clientId = UUID.randomUUID();
         Page<Contract> expectedPage = Page.empty();
+        ContractSearchCriteria expectedCriteria = ContractSearchCriteria.activeForClient(clientId, LocalDateTime.now(FIXED_CLOCK));
 
         when(clientRepository.existsById(clientId)).thenReturn(true);
-        when(contractRepository.findByCriteria(ContractSearchCriteria.activeForClient(clientId), Pageable.unpaged()))
+        when(contractRepository.findByCriteria(expectedCriteria, Pageable.unpaged()))
                 .thenReturn(expectedPage);
 
         Page<Contract> result = handler.execute(new ListActiveContractsByClient.Query(clientId, null, Pageable.unpaged()));

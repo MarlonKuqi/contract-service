@@ -55,16 +55,6 @@ public class JpaClientRepository implements ClientRepository {
     }
 
     @Override
-    public boolean existsByEmail(final String email) {
-        return jpa.existsByEmail(email);
-    }
-
-    @Override
-    public boolean existsByPhoneNumber(final String phoneNumber) {
-        return jpa.existsByPhone(phoneNumber);
-    }
-
-    @Override
     public boolean existsByCompanyIdentifier(final String companyIdentifier) {
         return companyJpa.existsByCompanyIdentifier(companyIdentifier);
     }

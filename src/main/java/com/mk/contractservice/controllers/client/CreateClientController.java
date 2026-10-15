@@ -62,7 +62,7 @@ public class CreateClientController {
     )
     @ApiResponse(
             responseCode = "409",
-            description = "Conflict - Email or company identifier already exists",
+            description = "Conflict - Company identifier already exists",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )

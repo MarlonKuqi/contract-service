@@ -149,8 +149,8 @@ class CreateCompanyAcceptanceTest {
     }
 
     @Test
-    @DisplayName("SCENARIO: Create company with duplicate email fails")
-    void shouldRejectCompanyWithDuplicateEmail() {
+    @DisplayName("SCENARIO: Create company with an email already used by another client succeeds")
+    void shouldAcceptCompanyWithSharedEmail() {
         String duplicateEmail = "duplicate." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         String companyId1 = TestDataHelper.uniqueCompanyIdentifier("CHE");
         String companyId2 = TestDataHelper.uniqueCompanyIdentifier("CHE");
@@ -193,12 +193,13 @@ class CreateCompanyAcceptanceTest {
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
-                .statusCode(409);
+                .statusCode(201)
+                .body("email", equalTo(duplicateEmail));
     }
 
     @Test
-    @DisplayName("SCENARIO: Create company with duplicate phone fails")
-    void shouldRejectCompanyWithDuplicatePhone() {
+    @DisplayName("SCENARIO: Create company with a phone already used by another client succeeds")
+    void shouldAcceptCompanyWithSharedPhone() {
         String duplicatePhone = TestDataHelper.randomSwissPhoneNumber();
         String companyId1 = TestDataHelper.uniqueCompanyIdentifier("CHE");
         String companyId2 = TestDataHelper.uniqueCompanyIdentifier("CHE");
@@ -241,7 +242,8 @@ class CreateCompanyAcceptanceTest {
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
-                .statusCode(409);
+                .statusCode(201)
+                .body("phone", equalTo(duplicatePhone));
     }
 
     @Test

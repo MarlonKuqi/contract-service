@@ -10,8 +10,8 @@ public final class ContractCriteriaAdapter {
 
     public static Specification<ContractJpaEntity> toSpecification(final ContractSearchCriteria criteria) {
         Specification<ContractJpaEntity> spec = ContractSpecifications.hasClientId(criteria.clientId());
-        if (criteria.activeOnly()) {
-            spec = spec.and(ContractSpecifications.isActive());
+        if (criteria.activeAt() != null) {
+            spec = spec.and(ContractSpecifications.isActive(criteria.activeAt()));
         }
         if (criteria.updatedSince() == null) {
             return spec;

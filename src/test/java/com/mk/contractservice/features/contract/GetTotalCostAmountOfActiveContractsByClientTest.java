@@ -12,6 +12,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,12 +32,14 @@ class GetTotalCostAmountOfActiveContractsByClientTest {
     @Mock
     private ContractQueryPort contractQueryPort;
 
+    private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-06-01T10:00:00Z"), ZoneOffset.UTC);
+
     private GetTotalCostAmountOfActiveContractsByClient.Handler handler;
 
     @BeforeEach
     void setUp() {
         ClientValidationService clientValidationService = new ClientValidationService(clientRepository);
-        handler = new GetTotalCostAmountOfActiveContractsByClient.Handler(clientValidationService, contractQueryPort);
+        handler = new GetTotalCostAmountOfActiveContractsByClient.Handler(clientValidationService, contractQueryPort, FIXED_CLOCK);
     }
 
     @Test
@@ -54,13 +60,14 @@ class GetTotalCostAmountOfActiveContractsByClientTest {
     }
 
     @Test
-    @DisplayName("GIVEN existing client WHEN execute THEN return total cost amount from ContractQueryPort")
+    @DisplayName("GIVEN existing client WHEN execute THEN return total cost amount active at clock time")
     void shouldReturnTotalCostForExistingClient() {
         UUID clientId = UUID.randomUUID();
         BigDecimal expectedTotal = new BigDecimal("1500.00");
 
         when(clientRepository.existsById(clientId)).thenReturn(true);
-        when(contractQueryPort.calculateTotalCostAmountForClient(clientId)).thenReturn(expectedTotal);
+        when(contractQueryPort.calculateTotalCostAmountForClient(clientId, LocalDateTime.now(FIXED_CLOCK)))
+                .thenReturn(expectedTotal);
 
         BigDecimal result = handler.execute(new GetTotalCostAmountOfActiveContractsByClient.Query(clientId));
 

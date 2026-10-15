@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -27,11 +29,12 @@ public interface DeleteClient {
 
         private final ClientRepository clientRepository;
         private final ApplicationEventPublisher eventPublisher;
+        private final Clock clock;
 
         @Override
         public void execute(final Command command) {
             clientRepository.deleteById(command.clientId());
-            eventPublisher.publishEvent(ClientDeletedEvent.of(command.clientId()));
+            eventPublisher.publishEvent(ClientDeletedEvent.of(command.clientId(), LocalDateTime.now(clock)));
         }
     }
 }

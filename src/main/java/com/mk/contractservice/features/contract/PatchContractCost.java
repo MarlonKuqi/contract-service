@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -32,13 +34,17 @@ public interface PatchContractCost {
     class Handler implements PatchContractCost {
 
         private final ContractRepository contractRepository;
+        private final Clock clock;
 
         @Override
         public Contract execute(final Command command) {
             final Contract contract = contractRepository.findById(command.contractId())
                     .orElseThrow(() -> new ContractNotFoundException(command.contractId()));
 
-            final Contract updatedContract = contract.changeCost(ContractCost.of(command.newCostAmount()));
+            final Contract updatedContract = contract.changeCost(
+                    ContractCost.of(command.newCostAmount()),
+                    LocalDateTime.now(clock)
+            );
 
             return contractRepository.save(updatedContract);
         }

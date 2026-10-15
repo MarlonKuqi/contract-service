@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -34,7 +35,7 @@ class CreateContractTest {
     @BeforeEach
     void setUp() {
         clientValidationService = new ClientValidationService(clientRepository);
-        createContractHandler = new CreateContract.Handler(clientValidationService, contractRepository);
+        createContractHandler = new CreateContract.Handler(clientValidationService, contractRepository, Clock.systemDefaultZone());
     }
 
     @Test

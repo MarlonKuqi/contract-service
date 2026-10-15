@@ -17,12 +17,13 @@ public class ContractService {
 
     public Page<Contract> getActiveContractsForClient(
             final UUID clientId,
+            final LocalDateTime activeAt,
             @Nullable final LocalDateTime updatedSince,
             final Pageable pageable
     ) {
         final ContractSearchCriteria criteria = updatedSince == null
-                ? ContractSearchCriteria.activeForClient(clientId)
-                : ContractSearchCriteria.activeForClientUpdatedSince(clientId, updatedSince);
+                ? ContractSearchCriteria.activeForClient(clientId, activeAt)
+                : ContractSearchCriteria.activeForClientUpdatedSince(clientId, activeAt, updatedSince);
         return contractRepository.findByCriteria(criteria, pageable);
     }
 }

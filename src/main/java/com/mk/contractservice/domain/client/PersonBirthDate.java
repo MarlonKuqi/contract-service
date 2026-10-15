@@ -8,7 +8,6 @@ import lombok.Value;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
-import java.util.function.Predicate;
 
 import static com.mk.contractservice.domain.shared.Assert.notNull;
 
@@ -18,14 +17,12 @@ public class PersonBirthDate {
 
     LocalDate value;
 
-    public static final Predicate<LocalDate> IS_IN_FUTURE =
-            date -> date.isAfter(LocalDate.now());
-
-    public static PersonBirthDate of(@Nullable final LocalDate value) {
+    public static PersonBirthDate of(@Nullable final LocalDate value, final LocalDate today) {
+        notNull(today);
         return ValueObjectUtils.validateAndCreate(
                 value,
                 PersonBirthDate::normalize,
-                PersonBirthDate::validate,
+                normalized -> validate(normalized, today),
                 PersonBirthDate::new
         );
     }
@@ -41,8 +38,8 @@ public class PersonBirthDate {
         return rawValue;
     }
 
-    private static void validate(final LocalDate normalized) {
-        if (IS_IN_FUTURE.test(normalized)) {
+    private static void validate(final LocalDate normalized, final LocalDate today) {
+        if (normalized.isAfter(today)) {
             throw new InvalidPersonBirthDateException("Birth date cannot be in the future");
         }
     }

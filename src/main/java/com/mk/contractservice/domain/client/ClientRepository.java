@@ -15,9 +15,5 @@ public interface ClientRepository {
 
     boolean existsById(final UUID id);
 
-    boolean existsByEmail(final String email);
-
-    boolean existsByPhoneNumber(final String phoneNumber);
-
     boolean existsByCompanyIdentifier(final String companyIdentifier);
 }

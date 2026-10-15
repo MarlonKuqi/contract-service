@@ -119,7 +119,7 @@ This approach is:
 - Aim for fast feedback during development.
 
 ### Required test coverage
-- Domain value objects
+- Value Objects are tested through the public entry points of the domain (entity factories) and through the REST API. A dedicated Value Object test is only written when the VO is shared across aggregates or carries logic that cannot be observed through an entity.
 - Services containing business logic
 - Repository integration tests
 

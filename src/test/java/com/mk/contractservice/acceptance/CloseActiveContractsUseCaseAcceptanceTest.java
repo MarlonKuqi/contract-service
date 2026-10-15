@@ -54,7 +54,7 @@ class CloseActiveContractsUseCaseAcceptanceTest {
                 ClientName.of("Client To Delete"),
                 ClientEmail.of("delete.test." + uniqueId + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20))
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now())
         );
         testClient = clientRepository.save(testClient);
     }
@@ -218,7 +218,7 @@ class CloseActiveContractsUseCaseAcceptanceTest {
                 ClientName.of("Other Client"),
                 ClientEmail.of("other.client." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 6, 15))
+                PersonBirthDate.of(LocalDate.of(1990, 6, 15), LocalDate.now())
         );
         otherClient = (Person) clientRepository.save(otherClient);
 
@@ -258,7 +258,7 @@ class CloseActiveContractsUseCaseAcceptanceTest {
     private Contract createContract(UUID clientId, LocalDateTime startDate, LocalDateTime endDate, BigDecimal costAmount) {
         Contract contract = Contract.builder()
                 .clientId(clientId)
-                .period(ContractPeriod.of(startDate, endDate))
+                .period(ContractPeriod.of(startDate, endDate, LocalDateTime.now()))
                 .costAmount(ContractCost.of(costAmount))
                 .build();
 

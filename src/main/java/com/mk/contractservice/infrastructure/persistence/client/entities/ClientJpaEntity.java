@@ -50,10 +50,10 @@ public abstract class ClientJpaEntity {
     @Column(name = "name", nullable = false, length = 200)
     private String name;
 
-    @Column(name = "email", nullable = false, length = 254, unique = true)
+    @Column(name = "email", nullable = false, length = 254)
     private String email;
 
-    @Column(name = "phone", nullable = false, length = 14, unique = true)
+    @Column(name = "phone", nullable = false, length = 14)
     private String phone;
 
     protected ClientJpaEntity(final String name, final String email, final String phone) {

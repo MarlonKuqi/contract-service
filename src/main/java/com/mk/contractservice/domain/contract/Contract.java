@@ -60,23 +60,23 @@ public class Contract {
                 .build();
     }
 
-    public boolean isCurrentlyActive() {
-        return getPeriod().isEffectiveAt(LocalDateTime.now());
+    public boolean isActiveAt(final LocalDateTime referenceDate) {
+        return getPeriod().isEffectiveAt(notNull(referenceDate));
     }
 
-    public boolean isCurrentlyInactive() {
-        return !isCurrentlyActive();
+    public boolean isInactiveAt(final LocalDateTime referenceDate) {
+        return !isActiveAt(referenceDate);
     }
 
-    public Contract changeCost(@Nullable final ContractCost newCost) {
-        assertCurrentlyModifiable();
+    public Contract changeCost(@Nullable final ContractCost newCost, final LocalDateTime now) {
+        assertModifiableAt(now);
         return toBuilder()
                 .costAmount(notNull(newCost))
                 .build();
     }
 
-    private void assertCurrentlyModifiable() {
-        if (isCurrentlyInactive()) {
+    private void assertModifiableAt(final LocalDateTime now) {
+        if (isInactiveAt(now)) {
             throw new ExpiredContractException(getId());
         }
     }

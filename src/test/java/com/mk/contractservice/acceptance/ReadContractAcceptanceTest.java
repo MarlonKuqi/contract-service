@@ -71,7 +71,7 @@ class ReadContractAcceptanceTest {
                 ClientName.of("Marie Durand"),
                 ClientEmail.of("marie.durand." + uniqueId + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20))
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now())
         );
         testClient = clientRepository.save(testClient);
     }
@@ -82,7 +82,7 @@ class ReadContractAcceptanceTest {
         LocalDateTime now = LocalDateTime.now();
         Contract contract = Contract.builder()
                 .clientId(testClient.getId())
-                .period(ContractPeriod.of(now, now.plusMonths(12)))
+                .period(ContractPeriod.of(now, now.plusMonths(12), LocalDateTime.now()))
                 .costAmount(ContractCost.of(new BigDecimal("5000.00")))
                 .build();
         Contract savedContract = contractRepository.save(contract);
@@ -107,7 +107,7 @@ class ReadContractAcceptanceTest {
         LocalDateTime now = LocalDateTime.now();
         Contract contract = Contract.builder()
                 .clientId(testClient.getId())
-                .period(ContractPeriod.of(now, null))
+                .period(ContractPeriod.of(now, null, LocalDateTime.now()))
                 .costAmount(ContractCost.of(new BigDecimal("1000.00")))
                 .build();
         Contract savedContract = contractRepository.save(contract);
@@ -128,7 +128,7 @@ class ReadContractAcceptanceTest {
         LocalDateTime now = LocalDateTime.now();
         Contract contract = Contract.builder()
                 .clientId(testClient.getId())
-                .period(ContractPeriod.of(now.minusMonths(12), now.minusDays(1)))
+                .period(ContractPeriod.of(now.minusMonths(12), now.minusDays(1), LocalDateTime.now()))
                 .costAmount(ContractCost.of(new BigDecimal("1000.00")))
                 .build();
         Contract savedContract = contractRepository.save(contract);

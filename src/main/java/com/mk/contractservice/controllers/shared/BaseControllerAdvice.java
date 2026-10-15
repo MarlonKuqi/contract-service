@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.net.URI;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,6 +25,12 @@ public abstract class BaseControllerAdvice {
 
     private static final Logger log = LoggerFactory.getLogger(BaseControllerAdvice.class);
     private static final String UNKNOWN = "unknown";
+
+    private final Clock clock;
+
+    protected BaseControllerAdvice(final Clock clock) {
+        this.clock = clock;
+    }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ProblemDetail> handleMissingRequestParameter(final MissingServletRequestParameterException ex) {
@@ -112,7 +119,7 @@ public abstract class BaseControllerAdvice {
         problemDetail.setTitle(title);
         problemDetail.setType(URI.create("about:blank"));
         problemDetail.setProperty("code", code);
-        problemDetail.setProperty("timestamp", LocalDateTime.now());
+        problemDetail.setProperty("timestamp", LocalDateTime.now(clock));
         problemDetail.setProperty("traceId", UUID.randomUUID().toString());
         return problemDetail;
     }

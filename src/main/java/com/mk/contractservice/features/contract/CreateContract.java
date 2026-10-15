@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -36,6 +37,7 @@ public interface CreateContract {
 
         private final ClientValidationService clientValidationService;
         private final ContractRepository contractRepository;
+        private final Clock clock;
 
         @Override
         public Contract execute(final Command command) {
@@ -45,7 +47,8 @@ public interface CreateContract {
                     command.clientId(),
                     command.startDate(),
                     command.endDate(),
-                    command.costAmount()
+                    command.costAmount(),
+                    LocalDateTime.now(clock)
             );
 
             return contractRepository.save(contract);

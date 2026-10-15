@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -36,12 +37,14 @@ public interface ListActiveContractsByClient {
 
         private final ClientValidationService clientValidationService;
         private final ContractService contractService;
+        private final Clock clock;
 
         @Override
         public Page<Contract> execute(final Query query) {
             clientValidationService.ensureClientExists(query.clientId());
             return contractService.getActiveContractsForClient(
                     query.clientId(),
+                    LocalDateTime.now(clock),
                     query.updatedSince(),
                     query.pageable()
             );

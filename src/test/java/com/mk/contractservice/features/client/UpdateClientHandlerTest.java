@@ -6,13 +6,10 @@ import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientService;
-import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.CompanyIdentifier;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
-import com.mk.contractservice.domain.client.exception.EmailAlreadyExistsException;
-import com.mk.contractservice.domain.client.exception.PhoneAlreadyExistsException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,13 +36,11 @@ class UpdateClientHandlerTest {
 
     @Mock
     private ClientService clientService;
-    private ClientValidationService clientValidationService;
     private UpdateClient.Handler updateClientHandler;
 
     @BeforeEach
     void setUp() {
-        clientValidationService = new ClientValidationService(clientRepository);
-        updateClientHandler = new UpdateClient.Handler(clientRepository, clientService, clientValidationService);
+        updateClientHandler = new UpdateClient.Handler(clientRepository, clientService);
     }
 
 
@@ -64,7 +59,7 @@ class UpdateClientHandlerTest {
                     .name(ClientName.of("John Doe"))
                     .email(ClientEmail.of("john@example.com"))
                     .phone(ClientPhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now()))
                     .build();
 
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -161,6 +156,40 @@ class UpdateClientHandlerTest {
             assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
             assertThat(((Person) result).getBirthDate()).isEqualTo(existingPerson.getBirthDate());
         }
+
+        @Test
+        @DisplayName("GIVEN même téléphone dans un autre format WHEN execute THEN conserve le téléphone normalisé")
+        void shouldKeepNormalizedPhoneWhenSamePhoneInAnotherFormat() {
+            UpdateClient.Command command = new UpdateClient.Command(
+                    clientId,
+                    "John Doe",
+                    "john@example.com",
+                    "+33 1 11 11 11 11"
+            );
+
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+
+            Client result = updateClientHandler.execute(command);
+
+            assertThat(result.getPhone()).isEqualTo(existingPerson.getPhone());
+        }
+
+        @Test
+        @DisplayName("GIVEN même email dans une autre casse WHEN execute THEN conserve l'email normalisé")
+        void shouldKeepNormalizedEmailWhenSameEmailInAnotherCase() {
+            UpdateClient.Command command = new UpdateClient.Command(
+                    clientId,
+                    "John Doe",
+                    "JOHN@Example.com",
+                    "+33111111111"
+            );
+
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+
+            Client result = updateClientHandler.execute(command);
+
+            assertThat(result.getEmail()).isEqualTo(existingPerson.getEmail());
+        }
     }
 
     @Nested
@@ -246,7 +275,7 @@ class UpdateClientHandlerTest {
                     .name(ClientName.of("John Doe"))
                     .email(ClientEmail.of("john@example.com"))
                     .phone(ClientPhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now()))
                     .build();
         }
 
@@ -267,48 +296,6 @@ class UpdateClientHandlerTest {
             // When & Then
             assertThatThrownBy(() -> updateClientHandler.execute(command))
                     .isInstanceOf(ClientNotFoundException.class);
-        }
-
-        @Test
-        @DisplayName("GIVEN email déjà utilisé WHEN execute THEN lève EmailAlreadyExistsException")
-        void shouldThrowExceptionWhenEmailAlreadyExists() {
-            // Given
-            String duplicateEmail = "duplicate@example.com";
-
-            UpdateClient.Command command = new UpdateClient.Command(
-                    clientId,
-                    "John Doe",
-                    duplicateEmail,
-                    "+33111111111"
-            );
-
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
-            when(clientRepository.existsByEmail(duplicateEmail)).thenReturn(true);
-
-            // When & Then
-            assertThatThrownBy(() -> updateClientHandler.execute(command))
-                    .isInstanceOf(EmailAlreadyExistsException.class);
-        }
-
-        @Test
-        @DisplayName("GIVEN téléphone déjà utilisé WHEN execute THEN lève PhoneAlreadyExistsException")
-        void shouldThrowExceptionWhenPhoneAlreadyExists() {
-            // Given
-            String duplicatePhone = "+33999999999";
-
-            UpdateClient.Command command = new UpdateClient.Command(
-                    clientId,
-                    "John Doe",
-                    "john@example.com",
-                    duplicatePhone
-            );
-
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
-            when(clientRepository.existsByPhoneNumber(duplicatePhone)).thenReturn(true);
-
-            // When & Then
-            assertThatThrownBy(() -> updateClientHandler.execute(command))
-                    .isInstanceOf(PhoneAlreadyExistsException.class);
         }
     }
 }

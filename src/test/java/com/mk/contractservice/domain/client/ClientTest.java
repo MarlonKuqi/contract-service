@@ -31,7 +31,7 @@ class ClientTest {
                     .name(ClientName.of("John Doe"))
                     .email(ClientEmail.of("john.doe@example.com"))
                     .phone(ClientPhoneNumber.of("+33123456789"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now()))
                     .build();
 
             final Person updated = original.changeCoreFields(
@@ -101,7 +101,7 @@ class ClientTest {
                     .name(ClientName.of("Test User"))
                     .email(ClientEmail.of("test@example.com"))
                     .phone(ClientPhoneNumber.of("+33123456789"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1)))
+                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now()))
                     .build();
 
             assertThatThrownBy(() -> person.changeCoreFields(name, email, phone))
@@ -139,6 +139,36 @@ class ClientTest {
                     new Object[]{ClientName.of("Test"), null, ClientPhoneNumber.of("+33123456789")},
                     new Object[]{ClientName.of("Test"), ClientEmail.of("test@test.com"), null}
             );
+        }
+    }
+
+    @Nested
+    @DisplayName("hasName / hasEmail / hasPhone - Compares normalized values")
+    class HasCoreFields {
+
+        static Stream<Client> clients() {
+            return Stream.of(
+                    PersonFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", LocalDate.of(1990, 1, 1), LocalDate.now()),
+                    CompanyFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", "acme-123")
+            );
+        }
+
+        @ParameterizedTest
+        @MethodSource("clients")
+        @DisplayName("GIVEN same values written differently WHEN comparing THEN client has them")
+        void shouldHaveSameValuesWrittenDifferently(Client client) {
+            assertThat(client.hasName(ClientName.of("  John Doe  "))).isTrue();
+            assertThat(client.hasEmail(ClientEmail.of("JOHN.DOE@Example.com"))).isTrue();
+            assertThat(client.hasPhone(ClientPhoneNumber.of("+33 1 23 45 67 89"))).isTrue();
+        }
+
+        @ParameterizedTest
+        @MethodSource("clients")
+        @DisplayName("GIVEN different values WHEN comparing THEN client does not have them")
+        void shouldNotHaveDifferentValues(Client client) {
+            assertThat(client.hasName(ClientName.of("Jane Doe"))).isFalse();
+            assertThat(client.hasEmail(ClientEmail.of("jane.doe@example.com"))).isFalse();
+            assertThat(client.hasPhone(ClientPhoneNumber.of("+33987654321"))).isFalse();
         }
     }
 

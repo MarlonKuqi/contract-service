@@ -165,11 +165,41 @@ public final class ClientTestData {
                 "",
                 "123456789",                    // Missing international prefix
                 "0211234567",                   // National format (not accepted)
-                "+1234567890",                  // Wrong country code (USA - not supported)
+                "0041 79 123 45 67",            // International "00" prefix (not accepted)
+                "+1234567890",                  // Invalid number
                 "+41 21 123",                   // Too short (incomplete)
                 "+411234567890123",             // Too long
-                "+44 20 7946 0958",             // UK number (not supported)
-                "+86 10 1234 5678"              // Chinese number (not supported)
+                "+1 650 253 0000",              // Valid US number (not supported)
+                "+44 20 7946 0958",             // Valid UK number (not supported)
+                "+86 10 1234 5678"              // Valid Chinese number (not supported)
+        );
+    }
+
+    // ==================== Phone Formats ====================
+
+    public record PhoneFormat(String raw, String expectedE164) {
+    }
+
+    public static List<PhoneFormat> acceptedPhoneFormats() {
+        return List.of(
+                new PhoneFormat("+41791234567", "+41791234567"),
+                new PhoneFormat("+41 79 123 45 67", "+41791234567"),
+                new PhoneFormat("+41-79-123-45-67", "+41791234567"),
+                new PhoneFormat("+49.30.12345678", "+493012345678"),
+                new PhoneFormat("+33 (0)6 12 34 56 78", "+33612345678"),
+                new PhoneFormat("  +39 345 123 456  ", "+39345123456"),
+                new PhoneFormat("+41 79 123 45 67 ext. 12", "+41791234567")
+        );
+    }
+
+    public static List<String> corruptedStoredPhones() {
+        return Arrays.asList(
+                null,
+                "",
+                "+33 1 23 45 67 89",            // Not normalized
+                "0123456789",                   // National format
+                "+33000",                       // Invalid number
+                "+442079460958"                 // Valid UK number (not supported)
         );
     }
 }

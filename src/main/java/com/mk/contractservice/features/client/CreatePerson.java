@@ -1,13 +1,13 @@
 package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonFactory;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -36,20 +36,17 @@ public interface CreatePerson {
     class Handler implements CreatePerson {
 
         private final ClientRepository clientRepository;
-        private final ClientValidationService clientValidationService;
+        private final Clock clock;
 
         @Override
         public Person execute(final Command command) {
-            clientValidationService.ensureEmailIsUnique(command.email());
-            clientValidationService.ensurePhoneIsUnique(command.phoneNumber());
-
             final Person person = PersonFactory.createFromCommand(
                     command.name(),
                     command.email(),
                     command.phoneNumber(),
-                    command.birthDate()
+                    command.birthDate(),
+                    LocalDate.now(clock)
             );
-
             return (Person) clientRepository.save(person);
         }
     }

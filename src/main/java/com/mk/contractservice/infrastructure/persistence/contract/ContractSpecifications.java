@@ -48,10 +48,6 @@ public final class ContractSpecifications {
         return cb.greaterThanOrEqualTo(root.get(FIELD_LAST_MODIFIED), updatedSince);
     }
 
-    public static Specification<ContractJpaEntity> isActive() {
-        return isActive(LocalDateTime.now());
-    }
-
     public static Specification<ContractJpaEntity> isActive(final LocalDateTime referenceDate) {
         return (contract, query, cb) -> isActivePredicate(contract, cb, referenceDate);
     }

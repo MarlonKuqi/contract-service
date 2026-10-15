@@ -38,16 +38,14 @@ public interface CreateCompany {
 
         @Override
         public Company execute(final Command command) {
-            clientValidationService.ensureEmailIsUnique(command.email());
-            clientValidationService.ensurePhoneIsUnique(command.phoneNumber());
-            clientValidationService.ensureCompanyIdentifierIsUnique(command.companyIdentifier());
-
             final Company company = CompanyFactory.createFromCommand(
                     command.name(),
                     command.email(),
                     command.phoneNumber(),
                     command.companyIdentifier()
             );
+
+            clientValidationService.ensureCompanyIdentifierIsUnique(company.getCompanyIdentifier());
 
             return (Company) clientRepository.save(company);
         }

@@ -28,11 +28,16 @@ public class ContractPeriod {
         return endDate == null || referenceDate.isBefore(endDate);
     }
 
-    public static ContractPeriod of(@Nullable final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
+    public static ContractPeriod of(
+            @Nullable final LocalDateTime startDate,
+            @Nullable final LocalDateTime endDate,
+            final LocalDateTime now
+    ) {
+        notNull(now);
         return ValueObjectUtils.validateAndCreate(
                 startDate,
                 endDate,
-                ContractPeriod::normalize,
+                start -> start == null ? now : start,
                 ContractPeriod::validate,
                 ContractPeriod::new
         );
@@ -40,10 +45,6 @@ public class ContractPeriod {
 
     public static ContractPeriod reconstituteFromDatabase(final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
         return new ContractPeriod(notNull(startDate), endDate);
-    }
-
-    private static LocalDateTime normalize(final LocalDateTime startDate) {
-        return startDate == null ? LocalDateTime.now() : startDate;
     }
 
     private static void validate(final LocalDateTime normalizedStart, @Nullable final LocalDateTime endDate) {

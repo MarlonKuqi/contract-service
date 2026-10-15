@@ -6,7 +6,6 @@ import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientService;
-import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -37,28 +36,26 @@ public interface PatchClient {
 
         private final ClientRepository clientRepository;
         private final ClientService clientService;
-        private final ClientValidationService clientValidationService;
 
         @Override
         public Client execute(final Command command) {
             Client client = clientService.findClientById(command.clientId());
 
+            final ClientName name = command.name() == null ? null : ClientName.of(command.name());
+            final ClientEmail email = command.email() == null ? null : ClientEmail.of(command.email());
+            final ClientPhoneNumber phone = command.phoneNumber() == null ? null : ClientPhoneNumber.of(command.phoneNumber());
+
             boolean hasChanges = false;
-            final String newEmail = command.email();
-            if (newEmail != null && !Objects.equals(client.getEmail().getValue(), newEmail)) {
-                clientValidationService.ensureEmailIsUnique(newEmail);
-                client = client.changeEmail(ClientEmail.of(newEmail));
+            if (email != null && !client.hasEmail(email)) {
+                client = client.changeEmail(email);
                 hasChanges = true;
             }
-            final String phoneNumber = command.phoneNumber();
-            if (phoneNumber != null && !Objects.equals(client.getPhone().getValue(), phoneNumber)) {
-                clientValidationService.ensurePhoneIsUnique(phoneNumber);
-                client = client.changePhone(ClientPhoneNumber.of(phoneNumber));
+            if (phone != null && !client.hasPhone(phone)) {
+                client = client.changePhone(phone);
                 hasChanges = true;
             }
-            final String newName = command.name();
-            if (newName != null && !Objects.equals(client.getName().getValue(), newName)) {
-                client = client.changeName(ClientName.of(newName));
+            if (name != null && !client.hasName(name)) {
+                client = client.changeName(name);
                 hasChanges = true;
             }
 

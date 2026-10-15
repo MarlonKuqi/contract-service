@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.UUID;
@@ -39,6 +40,7 @@ public class CreateContractController {
 
     private final CreateContract createContract;
     private final ContractDtoMapper contractMapper;
+    private final Clock clock;
 
     @Operation(
             summary = "Create a contract for a client",
@@ -97,7 +99,7 @@ public class CreateContractController {
                 .buildAndExpand(contract.getId())
                 .toUri();
 
-        final ContractResponse response = contractMapper.toResponse(contract);
+        final ContractResponse response = contractMapper.toResponse(contract, LocalDateTime.now(clock));
 
         return ResponseEntity.created(location)
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())

@@ -4,7 +4,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.SplittableRandom;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public final class TestDataHelper {
@@ -26,19 +25,12 @@ public final class TestDataHelper {
         return UUID.randomUUID().toString().substring(0, 8);
     }
 
+    private static final SplittableRandom RANDOM = new SplittableRandom();
 
     public static String randomSwissPhoneNumber() {
-        return "+41" + new SplittableRandom()
-                .ints(9, 0, 10)
-                .mapToObj(String::valueOf)
-                .collect(Collectors.joining());
-    }
-
-    public static String randomFrenchPhoneNumber() {
-        return "+33" + new SplittableRandom()
-                .ints(9, 0, 10)
-                .mapToObj(String::valueOf)
-                .collect(Collectors.joining());
+        final int operator = 76 + RANDOM.nextInt(4); // 76, 77, 78, 79
+        final int subscriber = RANDOM.nextInt(10_000_000); // 7 chiffres
+        return "+41%d%07d".formatted(operator, subscriber);
     }
 }
 

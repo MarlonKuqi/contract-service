@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.UUID;
@@ -44,6 +45,7 @@ public class SearchContractController {
     private final ListActiveContractsByClient listActiveContractsByClient;
     private final GetTotalCostAmountOfActiveContractsByClient getTotalCostAmountOfActiveContractsByClient;
     private final ContractDtoMapper contractMapper;
+    private final Clock clock;
 
     @Operation(
             summary = "Get a contract by ID",
@@ -73,7 +75,7 @@ public class SearchContractController {
             final Locale locale
     ) {
         final Contract contract = getContractById.execute(new GetContractById.Query(contractId));
-        final ContractResponse response = contractMapper.toResponse(contract);
+        final ContractResponse response = contractMapper.toResponse(contract, LocalDateTime.now(clock));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
                 .body(response);
@@ -132,7 +134,8 @@ public class SearchContractController {
                 new ListActiveContractsByClient.Query(clientId, updatedSince, pageable)
         );
 
-        final Page<ContractResponse> responsePage = contracts.map(contractMapper::toResponse);
+        final LocalDateTime now = LocalDateTime.now(clock);
+        final Page<ContractResponse> responsePage = contracts.map(contract -> contractMapper.toResponse(contract, now));
 
         final PagedContractResponse response = new PagedContractResponse(
                 responsePage.getContent(),

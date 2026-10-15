@@ -5,12 +5,14 @@ import com.mk.contractservice.domain.client.exception.InvalidClientEmailExceptio
 import com.mk.contractservice.domain.client.exception.InvalidClientNameException;
 import com.mk.contractservice.domain.client.exception.InvalidClientPhoneNumberException;
 import com.mk.contractservice.domain.client.exception.InvalidCompanyIdentifierException;
+import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,6 +74,20 @@ class CompanyTest {
             }
 
             @ParameterizedTest
+            @MethodSource("com.mk.contractservice.domain.client.ClientTestData#acceptedPhoneFormats")
+            @DisplayName("GIVEN phone in accepted format WHEN creating Company THEN phone is normalized to E.164")
+            void shouldNormalizePhoneToE164(ClientTestData.PhoneFormat format) {
+                final Company company = CompanyFactory.createFromCommand(
+                        "ACME Corp",
+                        "contact@acme.com",
+                        format.raw(),
+                        "acme-123"
+                );
+
+                assertThat(company.getPhone().getValue()).isEqualTo(format.expectedE164());
+            }
+
+            @ParameterizedTest
             @MethodSource("com.mk.contractservice.domain.client.CompanyTest#invalidCompanyIdentifiers")
             @DisplayName("GIVEN invalid company identifier WHEN creating Company THEN throw exception")
             void shouldRejectInvalidCompanyIdentifier(String identifier) {
@@ -114,6 +130,38 @@ class CompanyTest {
                 );
 
                 assertThat(company.getCompanyIdentifier().getValue()).hasSize(CompanyIdentifier.MAX_LENGTH);
+            }
+        }
+
+        @Nested
+        @DisplayName("From Database")
+        class FromDatabase {
+
+            @Test
+            @DisplayName("GIVEN stored E.164 phone WHEN rebuilding Company THEN phone is kept as is")
+            void shouldRebuildCompanyWithStoredPhone() {
+                final Company company = CompanyFactory.buildFromDatabase(
+                        UUID.randomUUID(),
+                        "ACME Corp",
+                        "contact@acme.com",
+                        "+41791234567",
+                        "acme-123"
+                );
+
+                assertThat(company.getPhone().getValue()).isEqualTo("+41791234567");
+            }
+
+            @ParameterizedTest
+            @MethodSource("com.mk.contractservice.domain.client.ClientTestData#corruptedStoredPhones")
+            @DisplayName("GIVEN corrupted stored phone WHEN rebuilding Company THEN throw InvalidDomainObjectError")
+            void shouldRejectCorruptedStoredPhone(String phone) {
+                assertThatThrownBy(() -> CompanyFactory.buildFromDatabase(
+                        UUID.randomUUID(),
+                        "ACME Corp",
+                        "contact@acme.com",
+                        phone,
+                        "acme-123"
+                )).isInstanceOf(InvalidDomainObjectError.class);
             }
         }
     }

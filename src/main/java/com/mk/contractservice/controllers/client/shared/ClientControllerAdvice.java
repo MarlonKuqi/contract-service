@@ -10,8 +10,6 @@ import com.mk.contractservice.controllers.client.UpdateClientController;
 import com.mk.contractservice.controllers.shared.BaseControllerAdvice;
 import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
-import com.mk.contractservice.domain.client.exception.EmailAlreadyExistsException;
-import com.mk.contractservice.domain.client.exception.PhoneAlreadyExistsException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.DomainValidationException;
 import org.slf4j.Logger;
@@ -24,6 +22,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,6 +37,10 @@ import java.util.Optional;
 public class ClientControllerAdvice extends BaseControllerAdvice {
 
     private static final Logger log = LoggerFactory.getLogger(ClientControllerAdvice.class);
+
+    public ClientControllerAdvice(final Clock clock) {
+        super(clock);
+    }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ProblemDetail> handleNotReadable(final HttpMessageNotReadableException ex) {
@@ -101,16 +104,6 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
         return respond(problemDetail);
     }
 
-    @ExceptionHandler(EmailAlreadyExistsException.class)
-    public ResponseEntity<ProblemDetail> handleEmailAlreadyExists(final EmailAlreadyExistsException ex) {
-        log.debug("Email already exists: {}", ex.getMessage());
-
-        final ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Email Already Exists",
-                ex.getMessage(), "emailAlreadyExists");
-        problemDetail.setProperty("email", ex.getEmail());
-        return respond(problemDetail);
-    }
-
     @ExceptionHandler(CompanyIdentifierAlreadyExistsException.class)
     public ResponseEntity<ProblemDetail> handleCompanyIdentifierAlreadyExists(final CompanyIdentifierAlreadyExistsException ex) {
         log.debug("Company identifier already exists: {}", ex.getMessage());
@@ -118,16 +111,6 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
         final ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Company Identifier Already Exists",
                 ex.getMessage(), "companyIdentifierAlreadyExists");
         problemDetail.setProperty("companyIdentifier", ex.getCompanyIdentifier());
-        return respond(problemDetail);
-    }
-
-    @ExceptionHandler(PhoneAlreadyExistsException.class)
-    public ResponseEntity<ProblemDetail> handlePhoneAlreadyExists(final PhoneAlreadyExistsException ex) {
-        log.debug("Phone number already exists: {}", ex.getMessage());
-
-        final ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Phone Number Already Exists",
-                ex.getMessage(), "phoneAlreadyExists");
-        problemDetail.setProperty("phoneNumber", ex.getPhoneNumber());
         return respond(problemDetail);
     }
 

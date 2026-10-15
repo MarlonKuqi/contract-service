@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -27,11 +29,12 @@ public interface GetTotalCostAmountOfActiveContractsByClient {
 
         private final ClientValidationService clientValidationService;
         private final ContractQueryPort contractQueryPort;
+        private final Clock clock;
 
         @Override
         public BigDecimal execute(final Query query) {
             clientValidationService.ensureClientExists(query.clientId());
-            return contractQueryPort.calculateTotalCostAmountForClient(query.clientId());
+            return contractQueryPort.calculateTotalCostAmountForClient(query.clientId(), LocalDateTime.now(clock));
         }
     }
 }

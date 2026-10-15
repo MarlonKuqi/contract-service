@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public record ContractSearchCriteria(
         UUID clientId,
-        boolean activeOnly,
+        @Nullable LocalDateTime activeAt,
         @Nullable LocalDateTime updatedSince
 ) {
 
@@ -16,13 +16,18 @@ public record ContractSearchCriteria(
         Objects.requireNonNull(clientId, "clientId must not be null");
     }
 
-    public static ContractSearchCriteria activeForClient(final UUID clientId) {
-        return new ContractSearchCriteria(clientId, true, null);
+    public static ContractSearchCriteria activeForClient(final UUID clientId, final LocalDateTime activeAt) {
+        Objects.requireNonNull(activeAt, "activeAt must not be null");
+        return new ContractSearchCriteria(clientId, activeAt, null);
     }
 
-    public static ContractSearchCriteria activeForClientUpdatedSince(final UUID clientId, final LocalDateTime updatedSince) {
+    public static ContractSearchCriteria activeForClientUpdatedSince(
+            final UUID clientId,
+            final LocalDateTime activeAt,
+            final LocalDateTime updatedSince
+    ) {
+        Objects.requireNonNull(activeAt, "activeAt must not be null");
         Objects.requireNonNull(updatedSince, "updatedSince must not be null");
-        return new ContractSearchCriteria(clientId, true, updatedSince);
+        return new ContractSearchCriteria(clientId, activeAt, updatedSince);
     }
 }
-

@@ -12,12 +12,13 @@ public final class PersonFactory {
             final String name,
             final String email,
             final String phoneNumber,
-            final LocalDate birthDate
+            final LocalDate birthDate,
+            final LocalDate today
     ) {
         final ClientName clientName = ClientName.of(name);
         final ClientEmail clientEmail = ClientEmail.of(email);
         final ClientPhoneNumber phone = ClientPhoneNumber.of(phoneNumber);
-        final PersonBirthDate personBirthDate = PersonBirthDate.of(birthDate);
+        final PersonBirthDate personBirthDate = PersonBirthDate.of(birthDate, today);
 
         return Person.of(clientName, clientEmail, phone, personBirthDate);
     }

@@ -60,7 +60,7 @@ class ReadClientAcceptanceTest {
                 ClientName.of("John Doe"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("john.doe")),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15))
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15), LocalDate.now())
         );
         givenPerson = (Person) clientRepository.save(givenPerson);
 

@@ -13,6 +13,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Repository
@@ -23,13 +24,13 @@ public class JpaContractQueryAdapter implements ContractQueryPort {
 
     @Override
     @Cacheable(value = CacheConfig.CONTRACT_SUMS_CACHE, key = "#clientId")
-    public BigDecimal calculateTotalCostAmountForClient(final UUID clientId) {
+    public BigDecimal calculateTotalCostAmountForClient(final UUID clientId, final LocalDateTime activeAt) {
         final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         final CriteriaQuery<BigDecimal> query = cb.createQuery(BigDecimal.class);
         final Root<ContractJpaEntity> root = query.from(ContractJpaEntity.class);
 
         final Specification<ContractJpaEntity> spec = ContractCriteriaAdapter.toSpecification(
-                ContractSearchCriteria.activeForClient(clientId)
+                ContractSearchCriteria.activeForClient(clientId, activeAt)
         );
 
         query.select(cb.coalesce(cb.sum(root.get("costAmount")), BigDecimal.ZERO));

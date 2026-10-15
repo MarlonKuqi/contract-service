@@ -10,9 +10,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,25 +28,24 @@ class DeleteClientHandlerTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-06-01T10:00:00Z"), ZoneOffset.UTC);
+
     private DeleteClient.Handler deleteClientHandler;
 
     @BeforeEach
     void setUp() {
-        deleteClientHandler = new DeleteClient.Handler(clientRepository, eventPublisher);
+        deleteClientHandler = new DeleteClient.Handler(clientRepository, eventPublisher, FIXED_CLOCK);
     }
 
     @Test
-    @DisplayName("GIVEN commande valide WHEN execute THEN publie un événement ClientDeletedEvent")
-    void shouldPublishClientDeletedEvent() {
-        // Given
+    @DisplayName("GIVEN commande valide WHEN execute THEN publie un ClientDeletedEvent daté par l'horloge")
+    void shouldPublishClientDeletedEventDatedByClock() {
         UUID clientId = UUID.randomUUID();
         DeleteClient.Command command = new DeleteClient.Command(clientId);
 
-        // When
         deleteClientHandler.execute(command);
 
-        // Then
-        verify(eventPublisher).publishEvent(any(ClientDeletedEvent.class));
+        verify(eventPublisher).publishEvent(ClientDeletedEvent.of(clientId, LocalDateTime.now(FIXED_CLOCK)));
     }
 }
 

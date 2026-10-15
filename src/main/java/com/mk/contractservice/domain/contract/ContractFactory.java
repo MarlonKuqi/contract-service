@@ -13,9 +13,10 @@ public final class ContractFactory {
             final UUID clientId,
             final LocalDateTime startDate,
             final LocalDateTime endDate,
-            final BigDecimal costAmount
+            final BigDecimal costAmount,
+            final LocalDateTime now
     ) {
-        final ContractPeriod period = ContractPeriod.of(startDate, endDate);
+        final ContractPeriod period = ContractPeriod.of(startDate, endDate, now);
         final ContractCost cost = ContractCost.of(costAmount);
         return Contract.of(clientId, period, cost);
     }

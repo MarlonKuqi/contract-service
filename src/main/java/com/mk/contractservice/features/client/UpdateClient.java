@@ -6,7 +6,6 @@ import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientService;
-import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,27 +38,15 @@ public interface UpdateClient {
 
         private final ClientRepository clientRepository;
         private final ClientService clientService;
-        private final ClientValidationService clientValidationService;
 
         @Override
         public Client execute(final Command command) {
             final Client client = clientService.findClientById(command.clientId());
-            validateCommand(client, command.email(), command.phoneNumber());
-            final Client updatedClient = client.changeCoreFields(
-                    ClientName.of(command.name()),
-                    ClientEmail.of(command.email()),
-                    ClientPhoneNumber.of(command.phoneNumber())
-            );
+            final ClientEmail email = ClientEmail.of(command.email());
+            final ClientPhoneNumber phone = ClientPhoneNumber.of(command.phoneNumber());
+            final ClientName name = ClientName.of(command.name());
+            final Client updatedClient = client.changeCoreFields(name, email, phone);
             return clientRepository.save(updatedClient);
-        }
-
-        private void validateCommand(final Client client, final String commandEmail, final String commandPhoneNumber) {
-            if (!Objects.equals(client.getEmail().getValue(), commandEmail)) {
-                clientValidationService.ensureEmailIsUnique(commandEmail);
-            }
-            if (!Objects.equals(client.getPhone().getValue(), commandPhoneNumber)) {
-                clientValidationService.ensurePhoneIsUnique(commandPhoneNumber);
-            }
         }
     }
 }

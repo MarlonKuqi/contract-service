@@ -56,7 +56,7 @@ class ContractTotalUseCaseAcceptanceTest {
                 ClientName.of("Sum Test Client"),
                 ClientEmail.of("sum.test." + uniqueId + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20))
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now())
         );
         testClient = clientRepository.save(testClient);
     }

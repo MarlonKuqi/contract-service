@@ -5,6 +5,7 @@ import com.mk.contractservice.domain.client.exception.InvalidClientEmailExceptio
 import com.mk.contractservice.domain.client.exception.InvalidClientNameException;
 import com.mk.contractservice.domain.client.exception.InvalidClientPhoneNumberException;
 import com.mk.contractservice.domain.client.exception.InvalidPersonBirthDateException;
+import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.LocalDate;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,7 +61,8 @@ class PersonTest {
                         name,
                         "john@example.com",
                         "+33123456789",
-                        LocalDate.of(1990, 5, 15)
+                        LocalDate.of(1990, 5, 15),
+                        LocalDate.now()
                 )).isInstanceOf(InvalidClientNameException.class);
             }
 
@@ -71,7 +74,8 @@ class PersonTest {
                         "John Doe",
                         email,
                         "+33123456789",
-                        LocalDate.of(1990, 5, 15)
+                        LocalDate.of(1990, 5, 15),
+                        LocalDate.now()
                 )).isInstanceOf(InvalidClientEmailException.class);
             }
 
@@ -83,10 +87,34 @@ class PersonTest {
                         "John Doe",
                         "john@example.com",
                         phone,
-                        LocalDate.of(1990, 5, 15)
+                        LocalDate.of(1990, 5, 15),
+                        LocalDate.now()
                 )).isInstanceOf(InvalidClientPhoneNumberException.class);
             }
 
+            @ParameterizedTest
+            @MethodSource("com.mk.contractservice.domain.client.ClientTestData#acceptedPhoneFormats")
+            @DisplayName("GIVEN phone in accepted format WHEN creating Person THEN phone is normalized to E.164")
+            void shouldNormalizePhoneToE164(ClientTestData.PhoneFormat format) {
+                final Person person = PersonFactory.createFromCommand(
+                        "John Doe",
+                        "john@example.com",
+                        format.raw(),
+                        LocalDate.of(1990, 5, 15),
+                        LocalDate.now()
+                );
+
+                assertThat(person.getPhone().getValue()).isEqualTo(format.expectedE164());
+            }
+
+            @Test
+            @DisplayName("GIVEN same phone in different formats WHEN creating Persons THEN phones are equal")
+            void shouldConsiderDifferentlyFormattedPhonesEqual() {
+                final Person first = PersonFactory.createFromCommand("John Doe", "john@example.com", "+41 79 123 45 67", LocalDate.of(1990, 5, 15), LocalDate.now());
+                final Person second = PersonFactory.createFromCommand("Jane Doe", "jane@example.com", "+41791234567", LocalDate.of(1985, 1, 1), LocalDate.now());
+
+                assertThat(first.getPhone()).isEqualTo(second.getPhone());
+            }
 
             @Test
             @DisplayName("GIVEN null birthDate WHEN creating Person THEN throw InvalidClientException")
@@ -95,7 +123,8 @@ class PersonTest {
                         "John Doe",
                         "john@example.com",
                         "+33123456789",
-                        null
+                        null,
+                        LocalDate.now()
                 )).isInstanceOf(InvalidPersonBirthDateException.class);
             }
 
@@ -107,7 +136,8 @@ class PersonTest {
                         data.name(),
                         data.email(),
                         data.phone(),
-                        data.birthDate()
+                        data.birthDate(),
+                        LocalDate.now()
                 );
 
                 assertThat(person.getName().getValue()).isEqualTo(data.name());
@@ -129,7 +159,8 @@ class PersonTest {
                         "John Doe",
                         "john@example.com",
                         "+33123456789",
-                        birthDate
+                        birthDate,
+                        LocalDate.now()
                 );
 
                 assertThat(person.getBirthDate().getValue()).isEqualTo(birthDate);
@@ -143,8 +174,41 @@ class PersonTest {
                         "John Doe",
                         "john@example.com",
                         "+33123456789",
-                        birthDate
+                        birthDate,
+                        LocalDate.now()
                 )).isInstanceOf(InvalidPersonBirthDateException.class);
+            }
+        }
+
+        @Nested
+        @DisplayName("From Database")
+        class FromDatabase {
+
+            @Test
+            @DisplayName("GIVEN stored E.164 phone WHEN rebuilding Person THEN phone is kept as is")
+            void shouldRebuildPersonWithStoredPhone() {
+                final Person person = PersonFactory.buildFromDatabase(
+                        UUID.randomUUID(),
+                        "John Doe",
+                        "john@example.com",
+                        "+41791234567",
+                        LocalDate.of(1990, 5, 15)
+                );
+
+                assertThat(person.getPhone().getValue()).isEqualTo("+41791234567");
+            }
+
+            @ParameterizedTest
+            @MethodSource("com.mk.contractservice.domain.client.ClientTestData#corruptedStoredPhones")
+            @DisplayName("GIVEN corrupted stored phone WHEN rebuilding Person THEN throw InvalidDomainObjectError")
+            void shouldRejectCorruptedStoredPhone(String phone) {
+                assertThatThrownBy(() -> PersonFactory.buildFromDatabase(
+                        UUID.randomUUID(),
+                        "John Doe",
+                        "john@example.com",
+                        phone,
+                        LocalDate.of(1990, 5, 15)
+                )).isInstanceOf(InvalidDomainObjectError.class);
             }
         }
     }
@@ -156,7 +220,7 @@ class PersonTest {
         @Test
         @DisplayName("GIVEN person WHEN updating common fields THEN birthdate remains unchanged")
         void shouldKeepBirthdateImmutableWhenUpdating() {
-            PersonBirthDate originalBirthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15));
+            PersonBirthDate originalBirthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15), LocalDate.now());
             Person person = Person.of(
                     ClientName.of("John Doe"),
                     ClientEmail.of("john.doe@example.com"),
@@ -186,7 +250,8 @@ class PersonTest {
                     "John Doe",
                     "john@example.com",
                     "+33123456789",
-                    LocalDate.of(1990, 5, 15)
+                    LocalDate.of(1990, 5, 15),
+                    LocalDate.now()
             );
 
             Person updated = person.changeCoreFields(
@@ -208,7 +273,8 @@ class PersonTest {
                     "John Doe",
                     "john@example.com",
                     "+33123456789",
-                    LocalDate.of(1990, 5, 15)
+                    LocalDate.of(1990, 5, 15),
+                    LocalDate.now()
             );
 
             Person updated = person.changeCoreFields(
@@ -230,7 +296,8 @@ class PersonTest {
                     "John Doe",
                     "john@example.com",
                     "+33123456789",
-                    LocalDate.of(1990, 5, 15)
+                    LocalDate.of(1990, 5, 15),
+                    LocalDate.now()
             );
 
             Person updated = person.changeCoreFields(
@@ -251,7 +318,8 @@ class PersonTest {
                     "John Doe",
                     "john@example.com",
                     "+33123456789",
-                    LocalDate.of(1990, 5, 15)
+                    LocalDate.of(1990, 5, 15),
+                    LocalDate.now()
             );
 
             Person updated = person.changeCoreFields(

@@ -65,7 +65,7 @@ class CreateContractAcceptanceTest {
                 ClientName.of("Marie Durand"),
                 ClientEmail.of("marie.durand." + uniqueId + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20))
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now())
         );
         testClient = clientRepository.save(testClient);
     }
