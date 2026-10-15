@@ -16,7 +16,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -25,6 +27,7 @@ import java.util.UUID;
 @Table(name = "client", schema = "contracts")
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.STRING)
+@SQLRestriction("deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -55,6 +58,10 @@ public abstract class ClientJpaEntity {
 
     @Column(name = "phone", nullable = false, length = 14)
     private String phone;
+
+    @Nullable
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     protected ClientJpaEntity(final String name, final String email, final String phone) {
         this.name = name;

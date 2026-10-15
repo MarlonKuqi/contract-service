@@ -8,6 +8,7 @@ import com.mk.contractservice.infrastructure.persistence.client.entities.ClientJ
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,8 +46,11 @@ public class JpaClientRepository implements ClientRepository {
     }
 
     @Override
-    public void deleteById(final UUID id) {
-        jpa.deleteById(id);
+    public void delete(final UUID id, final LocalDateTime deletedAt) {
+        final ClientJpaEntity entity = jpa.findById(id).orElseThrow(
+                () -> new IllegalStateException("Client with id " + id + " not found in database")
+        );
+        entity.setDeletedAt(deletedAt);
     }
 
     @Override
@@ -56,6 +60,6 @@ public class JpaClientRepository implements ClientRepository {
 
     @Override
     public boolean existsByCompanyIdentifier(final String companyIdentifier) {
-        return companyJpa.existsByCompanyIdentifier(companyIdentifier);
+        return companyJpa.existsByCompanyIdentifierIncludingDeleted(companyIdentifier);
     }
 }

@@ -13,6 +13,7 @@ import com.mk.contractservice.domain.client.CompanyIdentifier;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
+import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,10 +49,14 @@ class PatchClientAcceptanceTest {
     @Autowired
     private ClientJpaRepository clientJpaRepository;
 
+    @Autowired
+    private ContractJpaRepository contractJpaRepository;
+
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
+        contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
     }
 

@@ -2,6 +2,7 @@ package com.mk.contractservice.domain.client;
 
 import com.mk.contractservice.domain.shared.RepositoryPort;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,7 +12,7 @@ public interface ClientRepository {
 
     Client save(final Client client);
 
-    void deleteById(final UUID id);
+    void delete(final UUID id, final LocalDateTime deletedAt);
 
     boolean existsById(final UUID id);
 
