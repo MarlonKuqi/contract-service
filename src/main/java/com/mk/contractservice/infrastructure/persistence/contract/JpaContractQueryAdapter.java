@@ -2,13 +2,11 @@ package com.mk.contractservice.infrastructure.persistence.contract;
 
 import com.mk.contractservice.domain.contract.ContractQueryPort;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
-import com.mk.contractservice.infrastructure.cache.CacheConfig;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
@@ -23,7 +21,6 @@ public class JpaContractQueryAdapter implements ContractQueryPort {
     private final EntityManager entityManager;
 
     @Override
-    @Cacheable(value = CacheConfig.CONTRACT_SUMS_CACHE, key = "#clientId")
     public BigDecimal calculateTotalCostAmountForClient(final UUID clientId, final LocalDateTime activeAt) {
         final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         final CriteriaQuery<BigDecimal> query = cb.createQuery(BigDecimal.class);

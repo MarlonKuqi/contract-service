@@ -3,14 +3,12 @@ package com.mk.contractservice.infrastructure.persistence.contract;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
-import com.mk.contractservice.infrastructure.cache.CacheConfig;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaUpdate;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
@@ -27,7 +25,6 @@ public class JpaContractRepository implements ContractRepository {
     private final EntityManager entityManager;
 
     @Override
-    @CacheEvict(value = CacheConfig.CONTRACT_SUMS_CACHE, key = "#contract.clientId")
     public Contract save(final Contract contract) {
         final ContractJpaEntity entity;
         final UUID contractId = contract.getId();
@@ -57,7 +54,6 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    @CacheEvict(value = CacheConfig.CONTRACT_SUMS_CACHE, key = "#clientId")
     public int closeAllActiveByClientId(final UUID clientId, final LocalDateTime closureDate) {
         final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         final CriteriaUpdate<ContractJpaEntity> update = cb.createCriteriaUpdate(ContractJpaEntity.class);
