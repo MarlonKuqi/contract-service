@@ -11,8 +11,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractCost;
-import com.mk.contractservice.domain.contract.ContractPeriod;
+import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
@@ -80,11 +79,7 @@ class ReadContractAcceptanceTest {
     @DisplayName("SCENARIO: Read contract with all fields returns correct data")
     void shouldReadContractWithAllFields() {
         LocalDateTime now = LocalDateTime.now();
-        Contract contract = Contract.builder()
-                .clientId(testClient.getId())
-                .period(ContractPeriod.of(now, now.plusMonths(12), LocalDateTime.now()))
-                .costAmount(ContractCost.of(new BigDecimal("5000.00")))
-                .build();
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("5000.00"), LocalDateTime.now());
         Contract savedContract = contractRepository.save(contract);
 
         given()
@@ -105,11 +100,7 @@ class ReadContractAcceptanceTest {
     @DisplayName("SCENARIO: Read open-ended contract returns null endDate")
     void shouldReadOpenEndedContract() {
         LocalDateTime now = LocalDateTime.now();
-        Contract contract = Contract.builder()
-                .clientId(testClient.getId())
-                .period(ContractPeriod.of(now, null, LocalDateTime.now()))
-                .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                .build();
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, null, new BigDecimal("1000.00"), LocalDateTime.now());
         Contract savedContract = contractRepository.save(contract);
 
         given()
@@ -126,11 +117,7 @@ class ReadContractAcceptanceTest {
     @DisplayName("SCENARIO: Read expired contract returns active false")
     void shouldReadExpiredContract() {
         LocalDateTime now = LocalDateTime.now();
-        Contract contract = Contract.builder()
-                .clientId(testClient.getId())
-                .period(ContractPeriod.of(now.minusMonths(12), now.minusDays(1), LocalDateTime.now()))
-                .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                .build();
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now.minusMonths(12), now.minusDays(1), new BigDecimal("1000.00"), LocalDateTime.now());
         Contract savedContract = contractRepository.save(contract);
 
         given()

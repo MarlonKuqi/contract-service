@@ -159,6 +159,49 @@ class ContractTest {
                 assertThatThrownBy(() -> ContractFactory.createFromCommand(null, startDate, endDate, costAmount, LocalDateTime.now()))
                         .isInstanceOf(InvalidDomainObjectError.class);
             }
+
+            @Test
+            @DisplayName("GIVEN now WHEN creating Contract THEN lastModified is the given now")
+            void shouldSetLastModifiedToGivenNowOnCreation() {
+                LocalDateTime now = LocalDateTime.of(2026, 6, 1, 10, 0);
+
+                Contract contract = ContractFactory.createFromCommand(testClientId, now.minusDays(1), null, new BigDecimal("100.00"), now);
+
+                assertThat(contract.getLastModified()).isEqualTo(now);
+            }
+
+            @Test
+            @DisplayName("GIVEN null now WHEN creating Contract THEN throw InvalidDomainObjectError")
+            void shouldRejectNullNowOnCreation() {
+                LocalDateTime startDate = LocalDateTime.of(2026, 6, 1, 10, 0);
+
+                assertThatThrownBy(() -> Contract.of(testClientId, ContractPeriod.of(startDate, null, startDate), ContractCost.of(new BigDecimal("100.00")), null))
+                        .isInstanceOf(InvalidDomainObjectError.class);
+            }
+        }
+
+        @Nested
+        @DisplayName("From Database")
+        class FromDatabase {
+
+            @Test
+            @DisplayName("GIVEN persisted lastModified WHEN reconstituting THEN lastModified is kept")
+            void shouldKeepPersistedLastModified() {
+                LocalDateTime lastModified = LocalDateTime.of(2026, 3, 15, 8, 30);
+
+                Contract contract = ContractFactory.buildFromDatabase(
+                        UUID.randomUUID(), testClientId, lastModified.minusMonths(1), null, new BigDecimal("100.00"), lastModified);
+
+                assertThat(contract.getLastModified()).isEqualTo(lastModified);
+            }
+
+            @Test
+            @DisplayName("GIVEN null lastModified WHEN reconstituting THEN throw InvalidDomainObjectError")
+            void shouldRejectNullLastModified() {
+                assertThatThrownBy(() -> ContractFactory.buildFromDatabase(
+                        UUID.randomUUID(), testClientId, LocalDateTime.of(2026, 1, 1, 0, 0), null, new BigDecimal("100.00"), null))
+                        .isInstanceOf(InvalidDomainObjectError.class);
+            }
         }
     }
 
@@ -221,11 +264,36 @@ class ContractTest {
                 LocalDateTime pastEnd = now.minusDays(1);
                 BigDecimal initialCost = new BigDecimal("100.00");
 
-                Contract contract = ContractFactory.buildFromDatabase(contractId, testClientId, pastStart, pastEnd, initialCost);
+                Contract contract = ContractFactory.buildFromDatabase(contractId, testClientId, pastStart, pastEnd, initialCost, pastStart);
 
                 assertThatThrownBy(() -> contract.changeCost(ContractCost.of(new BigDecimal("200.00")), LocalDateTime.now()))
                         .isInstanceOf(ExpiredContractException.class)
                         .hasMessageContaining(contractId.toString());
+            }
+
+            @Test
+            @DisplayName("GIVEN new cost WHEN changing cost THEN lastModified is the given now")
+            void shouldSetLastModifiedToGivenNowWhenCostChanges() {
+                LocalDateTime createdAt = LocalDateTime.of(2026, 1, 1, 9, 0);
+                LocalDateTime changedAt = LocalDateTime.of(2026, 6, 1, 10, 0);
+                Contract contract = ContractFactory.createFromCommand(testClientId, createdAt, null, new BigDecimal("100.00"), createdAt);
+
+                Contract updatedContract = contract.changeCost(ContractCost.of(new BigDecimal("200.00")), changedAt);
+
+                assertThat(updatedContract.getLastModified()).isEqualTo(changedAt);
+                assertThat(contract.getLastModified()).isEqualTo(createdAt);
+            }
+
+            @Test
+            @DisplayName("GIVEN same amount with another scale WHEN changing cost THEN contract and lastModified are unchanged")
+            void shouldKeepContractUnchangedWhenAmountIsTheSame() {
+                LocalDateTime createdAt = LocalDateTime.of(2026, 1, 1, 9, 0);
+                Contract contract = ContractFactory.createFromCommand(testClientId, createdAt, null, new BigDecimal("100.00"), createdAt);
+
+                Contract result = contract.changeCost(ContractCost.of(new BigDecimal("100.0")), LocalDateTime.of(2026, 6, 1, 10, 0));
+
+                assertThat(result).isSameAs(contract);
+                assertThat(result.getLastModified()).isEqualTo(createdAt);
             }
         }
     }
@@ -281,7 +349,7 @@ class ContractTest {
         void shouldEvaluateActivityAgainstGivenReferenceDate() {
             LocalDateTime endDate = LocalDateTime.of(2026, 6, 1, 0, 0);
             Contract contract = ContractFactory.buildFromDatabase(
-                    UUID.randomUUID(), testClientId, endDate.minusYears(1), endDate, new BigDecimal("500.00"));
+                    UUID.randomUUID(), testClientId, endDate.minusYears(1), endDate, new BigDecimal("500.00"), endDate.minusYears(1));
 
             assertThat(contract.isActiveAt(endDate.minusNanos(1))).isTrue();
             assertThat(contract.isActiveAt(endDate)).isFalse();

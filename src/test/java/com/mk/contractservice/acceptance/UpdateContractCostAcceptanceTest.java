@@ -11,8 +11,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractCost;
-import com.mk.contractservice.domain.contract.ContractPeriod;
+import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
@@ -80,11 +79,7 @@ class UpdateContractCostAcceptanceTest {
     @DisplayName("SCENARIO: Update contract cost succeeds and persists changes")
     void shouldUpdateContractCost() {
         LocalDateTime now = LocalDateTime.now();
-        Contract contract = Contract.builder()
-                .clientId(testClient.getId())
-                .period(ContractPeriod.of(now, now.plusMonths(12), LocalDateTime.now()))
-                .costAmount(ContractCost.of(new BigDecimal("5000.00")))
-                .build();
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("5000.00"), LocalDateTime.now());
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -114,11 +109,7 @@ class UpdateContractCostAcceptanceTest {
     @DisplayName("SCENARIO: Increase contract cost succeeds")
     void shouldIncreaseContractCost() {
         LocalDateTime now = LocalDateTime.now();
-        Contract contract = Contract.builder()
-                .clientId(testClient.getId())
-                .period(ContractPeriod.of(now, now.plusMonths(12), LocalDateTime.now()))
-                .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                .build();
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("1000.00"), LocalDateTime.now());
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -147,11 +138,7 @@ class UpdateContractCostAcceptanceTest {
     @DisplayName("SCENARIO: Decrease contract cost succeeds")
     void shouldDecreaseContractCost() {
         LocalDateTime now = LocalDateTime.now();
-        Contract contract = Contract.builder()
-                .clientId(testClient.getId())
-                .period(ContractPeriod.of(now, now.plusMonths(12), LocalDateTime.now()))
-                .costAmount(ContractCost.of(new BigDecimal("5000.00")))
-                .build();
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("5000.00"), LocalDateTime.now());
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -180,11 +167,7 @@ class UpdateContractCostAcceptanceTest {
     @DisplayName("SCENARIO: Update contract cost to zero fails (must be positive non zero)")
     void shouldRejectZeroCost() {
         LocalDateTime now = LocalDateTime.now();
-        Contract contract = Contract.builder()
-                .clientId(testClient.getId())
-                .period(ContractPeriod.of(now, now.plusMonths(12), LocalDateTime.now()))
-                .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                .build();
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("1000.00"), LocalDateTime.now());
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -226,11 +209,7 @@ class UpdateContractCostAcceptanceTest {
     @DisplayName("SCENARIO: Update contract cost with negative amount fails")
     void shouldRejectNegativeAmount() {
         LocalDateTime now = LocalDateTime.now();
-        Contract contract = Contract.builder()
-                .clientId(testClient.getId())
-                .period(ContractPeriod.of(now, now.plusMonths(12), LocalDateTime.now()))
-                .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                .build();
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("1000.00"), LocalDateTime.now());
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -252,11 +231,7 @@ class UpdateContractCostAcceptanceTest {
     @DisplayName("SCENARIO: Update contract cost with invalid format fails")
     void shouldRejectInvalidCostFormat() {
         LocalDateTime now = LocalDateTime.now();
-        Contract contract = Contract.builder()
-                .clientId(testClient.getId())
-                .period(ContractPeriod.of(now, now.plusMonths(12), LocalDateTime.now()))
-                .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                .build();
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("1000.00"), LocalDateTime.now());
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -278,11 +253,7 @@ class UpdateContractCostAcceptanceTest {
     @DisplayName("SCENARIO: Update contract cost multiple times succeeds")
     void shouldAllowMultipleUpdates() {
         LocalDateTime now = LocalDateTime.now();
-        Contract contract = Contract.builder()
-                .clientId(testClient.getId())
-                .period(ContractPeriod.of(now, now.plusMonths(12), LocalDateTime.now()))
-                .costAmount(ContractCost.of(new BigDecimal("1000.00")))
-                .build();
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("1000.00"), LocalDateTime.now());
         Contract savedContract = contractRepository.save(contract);
 
         // First update

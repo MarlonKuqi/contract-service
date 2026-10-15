@@ -13,7 +13,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -53,7 +52,6 @@ public class ContractJpaEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
     @Column(name = "last_modified", nullable = false)
     private LocalDateTime lastModified;
 
@@ -61,11 +59,13 @@ public class ContractJpaEntity {
             @Nullable final UUID clientId,
             final LocalDateTime startDate,
             @Nullable final LocalDateTime endDate,
-            final BigDecimal costAmount
+            final BigDecimal costAmount,
+            final LocalDateTime lastModified
     ) {
         this.clientId = clientId;
         this.startDate = startDate;
         this.endDate = endDate;
         this.costAmount = costAmount;
+        this.lastModified = lastModified;
     }
 }

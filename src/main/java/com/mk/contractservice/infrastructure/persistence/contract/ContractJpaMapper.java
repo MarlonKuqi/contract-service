@@ -14,7 +14,8 @@ public final class ContractJpaMapper {
                 entity.getClientId(),
                 entity.getStartDate(),
                 entity.getEndDate(),
-                entity.getCostAmount()
+                entity.getCostAmount(),
+                entity.getLastModified()
         );
     }
 
@@ -23,7 +24,8 @@ public final class ContractJpaMapper {
                 domain.getClientId(),
                 domain.getPeriod().getStartDate(),
                 domain.getPeriod().getEndDate(),
-                domain.getCostAmount().getValue()
+                domain.getCostAmount().getValue(),
+                domain.getLastModified()
         );
     }
 
@@ -32,6 +34,7 @@ public final class ContractJpaMapper {
         existing.setStartDate(domain.getPeriod().getStartDate());
         existing.setEndDate(domain.getPeriod().getEndDate());
         existing.setCostAmount(domain.getCostAmount().getValue());
+        existing.setLastModified(domain.getLastModified());
     }
 }
 

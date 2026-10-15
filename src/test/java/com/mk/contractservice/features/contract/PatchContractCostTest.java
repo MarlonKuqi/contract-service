@@ -66,7 +66,8 @@ class PatchContractCostTest {
                 UUID.randomUUID(),
                 now.minusMonths(6),
                 now.minusSeconds(1),
-                new BigDecimal("500.00")
+                new BigDecimal("500.00"),
+                now.minusMonths(6)
         );
 
         when(contractRepository.findById(contractId)).thenReturn(Optional.of(expiredContract));
