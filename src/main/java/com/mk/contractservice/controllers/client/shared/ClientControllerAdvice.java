@@ -8,7 +8,6 @@ import com.mk.contractservice.controllers.client.PatchClientController;
 import com.mk.contractservice.controllers.client.SearchClientController;
 import com.mk.contractservice.controllers.client.UpdateClientController;
 import com.mk.contractservice.controllers.shared.BaseControllerAdvice;
-import com.mk.contractservice.domain.client.exception.ClientAlreadyExistsException;
 import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.DomainValidationException;
@@ -89,18 +88,6 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
 
         final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Domain Validation Error",
                 ex.getMessage(), ex.getCode() != null ? ex.getCode() : "domainValidationError");
-        return respond(problemDetail);
-    }
-
-    @ExceptionHandler(ClientAlreadyExistsException.class)
-    public ResponseEntity<ProblemDetail> handleClientAlreadyExists(final ClientAlreadyExistsException ex) {
-        log.debug("Client already exists: {}", ex.getMessage());
-
-        final ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Client Already Exists",
-                ex.getMessage(), "clientAlreadyExists");
-        if (ex.getBusinessKey() != null) {
-            problemDetail.setProperty("businessKey", ex.getBusinessKey());
-        }
         return respond(problemDetail);
     }
 

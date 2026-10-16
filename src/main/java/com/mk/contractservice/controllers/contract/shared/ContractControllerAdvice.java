@@ -7,7 +7,6 @@ import com.mk.contractservice.controllers.contract.PatchContractCostController;
 import com.mk.contractservice.controllers.contract.SearchContractController;
 import com.mk.contractservice.controllers.shared.BaseControllerAdvice;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
-import com.mk.contractservice.domain.contract.exception.ContractNotOwnedByClientException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
@@ -57,15 +56,6 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
 
         ProblemDetail problemDetail = problem(HttpStatus.NOT_FOUND, "Contract Not Found",
                 ex.getMessage(), "contractNotFound");
-        return respond(problemDetail);
-    }
-
-    @ExceptionHandler(ContractNotOwnedByClientException.class)
-    public ResponseEntity<ProblemDetail> handleContractNotOwnedByClient(ContractNotOwnedByClientException ex) {
-        log.warn("Security: Attempt to access contract not owned by client: {}", ex.getMessage());
-
-        ProblemDetail problemDetail = problem(HttpStatus.FORBIDDEN, "Access Denied",
-                "You do not have permission to access this contract", "contractAccessDenied");
         return respond(problemDetail);
     }
 
