@@ -28,7 +28,7 @@ public class DeleteClientController {
 
     @Operation(
             summary = "Delete a client",
-            description = "Deletes a client and automatically closes their active contracts by setting endDate=now. "
+            description = "Deletes a client and closes their active contracts with endDate set to the deletion date. "
                     + "The client is no longer returned by the API; its data and contract history are kept."
     )
     @ApiResponse(

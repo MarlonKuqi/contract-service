@@ -7,6 +7,6 @@ import lombok.NoArgsConstructor;
 public final class ContractSwaggerTags {
 
     public static final String NAME = "Contracts";
-    public static final String DESCRIPTION = "Operations on contracts (create, read, update, renew, close)";
+    public static final String DESCRIPTION = "Operations on contracts (create, read, update cost, list active contracts, sum of active contracts)";
 }
 

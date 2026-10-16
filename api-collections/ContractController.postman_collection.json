@@ -34,19 +34,12 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"costAmount\": 1500.50\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"costAmount\": 1500.50\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts",
           "host": ["{{baseUrl}}"],
-          "path": ["v2", "contracts"],
-          "query": [
-            {
-              "key": "clientId",
-              "value": "{{clientId}}",
-              "description": "UUID of the client (required)"
-            }
-          ]
+          "path": ["v2", "contracts"]
         },
         "description": "Create a contract with default dates. If not provided, startDate defaults to current date and endDate is null (open-ended contract)."
       }
@@ -63,19 +56,12 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2025-12-31T23:59:59\",\n  \"costAmount\": 2500.00\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2025-12-31T23:59:59\",\n  \"costAmount\": 2500.00\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts",
           "host": ["{{baseUrl}}"],
-          "path": ["v2", "contracts"],
-          "query": [
-            {
-              "key": "clientId",
-              "value": "{{clientId}}",
-              "description": "UUID of the client (required)"
-            }
-          ]
+          "path": ["v2", "contracts"]
         },
         "description": "Create a contract with specific start and end dates (ISO 8601 format without timezone - Swiss time assumed)."
       }
@@ -92,19 +78,12 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts",
           "host": ["{{baseUrl}}"],
-          "path": ["v2", "contracts"],
-          "query": [
-            {
-              "key": "clientId",
-              "value": "{{clientId}}",
-              "description": "UUID of the client (required)"
-            }
-          ]
+          "path": ["v2", "contracts"]
         },
         "description": "Create an open-ended contract (no end date - Swiss time assumed)."
       }
@@ -185,18 +164,11 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v2", "contracts", "{{contractId}}"],
-          "query": [
-            {
-              "key": "clientId",
-              "value": "{{clientId}}",
-              "description": "UUID of the client (required)"
-            }
-          ]
+          "path": ["v2", "contracts", "{{contractId}}"]
         },
-        "description": "Get a specific contract by its ID. Validates that the contract belongs to the specified client. Returns 403 if the contract doesn't belong to the client."
+        "description": "Get a specific contract by its ID. Returns 404 if the contract does not exist."
       }
     },
     {
@@ -214,16 +186,9 @@
           "raw": "{\n  \"amount\": 3000.00\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}/cost?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}/cost",
           "host": ["{{baseUrl}}"],
-          "path": ["v2", "contracts", "{{contractId}}", "cost"],
-          "query": [
-            {
-              "key": "clientId",
-              "value": "{{clientId}}",
-              "description": "UUID of the client (required)"
-            }
-          ]
+          "path": ["v2", "contracts", "{{contractId}}", "cost"]
         },
         "description": "Update the cost amount of a contract and its internal last modification date (used by the updatedSince filter). Only active (non-expired) contracts can be updated. Sending the same amount (scale-insensitive, e.g. 100.0 = 100.00) is a no-op: the contract is not modified."
       }

@@ -117,7 +117,7 @@ class PersonTest {
             }
 
             @Test
-            @DisplayName("GIVEN null birthDate WHEN creating Person THEN throw InvalidClientException")
+            @DisplayName("GIVEN null birthDate WHEN creating Person THEN throw InvalidPersonBirthDateException")
             void shouldRejectNullPersonBirthDate() {
                 assertThatThrownBy(() -> PersonFactory.createFromCommand(
                         "John Doe",

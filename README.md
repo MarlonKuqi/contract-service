@@ -8,7 +8,7 @@ A RESTful API for managing insurance clients (persons and companies) and their c
 
 ### Prerequisites
 - Docker Desktop ([Download](https://www.docker.com/products/docker-desktop/))
-- The provided Docker image builds on `openjdk:27-rc-jdk` and runs on a custom Java 27 `jlink` runtime
+- The provided Docker image builds on `azul-zulu:27-jdk` and runs on a custom Java 27 `jlink` runtime
 
 ### Run with Docker Compose (Recommended)
 
@@ -35,17 +35,14 @@ enables **independent testing of each feature, clear separation of concerns, eas
 maintainability**.
 
 **Domain Layer** (innermost) enforces invariants via Aggregates (Client sealed hierarchy: Person | Company, Contract)
-and immutable self-validating Value Objects (Email, PhoneNumber, ContractCost, ContractPeriod). **Validation at creation ensures "Always Valid" state**: business rules are encoded at instantiation (email format, positive cost, endDate > startDate), and immutability prevents subsequent invalid mutations. Once created, objects are guaranteed to satisfy all invariants—there is no intermediate invalid state. Domain exceptions (InvalidEmailException, ExpiredContractException) communicate failures clearly.
+and immutable self-validating Value Objects (Email, PhoneNumber, ContractCost, ContractPeriod). **Validation at creation ensures "Always Valid" state**: business rules are encoded at instantiation (email format, positive cost, endDate > startDate), and immutability prevents subsequent invalid mutations. Once created, objects are guaranteed to satisfy all invariants—there is no intermediate invalid state. Domain exceptions (InvalidClientEmailException, ExpiredContractException) communicate failures clearly.
 
-**Application Layer** orchestrates domain logic within transactional boundaries, coordinating use cases without exposing
-infrastructure details.
+**Features** (`features/`) hold one use case per file: a transactional handler that loads aggregates through repository ports, delegates business rules to the domain and saves the result.
 
-**Infrastructure Layer** abstracts technical concerns: JPA repositories with optimized fetch strategies (LAZY default,
-EAGER with join fetch to prevent N+1), Assemblers for bidirectional conversion (JPA ↔ domain), PostgreSQL + Flyway
-versioned migrations.
+**Infrastructure Layer** abstracts technical concerns: JPA entities and Spring Data repositories implementing the domain ports, mappers for bidirectional conversion (JPA ↔ domain), PostgreSQL + Flyway versioned migrations.
 
-**Web Layer** exposes REST endpoints with DTO validation (Jakarta Validation), specialized exception handlers returning
-proper HTTP codes (422, 404, 409, 403).
+**Controllers** (`controllers/`) expose one REST endpoint each with DTO validation (Jakarta Validation), specialized exception handlers returning
+`ProblemDetail` errors (400, 404, 409, 422).
 
 This architecture ensures business logic remains independent of frameworks, databases, and delivery mechanisms ;
 maximizing code reusability, testability, and resilience to technology changes.
@@ -69,7 +66,7 @@ curl -X POST http://localhost:8080/v2/clients \
   -d '{
     "type": "PERSON",
     "name": "Alice Martin",
-    "clientEmail": "alice@example.com",
+    "email": "alice@example.com",
     "phone": "+41791234567",
     "birthDate": "1990-05-15"
   }'
@@ -83,7 +80,7 @@ curl -X POST http://localhost:8080/v2/clients \
   -d '{
     "type": "COMPANY",
     "name": "TechCorp SA",
-    "clientEmail": "contact@techcorp.ch",
+    "email": "contact@techcorp.ch",
     "phone": "+41221234567",
     "companyIdentifier": "CHE-123.456.789"
   }'
@@ -92,9 +89,10 @@ curl -X POST http://localhost:8080/v2/clients \
 
 **Create a Contract** (startDate defaults to now if not provided):
 ```bash
-curl -X POST "http://localhost:8080/v2/contracts?clientId={client-uuid}" \
+curl -X POST http://localhost:8080/v2/contracts \
   -H "Content-Type: application/json" \
   -d '{
+    "clientId": "{client-uuid}",
     "costAmount": 1500.00
   }'
 ```
@@ -111,25 +109,25 @@ curl "http://localhost:8080/v2/contracts?clientId={client-uuid}&page=0&size=20"
 curl "http://localhost:8080/v2/contracts?clientId={uuid}&updatedSince=2025-01-01T00:00:00"
 ```
 
-**Get Sum of Active Contracts** (Optimized - <100ms):
+**Get Sum of Active Contracts:**
 ```bash
-curl "http://localhost:8080/v1/contracts/sum?clientId={client-uuid}"
+curl "http://localhost:8080/v2/contracts/total?clientId={client-uuid}"
 ```
-✅ **Response:** `{"sum": 4500.00}` (< 100ms even with 1000+ contracts)
+✅ **Response:** `4500.00` (database aggregation, < 100 ms for 100 contracts in the acceptance tests)
 
-**Update Contract Cost** (lastModified auto-updated):
+**Update Contract Cost** (the internal last modification date is updated, the same amount is a no-op):
 ```bash
-curl -X PATCH "http://localhost:8080/v1/contracts/{contract-uuid}/cost?clientId={client-uuid}" \
+curl -X PATCH "http://localhost:8080/v2/contracts/{contract-uuid}/cost" \
   -H "Content-Type: application/json" \
   -d '{"amount": 2000.00}'
 ```
 ✅ **Response:** `204 No Content`
 
-**Delete Client** (auto-closes all active contracts):
+**Delete Client** (soft delete, closes its active contracts):
 ```bash
-curl -X DELETE "http://localhost:8080/v1/clients/{client-uuid}"
+curl -X DELETE "http://localhost:8080/v2/clients/{client-uuid}"
 ```
-✅ **Response:** `204 No Content` (all contracts endDate set to now())
+✅ **Response:** `204 No Content` (active contracts get `endDate = deletion date`, the client then answers 404)
 
 ### 3. Automated Test Suite (Proof of Quality)
 
@@ -141,9 +139,9 @@ Run all tests:
 **Coverage:** 80%+ (view report: `target/site/jacoco/index.html`)
 
 **Test Categories:**
-- ✅ **Integration Tests** (9 pagination tests, lifecycle tests, CRUD)
-- ✅ **Performance Tests** (sum < 100ms for 1000 contracts)
-- ✅ **Validation Tests** (clientEmail, phone, dates ISO-8601, business rules)
+- ✅ **Unit Tests** (domain objects and use case handlers, mocked ports, fixed clock)
+- ✅ **Acceptance Tests** (REST API end to end with RestAssured, real PostgreSQL via Testcontainers)
+- ✅ **Validation Tests** (email, phone, dates ISO-8601, business rules)
 - ✅ **Edge Cases** (empty lists, expired contracts, conflicts)
 - ✅ **Testcontainers** (real PostgreSQL database)
 
@@ -160,19 +158,20 @@ Import from `api-collections/` for complete API examples:
 ### Clients
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/v1/clients` | Create client (Person or Company, discriminator: `type`) |
-| GET | `/v1/clients/{id}` | Get client details (all fields) |
-| PUT | `/v1/clients/{id}` | Update client (name, clientEmail, phone - NOT birthDate/companyIdentifier) |
-| DELETE | `/v1/clients/{id}` | Delete client & auto-close all contracts |
+| POST | `/v2/clients` | Create client (Person or Company, discriminator: `type`) |
+| GET | `/v2/clients/{id}` | Get client details (all fields) |
+| PUT | `/v2/clients/{id}` | Update client (name, email, phone - NOT birthDate/companyIdentifier) |
+| PATCH | `/v2/clients/{id}` | Partial update (name, email, phone) |
+| DELETE | `/v2/clients/{id}` | Soft delete client & close its active contracts |
 
-### Contract Endpoints (v2)
+### Contracts
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/v2/contracts?clientId={id}` | Create contract (startDate defaults to now) |
+| POST | `/v2/contracts` | Create contract (`clientId` in the body, startDate defaults to now) |
 | GET | `/v2/contracts?clientId={id}` | Get active contracts (paginated, filter by updatedSince) |
-| GET | `/v2/contracts/{id}?clientId={id}` | Get specific contract |
-| PATCH | `/v2/contracts/{id}/cost?clientId={id}` | Update cost (auto-updates lastModified) |
-| GET | `/v2/contracts/sum?clientId={id}` | Sum of active contracts (optimized) |
+| GET | `/v2/contracts/{id}` | Get specific contract |
+| PATCH | `/v2/contracts/{id}/cost` | Update cost (updates the internal last modification date) |
+| GET | `/v2/contracts/total?clientId={id}` | Sum of active contracts |
 
 ---
 
@@ -181,15 +180,15 @@ Import from `api-collections/` for complete API examples:
 ✅ **Create client** (Person with birthDate, Company with identifier)  
 ✅ **Read client** (all fields returned)  
 ✅ **Update client** (except birthDate/companyIdentifier - immutable)  
-✅ **Delete client** (auto-closes contracts: endDate = now())  
+✅ **Delete client** (soft delete, closes active contracts: endDate = deletion date)  
 ✅ **Create contract** (startDate defaults to now, endDate defaults to null)  
 ✅ **Update cost** (lastModified auto-updated, NOT exposed in API)  
 ✅ **Get active contracts** (current date < endDate, filter by updatedSince)  
-✅ **Optimized sum endpoint** (<100ms for 1000+ contracts)  
+✅ **Optimized sum endpoint** (database aggregation, no cache)  
 ✅ **ISO 8601 dates** (e.g., `2025-01-01T00:00:00`)  
 ✅ **Validation** (emails, phone numbers, dates, positive amounts)  
 ✅ **RESTful + JSON** (proper HTTP codes, Content-Type)  
-✅ **Java 27 + Spring Boot 4.1** (Latest LTS versions)  
+✅ **Java 27 + Spring Boot 4.1** (Java 27 is not an LTS release)  
 ✅ **PostgreSQL persistence** (survives crashes/restarts)  
 ✅ **Descriptive code** (DDD, clear naming, minimal comments)  
 
@@ -208,15 +207,14 @@ Import from `api-collections/` for complete API examples:
 
 **Test Statistics:**
 - 80%+ code coverage
-- 100+ integration tests
+- Unit and acceptance tests
 - Testcontainers for real database
-- Performance benchmarks
 
 ---
 
 ## 🔧 Alternative: Run with JAR
 
-**Prerequisites:** Java 27 + PostgreSQL 12+
+**Prerequisites:** Java 27 + PostgreSQL 18 (`uuidv7()` is required by the migrations)
 
 ```bash
 # 1. Create database
@@ -241,13 +239,11 @@ Flyway automatically creates schema + tables.
 
 ## 🌍 Localization (i18n)
 
-API supports multiple languages via `Accept-Language` header:
+The API resolves the locale from the `Accept-Language` header:
 - `fr-CH` (French Swiss - default)
-- `de-CH` (German Swiss)
-- `it-CH` (Italian Swiss)
-- `en` (English)
+- any other locale sent in `Accept-Language`
 
-All error messages and `Content-Language` headers adapt automatically.
+The `Content-Language` response header echoes the resolved locale. Error messages are not translated.
 
 ---
 
@@ -255,16 +251,16 @@ All error messages and `Content-Language` headers adapt automatically.
 
 - **Sum Endpoint**: Native SQL aggregation (no object loading)
 - **Pagination**: Efficient offset/limit queries
-- **Lazy Loading**: Default for associations (EAGER only where needed)
 - **No cache on the sum**: the active set changes with time (a contract expires without any write), so the sum is always computed from the database
 - **Indexes**: On clientId, end date (partial covering index for the sum), last modified date, companyIdentifier
+- **UUID v7 identifiers**: time-ordered, so inserts append to the primary key index
 
 ---
 
 ## 🔐 Security Notes
 
 - Default credentials (`postgres`/`postgres`) are for **development only**
-- Docker build uses **OpenJDK 27** and runtime uses a **custom Java 27 `jlink` image**
+- Docker build uses **Azul Zulu 27** and runtime uses a **custom Java 27 `jlink` image**
 - Docker image runs as non-root user `appuser`
 - Use environment variables for production credentials
 - Dependencies scanned for vulnerabilities (OWASP)
@@ -274,10 +270,10 @@ All error messages and `Content-Language` headers adapt automatically.
 ## 📝 Key Technical Details
 
 - **Update Date (lastModified)**: Managed internally, **NOT exposed** in API responses
-- **Active Contracts**: `endDate == null` OR `endDate > now()`
-- **Soft Delete**: Client deletion sets contract `endDate = now()` (no hard delete)
+- **Active Contracts**: `endDate == null` OR `now < endDate` (a contract starting in the future is active)
+- **Soft Delete**: Client deletion sets `deleted_at`, the client answers 404 everywhere, and its active contracts are closed with `endDate = deleted_at`. Contracts are kept for history.
 - **Immutable Fields**: `birthDate` (Person) and `companyIdentifier` (Company)
-- **Value Objects**: Self-validating (Email, PhoneNumber, ContractCost, ContractPeriod)
+- **Value Objects**: Self-validating (ClientEmail, ClientPhoneNumber, ContractCost, ContractPeriod)
 - **Sealed Hierarchy**: Client → Person | Company (compile-time type safety)
 
 ---
@@ -286,38 +282,27 @@ All error messages and `Content-Language` headers adapt automatically.
 
 ```
 src/main/java/com/mk/contractservice/
-├── domain/              # Business logic (DDD)
-│   ├── client/         # Client aggregate (Person, Company)
-│   ├── contract/       # Contract aggregate
-│   ├── valueobject/    # Email, Phone, Cost, Period
-│   └── exception/      # Business exceptions
-├── application/         # Use cases (Services)
-├── infrastructure/      # Technical (JPA, persistence)
-│   └── persistence/    # Repositories, Entities, Assemblers
-└── web/                # API layer
-    ├── controller/     # REST endpoints
-    ├── dto/            # Request/Response DTOs
-    └── advice/         # Exception handlers
+├── domain/          # Aggregates, Value Objects, domain services, repository ports, domain exceptions
+├── features/        # One use case per file (vertical slice)
+├── controllers/     # REST endpoints, DTOs, DTO mappers, exception handlers
+└── infrastructure/  # JPA entities, repositories and mappers, configuration
 
-src/test/
-├── java/.../integration/  # Integration tests (Testcontainers)
-└── java/.../domain/       # Unit tests
+src/test/java/com/mk/contractservice/
+├── domain/          # Unit tests of domain objects
+├── features/        # Unit tests of use case handlers
+├── acceptance/      # REST API end to end (*AcceptanceTest, Testcontainers)
+└── ArchitectureTest # Dependency rules (ArchUnit)
 ```
+
+Dependencies point inward: `controllers → features → domain ← infrastructure`.
 
 ---
 
 ## 📚 Documentation
 
-### Architecture & Design
-- **[docs/DDD_SERVICES_ARCHITECTURE.md](docs/DDD_SERVICES_ARCHITECTURE.md)** - Architecture DDD détaillée
-- **[docs-claude/DOCKER_OPTIMIZATION.md](docs-claude/DOCKER_OPTIMIZATION.md)** - Optimisation de l'image Docker
-- **[docs/MIGRATION_GUIDE_V2.md](docs/MIGRATION_GUIDE_V2.md)** - Guide de migration vers v2
-
-### Documentation Technique (sessions Claude)
-- **[docs-claude/](docs-claude/)** - Documentation générée lors des sessions de développement
-  - [Pagination Architecture](docs-claude/PAGINATION_ARCHITECTURE.md)
-  - [Docker Build Guide](docs-claude/DOCKER_BUILD_GUIDE.md)
-  - [Et plus...](docs/DDD/README.md)
+- **[docs/ADR.md](docs/ADR.md)** - Architecture Decision Records (reference)
+- **[docs/sujet.txt](docs/sujet.txt)** - Functional requirements
+- **[api-collections/](api-collections/)** - Postman collections
 
 ---
 

@@ -23,34 +23,22 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 - `POST /v2/clients` - Create client (Person or Company) with type discriminator
 - `GET /v2/clients/{id}` - Read client
 - `PUT /v2/clients/{id}` - Update client
-- `DELETE /v2/clients/{id}` - Delete client
+- `PATCH /v2/clients/{id}` - Partial update (name, email, phone)
+- `DELETE /v2/clients/{id}` - Delete client (soft delete, closes its active contracts)
 
 **Requêtes** : CRUD complet sur les clients
-
-**⚠️ Note:** Les collections PersonController et CompanyController ont été **supprimées** en v2.0.0. 
-Utilisez cette collection unifiée pour créer des clients Person ou Company.
 
 ### 2️⃣ ContractController
 **Fichier** : `ContractController.postman_collection.json`  
 **Endpoints** :
-- `POST /v2/contracts?clientId={clientId}` - Create contract
+- `POST /v2/contracts` - Create contract (`clientId` in the body)
 - `GET /v2/contracts?clientId={clientId}` - List active contracts (paginated)
 - `GET /v2/contracts?clientId={clientId}&updatedSince=...` - Filter by update date
-- `GET /v2/contracts/{contractId}?clientId={clientId}` - Get specific contract
-- `PATCH /v2/contracts/{contractId}/cost?clientId={clientId}` - Update cost
+- `GET /v2/contracts/{contractId}` - Get specific contract
+- `PATCH /v2/contracts/{contractId}/cost` - Update cost
 - `GET /v2/contracts/total?clientId={clientId}` - Sum of active contracts
 
-**Requêtes** : CRUD complet + agrégation sur les contrats
-
----
-
-## 🗑️ Collections Obsolètes
-
-Les collections suivantes sont **obsolètes** et ont été remplacées par `ClientController.postman_collection.json` :
-- ~~`PersonController.postman_collection.json`~~ → Migré vers ClientController
-- ~~`CompanyController.postman_collection.json`~~ → Migré vers ClientController
-
-Ces fichiers sont conservés pour référence historique mais ne devraient plus être utilisés.
+**Requêtes** : création, lecture, mise à jour du coût et agrégation. Il n'existe pas d'endpoint de suppression ou de clôture de contrat : un contrat se termine par sa `endDate`, ou à la suppression de son client.
 
 ---
 
@@ -171,7 +159,7 @@ Chaque collection définit ses propres variables :
 | **Format** | JSON standard | Format propriétaire |
 | **Compatibilité** | ✅ Universel (tous outils) | ❌ Bruno uniquement |
 | **Lisibilité** | JSON structuré | DSL lisible |
-| **Versionning Git** | ✅ Oui | ✅ Oui |
+| **Versionning Git** | ✅ Oui | ❌ Non (`.gitignore`, copie locale) |
 | **Import/Export** | ✅ Tous outils | ❌ Bruno uniquement |
 
 **Recommandation** : Utiliser les collections Postman pour **maximum de compatibilité**.
@@ -181,14 +169,12 @@ Chaque collection définit ses propres variables :
 ## 📝 Notes Importantes
 
 ### Format des Dates
-Toutes les dates doivent respecter **ISO 8601** :
+Toutes les dates doivent respecter **ISO 8601**, sans fuseau (heure suisse, `Europe/Zurich`) :
 - `"2025-01-15"` (date simple)
-- `"2025-01-01T00:00:00+01:00"` (datetime avec timezone)
+- `"2025-01-01T00:00:00"` (date et heure)
 
 ### Variables Non Auto-Remplies
 Les variables `clientId` et `contractId` doivent être **manuellement copiées** depuis les réponses.
-
-**Alternative** : Utiliser les scripts de test Postman (voir `postman-collections/` pour version avec auto-fill).
 
 ### Ordre des Requêtes
 1. Créer client (Person/Company)
@@ -202,14 +188,12 @@ Les variables `clientId` et `contractId` doivent être **manuellement copiées**
 
 ```
 api-collections/
-├── PersonController.postman_collection.json        (3 requêtes)
-├── CompanyController.postman_collection.json       (3 requêtes)
-├── ClientController.postman_collection.json        (3 requêtes)
-├── ContractController.postman_collection.json      (7 requêtes)
+├── ClientController.postman_collection.json        (9 requêtes)
+├── ContractController.postman_collection.json      (8 requêtes)
 └── README.md
 ```
 
-**Total : 16 requêtes réparties dans 4 fichiers**
+**Total : 17 requêtes réparties dans 2 fichiers**
 
 ---
 
@@ -232,84 +216,3 @@ api-collections/
 ---
 
 **Bon testing ! 🚀**
-{
-  "info": {
-    "name": "PersonController",
-    "description": "Endpoints for creating persons (physical clients)",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8080",
-      "type": "string"
-    }
-  ],
-  "item": [
-    {
-      "name": "Create Person",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+41791234567\",\n  \"birthDate\": \"1990-01-15\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/v1/persons",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "persons"]
-        },
-        "description": "Create a new person client with name, email, phone and birthdate"
-      }
-    },
-    {
-      "name": "Create Person - Example 2",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Jane Smith\",\n  \"email\": \"jane.smith@example.com\",\n  \"phone\": \"+41792345678\",\n  \"birthDate\": \"1985-05-20\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/v1/persons",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "persons"]
-        }
-      }
-    },
-    {
-      "name": "Create Person - Example 3",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Alice Martin\",\n  \"email\": \"alice.martin@example.com\",\n  \"phone\": \"+41793456789\",\n  \"birthDate\": \"1995-12-10\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/v1/persons",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "persons"]
-        }
-      }
-    }
-  ]
-}
-
