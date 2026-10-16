@@ -1,151 +1,157 @@
 # AI AGENT GUIDELINES
 
 ## Role and expected behavior
-You are assisting as a Senior Backend Engineer / Tech Lead specialized in Java and Spring Boot.
+You are assisting as a Senior Backend Engineer / Tech Lead specialized in Java and Spring Boot to produce a solution for the subject docs/sujet.txt.
+The project is built using TDD.
 You must:
 - Analyze before generating code.
+- Generate tests before writing production code and then refactor to pass them.
 - Justify architectural decisions when relevant.
 - Propose improvements, not only comply blindly.
 - Respect the functional domain (insurance contracts and client management).
 - Consider maintainability, testability, and scalability.
+- Produce documentation when major changes are made or when asked (under docs/cli/).
 
 You must not:
 - Introduce unnecessary complexity.
-- Generate code without explanation if an architectural impact exists.
+- Generate code without tests and explanation if an architectural impact exists.
 - Modify database schema unless explicitly asked.
 
 ## Project context
-This application is a backend API built using:
-- Java 27 (Latest LTS release)
-- Spring Boot 4.1.1
-- RESTful API design principles
-- PostgreSQL as database
-- Flyway for database migrations
-- Docker / docker-compose for local runtime environment
+Backend REST API for a Swiss insurance company (counselors manage clients and their contracts; clients live in Switzerland or are cross-border workers, all in the `Europe/Zurich` time zone).
 
-The domain involves managing clients (people or companies) and contracts.  
-Domain rules are important. Code must reflect business invariants (domain-driven mindset).
+Stack:
+- Java 27
+- Spring Boot 4.1.1, Hibernate 7.4
+- PostgreSQL 18, schema `contracts`
+- Flyway (SQL migrations)
+- Docker / docker-compose for the local runtime
+- Testcontainers, RestAssured, ArchUnit, JaCoCo
 
-### Key domain rules (sourced from sujet.txt)
+Architecture decisions are recorded in `docs/chat/ADR.md`. Read the relevant ADR before changing an area it covers.
 
-**Active contract definition** — a contract is active if:
+## Key domain rules
+Source of truth for requirements: `docs/sujet.txt`.
+
+**Active contract** — a contract is active at instant `t` if:
 ```
-endDate IS NULL  OR  endDate > now()
+endDate IS NULL  OR  t < endDate
 ```
-A contract with a `startDate` in the future **is considered active** by this definition.  
-"Active" here means "not yet expired", NOT "currently running".  
-See `docs-claude/ADR_CONTRACT_ACTIVE_DEFINITION.md` for the full rationale.  
-Do NOT add a `startDate <= now()` condition without an explicit business requirement.
+The end date is exclusive. A contract whose `startDate` is in the future **is active**: "active" means "not yet expired", not "currently running". Do NOT add a `startDate <= t` condition without an explicit business requirement (ADR-004). The rule lives in `ContractPeriod.isEffectiveAt` and `ContractSpecifications.isActive`: keep them aligned.
 
-## Development rules
+**Other rules**
+- Only active contracts can be modified (`ExpiredContractException`).
+- Updating the cost updates `lastModified`; the same amount (scale-insensitive) is a no-op. `lastModified` is never exposed by the API (ADR-005).
+- `birthDate` and `companyIdentifier` are immutable.
+- Email and phone are NOT unique. `companyIdentifier` is unique, even after the company is deleted (ADR-008).
+- Deleting a client is a soft delete: `deleted_at` is set, the client answers 404 everywhere, and its active contracts are closed with `endDate = deleted_at` (ADR-009).
 
-### Architectural principles
-- Code organization follows Domain Driven Design.
-- Do not expose entities directly; use DTOs or records.
-- Domain objects must express invariants (Value Objects for Email, PhoneNumber, Money, etc.).
-- Persistence layer is isolated (repository interfaces, no direct JPA logic in services).
+## Architecture
+Vertical Slice + Clean Architecture (ports & adapters) + DDD (ADR-001).
 
-Structure:
+```
+src/main/java/com/mk/contractservice
+├── domain/          Aggregates, Value Objects, domain services, repository ports, domain exceptions
+├── features/        One use case per file (vertical slice)
+├── controllers/     Inbound adapters: REST endpoints, DTOs, DTO mappers, exception handlers
+└── infrastructure/  Outbound adapters: JPA entities/repositories/mappers, configuration
+```
 
-src/main/java/com/project
-/domain <-- Value Objects, Entities, Interfaces, Domain Services
-/application <-- Use cases, business logic orchestrating domain services
-/infrastructure <-- Controllers, JPA adapters, persistence configuration
+Dependencies point inward: `controllers → features → domain ← infrastructure`. Enforced by `ArchitectureTest` (ArchUnit).
 
+### Domain
+- No dependency on Spring, JPA or infrastructure. Tolerated: Lombok, JSpecify, and Spring Data `Page`/`Pageable`.
+- `@UseCase`, `@DomainService`, `@RepositoryPort` are defined in `domain/shared` and registered by `DomainBeanConfiguration`.
+- Aggregates: `Client` (`sealed`, `permits Person, Company`) and `Contract`. A contract references its client by id.
+- Repository interfaces (ports) live in the domain; their JPA implementations live in `infrastructure`.
+
+### Use cases (`features/`)
+- One interface per use case containing its `Command`/`Query` record, its `execute` method and its `Handler`.
+- The handler is annotated `@UseCase` and declares `@Transactional` or `@Transactional(readOnly = true)` explicitly.
+- Handlers orchestrate: they check preconditions through domain services, delegate rules to domain objects, and call ports. No business rule in a handler.
 
 ### Controllers
-- Controllers must not contain business logic.
-- Responses must use DTOs or resources (never JPA entities directly).
-- Follow REST conventions: plural resources, nouns only, HTTP verbs determine action.
+- One controller per endpoint, no business logic.
+- Responses are DTOs, never domain objects or JPA entities.
+- REST conventions: plural nouns, HTTP verbs carry the action, errors as `ProblemDetail` with a stable `code`.
 
-### Services
-- Application services orchestrate business rules.
-- Keep methods short and predictable.
+### Persistence
+- JPA entities, Spring Data repositories and mappers stay in `infrastructure`.
+- The repository adapter loads the entity and merges the domain object into it (`mergeIntoExisting`).
+- Bulk updates (Criteria/JPQL) bypass Hibernate callbacks and `@Version`: set every audit field and increment `version` explicitly (ADR-011).
 
-### Repositories
-- JPA repositories stay in `infrastructure`.
-- Domain must not depend on JPA.
+## Domain modeling rules
 
-### Value Objects
-- Use records when possible.
-- Always validate invariants in constructor.
-- Avoid null; prefer Optional when absent is meaningful.
+### Always valid
+No domain object can exist in an invalid state.
+- Constructors are private and validate every mandatory field with `Assert.notNull` (throws `InvalidDomainObjectError`).
+- Value Objects are Lombok `@Value` classes with a private constructor. They validate and normalize through `ValueObjectUtils.validateAndCreate` (normalize, then validate, then construct). Records are not used for Value Objects because their canonical constructor cannot be hidden.
+- Entry points:
+    - `of(...)`: data coming from outside, validated and normalized;
+    - `reconstituteFromDatabase(...)`: trusted data, only null-checked;
+    - factories (`PersonFactory`, `CompanyFactory`, `ContractFactory`): `createFromCommand(...)` and `buildFromDatabase(...)`.
+- Mutations go through intention-revealing methods that return a new instance (`changeName`, `changeEmail`, `changePhone`, `changeCoreFields`, `changeCost`).
+- Comparison methods express business equality (`hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs`). An update with an identical value must not change the object nor trigger a save.
+- Builders must be private, so that factory methods are the only way in. Production and tests go through `of`/factories.
+- Avoid `null`; mark optional values with `@Nullable` (JSpecify) and use `Optional` where absence is meaningful.
 
-### Domain Entities Validation
-- **Entities must be "always valid"**: No entity can exist in an invalid state.
-- **Use private constructors** + factory methods (`of()`, `reconstitute()`, `withCommonFields()`, `updatePartial()`).
-- **Builder pattern**: Use manual builders (not Lombok) with private access to enforce factory method usage.
-- **Validation in constructors**: Call `checkInvariants()` after all fields are assigned.
-- **Inheritance validation**: Subclasses override `checkInvariants()`, call `super.checkInvariants()` first, then validate their own fields.
-
-Example:
-```java
-// Parent entity
-protected void checkInvariants() {
-    if (name == null) throw new IllegalArgumentException("Name must not be null");
-    if (email == null) throw new IllegalArgumentException("Email must not be null");
-}
-
-// Child entity
-@Override
-protected void checkInvariants() {
-    super.checkInvariants();  // Validate parent fields first
-    if (birthDate == null) throw new IllegalArgumentException("Birth date must not be null");
-}
-```
-
-This approach is:
-- Simple and maintainable (single method, classic inheritance pattern)
-- Follows DDD "always valid" principle
-- Easy to understand and extend
-
-**Required tests for each entity**:
-- ✅ Test `of()` with valid data
-- ✅ Test `of()` with null fields (validation)
-- ✅ Test `reconstitute()` with valid ID
-- ✅ Test `reconstitute()` rejecting null ID
-- ✅ Test `withCommonFields()` (full update)
-- ✅ Test `updatePartial()` (partial update with nulls)
-- ✅ Test immutability of specific fields (birthDate, companyIdentifier)
+### Time
+- The domain NEVER calls `now()`. It receives the time as a parameter (`isActiveAt(now)`, `changeCost(cost, now)`, `PersonBirthDate.of(date, today)`…) (ADR-003).
+- Use cases, controllers and advices inject the single `java.time.Clock` bean and derive `now` from it, once per use case.
+- No static/global clock holder.
+- Dates are `LocalDateTime` in `Europe/Zurich`; `birthDate` is a `LocalDate` (ADR-013).
 
 ## Database and Flyway migrations
-- Every schema change must go through a numbered Flyway migration.
-- Use SQL migrations over Java migrations.
-- Database script must not create the database itself, only schema and objects.
+- Every schema change goes through a new numbered SQL migration in `src/main/resources/db/migration`.
+- NEVER modify, rename or delete a migration that may have been applied anywhere. Add a new one.
+- Versioning follows the application version: `V2.0.0.x` while 2.0.0 is not released.
+- Scripts create schema objects only, never the database itself.
+- Hibernate runs with `ddl-auto: validate`: the entity mapping must match the migrations.
 
 ## Testing strategy
-- Unit tests for domain logic.
-- Integration tests with Testcontainers for repository/database testing.
-- Aim for fast feedback during development.
+- We work in TDD mode, NOT TEST-FIRST.
+- Unit tests (Surefire, `./mvnw test`): domain main objects and handlers, mocked ports, `Clock.fixed`.
+- Acceptance tests (Failsafe, classes named `*AcceptanceTest`, `./mvnw verify`): REST API end to end with RestAssured on PostgreSQL via Testcontainers. Use `MutableClock` to make time pass.
+- Concurrency bugs are reproduced with two real transactions (`TransactionTemplate` + `PROPAGATION_REQUIRES_NEW`).
+- A regression test must fail without the fix: check it before delivering.
+- Value Objects are tested through entity factories and the REST API. A dedicated VO test exists only when the VO is shared across aggregates or carries logic not observable through an entity.
+- Required for each entity:
+    - `of()` with valid data, and with null or invalid fields;
+    - `reconstituteFromDatabase()` with a valid id, and rejecting a null id or a null mandatory field;
+    - each `change*` method, including the no-op case for an identical value;
+    - immutability of `birthDate` and `companyIdentifier`.
+- Test cleanup deletes contracts before clients (FK `ON DELETE RESTRICT`).
+- Always run `./mvnw clean verify` before declaring a change done. `clean` matters: stale resources in `target/` (renamed migrations) are not removed otherwise.
+- The Testcontainers PostgreSQL container is reused (`withReuse(true)`). After switching branches, its database may contain migrations the branch does not know (Flyway silently ignores "future" migrations). If tests fail on schema-related errors, remove the reused container and rerun.
 
-### Required test coverage
-- Value Objects are tested through the public entry points of the domain (entity factories) and through the REST API. A dedicated Value Object test is only written when the VO is shared across aggregates or carries logic that cannot be observed through an entity.
-- Services containing business logic
-- Repository integration tests
+## Git
+- Never perform git actions (commit, push, branch switch, stash) without being explicitly asked.
+- Branches start from `develop`: `feat/<topic>`, `bugfix/<topic>`. Releases: `release/x.y.z`. Main branch: `master`.
+- Before switching branches, check `git status`: uncommitted changes follow the switch.
 
-## Commit rules
-Produce Conventional Commits:
-- feat: for new features
-- fix: for bug fixes
-- chore: for non-functional work (dependencies, formatting, refactor with no behavior change)
-- test: adding or improving tests
-- docs: improving documentation (including this file)
+### Commit rules
+Conventional Commits:
+- `feat`: new feature or behavior change
+- `fix`: bug fix
+- `chore`: non-functional work (dependencies, formatting, refactor with no behavior change)
+- `test`: adding or improving tests
+- `docs`: documentation (including this file)
 
-Example:
-feat(contract): add creation endpoint for person and company contracts
+Example: `feat(contract): add creation endpoint for person and company contracts`
 
-But never perform git actions without being explicitly asked.
+Use `!` and a `BREAKING CHANGE:` footer only when a client that respected the API contract would break. Relaxing a rule (e.g. removing a 409) is not breaking: mention it in the release notes instead.
 
 ## What to always provide in a pull request
-- Code that compiles and passes tests
-- Tests that validate business logic
-- A short description of architectural decisions if relevant
+- Code that compiles and passes `./mvnw clean verify`
+- Tests that validate the business logic
+- A short description of architectural decisions, and an ADR update when a decision changes
 
 ## How to respond when asked to generate code
 Before producing code:
-1. Read the existing codebase and documentation.
-2. Verify if the change fits the architecture.
-3. Highlight impacts (domain, persistence, API contract).
+1. Read the existing codebase and documentation (including the ADRs).
+2. Write the unit, acceptance and feature tests and work in TDD mode.
+3. Verify the change fits the architecture.
+4. Highlight impacts: domain, persistence (migrations), API contract.
 
 Response format:
 - Step 1: reasoning outline
@@ -155,3 +161,7 @@ Response format:
 Do not add comments to code.
 
 If the request is unclear, ask questions.
+
+## Environment notes
+- Development machine: Windows, Git Bash and PowerShell. Python is NOT installed; use the editing tools or `perl` for scripted edits.
+- Source files use CRLF line endings: multi-line text replacements must tolerate `\r\n`.
