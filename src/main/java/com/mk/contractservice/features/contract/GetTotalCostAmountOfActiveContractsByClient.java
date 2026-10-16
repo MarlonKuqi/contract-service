@@ -1,6 +1,6 @@
 package com.mk.contractservice.features.contract;
 
-import com.mk.contractservice.domain.client.ClientValidationService;
+import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.ContractQueryPort;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
@@ -27,13 +27,13 @@ public interface GetTotalCostAmountOfActiveContractsByClient {
     @RequiredArgsConstructor
     class Handler implements GetTotalCostAmountOfActiveContractsByClient {
 
-        private final ClientValidationService clientValidationService;
+        private final ClientRepository clientRepository;
         private final ContractQueryPort contractQueryPort;
         private final Clock clock;
 
         @Override
         public BigDecimal execute(final Query query) {
-            clientValidationService.ensureClientExists(query.clientId());
+            clientRepository.ensureExists(query.clientId());
             return contractQueryPort.calculateTotalCostAmountForClient(query.clientId(), LocalDateTime.now(clock));
         }
     }

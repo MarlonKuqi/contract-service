@@ -1,7 +1,6 @@
 package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
@@ -29,12 +28,11 @@ public interface DeleteClient {
 
         private final ClientRepository clientRepository;
         private final ContractRepository contractRepository;
-        private final ClientValidationService clientValidationService;
         private final Clock clock;
 
         @Override
         public void execute(final Command command) {
-            clientValidationService.ensureClientExists(command.clientId());
+            clientRepository.ensureExists(command.clientId());
             final LocalDateTime deletedAt = LocalDateTime.now(clock);
             clientRepository.delete(command.clientId(), deletedAt);
             contractRepository.closeAllActiveByClientId(command.clientId(), deletedAt);

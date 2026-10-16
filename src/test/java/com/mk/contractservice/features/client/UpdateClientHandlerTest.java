@@ -2,7 +2,6 @@ package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.ClientService;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.CompanyFactory;
 import com.mk.contractservice.domain.client.Person;
@@ -33,13 +32,11 @@ class UpdateClientHandlerTest {
     @Mock
     private ClientRepository clientRepository;
 
-    @Mock
-    private ClientService clientService;
     private UpdateClient.Handler updateClientHandler;
 
     @BeforeEach
     void setUp() {
-        updateClientHandler = new UpdateClient.Handler(clientRepository, clientService);
+        updateClientHandler = new UpdateClient.Handler(clientRepository);
     }
 
 
@@ -75,7 +72,7 @@ class UpdateClientHandlerTest {
                     "+33222222222"
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             // When
             Client result = updateClientHandler.execute(command);
@@ -98,7 +95,7 @@ class UpdateClientHandlerTest {
                     "+33222222222"
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             // When
             Client result = updateClientHandler.execute(command);
@@ -121,7 +118,7 @@ class UpdateClientHandlerTest {
                     "+33111111111"
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             // When
             Client result = updateClientHandler.execute(command);
@@ -144,7 +141,7 @@ class UpdateClientHandlerTest {
                     "+33111111111"
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             // When
             Client result = updateClientHandler.execute(command);
@@ -166,7 +163,7 @@ class UpdateClientHandlerTest {
                     "+33222222222"
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             Client result = updateClientHandler.execute(command);
 
@@ -204,7 +201,7 @@ class UpdateClientHandlerTest {
                     "+33111111111"
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             Client result = updateClientHandler.execute(command);
 
@@ -222,7 +219,7 @@ class UpdateClientHandlerTest {
                     "+33 1 11 11 11 11"
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             Client result = updateClientHandler.execute(command);
 
@@ -263,7 +260,7 @@ class UpdateClientHandlerTest {
                     "+33222222222"
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingCompany);
+            when(clientRepository.getById(clientId)).thenReturn(existingCompany);
 
             // When
             Client result = updateClientHandler.execute(command);
@@ -286,7 +283,7 @@ class UpdateClientHandlerTest {
                     "+33111111111"
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingCompany);
+            when(clientRepository.getById(clientId)).thenReturn(existingCompany);
 
             // When
             Client result = updateClientHandler.execute(command);
@@ -329,7 +326,7 @@ class UpdateClientHandlerTest {
                     "+33222222222"
             );
 
-            when(clientService.findClientById(clientId))
+            when(clientRepository.getById(clientId))
                     .thenThrow(ClientNotFoundException.forId(clientId));
 
             // When & Then

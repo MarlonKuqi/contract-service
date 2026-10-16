@@ -1,7 +1,7 @@
 package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.ClientService;
+import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,11 +24,11 @@ public interface GetClientById {
     @RequiredArgsConstructor
     class Handler implements GetClientById {
 
-        private final ClientService clientService;
+        private final ClientRepository clientRepository;
 
         @Override
         public Client execute(final Query query) {
-            return clientService.findClientById(query.clientId());
+            return clientRepository.getById(query.clientId());
         }
     }
 }

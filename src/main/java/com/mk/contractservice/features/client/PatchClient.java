@@ -5,7 +5,6 @@ import com.mk.contractservice.domain.client.ClientEmail;
 import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.ClientService;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -35,11 +34,10 @@ public interface PatchClient {
     class Handler implements PatchClient {
 
         private final ClientRepository clientRepository;
-        private final ClientService clientService;
 
         @Override
         public Client execute(final Command command) {
-            final Client client = clientService.findClientById(command.clientId());
+            final Client client = clientRepository.getById(command.clientId());
 
             final ClientName name = command.name() == null ? null : ClientName.of(command.name());
             final ClientEmail email = command.email() == null ? null : ClientEmail.of(command.email());

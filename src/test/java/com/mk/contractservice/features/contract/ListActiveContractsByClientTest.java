@@ -1,11 +1,9 @@
 package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
-import com.mk.contractservice.domain.contract.ContractService;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,6 +22,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,9 +41,7 @@ class ListActiveContractsByClientTest {
 
     @BeforeEach
     void setUp() {
-        ClientValidationService clientValidationService = new ClientValidationService(clientRepository);
-        ContractService contractService = new ContractService(contractRepository);
-        handler = new ListActiveContractsByClient.Handler(clientValidationService, contractService, FIXED_CLOCK);
+        handler = new ListActiveContractsByClient.Handler(clientRepository, contractRepository, FIXED_CLOCK);
     }
 
     @Test
@@ -65,7 +62,7 @@ class ListActiveContractsByClientTest {
     @DisplayName("GIVEN non-existent clientId WHEN execute THEN throw ClientNotFoundException")
     void shouldThrowWhenClientNotFound() {
         UUID unknownId = UUID.randomUUID();
-        when(clientRepository.existsById(unknownId)).thenReturn(false);
+        doThrow(ClientNotFoundException.forId(unknownId)).when(clientRepository).ensureExists(unknownId);
 
         assertThatThrownBy(() -> handler.execute(new ListActiveContractsByClient.Query(unknownId, null, Pageable.unpaged())))
                 .isInstanceOf(ClientNotFoundException.class);
@@ -78,11 +75,26 @@ class ListActiveContractsByClientTest {
         Page<Contract> expectedPage = Page.empty();
         ContractSearchCriteria expectedCriteria = ContractSearchCriteria.activeForClient(clientId, LocalDateTime.now(FIXED_CLOCK));
 
-        when(clientRepository.existsById(clientId)).thenReturn(true);
         when(contractRepository.findByCriteria(expectedCriteria, Pageable.unpaged()))
                 .thenReturn(expectedPage);
 
         Page<Contract> result = handler.execute(new ListActiveContractsByClient.Query(clientId, null, Pageable.unpaged()));
+
+        assertThat(result).isEqualTo(expectedPage);
+    }
+
+    @Test
+    @DisplayName("GIVEN existing client and updatedSince WHEN execute THEN return contracts active at clock time and updated since the given date")
+    void shouldFilterActiveContractsByUpdateDate() {
+        UUID clientId = UUID.randomUUID();
+        LocalDateTime updatedSince = LocalDateTime.now(FIXED_CLOCK).minusDays(7);
+        Page<Contract> expectedPage = Page.empty();
+        ContractSearchCriteria expectedCriteria = new ContractSearchCriteria(clientId, LocalDateTime.now(FIXED_CLOCK), updatedSince);
+
+        when(contractRepository.findByCriteria(expectedCriteria, Pageable.unpaged()))
+                .thenReturn(expectedPage);
+
+        Page<Contract> result = handler.execute(new ListActiveContractsByClient.Query(clientId, updatedSince, Pageable.unpaged()));
 
         assertThat(result).isEqualTo(expectedPage);
     }

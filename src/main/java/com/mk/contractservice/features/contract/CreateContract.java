@@ -1,6 +1,6 @@
 package com.mk.contractservice.features.contract;
 
-import com.mk.contractservice.domain.client.ClientValidationService;
+import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.domain.contract.ContractRepository;
@@ -35,13 +35,13 @@ public interface CreateContract {
     @RequiredArgsConstructor
     class Handler implements CreateContract {
 
-        private final ClientValidationService clientValidationService;
+        private final ClientRepository clientRepository;
         private final ContractRepository contractRepository;
         private final Clock clock;
 
         @Override
         public Contract execute(final Command command) {
-            clientValidationService.ensureClientExists(command.clientId());
+            clientRepository.ensureExists(command.clientId());
 
             final Contract contract = ContractFactory.createFromCommand(
                     command.clientId(),

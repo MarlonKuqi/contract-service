@@ -1,7 +1,6 @@
 package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.ContractQueryPort;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +19,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,8 +38,7 @@ class GetTotalCostAmountOfActiveContractsByClientTest {
 
     @BeforeEach
     void setUp() {
-        ClientValidationService clientValidationService = new ClientValidationService(clientRepository);
-        handler = new GetTotalCostAmountOfActiveContractsByClient.Handler(clientValidationService, contractQueryPort, FIXED_CLOCK);
+        handler = new GetTotalCostAmountOfActiveContractsByClient.Handler(clientRepository, contractQueryPort, FIXED_CLOCK);
     }
 
     @Test
@@ -53,7 +52,7 @@ class GetTotalCostAmountOfActiveContractsByClientTest {
     @DisplayName("GIVEN non-existent clientId WHEN execute THEN throw ClientNotFoundException")
     void shouldThrowWhenClientNotFound() {
         UUID unknownId = UUID.randomUUID();
-        when(clientRepository.existsById(unknownId)).thenReturn(false);
+        doThrow(ClientNotFoundException.forId(unknownId)).when(clientRepository).ensureExists(unknownId);
 
         assertThatThrownBy(() -> handler.execute(new GetTotalCostAmountOfActiveContractsByClient.Query(unknownId)))
                 .isInstanceOf(ClientNotFoundException.class);
@@ -65,7 +64,6 @@ class GetTotalCostAmountOfActiveContractsByClientTest {
         UUID clientId = UUID.randomUUID();
         BigDecimal expectedTotal = new BigDecimal("1500.00");
 
-        when(clientRepository.existsById(clientId)).thenReturn(true);
         when(contractQueryPort.calculateTotalCostAmountForClient(clientId, LocalDateTime.now(FIXED_CLOCK)))
                 .thenReturn(expectedTotal);
 

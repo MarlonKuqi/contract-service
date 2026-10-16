@@ -2,7 +2,6 @@ package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.ClientService;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.CompanyFactory;
 import com.mk.contractservice.domain.client.Person;
@@ -33,14 +32,11 @@ class PatchClientHandlerTest {
     @Mock
     private ClientRepository clientRepository;
 
-    @Mock
-    private ClientService clientService;
-
     private PatchClient.Handler patchClientHandler;
 
     @BeforeEach
     void setUp() {
-        patchClientHandler = new PatchClient.Handler(clientRepository, clientService);
+        patchClientHandler = new PatchClient.Handler(clientRepository);
     }
 
     @Nested
@@ -75,7 +71,7 @@ class PatchClientHandlerTest {
                     "+33222222222"
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             // When
             Client result = patchClientHandler.execute(command);
@@ -97,7 +93,7 @@ class PatchClientHandlerTest {
                     null
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             // When
             Client result = patchClientHandler.execute(command);
@@ -119,7 +115,7 @@ class PatchClientHandlerTest {
                     null
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             // When
             Client result = patchClientHandler.execute(command);
@@ -141,7 +137,7 @@ class PatchClientHandlerTest {
                     "+33999999999"
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             // When
             Client result = patchClientHandler.execute(command);
@@ -176,7 +172,7 @@ class PatchClientHandlerTest {
                     null
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             // When
             Client result = patchClientHandler.execute(command);
@@ -209,7 +205,7 @@ class PatchClientHandlerTest {
                     null
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingCompany);
+            when(clientRepository.getById(clientId)).thenReturn(existingCompany);
 
             // When
             Client result = patchClientHandler.execute(command);
@@ -256,7 +252,7 @@ class PatchClientHandlerTest {
                     "+33222222222"
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingCompany);
+            when(clientRepository.getById(clientId)).thenReturn(existingCompany);
 
             // When
             Client result = patchClientHandler.execute(command);
@@ -279,7 +275,7 @@ class PatchClientHandlerTest {
                     null
             );
 
-            when(clientService.findClientById(clientId)).thenReturn(existingCompany);
+            when(clientRepository.getById(clientId)).thenReturn(existingCompany);
 
             // When
             Client result = patchClientHandler.execute(command);
@@ -321,7 +317,7 @@ class PatchClientHandlerTest {
                     null
             );
 
-            when(clientService.findClientById(clientId))
+            when(clientRepository.getById(clientId))
                     .thenThrow(ClientNotFoundException.forId(clientId));
 
             // When & Then
@@ -336,7 +332,7 @@ class PatchClientHandlerTest {
             String existingEmail = existingPerson.getEmail().getValue();
             PatchClient.Command command = new PatchClient.Command(clientId, null, existingEmail, null);
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             // When
             Client result = patchClientHandler.execute(command);
@@ -352,7 +348,7 @@ class PatchClientHandlerTest {
             String existingPhone = existingPerson.getPhone().getValue();
             PatchClient.Command command = new PatchClient.Command(clientId, null, null, existingPhone);
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             // When
             Client result = patchClientHandler.execute(command);
@@ -366,7 +362,7 @@ class PatchClientHandlerTest {
         void shouldNotSaveWhenSamePhoneInAnotherFormat() {
             PatchClient.Command command = new PatchClient.Command(clientId, null, null, "+33 1 11 11 11 11");
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             Client result = patchClientHandler.execute(command);
 
@@ -379,7 +375,7 @@ class PatchClientHandlerTest {
         void shouldNotSaveWhenSameEmailInAnotherCase() {
             PatchClient.Command command = new PatchClient.Command(clientId, null, "JOHN@Example.com", null);
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             Client result = patchClientHandler.execute(command);
 
@@ -392,7 +388,7 @@ class PatchClientHandlerTest {
         void shouldNotSaveWhenSameNameWithSpaces() {
             PatchClient.Command command = new PatchClient.Command(clientId, "  John Doe  ", null, null);
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             Client result = patchClientHandler.execute(command);
 
@@ -405,7 +401,7 @@ class PatchClientHandlerTest {
         void shouldNotSaveWhenAllFieldsAreIdentical() {
             PatchClient.Command command = new PatchClient.Command(clientId, "John Doe", "john@example.com", "+33111111111");
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
             Client result = patchClientHandler.execute(command);
 
@@ -418,7 +414,7 @@ class PatchClientHandlerTest {
         void shouldSaveOnceWhenOnlySomeFieldsChange() {
             PatchClient.Command command = new PatchClient.Command(clientId, "Jane Doe", "john@example.com", null);
 
-            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             Client result = patchClientHandler.execute(command);

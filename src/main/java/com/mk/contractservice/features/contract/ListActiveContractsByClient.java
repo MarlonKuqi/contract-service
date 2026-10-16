@@ -1,8 +1,9 @@
 package com.mk.contractservice.features.contract;
 
-import com.mk.contractservice.domain.client.ClientValidationService;
+import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractService;
+import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.contract.ContractSearchCriteria;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -35,19 +36,19 @@ public interface ListActiveContractsByClient {
     @RequiredArgsConstructor
     class Handler implements ListActiveContractsByClient {
 
-        private final ClientValidationService clientValidationService;
-        private final ContractService contractService;
+        private final ClientRepository clientRepository;
+        private final ContractRepository contractRepository;
         private final Clock clock;
 
         @Override
         public Page<Contract> execute(final Query query) {
-            clientValidationService.ensureClientExists(query.clientId());
-            return contractService.getActiveContractsForClient(
+            clientRepository.ensureExists(query.clientId());
+            final ContractSearchCriteria criteria = ContractSearchCriteria.activeForClient(
                     query.clientId(),
                     LocalDateTime.now(clock),
-                    query.updatedSince(),
-                    query.pageable()
+                    query.updatedSince()
             );
+            return contractRepository.findByCriteria(criteria, query.pageable());
         }
     }
 }

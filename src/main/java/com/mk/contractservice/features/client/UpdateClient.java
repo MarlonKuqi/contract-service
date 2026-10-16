@@ -5,7 +5,6 @@ import com.mk.contractservice.domain.client.ClientEmail;
 import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.ClientService;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,11 +36,10 @@ public interface UpdateClient {
     class Handler implements UpdateClient {
 
         private final ClientRepository clientRepository;
-        private final ClientService clientService;
 
         @Override
         public Client execute(final Command command) {
-            final Client client = clientService.findClientById(command.clientId());
+            final Client client = clientRepository.getById(command.clientId());
             final ClientEmail email = ClientEmail.of(command.email());
             final ClientPhoneNumber phone = ClientPhoneNumber.of(command.phoneNumber());
             final ClientName name = ClientName.of(command.name());

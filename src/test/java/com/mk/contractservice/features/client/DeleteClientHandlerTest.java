@@ -1,7 +1,6 @@
 package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,10 +19,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DeleteClient Handler")
@@ -41,8 +40,7 @@ class DeleteClientHandlerTest {
 
     @BeforeEach
     void setUp() {
-        ClientValidationService clientValidationService = new ClientValidationService(clientRepository);
-        deleteClientHandler = new DeleteClient.Handler(clientRepository, contractRepository, clientValidationService, FIXED_CLOCK);
+        deleteClientHandler = new DeleteClient.Handler(clientRepository, contractRepository, FIXED_CLOCK);
     }
 
     @Test
@@ -50,7 +48,6 @@ class DeleteClientHandlerTest {
     void shouldDeleteClientThenCloseItsActiveContractsAtSameInstant() {
         UUID clientId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now(FIXED_CLOCK);
-        when(clientRepository.existsById(clientId)).thenReturn(true);
 
         deleteClientHandler.execute(new DeleteClient.Command(clientId));
 
@@ -63,7 +60,7 @@ class DeleteClientHandlerTest {
     @DisplayName("GIVEN client inexistant ou déjà supprimé WHEN execute THEN lève ClientNotFoundException sans rien modifier")
     void shouldRejectUnknownClient() {
         UUID clientId = UUID.randomUUID();
-        when(clientRepository.existsById(clientId)).thenReturn(false);
+        doThrow(ClientNotFoundException.forId(clientId)).when(clientRepository).ensureExists(clientId);
 
         assertThatThrownBy(() -> deleteClientHandler.execute(new DeleteClient.Command(clientId)))
                 .isInstanceOf(ClientNotFoundException.class);

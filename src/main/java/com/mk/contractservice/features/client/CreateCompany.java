@@ -1,9 +1,9 @@
 package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.CompanyFactory;
+import com.mk.contractservice.domain.client.CompanyIdentifierUniqueness;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +34,7 @@ public interface CreateCompany {
     class Handler implements CreateCompany {
 
         private final ClientRepository clientRepository;
-        private final ClientValidationService clientValidationService;
+        private final CompanyIdentifierUniqueness companyIdentifierUniqueness;
 
         @Override
         public Company execute(final Command command) {
@@ -45,7 +45,7 @@ public interface CreateCompany {
                     command.companyIdentifier()
             );
 
-            clientValidationService.ensureCompanyIdentifierIsUnique(company.getCompanyIdentifier());
+            companyIdentifierUniqueness.ensureIsUnique(company.getCompanyIdentifier());
 
             return (Company) clientRepository.save(company);
         }

@@ -1,7 +1,6 @@
 package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.ClientValidationService;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,13 +29,11 @@ class CreateContractTest {
     @Mock
     private ContractRepository contractRepository;
 
-    private ClientValidationService clientValidationService;
     private CreateContract.Handler createContractHandler;
 
     @BeforeEach
     void setUp() {
-        clientValidationService = new ClientValidationService(clientRepository);
-        createContractHandler = new CreateContract.Handler(clientValidationService, contractRepository, Clock.systemDefaultZone());
+        createContractHandler = new CreateContract.Handler(clientRepository, contractRepository, Clock.systemDefaultZone());
     }
 
     @Test
@@ -50,7 +48,7 @@ class CreateContractTest {
                 new BigDecimal("1000.00")
         );
 
-        when(clientRepository.existsById(nonExistentClientId)).thenReturn(false);
+        doThrow(ClientNotFoundException.forId(nonExistentClientId)).when(clientRepository).ensureExists(nonExistentClientId);
 
         // When & Then
         assertThatThrownBy(() -> createContractHandler.execute(command))

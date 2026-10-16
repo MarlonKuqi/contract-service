@@ -10,7 +10,6 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
-import com.mk.contractservice.domain.contract.ContractService;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.RestAssured;
@@ -56,9 +55,6 @@ class ListContractsAcceptanceTest {
 
     @Autowired
     private ContractJpaRepository contractJpaRepository;
-
-    @Autowired
-    private ContractService contractService;
 
     private Client testClient;
 

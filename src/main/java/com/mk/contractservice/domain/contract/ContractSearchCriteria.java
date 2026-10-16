@@ -17,17 +17,15 @@ public record ContractSearchCriteria(
     }
 
     public static ContractSearchCriteria activeForClient(final UUID clientId, final LocalDateTime activeAt) {
-        Objects.requireNonNull(activeAt, "activeAt must not be null");
-        return new ContractSearchCriteria(clientId, activeAt, null);
+        return activeForClient(clientId, activeAt, null);
     }
 
-    public static ContractSearchCriteria activeForClientUpdatedSince(
+    public static ContractSearchCriteria activeForClient(
             final UUID clientId,
             final LocalDateTime activeAt,
-            final LocalDateTime updatedSince
+            @Nullable final LocalDateTime updatedSince
     ) {
         Objects.requireNonNull(activeAt, "activeAt must not be null");
-        Objects.requireNonNull(updatedSince, "updatedSince must not be null");
         return new ContractSearchCriteria(clientId, activeAt, updatedSince);
     }
 }

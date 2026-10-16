@@ -2,7 +2,7 @@ package com.mk.contractservice.features.client;
 
 
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.ClientValidationService;
+import com.mk.contractservice.domain.client.CompanyIdentifierUniqueness;
 import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,13 +21,13 @@ class CreateCompanyHandlerTest {
     @Mock
     private ClientRepository clientRepository;
 
-    private ClientValidationService clientValidationService;
+    private CompanyIdentifierUniqueness companyIdentifierUniqueness;
     private CreateCompany.Handler createCompanyHandler;
 
     @BeforeEach
     void setUp() {
-        clientValidationService = new ClientValidationService(clientRepository);
-        createCompanyHandler = new CreateCompany.Handler(clientRepository, clientValidationService);
+        companyIdentifierUniqueness = new CompanyIdentifierUniqueness(clientRepository);
+        createCompanyHandler = new CreateCompany.Handler(clientRepository, companyIdentifierUniqueness);
     }
 
     @Test
