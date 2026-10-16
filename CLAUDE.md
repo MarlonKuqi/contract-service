@@ -91,7 +91,7 @@ No domain object can exist in an invalid state.
     - `reconstituteFromDatabase(...)`: trusted data, only null-checked;
     - factories (`PersonFactory`, `CompanyFactory`, `ContractFactory`): `createFromCommand(...)` and `buildFromDatabase(...)`.
 - Mutations go through intention-revealing methods that return a new instance (`changeName`, `changeEmail`, `changePhone`, `changeCoreFields`, `changeCost`).
-- Comparison methods express business equality (`hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs`). An update with an identical value must not change the object nor trigger a save.
+- Comparison methods express business equality (`hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs`). An update with an identical value must not change the object nor trigger a save: the `change*` method returns `this`, and the handler saves only when `updated != loaded`.
 - Builders must be private, so that factory methods are the only way in. Production and tests go through `of`/factories.
 - Avoid `null`; mark optional values with `@Nullable` (JSpecify) and use `Optional` where absence is meaningful.
 

@@ -62,29 +62,47 @@ public final class Person extends Client {
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
             @Nullable final ClientPhoneNumber phoneNumber) {
+        final ClientName newName = notNull(name);
+        final ClientEmail newEmail = notNull(email);
+        final ClientPhoneNumber newPhone = notNull(phoneNumber);
+        if (hasCoreFields(newName, newEmail, newPhone)) {
+            return this;
+        }
         return toBuilder()
-                .name(notNull(name))
-                .email(notNull(email))
-                .phone(notNull(phoneNumber))
+                .name(newName)
+                .email(newEmail)
+                .phone(newPhone)
                 .build();
     }
 
     @Override
     public Person changeName(@Nullable final ClientName name) {
-        return toBuilder().name(notNull(name)).build();
+        final ClientName newName = notNull(name);
+        if (hasName(newName)) {
+            return this;
+        }
+        return toBuilder().name(newName).build();
     }
 
     @Override
     public Person changeEmail(@Nullable final ClientEmail email) {
-        return toBuilder().email(notNull(email)).build();
+        final ClientEmail newEmail = notNull(email);
+        if (hasEmail(newEmail)) {
+            return this;
+        }
+        return toBuilder().email(newEmail).build();
     }
 
     @Override
     public Person changePhone(@Nullable final ClientPhoneNumber phoneNumber) {
-        return toBuilder().phone(notNull(phoneNumber)).build();
+        final ClientPhoneNumber newPhone = notNull(phoneNumber);
+        if (hasPhone(newPhone)) {
+            return this;
+        }
+        return toBuilder().phone(newPhone).build();
     }
 
-    public static PersonBuilder builder() {
+    private static PersonBuilder builder() {
         return new PersonBuilder();
     }
 
@@ -99,7 +117,7 @@ public final class Person extends Client {
 
     @NoArgsConstructor
     @NullUnmarked
-    public static class PersonBuilder {
+    private static final class PersonBuilder {
         private UUID id;
         private ClientName name;
         private ClientEmail email;

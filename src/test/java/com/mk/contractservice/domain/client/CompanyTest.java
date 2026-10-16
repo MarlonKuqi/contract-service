@@ -197,8 +197,8 @@ class CompanyTest {
         }
 
         @Test
-        @DisplayName("GIVEN company WHEN updating with same values THEN returns new instance with same data")
-        void shouldReturnNewInstanceWithSameData() {
+        @DisplayName("GIVEN company WHEN updating with same values THEN returns the same instance")
+        void shouldReturnSameInstanceWhenValuesAreIdentical() {
             final Company company = CompanyFactory.createFromCommand(
                     "ACME Corp",
                     "contact@acme.com",
@@ -212,7 +212,7 @@ class CompanyTest {
                     ClientPhoneNumber.of("+33123456789")
             );
 
-            assertThat(updated).isNotSameAs(company);
+            assertThat(updated).isSameAs(company);
             assertThat(updated.getName().getValue()).isEqualTo(company.getName().getValue());
             assertThat(updated.getEmail().getValue()).isEqualTo(company.getEmail().getValue());
             assertThat(updated.getPhone().getValue()).isEqualTo(company.getPhone().getValue());

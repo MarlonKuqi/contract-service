@@ -39,27 +39,24 @@ public interface PatchClient {
 
         @Override
         public Client execute(final Command command) {
-            Client client = clientService.findClientById(command.clientId());
+            final Client client = clientService.findClientById(command.clientId());
 
             final ClientName name = command.name() == null ? null : ClientName.of(command.name());
             final ClientEmail email = command.email() == null ? null : ClientEmail.of(command.email());
             final ClientPhoneNumber phone = command.phoneNumber() == null ? null : ClientPhoneNumber.of(command.phoneNumber());
 
-            boolean hasChanges = false;
-            if (email != null && !client.hasEmail(email)) {
-                client = client.changeEmail(email);
-                hasChanges = true;
+            Client updatedClient = client;
+            if (name != null) {
+                updatedClient = updatedClient.changeName(name);
             }
-            if (phone != null && !client.hasPhone(phone)) {
-                client = client.changePhone(phone);
-                hasChanges = true;
+            if (email != null) {
+                updatedClient = updatedClient.changeEmail(email);
             }
-            if (name != null && !client.hasName(name)) {
-                client = client.changeName(name);
-                hasChanges = true;
+            if (phone != null) {
+                updatedClient = updatedClient.changePhone(phone);
             }
 
-            return hasChanges ? clientRepository.save(client) : client;
+            return updatedClient == client ? client : clientRepository.save(updatedClient);
         }
     }
 }
