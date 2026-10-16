@@ -28,7 +28,7 @@ Stack:
 - Docker / docker-compose for the local runtime
 - Testcontainers, RestAssured, ArchUnit, JaCoCo
 
-Architecture decisions are recorded in `docs/chat/ADR.md`. Read the relevant ADR before changing an area it covers.
+Architecture decisions are recorded in `docs/ADR.md`. Read the relevant ADR before changing an area it covers.
 
 ## Key domain rules
 Source of truth for requirements: `docs/sujet.txt`.
@@ -91,7 +91,7 @@ No domain object can exist in an invalid state.
     - `reconstituteFromDatabase(...)`: trusted data, only null-checked;
     - factories (`PersonFactory`, `CompanyFactory`, `ContractFactory`): `createFromCommand(...)` and `buildFromDatabase(...)`.
 - Mutations go through intention-revealing methods that return a new instance (`changeName`, `changeEmail`, `changePhone`, `changeCoreFields`, `changeCost`).
-- Comparison methods express business equality (`hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs`). An update with an identical value must not change the object nor trigger a save.
+- Comparison methods express business equality (`hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs`). An update with an identical value must not change the object nor trigger a save: the `change*` method returns `this`, and the handler saves only when `updated != loaded`.
 - Builders must be private, so that factory methods are the only way in. Production and tests go through `of`/factories.
 - Avoid `null`; mark optional values with `@Nullable` (JSpecify) and use `Optional` where absence is meaningful.
 
@@ -140,6 +140,10 @@ Conventional Commits:
 Example: `feat(contract): add creation endpoint for person and company contracts`
 
 Use `!` and a `BREAKING CHANGE:` footer only when a client that respected the API contract would break. Relaxing a rule (e.g. removing a 409) is not breaking: mention it in the release notes instead.
+
+## Documentation
+- ADRs are in `docs/ADR.md`. Update them when a decision changes.
+- Don't forget to document API updates in collections located at `/api-controllers` as well as in the `/controllers` package.
 
 ## What to always provide in a pull request
 - Code that compiles and passes `./mvnw clean verify`

@@ -31,10 +31,10 @@ public class Contract {
             @Nullable final LocalDateTime lastModified
     ) {
         this.id = id;
-        this.clientId = clientId;
-        this.period = period;
-        this.costAmount = costAmount;
-        this.lastModified = lastModified;
+        this.clientId = notNull(clientId);
+        this.period = notNull(period);
+        this.costAmount = notNull(costAmount);
+        this.lastModified = notNull(lastModified);
     }
 
     public static Contract of(
@@ -60,7 +60,7 @@ public class Contract {
     ) {
         return builder()
                 .id(notNull(id))
-                .clientId(clientId)
+                .clientId(notNull(clientId))
                 .period(notNull(period))
                 .costAmount(notNull(costAmount))
                 .lastModified(notNull(lastModified))

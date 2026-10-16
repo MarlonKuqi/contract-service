@@ -1,15 +1,12 @@
 package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.ClientEmail;
-import com.mk.contractservice.domain.client.ClientName;
-import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientService;
 import com.mk.contractservice.domain.client.Company;
-import com.mk.contractservice.domain.client.CompanyIdentifier;
+import com.mk.contractservice.domain.client.CompanyFactory;
 import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonBirthDate;
+import com.mk.contractservice.domain.client.PersonFactory;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,6 +22,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,13 +53,13 @@ class UpdateClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = Person.builder()
-                    .id(clientId)
-                    .name(ClientName.of("John Doe"))
-                    .email(ClientEmail.of("john@example.com"))
-                    .phone(ClientPhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now()))
-                    .build();
+            existingPerson = PersonFactory.buildFromDatabase(
+                    clientId,
+                    "John Doe",
+                    "john@example.com",
+                    "+33111111111",
+                    LocalDate.of(1990, 1, 1)
+            );
 
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
         }
@@ -158,29 +157,50 @@ class UpdateClientHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN même téléphone dans un autre format WHEN execute THEN conserve le téléphone normalisé")
-        void shouldKeepNormalizedPhoneWhenSamePhoneInAnotherFormat() {
+        @DisplayName("GIVEN un champ modifié WHEN execute THEN sauvegarde le client modifié")
+        void shouldSaveWhenOneFieldChanges() {
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
                     "John Doe",
                     "john@example.com",
-                    "+33 1 11 11 11 11"
+                    "+33222222222"
             );
 
             when(clientService.findClientById(clientId)).thenReturn(existingPerson);
 
             Client result = updateClientHandler.execute(command);
 
-            assertThat(result.getPhone()).isEqualTo(existingPerson.getPhone());
+            verify(clientRepository).save(result);
+            assertThat(result).isNotSameAs(existingPerson);
+        }
+    }
+
+    @Nested
+    @DisplayName("Aucune modification")
+    class NoChange {
+
+        private UUID clientId;
+        private Person existingPerson;
+
+        @BeforeEach
+        void setUp() {
+            clientId = UUID.randomUUID();
+            existingPerson = PersonFactory.buildFromDatabase(
+                    clientId,
+                    "John Doe",
+                    "john@example.com",
+                    "+33111111111",
+                    LocalDate.of(1990, 1, 1)
+            );
         }
 
         @Test
-        @DisplayName("GIVEN même email dans une autre casse WHEN execute THEN conserve l'email normalisé")
-        void shouldKeepNormalizedEmailWhenSameEmailInAnotherCase() {
+        @DisplayName("GIVEN valeurs identiques WHEN execute THEN ne sauvegarde pas et renvoie le client existant")
+        void shouldNotSaveWhenValuesAreIdentical() {
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
                     "John Doe",
-                    "JOHN@Example.com",
+                    "john@example.com",
                     "+33111111111"
             );
 
@@ -188,7 +208,26 @@ class UpdateClientHandlerTest {
 
             Client result = updateClientHandler.execute(command);
 
-            assertThat(result.getEmail()).isEqualTo(existingPerson.getEmail());
+            verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result).isSameAs(existingPerson);
+        }
+
+        @Test
+        @DisplayName("GIVEN mêmes valeurs écrites autrement WHEN execute THEN ne sauvegarde pas et conserve les valeurs normalisées")
+        void shouldNotSaveWhenSameValuesWrittenDifferently() {
+            UpdateClient.Command command = new UpdateClient.Command(
+                    clientId,
+                    "  John Doe  ",
+                    "JOHN@Example.com",
+                    "+33 1 11 11 11 11"
+            );
+
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+
+            Client result = updateClientHandler.execute(command);
+
+            verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result).isSameAs(existingPerson);
         }
     }
 
@@ -202,13 +241,13 @@ class UpdateClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingCompany = Company.builder()
-                    .id(clientId)
-                    .name(ClientName.of("Acme Corp"))
-                    .email(ClientEmail.of("contact@acme.com"))
-                    .phone(ClientPhoneNumber.of("+33111111111"))
-                    .companyIdentifier(CompanyIdentifier.of("123456789"))
-                    .build();
+            existingCompany = CompanyFactory.buildFromDatabase(
+                    clientId,
+                    "Acme Corp",
+                    "contact@acme.com",
+                    "+33111111111",
+                    "123456789"
+            );
 
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
         }
@@ -270,13 +309,13 @@ class UpdateClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = Person.builder()
-                    .id(clientId)
-                    .name(ClientName.of("John Doe"))
-                    .email(ClientEmail.of("john@example.com"))
-                    .phone(ClientPhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now()))
-                    .build();
+            existingPerson = PersonFactory.buildFromDatabase(
+                    clientId,
+                    "John Doe",
+                    "john@example.com",
+                    "+33111111111",
+                    LocalDate.of(1990, 1, 1)
+            );
         }
 
         @Test

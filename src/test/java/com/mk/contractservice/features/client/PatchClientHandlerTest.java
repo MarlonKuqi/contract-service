@@ -1,15 +1,12 @@
 package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.ClientEmail;
-import com.mk.contractservice.domain.client.ClientName;
-import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientService;
 import com.mk.contractservice.domain.client.Company;
-import com.mk.contractservice.domain.client.CompanyIdentifier;
+import com.mk.contractservice.domain.client.CompanyFactory;
 import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonBirthDate;
+import com.mk.contractservice.domain.client.PersonFactory;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -56,13 +53,13 @@ class PatchClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = Person.builder()
-                    .id(clientId)
-                    .name(ClientName.of("John Doe"))
-                    .email(ClientEmail.of("john@example.com"))
-                    .phone(ClientPhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now()))
-                    .build();
+            existingPerson = PersonFactory.buildFromDatabase(
+                    clientId,
+                    "John Doe",
+                    "john@example.com",
+                    "+33111111111",
+                    LocalDate.of(1990, 1, 1)
+            );
 
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
         }
@@ -165,13 +162,13 @@ class PatchClientHandlerTest {
         void shouldNotChangeAnythingWhenNoFieldsProvidedForPerson() {
             // Given
             final UUID clientId = UUID.randomUUID();
-            final Person existingPerson = Person.builder()
-                    .id(clientId)
-                    .name(ClientName.of("John Doe"))
-                    .email(ClientEmail.of("john@example.com"))
-                    .phone(ClientPhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now()))
-                    .build();
+            final Person existingPerson = PersonFactory.buildFromDatabase(
+                    clientId,
+                    "John Doe",
+                    "john@example.com",
+                    "+33111111111",
+                    LocalDate.of(1990, 1, 1)
+            );
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
                     null,
@@ -188,6 +185,8 @@ class PatchClientHandlerTest {
             assertThat(result.getName().getValue()).isEqualTo(existingPerson.getName().getValue());
             assertThat(result.getEmail().getValue()).isEqualTo(existingPerson.getEmail().getValue());
             assertThat(result.getPhone().getValue()).isEqualTo(existingPerson.getPhone().getValue());
+            verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result).isSameAs(existingPerson);
             assertThat(((Person) result).getBirthDate()).isEqualTo(existingPerson.getBirthDate());
         }
 
@@ -196,13 +195,13 @@ class PatchClientHandlerTest {
         void shouldNotChangeAnythingWhenNoFieldsProvidedForCompany() {
             // Given
             final UUID clientId = UUID.randomUUID();
-            final Company existingCompany = Company.builder()
-                    .id(clientId)
-                    .name(ClientName.of("Acme Corp"))
-                    .email(ClientEmail.of("contact@acme.com"))
-                    .phone(ClientPhoneNumber.of("+33111111111"))
-                    .companyIdentifier(CompanyIdentifier.of("123456789"))
-                    .build();
+            final Company existingCompany = CompanyFactory.buildFromDatabase(
+                    clientId,
+                    "Acme Corp",
+                    "contact@acme.com",
+                    "+33111111111",
+                    "123456789"
+            );
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
                     null,
@@ -219,6 +218,8 @@ class PatchClientHandlerTest {
             assertThat(result.getName().getValue()).isEqualTo(existingCompany.getName().getValue());
             assertThat(result.getEmail().getValue()).isEqualTo(existingCompany.getEmail().getValue());
             assertThat(result.getPhone().getValue()).isEqualTo(existingCompany.getPhone().getValue());
+            verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result).isSameAs(existingCompany);
             assertThat(((Company) result).getCompanyIdentifier()).isEqualTo(existingCompany.getCompanyIdentifier());
         }
     }
@@ -233,13 +234,13 @@ class PatchClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingCompany = Company.builder()
-                    .id(clientId)
-                    .name(ClientName.of("Acme Corp"))
-                    .email(ClientEmail.of("contact@acme.com"))
-                    .phone(ClientPhoneNumber.of("+33111111111"))
-                    .companyIdentifier(CompanyIdentifier.of("123456789"))
-                    .build();
+            existingCompany = CompanyFactory.buildFromDatabase(
+                    clientId,
+                    "Acme Corp",
+                    "contact@acme.com",
+                    "+33111111111",
+                    "123456789"
+            );
 
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
         }
@@ -300,13 +301,13 @@ class PatchClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = Person.builder()
-                    .id(clientId)
-                    .name(ClientName.of("John Doe"))
-                    .email(ClientEmail.of("john@example.com"))
-                    .phone(ClientPhoneNumber.of("+33111111111"))
-                    .birthDate(PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now()))
-                    .build();
+            existingPerson = PersonFactory.buildFromDatabase(
+                    clientId,
+                    "John Doe",
+                    "john@example.com",
+                    "+33111111111",
+                    LocalDate.of(1990, 1, 1)
+            );
         }
 
         @Test
@@ -383,6 +384,47 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result.getEmail()).isEqualTo(existingPerson.getEmail());
+        }
+
+        @Test
+        @DisplayName("GIVEN même nom avec espaces WHEN execute THEN ne sauvegarde pas")
+        void shouldNotSaveWhenSameNameWithSpaces() {
+            PatchClient.Command command = new PatchClient.Command(clientId, "  John Doe  ", null, null);
+
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+
+            Client result = patchClientHandler.execute(command);
+
+            verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result).isSameAs(existingPerson);
+        }
+
+        @Test
+        @DisplayName("GIVEN tous les champs identiques WHEN execute THEN ne sauvegarde pas")
+        void shouldNotSaveWhenAllFieldsAreIdentical() {
+            PatchClient.Command command = new PatchClient.Command(clientId, "John Doe", "john@example.com", "+33111111111");
+
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+
+            Client result = patchClientHandler.execute(command);
+
+            verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result).isSameAs(existingPerson);
+        }
+
+        @Test
+        @DisplayName("GIVEN email identique et nom différent WHEN execute THEN sauvegarde une seule fois le client modifié")
+        void shouldSaveOnceWhenOnlySomeFieldsChange() {
+            PatchClient.Command command = new PatchClient.Command(clientId, "Jane Doe", "john@example.com", null);
+
+            when(clientService.findClientById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            Client result = patchClientHandler.execute(command);
+
+            verify(clientRepository).save(result);
+            assertThat(result.getName().getValue()).isEqualTo("Jane Doe");
             assertThat(result.getEmail()).isEqualTo(existingPerson.getEmail());
         }
     }

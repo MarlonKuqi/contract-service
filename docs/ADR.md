@@ -86,7 +86,7 @@ com.mk.contractservice
   - `reconstituteFromDatabase(...)` reconstruit sans re-valider une donnée déjà fiable ;
   - les factories (`PersonFactory`, `CompanyFactory`, `ContractFactory`) exposent `createFromCommand(...)` et `buildFromDatabase(...)`.
 - **Mutations par méthodes d'intention** qui renvoient une nouvelle instance : `changeName`, `changeEmail`, `changePhone`, `changeCoreFields`, `changeCost`. `birthDate` et `companyIdentifier` n'ont pas de méthode de modification.
-- **Méthodes de comparaison métier** : `hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs` (insensible à l'échelle : `100.0` = `100.00`). Une modification à valeur identique est un no-op.
+- **Méthodes de comparaison métier** : `hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs` (insensible à l'échelle : `100.0` = `100.00`). Une modification à valeur identique est un no-op : la règle vit dans l'agrégat, la méthode `change*` renvoie `this`. Les handlers ne sauvegardent que si l'objet renvoyé n'est pas l'instance chargée (`updated != loaded`).
 - Les entités JPA ne sortent jamais de l'infrastructure ; l'API n'expose que des DTO.
 
 **Conséquences.**
@@ -223,6 +223,11 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 - Les données personnelles d'un client supprimé restent en base : une anonymisation RGPD après la durée légale de conservation est nécessaire (TODO).
 - `contract.client_id` reste nullable : d'anciennes suppressions physiques ont pu laisser des `NULL`. À vérifier avant de passer en `NOT NULL`.
 - Les tests qui nettoient la base doivent supprimer les contrats avant les clients.
+- **Contrat annulé.** Un contrat dont la date de début est dans le futur est actif (ADR-004), il est donc fermé à `deleted_at` comme les autres, ce qui donne `end_date <= start_date`. Ce contrat n'est ni expiré ni fermé : il est **annulé**, il n'a jamais commencé.
+  - L'invariant « fin après début » de `ContractPeriod` n'est garanti qu'à la création (`ContractPeriod.of`). Il n'est **pas** vrai pour toutes les lignes en base : `ContractPeriod.reconstituteFromDatabase` ne doit jamais revalider la période, et aucune contrainte `CHECK (end_date > start_date)` ne doit être ajoutée, sinon ces contrats deviennent illisibles ou la suppression d'un client échoue.
+  - L'état « annulé » n'est pas modélisé : pas de statut, pas de règle dédiée. Aucun traitement n'est prévu sur un contrat annulé. Il est déjà exclu de tout traitement parce qu'il est inactif : absent de la liste et de la somme, non modifiable (`ExpiredContractException`).
+  - Il reste lisible par `GET /contracts/{id}`, comme tout contrat inactif.
+  - Une éventuelle purge (batch SQL) les identifie par `end_date <= start_date`.
 
 **Statut.** Acceptée (branche `feat/client-soft-delete`).
 
@@ -323,7 +328,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
   2. build avec Azul Zulu JDK 27, extraction des couches Spring Boot, puis JRE minimal construit par `jdeps` + `jlink` (`jdk.crypto.ec` ajouté explicitement) ;
   3. exécution sur `debian:trixie-slim`.
 - Exécution sous un utilisateur non root, healthcheck sur `/actuator/health/liveness`, options JVM adaptées aux conteneurs (`MaxRAMPercentage=75`), profil `prod`.
-- `docker-compose.yml` : PostgreSQL 18 avec healthcheck et volume persistant ; l'application dans le profil compose `full`.
+- `../docker-compose.yml` : PostgreSQL 18 avec healthcheck et volume persistant ; l'application dans le profil compose `full`.
 - CI GitHub Actions : JDK 27, build, tests unitaires + couverture, puis job d'intégration Testcontainers.
 
 **Conséquences.**

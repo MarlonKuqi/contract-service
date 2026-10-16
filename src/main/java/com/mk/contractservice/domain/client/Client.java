@@ -42,6 +42,13 @@ public abstract sealed class Client permits Person, Company {
         return phone.equals(otherPhone);
     }
 
+    protected boolean hasCoreFields(
+            final ClientName otherName,
+            final ClientEmail otherEmail,
+            final ClientPhoneNumber otherPhone) {
+        return hasName(otherName) && hasEmail(otherEmail) && hasPhone(otherPhone);
+    }
+
     public abstract Client changeCoreFields(
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,

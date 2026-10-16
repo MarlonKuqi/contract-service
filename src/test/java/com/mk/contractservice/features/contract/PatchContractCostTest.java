@@ -20,7 +20,11 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,5 +79,49 @@ class PatchContractCostTest {
         assertThatThrownBy(() -> patchContractCostHandler.execute(
                 new PatchContractCost.Command(contractId, new BigDecimal("1000.00"))))
                 .isInstanceOf(ExpiredContractException.class);
+    }
+
+    @Test
+    @DisplayName("GIVEN même montant avec une autre échelle WHEN execute THEN ne sauvegarde pas et renvoie le contrat existant")
+    void shouldNotSaveWhenCostIsTheSameAmount() {
+        UUID contractId = UUID.randomUUID();
+        Contract activeContract = activeContractWithCost(contractId, new BigDecimal("500.00"));
+
+        when(contractRepository.findById(contractId)).thenReturn(Optional.of(activeContract));
+
+        Contract result = patchContractCostHandler.execute(
+                new PatchContractCost.Command(contractId, new BigDecimal("500.0")));
+
+        verify(contractRepository, never()).save(any(Contract.class));
+        assertThat(result).isSameAs(activeContract);
+    }
+
+    @Test
+    @DisplayName("GIVEN un nouveau montant WHEN execute THEN sauvegarde le contrat modifié")
+    void shouldSaveWhenCostChanges() {
+        UUID contractId = UUID.randomUUID();
+        Contract activeContract = activeContractWithCost(contractId, new BigDecimal("500.00"));
+
+        when(contractRepository.findById(contractId)).thenReturn(Optional.of(activeContract));
+        when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Contract result = patchContractCostHandler.execute(
+                new PatchContractCost.Command(contractId, new BigDecimal("1000.00")));
+
+        verify(contractRepository).save(result);
+        assertThat(result.getCostAmount().getValue()).isEqualByComparingTo("1000.00");
+        assertThat(result.getLastModified()).isEqualTo(LocalDateTime.now(FIXED_CLOCK));
+    }
+
+    private static Contract activeContractWithCost(final UUID contractId, final BigDecimal cost) {
+        LocalDateTime now = LocalDateTime.now(FIXED_CLOCK);
+        return ContractFactory.buildFromDatabase(
+                contractId,
+                UUID.randomUUID(),
+                now.minusMonths(6),
+                null,
+                cost,
+                now.minusMonths(6)
+        );
     }
 }
