@@ -225,11 +225,13 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 - Les données personnelles d'un client supprimé restent en base : une anonymisation RGPD après la durée légale de conservation est nécessaire (TODO).
 - `contract.client_id` reste nullable : d'anciennes suppressions physiques ont pu laisser des `NULL`. À vérifier avant de passer en `NOT NULL`.
 - Les tests qui nettoient la base doivent supprimer les contrats avant les clients.
-- **Contrat annulé.** Un contrat dont la date de début est dans le futur est actif (ADR-004), il est donc fermé à `deleted_at` comme les autres, ce qui donne `end_date <= start_date`. Ce contrat n'est ni expiré ni fermé : il est **annulé**, il n'a jamais commencé.
-  - L'invariant « fin après début » de `ContractPeriod` n'est garanti qu'à la création (`ContractPeriod.of`). Il n'est **pas** vrai pour toutes les lignes en base : `ContractPeriod.reconstituteFromDatabase` ne doit jamais revalider la période, et aucune contrainte `CHECK (end_date > start_date)` ne doit être ajoutée, sinon ces contrats deviennent illisibles ou la suppression d'un client échoue.
+- **Contrat annulé.** Un contrat actif fermé par la suppression de son client n'est pas expiré : il est **annulé**, qu'il ait déjà commencé ou non.
+  - Un contrat dont la date de début est dans le futur est actif (ADR-004) : il est fermé à `deleted_at` comme les autres, ce qui donne `end_date <= start_date`.
+  - L'invariant « fin après début » de `ContractPeriod` n'est donc garanti qu'à la création (`ContractPeriod.of`). Il n'est **pas** vrai pour toutes les lignes en base : `ContractPeriod.reconstituteFromDatabase` ne doit jamais revalider la période, et aucune contrainte `CHECK (end_date > start_date)` ne doit être ajoutée, sinon ces contrats deviennent illisibles ou la suppression d'un client échoue. 
+    - On part ici de l'idée qu'on est dans un contexte always-valid et qu'on ne peut pas se retrouver avec un contrat qui est censé être actif mais qui est invalide. Le domaine ne doit pas lever d'exception sur un contrat annulé, il doit juste le considérer comme inactif.
   - L'état « annulé » n'est pas modélisé : pas de statut, pas de règle dédiée. Aucun traitement n'est prévu sur un contrat annulé. Il est déjà exclu de tout traitement parce qu'il est inactif : absent de la liste et de la somme, non modifiable (`ExpiredContractException`).
   - Il reste lisible par `GET /contracts/{id}`, comme tout contrat inactif.
-  - Une éventuelle purge (batch SQL) les identifie par `end_date <= start_date`.
+  - Une éventuelle purge (batch SQL) identifie les contrats annulés par `contract.end_date = client.deleted_at` ; ceux annulés avant d'avoir commencé vérifient en plus `end_date <= start_date`.
 
 **Statut.** Acceptée (branche `feat/client-soft-delete`).
 
