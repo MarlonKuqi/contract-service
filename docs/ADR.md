@@ -61,7 +61,7 @@ com.mk.contractservice
 **Compromis documentés.**
 - Le domaine utilise `Page`/`Pageable` de Spring Data (abstractions stables ; les recréer n'apporterait rien à cette échelle).
 - Le domaine utilise Lombok et JSpecify (annotations de compilation, sans impact à l'exécution).
-- Les handlers utilisent `@Transactional` et `ApplicationEventPublisher` de Spring : la frontière transactionnelle est une décision de cas d'usage, visible là où elle est prise.
+- Les handlers utilisent `@Transactional` de Spring : la frontière transactionnelle est une décision de cas d'usage, visible là où elle est prise.
 - `controllers/` est un package de premier niveau et non un sous-package de `infrastructure/` : c'est un choix de lisibilité, les deux restent des adapters.
 
 **Conséquences.**
@@ -104,7 +104,7 @@ com.mk.contractservice
 
 **Décision.**
 - Un **seul bean `java.time.Clock`** (`ClockConfiguration`). `Clock` vient du JDK : on ne l'emballe pas dans un port `TimeProvider`, ce serait une indirection sans valeur.
-- Les **use cases, controllers et advices** injectent la `Clock` et passent l'heure au domaine : `Contract.isActiveAt(now)`, `changeCost(cost, now)`, `ContractPeriod.of(start, end, now)`, `PersonBirthDate.of(date, today)`, `ClientDeletedEvent.of(id, occurredAt)`, `ContractSearchCriteria.activeForClient(id, activeAt)`.
+- Les **use cases, controllers et advices** injectent la `Clock` et passent l'heure au domaine : `Contract.isActiveAt(now)`, `changeCost(cost, now)`, `ContractPeriod.of(start, end, now)`, `PersonBirthDate.of(date, today)`, `ContractSearchCriteria.activeForClient(id, activeAt)`.
 - **Pas d'horloge statique globale** (`DomainClock.set(...)`) : dépendance cachée, incompatible avec des tests parallèles.
 - Un même use case utilise **un seul `now`** pour toutes ses décisions (ex. suppression : `deleted_at` = date de fermeture des contrats).
 
@@ -215,6 +215,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 - Filtrage par `@SQLRestriction("deleted_at IS NULL")` sur `ClientJpaEntity` : un client supprimé renvoie 404 partout (lecture, liste et somme des contrats, création de contrat, nouvelle suppression).
 - Port `ClientRepository.delete(id, deletedAt)` : le domaine exprime « supprimer à tel instant », l'infrastructure choisit de conserver la ligne.
 - Le use case utilise le même `now` pour `deleted_at` et pour la fermeture des contrats (`end_date = deleted_at`).
+- `DeleteClient` appelle directement les deux ports (`ClientRepository.delete`, puis `ContractRepository.closeAllActiveByClientId`), dans la même transaction. Un événement de domaine (`ClientDeletedEvent` écouté en `BEFORE_COMMIT`) a été retiré : il cachait la règle « supprimer un client ferme ses contrats » sans découpler réellement (même transaction, même instant, appel synchrone). La frontière entre agrégats est garantie dans le domaine par ArchUnit (`domain.client` et `domain.contract` ne dépendent pas l'un de l'autre) ; la coordination appartient au cas d'usage. Un événement redeviendra pertinent si les contrats sortent dans un autre service : il sera alors publié après le commit, via un outbox.
 - FK `contract → client` en `ON DELETE RESTRICT`.
 - La vérification d'unicité de `company_identifier` passe par une requête native qui inclut les sociétés supprimées.
 - `@SoftDelete(TIMESTAMP)` de Hibernate a été écarté : il date la suppression lui-même, sans passer par notre `Clock`.

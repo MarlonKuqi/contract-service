@@ -87,6 +87,24 @@ class ArchitectureTest {
     }
 
     @Test
+    void client_aggregate_should_not_depend_on_contract_aggregate() {
+        noClasses()
+                .that().resideInAPackage("com.mk.contractservice.domain.client..")
+                .should().dependOnClassesThat().resideInAPackage("com.mk.contractservice.domain.contract..")
+                .because("Aggregates stay independent in the domain; use cases coordinate them")
+                .check(classes);
+    }
+
+    @Test
+    void contract_aggregate_should_not_depend_on_client_aggregate() {
+        noClasses()
+                .that().resideInAPackage("com.mk.contractservice.domain.contract..")
+                .should().dependOnClassesThat().resideInAPackage("com.mk.contractservice.domain.client..")
+                .because("A contract references its client by id only; use cases coordinate the aggregates")
+                .check(classes);
+    }
+
+    @Test
     void features_should_not_depend_on_controllers() {
         noClasses()
                 .that(areFeatures)

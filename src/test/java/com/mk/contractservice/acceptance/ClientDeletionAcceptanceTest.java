@@ -443,6 +443,21 @@ class ClientDeletionAcceptanceTest {
     }
 
     @Test
+    @DisplayName("SOFT DELETE: Deleting a client leaves the contracts of other clients untouched")
+    void shouldNotCloseContractsOfOtherClients() {
+        String deletedClientId = createPerson();
+        String otherClientId = createPerson();
+        createOpenEndedContract(deletedClientId);
+        String otherContractId = createOpenEndedContract(otherClientId);
+
+        given().when().delete(ClientEndpoints.CLIENT_BY_ID, deletedClientId).then().statusCode(204);
+
+        Timestamp otherEndDate = jdbcTemplate.queryForObject(
+                "SELECT end_date FROM contracts.contract WHERE id = ?::uuid", Timestamp.class, otherContractId);
+        assertThat(otherEndDate).isNull();
+    }
+
+    @Test
     @DisplayName("SOFT DELETE: Deleting an unknown or already deleted client returns 404")
     void shouldReturn404WhenDeletingUnknownOrAlreadyDeletedClient() {
         String clientId = createPerson();

@@ -1,11 +1,10 @@
 package com.mk.contractservice.features.client;
 
-import com.mk.contractservice.domain.client.ClientDeletedEvent;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.ClientValidationService;
+import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
@@ -29,8 +28,8 @@ public interface DeleteClient {
     class Handler implements DeleteClient {
 
         private final ClientRepository clientRepository;
+        private final ContractRepository contractRepository;
         private final ClientValidationService clientValidationService;
-        private final ApplicationEventPublisher eventPublisher;
         private final Clock clock;
 
         @Override
@@ -38,7 +37,7 @@ public interface DeleteClient {
             clientValidationService.ensureClientExists(command.clientId());
             final LocalDateTime deletedAt = LocalDateTime.now(clock);
             clientRepository.delete(command.clientId(), deletedAt);
-            eventPublisher.publishEvent(ClientDeletedEvent.of(command.clientId(), deletedAt));
+            contractRepository.closeAllActiveByClientId(command.clientId(), deletedAt);
         }
     }
 }
