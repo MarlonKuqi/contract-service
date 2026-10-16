@@ -133,7 +133,8 @@ No domain object can exist in an invalid state.
 Conventional Commits:
 - `feat`: new feature or behavior change
 - `fix`: bug fix
-- `chore`: non-functional work (dependencies, formatting, refactor with no behavior change)
+- `refactor`: code restructuring with no behavior change
+- `chore`: non-functional work (dependencies, build, formatting)
 - `test`: adding or improving tests
 - `docs`: documentation (including this file)
 
