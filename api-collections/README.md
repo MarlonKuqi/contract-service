@@ -33,12 +33,12 @@ Utilisez cette collection unifiée pour créer des clients Person ou Company.
 ### 2️⃣ ContractController
 **Fichier** : `ContractController.postman_collection.json`  
 **Endpoints** :
-- `POST /v1/contracts?clientId={clientId}` - Create contract
-- `GET /v1/contracts?clientId={clientId}` - List active contracts (paginated)
-- `GET /v1/contracts?clientId={clientId}&updatedSince=...` - Filter by update date
-- `GET /v1/contracts/{contractId}?clientId={clientId}` - Get specific contract
-- `PATCH /v1/contracts/{contractId}/cost?clientId={clientId}` - Update cost
-- `GET /v1/contracts/sum?clientId={clientId}` - Sum of active contracts
+- `POST /v2/contracts?clientId={clientId}` - Create contract
+- `GET /v2/contracts?clientId={clientId}` - List active contracts (paginated)
+- `GET /v2/contracts?clientId={clientId}&updatedSince=...` - Filter by update date
+- `GET /v2/contracts/{contractId}?clientId={clientId}` - Get specific contract
+- `PATCH /v2/contracts/{contractId}/cost?clientId={clientId}` - Update cost
+- `GET /v2/contracts/total?clientId={clientId}` - Sum of active contracts
 
 **Requêtes** : CRUD complet + agrégation sur les contrats
 
