@@ -93,7 +93,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Update client common fields (name, email, phone). Note: Cannot update birthDate (Person) or companyIdentifier (Company)."
+        "description": "Update client common fields (name, email, phone). Note: Cannot update birthDate (Person) or companyIdentifier (Company). Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged."
       }
     },
     {
@@ -181,7 +181,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated."
+        "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated. Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged."
       }
     },
     {

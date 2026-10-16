@@ -143,7 +143,7 @@ Use `!` and a `BREAKING CHANGE:` footer only when a client that respected the AP
 
 ## Documentation
 - ADRs are in `docs/ADR.md`. Update them when a decision changes.
-- Don't forget to document API updates in collections located at `/api-controllers` as well as in the `/controllers` package.
+- Don't forget to document API updates in collections located at `/api-collections` as well as in the `/controllers` package.
 
 ## What to always provide in a pull request
 - Code that compiles and passes `./mvnw clean verify`

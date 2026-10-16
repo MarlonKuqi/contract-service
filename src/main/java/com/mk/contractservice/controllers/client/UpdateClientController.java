@@ -36,6 +36,7 @@ public class UpdateClientController {
             summary = "Update a client (all fields except birthDate/companyIdentifier)",
             description = "Updates the common fields of a client (name, email, phone). "
                     + "birthDate and companyIdentifier cannot be updated as per business rules. "
+                    + "If all values are identical to the current ones after normalization (email case, surrounding spaces, phone format), the client is left unchanged. "
                     + "Works for both Person and Company clients."
     )
     @ApiResponse(

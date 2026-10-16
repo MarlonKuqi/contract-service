@@ -225,7 +225,7 @@
             }
           ]
         },
-        "description": "Update the cost amount of a contract. Automatically updates lastModifiedDate to current date. Only active (non-expired) contracts can be updated."
+        "description": "Update the cost amount of a contract and its internal last modification date (used by the updatedSince filter). Only active (non-expired) contracts can be updated. Sending the same amount (scale-insensitive, e.g. 100.0 = 100.00) is a no-op: the contract is not modified."
       }
     },
     {

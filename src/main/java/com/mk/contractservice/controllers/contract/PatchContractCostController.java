@@ -34,8 +34,9 @@ public class PatchContractCostController {
 
     @Operation(
             summary = "Update the cost amount of a contract",
-            description = "Updates only the costAmount field. The lastModified field is automatically updated internally. "
-                    + "Business rule: Only active contracts (not expired) can be updated."
+            description = "Updates only the costAmount field and its internal last modification date, used by the updatedSince filter. "
+                    + "Business rule: Only active contracts (not expired) can be updated. "
+                    + "Sending the same amount (scale-insensitive, e.g. 100.0 = 100.00) is a no-op: the contract is not modified."
     )
     @ApiResponse(
             responseCode = "204",

@@ -33,6 +33,7 @@ public class PatchClientController {
             summary = "Partially update a client (PATCH)",
             description = "Updates only the provided fields of a client. "
                     + "All fields are optional. If no fields are provided, the operation is idempotent (no change). "
+                    + "Values identical to the current ones after normalization (email case, surrounding spaces, phone format) are ignored. "
                     + "birthDate and companyIdentifier cannot be updated as per business rules. "
                     + "Works for both Person and Company clients."
     )
