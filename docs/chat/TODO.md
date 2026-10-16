@@ -1,6 +1,6 @@
 # TODO — contract-service
 
-Suivi des sujets en cours. Les décisions sont détaillées dans [ADR.md](ADR.md).
+Suivi des sujets en cours. Les décisions sont détaillées dans [ADR.md](../ADR.md).
 
 ## Fait
 
@@ -49,7 +49,7 @@ Suivi des sujets en cours. Les décisions sont détaillées dans [ADR.md](ADR.md
     - `DELETE` d'un client inconnu ou déjà supprimé : 404 ;
     - soft delete ;
     - plus de cache sur la somme.
-  - `docs-claude/` : plus de 60 fichiers, dont certains se contredisent. Archiver ce qui est périmé et garder `docs/chat/ADR.md` comme référence.
+  - `docs-claude/` : plus de 60 fichiers, dont certains se contredisent. Archiver ce qui est périmé et garder `../ADR.md` comme référence.
 
 ## 3. Priorité basse
 
