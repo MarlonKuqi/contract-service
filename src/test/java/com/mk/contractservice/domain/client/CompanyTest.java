@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -97,6 +98,19 @@ class CompanyTest {
                         "+33123456789",
                         identifier
                 )).isInstanceOf(InvalidCompanyIdentifierException.class);
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = {"", "   "})
+            @DisplayName("GIVEN blank company identifier WHEN creating Company THEN throw exception explaining the value is blank")
+            void shouldExplainBlankCompanyIdentifier(String identifier) {
+                assertThatThrownBy(() -> CompanyFactory.createFromCommand(
+                        "ACME Corp",
+                        "contact@acme.com",
+                        "+33123456789",
+                        identifier
+                )).isInstanceOf(InvalidCompanyIdentifierException.class)
+                        .hasMessageContaining("blank");
             }
 
 

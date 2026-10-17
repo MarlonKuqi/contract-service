@@ -383,10 +383,10 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 
 **Conséquences.**
 - Premier passage : 92 % de mutants tués. Les survivants ont révélé des trous réels : aucune vérification de la longueur maximale *acceptée* (nom 200, email 254), chemins nominaux de `CreateContract` et `CreateCompany` non testés en unitaire. Ils ont aussi révélé un « find or throw » écrit dans les handlers `GetContractById` et `PatchContractCost`, et des ports qui exposaient `findById`/`existsById` uniquement pour servir leurs propres méthodes par défaut `getById`/`ensureExists`. Les ports n'exposent plus que `getById` et `ensureExists`, implémentés par les adapters JPA qui lèvent l'exception du domaine.
-- Score actuel : 96 % de mutants tués, test strength 97 %.
-- Mutants non tués, acceptés :
-  - `rawValue.isBlank()` dans `normalize` (`ClientName`, `ClientEmail`, `ClientPhoneNumber`, `CompanyIdentifier`) : mutant équivalent, une valeur blanche est rejetée ensuite par `validate` (longueur vide) ou par le parseur, avec la même exception ;
-  - `ClientPhoneNumber.toString` : non utilisé par le code de production ;
-  - `NO_COVERAGE` sur `GetClientById` et `GetContractById` : plomberie couverte par les tests d'acceptance (404).
+- Deuxième passage : les survivants restants ont été traités.
+  - `rawValue.isBlank()` dans `normalize` (`ClientName`, `ClientEmail`, `ClientPhoneNumber`, `CompanyIdentifier`) n'était pas un mutant équivalent : sans ce test, une valeur blanche reste rejetée avec la même exception, mais avec un message trompeur (« Client name too long » pour un nom vide, « Invalid email format » pour un email blanc). Le message est exposé dans le `detail` du `ProblemDetail`. Des tests vérifient désormais que le message mentionne la valeur blanche.
+  - `ClientPhoneNumber.toString` n'était utilisé par aucun code de production : supprimé plutôt que testé.
+- Score actuel : 99 % de mutants tués (191/193), test strength 100 %.
+- Mutants non tués, acceptés : `NO_COVERAGE` sur `GetClientById.Handler` et `GetContractById.Handler` (« replaced return value with null »). Ces handlers délèguent à `getById` du port, qui lève l'exception métier si l'agrégat n'existe pas. Un test unitaire avec un port mocké ne vérifierait que le mock lui-même : il n'y a ni règle ni décision d'orchestration à vérifier. Le comportement (200 avec le bon agrégat, 404 sinon) est vérifié par les tests d'acceptance, que PIT exclut. Ces deux mutants sont donc attendus. Un nouveau `NO_COVERAGE` sur un handler qui orchestre (plusieurs ports, condition, appel à un service de domaine) doit, lui, être couvert par un test unitaire.
 
 **Statut.** Acceptée.

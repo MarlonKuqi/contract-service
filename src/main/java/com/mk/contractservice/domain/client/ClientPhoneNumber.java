@@ -76,11 +76,6 @@ public class ClientPhoneNumber {
         }
     }
 
-    @Override
-    public String toString() {
-        return value;
-    }
-
     private enum SupportedFormat {
         CH, FR, IT, DE;
 

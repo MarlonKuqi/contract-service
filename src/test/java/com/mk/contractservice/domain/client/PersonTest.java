@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -90,6 +91,48 @@ class PersonTest {
                         LocalDate.of(1990, 5, 15),
                         LocalDate.now()
                 )).isInstanceOf(InvalidClientPhoneNumberException.class);
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = {"", "   "})
+            @DisplayName("GIVEN blank name WHEN creating Person THEN throw exception explaining the value is blank")
+            void shouldExplainBlankName(String name) {
+                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                        name,
+                        "john@example.com",
+                        "+33123456789",
+                        LocalDate.of(1990, 5, 15),
+                        LocalDate.now()
+                )).isInstanceOf(InvalidClientNameException.class)
+                        .hasMessageContaining("blank");
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = {"", "   "})
+            @DisplayName("GIVEN blank email WHEN creating Person THEN throw exception explaining the value is blank")
+            void shouldExplainBlankEmail(String email) {
+                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                        "John Doe",
+                        email,
+                        "+33123456789",
+                        LocalDate.of(1990, 5, 15),
+                        LocalDate.now()
+                )).isInstanceOf(InvalidClientEmailException.class)
+                        .hasMessageContaining("blank");
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = {"", "   "})
+            @DisplayName("GIVEN blank phone WHEN creating Person THEN throw exception explaining the value is blank")
+            void shouldExplainBlankPhone(String phone) {
+                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                        "John Doe",
+                        "john@example.com",
+                        phone,
+                        LocalDate.of(1990, 5, 15),
+                        LocalDate.now()
+                )).isInstanceOf(InvalidClientPhoneNumberException.class)
+                        .hasMessageContaining("blank");
             }
 
             @ParameterizedTest
