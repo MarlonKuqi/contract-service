@@ -37,7 +37,8 @@ class ContractTest {
                 new BigDecimal("-100.00"),
                 new BigDecimal("-0.01"),
                 new BigDecimal("100.123"),  // Too many decimals
-                new BigDecimal("50.9999")   // Too many decimals
+                new BigDecimal("50.9999"),  // Too many decimals
+                new BigDecimal("10000000000.00")  // Too many integer digits
         );
     }
 
@@ -93,7 +94,8 @@ class ContractTest {
                     "1234.56, 365",
                     "0.01, 1",
                     "99999.99, 1000",
-                    "50.50, 90"
+                    "50.50, 90",
+                    "9999999999.99, 1"
             })
             @DisplayName("GIVEN various valid combinations WHEN creating Contract THEN contract is created with all correct values")
             void shouldCreateContractWithValidCombinations(BigDecimal costAmount, long daysInFuture) {

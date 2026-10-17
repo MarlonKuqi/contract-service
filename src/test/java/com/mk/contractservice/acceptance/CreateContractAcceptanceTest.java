@@ -168,6 +168,28 @@ class CreateContractAcceptanceTest {
     }
 
     @Test
+    @DisplayName("SCENARIO: Create contract with cost exceeding the storage precision fails")
+    void shouldRejectContractWithCostExceedingStoragePrecision() {
+        LocalDateTime now = LocalDateTime.now();
+        String createPayload = String.format("""
+                {
+                    "clientId": "%s",
+                    "startDate": "%s",
+                    "endDate": "%s",
+                    "costAmount": "10000000000.00"
+                }
+                """, testClient.getId(), now, now.plusMonths(6));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(createPayload)
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(422);
+    }
+
+    @Test
     @DisplayName("SCENARIO: Create contract with zero cost fails (must be positive non zero)")
     void shouldRejectContractWithZeroCost() {
         LocalDateTime now = LocalDateTime.now();

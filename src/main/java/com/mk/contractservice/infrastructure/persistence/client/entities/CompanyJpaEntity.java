@@ -1,5 +1,6 @@
 package com.mk.contractservice.infrastructure.persistence.client.entities;
 
+import com.mk.contractservice.domain.client.CompanyIdentifier;
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
@@ -19,7 +20,7 @@ import lombok.Setter;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CompanyJpaEntity extends ClientJpaEntity {
 
-    @Column(name = "company_identifier", nullable = false, length = 64, unique = true)
+    @Column(name = "company_identifier", nullable = false, length = CompanyIdentifier.MAX_LENGTH, unique = true)
     private String companyIdentifier;
 
     public CompanyJpaEntity(final String name, final String email, final String phone, final String companyIdentifier) {

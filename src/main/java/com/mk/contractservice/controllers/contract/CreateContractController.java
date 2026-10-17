@@ -5,6 +5,7 @@ import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractResponse;
 import com.mk.contractservice.controllers.contract.shared.ContractSwaggerTags;
 import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.ContractCost;
 import com.mk.contractservice.features.contract.CreateContract;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -125,10 +126,10 @@ public class CreateContractController {
 
             @NotNull(message = "Cost amount is required")
             @Positive(message = "Cost amount must be positive and greater than zero")
-            @Digits(integer = 12,
-                    fraction = 2,
-                    message = "Cost amount must have at most 12 digits and 2 decimal places")
-            @Schema(description = "Contract cost amount (must be positive, max 12 digits + 2 decimals)",
+            @Digits(integer = ContractCost.MAX_INTEGER_DIGITS,
+                    fraction = ContractCost.SCALE,
+                    message = "Cost amount must have at most " + ContractCost.MAX_INTEGER_DIGITS + " integer digits and " + ContractCost.SCALE + " decimal places")
+            @Schema(description = "Contract cost amount (must be positive, max " + ContractCost.MAX_INTEGER_DIGITS + " integer digits + " + ContractCost.SCALE + " decimals)",
                     example = "1500.00",
                     minimum = "0.01",
                     requiredMode = Schema.RequiredMode.REQUIRED)

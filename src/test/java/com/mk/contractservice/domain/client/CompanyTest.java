@@ -131,6 +131,37 @@ class CompanyTest {
 
                 assertThat(company.getCompanyIdentifier().getValue()).hasSize(CompanyIdentifier.MAX_LENGTH);
             }
+
+            @Test
+            @DisplayName("GIVEN name at max length WHEN creating Company THEN company is created")
+            void shouldCreateCompanyWithMaxLengthName() {
+                final String maxLengthName = "a".repeat(ClientName.MAX_LENGTH);
+
+                final Company company = CompanyFactory.createFromCommand(
+                        maxLengthName,
+                        "max@length.com",
+                        "+33123456789",
+                        "acme-123"
+                );
+
+                assertThat(company.getName().getValue()).hasSize(ClientName.MAX_LENGTH);
+            }
+
+            @Test
+            @DisplayName("GIVEN email at max length WHEN creating Company THEN company is created")
+            void shouldCreateCompanyWithMaxLengthEmail() {
+                final String domain = "@example.com";
+                final String maxLengthEmail = "a".repeat(ClientEmail.MAX_LENGTH - domain.length()) + domain;
+
+                final Company company = CompanyFactory.createFromCommand(
+                        "Max Length Corp",
+                        maxLengthEmail,
+                        "+33123456789",
+                        "acme-123"
+                );
+
+                assertThat(company.getEmail().getValue()).hasSize(ClientEmail.MAX_LENGTH);
+            }
         }
 
         @Nested

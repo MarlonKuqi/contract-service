@@ -169,6 +169,7 @@ public final class ClientTestData {
                 "+1234567890",                  // Invalid number
                 "+41 21 123",                   // Too short (incomplete)
                 "+411234567890123",             // Too long
+                "+493742508450764",             // Valid German number exceeding storage length
                 "+1 650 253 0000",              // Valid US number (not supported)
                 "+44 20 7946 0958",             // Valid UK number (not supported)
                 "+86 10 1234 5678"              // Valid Chinese number (not supported)
@@ -188,7 +189,8 @@ public final class ClientTestData {
                 new PhoneFormat("+49.30.12345678", "+493012345678"),
                 new PhoneFormat("+33 (0)6 12 34 56 78", "+33612345678"),
                 new PhoneFormat("  +39 345 123 456  ", "+39345123456"),
-                new PhoneFormat("+41 79 123 45 67 ext. 12", "+41791234567")
+                new PhoneFormat("+41 79 123 45 67 ext. 12", "+41791234567"),
+                new PhoneFormat("+49 30 645404890", "+4930645404890") // Max storage length
         );
     }
 

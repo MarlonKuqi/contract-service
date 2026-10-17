@@ -174,6 +174,28 @@ class CreatePersonAcceptanceTest {
     }
 
     @Test
+    @DisplayName("SCENARIO: Create person with a valid phone number longer than the storage limit fails")
+    void shouldRejectPersonWithPhoneExceedingStorageLength() {
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Long Phone Person",
+                    "email": "%s",
+                    "phone": "+493742508450764",
+                    "birthDate": "1990-01-01"
+                }
+                """, TestDataHelper.uniqueEmail("long-phone"));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(422);
+    }
+
+    @Test
     @DisplayName("SCENARIO: Create person with an email already used by another client succeeds")
     void shouldAcceptPersonWithSharedEmail() {
         String duplicateEmail = "duplicate." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";

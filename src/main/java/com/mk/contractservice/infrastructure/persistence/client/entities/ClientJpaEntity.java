@@ -1,5 +1,8 @@
 package com.mk.contractservice.infrastructure.persistence.client.entities;
 
+import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientName;
+import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.DiscriminatorType;
@@ -49,13 +52,13 @@ public abstract class ClientJpaEntity {
     @Column(name = "last_modified", nullable = false)
     private LocalDateTime lastModified;
 
-    @Column(name = "name", nullable = false, length = 200)
+    @Column(name = "name", nullable = false, length = ClientName.MAX_LENGTH)
     private String name;
 
-    @Column(name = "email", nullable = false, length = 254)
+    @Column(name = "email", nullable = false, length = ClientEmail.MAX_LENGTH)
     private String email;
 
-    @Column(name = "phone", nullable = false, length = 14)
+    @Column(name = "phone", nullable = false, length = ClientPhoneNumber.MAX_LENGTH)
     private String phone;
 
     @Nullable

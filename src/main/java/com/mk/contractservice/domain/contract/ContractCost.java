@@ -21,7 +21,16 @@ public class ContractCost {
     public static final Predicate<BigDecimal> IS_ZERO_OR_NEGATIVE =
             amount -> amount.compareTo(BigDecimal.ZERO) <= 0;
 
-    public static final Predicate<BigDecimal> HAS_INVALID_SCALE = amount -> amount.scale() > 2;
+    public static final int PRECISION = 12;
+
+    public static final int SCALE = 2;
+
+    public static final int MAX_INTEGER_DIGITS = PRECISION - SCALE;
+
+    public static final Predicate<BigDecimal> HAS_INVALID_SCALE = amount -> amount.scale() > SCALE;
+
+    public static final Predicate<BigDecimal> HAS_TOO_MANY_INTEGER_DIGITS =
+            amount -> amount.precision() - amount.scale() > MAX_INTEGER_DIGITS;
 
     public boolean isSameAmountAs(final ContractCost other) {
         return value.compareTo(notNull(other).value) == 0;
@@ -52,7 +61,10 @@ public class ContractCost {
             throw new InvalidContractCostException("Contract cost amount must be greater than zero: " + rawValue);
         }
         if (HAS_INVALID_SCALE.test(rawValue)) {
-            throw new InvalidContractCostException("Contract cost amount must have at most 2 decimal places: " + rawValue);
+            throw new InvalidContractCostException("Contract cost amount must have at most " + SCALE + " decimal places: " + rawValue);
+        }
+        if (HAS_TOO_MANY_INTEGER_DIGITS.test(rawValue)) {
+            throw new InvalidContractCostException("Contract cost amount must have at most " + MAX_INTEGER_DIGITS + " integer digits: " + rawValue);
         }
     }
 }

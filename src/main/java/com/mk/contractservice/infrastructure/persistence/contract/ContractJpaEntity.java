@@ -1,5 +1,6 @@
 package com.mk.contractservice.infrastructure.persistence.contract;
 
+import com.mk.contractservice.domain.contract.ContractCost;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,7 +45,7 @@ public class ContractJpaEntity {
     @Column(name = "end_date")
     private LocalDateTime endDate;
 
-    @Column(name = "cost_amount", nullable = false, precision = 12, scale = 2)
+    @Column(name = "cost_amount", nullable = false, precision = ContractCost.PRECISION, scale = ContractCost.SCALE)
     private BigDecimal costAmount;
 
     @CreationTimestamp
