@@ -174,8 +174,8 @@ class CreatePersonAcceptanceTest {
     }
 
     @Test
-    @DisplayName("SCENARIO: Create person with a valid phone number longer than the storage limit fails")
-    void shouldRejectPersonWithPhoneExceedingStorageLength() {
+    @DisplayName("SCENARIO: Create person with a valid phone number of maximum E.164 length succeeds")
+    void shouldAcceptPersonWithMaxLengthPhone() {
         String createPayload = String.format("""
                 {
                     "type": "PERSON",
@@ -192,7 +192,8 @@ class CreatePersonAcceptanceTest {
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
-                .statusCode(422);
+                .statusCode(201)
+                .body("phone", equalTo("+493742508450764"));
     }
 
     @Test

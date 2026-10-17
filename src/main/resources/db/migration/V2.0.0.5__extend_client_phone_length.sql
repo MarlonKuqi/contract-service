@@ -1,0 +1,1 @@
+ALTER TABLE contracts.client ALTER COLUMN phone TYPE VARCHAR(16);

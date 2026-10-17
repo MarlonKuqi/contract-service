@@ -28,7 +28,7 @@ public class ClientPhoneNumber {
 
     String value;
 
-    public static final int MAX_LENGTH = 14;
+    public static final int MAX_LENGTH = 16;
 
     public static ClientPhoneNumber of(@Nullable final String raw) {
         return ValueObjectUtils.validateAndCreate(
@@ -62,9 +62,6 @@ public class ClientPhoneNumber {
     private static void validate(final String e164) {
         if (isNotSupportedE164(e164)) {
             throw new InvalidClientPhoneNumberException("Invalid or unsupported phone number");
-        }
-        if (e164.length() > MAX_LENGTH) {
-            throw new InvalidClientPhoneNumberException("Phone number too long (max " + MAX_LENGTH + " characters)");
         }
     }
 
