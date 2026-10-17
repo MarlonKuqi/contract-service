@@ -3,7 +3,6 @@ package com.mk.contractservice.features.contract;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractCost;
 import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,8 +37,7 @@ public interface PatchContractCost {
 
         @Override
         public Contract execute(final Command command) {
-            final Contract contract = contractRepository.findById(command.contractId())
-                    .orElseThrow(() -> new ContractNotFoundException(command.contractId()));
+            final Contract contract = contractRepository.getById(command.contractId());
 
             final Contract updatedContract = contract.changeCost(
                     ContractCost.of(command.newCostAmount()),

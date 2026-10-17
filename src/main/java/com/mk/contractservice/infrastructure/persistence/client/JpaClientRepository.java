@@ -4,12 +4,12 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.infrastructure.persistence.client.entities.ClientJpaEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -20,11 +20,10 @@ public class JpaClientRepository implements ClientRepository {
     private final CompanyJpaRepository companyJpa;
 
     @Override
-    public Optional<Client> findById(final UUID id) {
-        if (id == null) {
-            return Optional.empty();
-        }
-        return jpa.findById(id).map(ClientJpaMapper::toDomain);
+    public Client getById(final UUID id) {
+        return jpa.findById(id)
+                .map(ClientJpaMapper::toDomain)
+                .orElseThrow(() -> ClientNotFoundException.forId(id));
     }
 
     @Override
@@ -54,8 +53,10 @@ public class JpaClientRepository implements ClientRepository {
     }
 
     @Override
-    public boolean existsById(final UUID id) {
-        return jpa.existsById(id);
+    public void ensureExists(final UUID id) {
+        if (!jpa.existsById(id)) {
+            throw ClientNotFoundException.forId(id);
+        }
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.mk.contractservice.infrastructure.persistence.contract;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
+import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaUpdate;
@@ -14,7 +15,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -40,11 +40,10 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    public Optional<Contract> findById(final UUID id) {
-        if (id == null) {
-            return Optional.empty();
-        }
-        return contractJpaRepository.findById(id).map(ContractJpaMapper::toDomain);
+    public Contract getById(final UUID id) {
+        return contractJpaRepository.findById(id)
+                .map(ContractJpaMapper::toDomain)
+                .orElseThrow(() -> new ContractNotFoundException(id));
     }
 
     @Override

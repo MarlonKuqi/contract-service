@@ -2,7 +2,6 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,8 +28,7 @@ public interface GetContractById {
 
         @Override
         public Contract execute(final Query query) {
-            return contractRepository.findById(query.contractId())
-                    .orElseThrow(() -> new ContractNotFoundException(query.contractId()));
+            return contractRepository.getById(query.contractId());
         }
     }
 }

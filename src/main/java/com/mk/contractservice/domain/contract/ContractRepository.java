@@ -5,7 +5,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -22,7 +21,7 @@ import java.util.UUID;
 public interface ContractRepository {
     Contract save(Contract contract);
 
-    Optional<Contract> findById(UUID contractId);
+    Contract getById(UUID contractId);
 
     Page<Contract> findByCriteria(ContractSearchCriteria criteria, Pageable pageable);
 

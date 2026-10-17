@@ -29,7 +29,7 @@ import java.lang.annotation.Target;
  * <p>This annotation applies to two kinds of domain interfaces:
  * <ul>
  *   <li><strong>Aggregate repositories</strong> — manage the full lifecycle of a
- *       single aggregate root ({@code save}, {@code findById}, {@code delete}).
+ *       single aggregate root ({@code save}, {@code getById}, {@code delete}).
  *       In DDD, a repository is conceptually a collection of aggregates.</li>
  *   <li><strong>Query ports</strong> — expose analytical projections that aggregate
  *       values across multiple domain objects (e.g., a {@code SUM} across contracts).
