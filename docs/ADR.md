@@ -184,7 +184,6 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 **Conséquences.**
 - Coût : une jointure sur clé primaire en lecture et deux `INSERT` en création, négligeables face à l'aller-retour réseau.
 - La cohérence entre `client.type` et la sous-table utilisée est garantie par la couche de persistance, pas par la base. Une FK composite `(id, type)` a été envisagée puis écartée : elle impose une colonne technique constante dans `person` et `company`. À réévaluer si plusieurs applications écrivent un jour dans cette base.
-- L'index `ix_client_type` est inutile (2 valeurs, aucune requête ne filtre dessus) : à supprimer, voir TODO.
 
 **Statut.** Acceptée.
 
@@ -257,18 +256,41 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 
 **Décision.**
 1. **Correctif (fait)** : la fermeture en masse des contrats incrémente `version`. Sans cela, une modification du coût lancée avant la suppression du client pouvait rouvrir le contrat (`end_date` remis à `null`). Test : `ContractClosureConcurrencyAcceptanceTest`.
-2. **Cible (proposée)** : protection entre deux requêtes HTTP par `ETag` / `If-Match`.
-   - `GET` renvoie `ETag` = version ;
-   - `PUT`/`PATCH` exigent `If-Match` ; `412 Precondition Failed` si la version a changé, `428 Precondition Required` si l'en-tête manque.
-   - La version voyage dans la commande ; l'agrégat la porte comme jeton technique opaque, et le repository compare la version attendue à celle en base.
+2. **Différée** : protection entre deux requêtes HTTP par `ETag` / `If-Match`. Entre deux requêtes HTTP, on garde « le dernier gagne ».
 
-   L'ETag ne sélectionne pas une version : il empêche d'écrire sur la base d'une lecture périmée, et le client doit relire avant de réessayer.
+**Pourquoi différer l'étape 2.**
+- Il y a au plus une dizaine de conseillers, qui gèrent chacun leur portefeuille. Deux modifications concurrentes du même client ou du même contrat, entre la lecture et l'envoi d'un formulaire, sont rares.
+- Le seul cas grave, rouvrir un contrat fermé, est couvert par l'étape 1. Le domaine rejette déjà toute modification d'un contrat expiré.
+- Ce qu'on peut encore perdre se rattrape : un nom, un email ou un téléphone écrasé. Pour un coût, la dernière décision est en général celle qu'on veut garder.
+- `docs/sujet.txt` n'exige rien sur la concurrence.
+- Le coût serait élevé :
+  - un breaking change de l'API, puisque `If-Match` devient obligatoire ;
+  - la version à faire transiter dans les ports, les commandes, les handlers et les controllers ;
+  - la reprise de tous les tests d'acceptance `PUT`/`PATCH`.
+
+**Atténuation sans code.** Le front utilise `PATCH` plutôt que `PUT` : `PUT` réécrit aussi les champs que l'utilisateur n'a pas touchés, alors que `PATCH` n'écrit que les champs envoyés. Une perte n'est alors possible que si deux personnes modifient le même champ.
+
+**Signaux pour reprendre l'étape 2.**
+- Les clients modifient eux-mêmes leurs données (self-service).
+- Des intégrations ou des imports automatiques écrivent en parallèle des conseillers.
+- Le nombre d'utilisateurs augmente fortement, ou les portefeuilles deviennent partagés.
+- Un premier incident réel de modification perdue.
+
+**Pistes de conception pour la reprise.**
+- `GET` unitaire renvoie `ETag: "<version>"`. L'ETag doit être fort : `If-Match` utilise la comparaison forte, un ETag `W/` ne correspondrait jamais.
+- `PUT`/`PATCH` exigent `If-Match` :
+  - `428 Precondition Required` si l'en-tête manque ;
+  - `412 Precondition Failed` si la version a changé ;
+  - `*` refusé, car il contournerait le verrou.
+- La version est un détail de persistance : la garder hors des agrégats, par exemple dans une enveloppe `Versioned<T>` renvoyée par les ports. Elle doit être lue dans la même requête que les données.
+- Exposer `ETag` dans la configuration CORS (`exposedHeaders`), sinon un navigateur ne peut pas le lire.
+- L'ETag ne sélectionne pas une version : il empêche d'écrire sur la base d'une lecture périmée, et le client doit relire avant de réessayer.
 
 **Conséquences.**
-- Indispensable dès que plusieurs conseillers, ou des clients, modifient les mêmes données.
-- Le test `UpdateClientAcceptanceTest` « last one wins » documente le comportement actuel et devra évoluer avec l'étape 2.
+- Un conflit entre deux transactions qui se chevauchent reste détecté (`409 optimisticLockFailure`).
+- Le test `UpdateClientAcceptanceTest` « last one wins » documente le comportement voulu.
 
-**Statut.** Étape 1 acceptée (branche `bugfix/contract-closure-lost-update`). Étape 2 proposée.
+**Statut.** Étape 1 acceptée (branche `bugfix/contract-closure-lost-update`). Étape 2 différée.
 
 ---
 
@@ -285,7 +307,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 - Les identifiants existants (v4) restent valides, aucune migration de données.
 - La date de création devient lisible dans l'identifiant exposé par l'API : acceptable ici.
 
-**Statut.** Proposée.
+**Statut.** Acceptée.
 
 ---
 

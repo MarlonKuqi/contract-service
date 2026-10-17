@@ -26,26 +26,14 @@ docker-compose up --build
 
 ## 🏗️ Architecture & Design
 
-**Vertical Slice + Clean Architecture with DDD Principles**
-
-This project combines **Vertical Slice Architecture** (feature-driven organization) with **Clean Architecture** (onion
-layers) following **Domain-Driven Design**. Each feature (e.g., CreateClient, UpdateContract) is isolated end-to-end
-across all layers—domain logic → application orchestration → infrastructure persistence → REST API. This decomposition
-enables **independent testing of each feature, clear separation of concerns, easy evolution, and long-term
-maintainability**.
-
-**Domain Layer** (innermost) enforces invariants via Aggregates (Client sealed hierarchy: Person | Company, Contract)
-and immutable self-validating Value Objects (Email, PhoneNumber, ContractCost, ContractPeriod). **Validation at creation ensures "Always Valid" state**: business rules are encoded at instantiation (email format, positive cost, endDate > startDate), and immutability prevents subsequent invalid mutations. Once created, objects are guaranteed to satisfy all invariants—there is no intermediate invalid state. Domain exceptions (InvalidClientEmailException, ExpiredContractException) communicate failures clearly.
-
-**Features** (`features/`) hold one use case per file: a transactional handler that loads aggregates through repository ports, delegates business rules to the domain and saves the result.
-
-**Infrastructure Layer** abstracts technical concerns: JPA entities and Spring Data repositories implementing the domain ports, mappers for bidirectional conversion (JPA ↔ domain), PostgreSQL + Flyway versioned migrations.
-
-**Controllers** (`controllers/`) expose one REST endpoint each with DTO validation (Jakarta Validation), specialized exception handlers returning
-`ProblemDetail` errors (400, 404, 409, 422).
-
-This architecture ensures business logic remains independent of frameworks, databases, and delivery mechanisms ;
-maximizing code reusability, testability, and resilience to technology changes.
+**Vertical Slice + Clean Architecture + DDD.** 
+The subject looks like CRUD, but its value is in the rules: what makes a contract active, closing contracts when a client is deleted, immutable fields, an internal update date. 
+They live in rich, framework-free aggregates (`Client` sealed `Person | Company`, `Contract`, self-validating Value Objects), unit tested in isolation. 
+Each use case is one thin file in `features/`; Spring MVC and JPA/Flyway adapters stay at the edges, and ArchUnit enforces the dependency direction. 
+The domain decides, SQL does the heavy lifting: the sum is one aggregate query on a partial index, with no cache since a contract expires without any write, and a client's contracts are closed by a single bulk update. 
+The active rule exists in Java and SQL; a test keeps both aligned. 
+Deleting a client is a soft delete, so contract history is kept. 
+Trade-off: more files than a layered CRUD, accepted for testability. Details in [docs/ADR.md](docs/ADR.md).
 
 ---
 
@@ -113,7 +101,7 @@ curl "http://localhost:8080/v2/contracts?clientId={uuid}&updatedSince=2025-01-01
 ```bash
 curl "http://localhost:8080/v2/contracts/total?clientId={client-uuid}"
 ```
-✅ **Response:** `4500.00` (database aggregation, < 100 ms for 100 contracts in the acceptance tests)
+✅ **Response:** `4500.00` (SQL aggregation, always computed from the database)
 
 **Update Contract Cost** (the internal last modification date is updated, the same amount is a no-op):
 ```bash
@@ -129,21 +117,33 @@ curl -X DELETE "http://localhost:8080/v2/clients/{client-uuid}"
 ```
 ✅ **Response:** `204 No Content` (active contracts get `endDate = deletion date`, the client then answers 404)
 
-### 3. Automated Test Suite (Proof of Quality)
+### 3. Automated Test Suite
 
-Run all tests:
 ```bash
-./mvnw verify
+./mvnw clean verify
 ```
 
-**Coverage:** 80%+ (view report: `target/site/jacoco/index.html`)
+Every requirement of the subject is covered by an acceptance test that calls the REST API over HTTP (RestAssured) against a real PostgreSQL started by Testcontainers. Time-dependent rules use a controllable clock to make time pass.
 
-**Test Categories:**
-- ✅ **Unit Tests** (domain objects and use case handlers, mocked ports, fixed clock)
-- ✅ **Acceptance Tests** (REST API end to end with RestAssured, real PostgreSQL via Testcontainers)
-- ✅ **Validation Tests** (email, phone, dates ISO-8601, business rules)
-- ✅ **Edge Cases** (empty lists, expired contracts, conflicts)
-- ✅ **Testcontainers** (real PostgreSQL database)
+| Requirement | Acceptance test |
+|---|---|
+| Create a person / a company, validation, unique company identifier | `CreatePersonAcceptanceTest`, `CreateCompanyAcceptanceTest` |
+| Read a client with all its fields | `ReadClientAcceptanceTest` |
+| Update a client, `birthDate` and `companyIdentifier` unchanged | `UpdateClientAcceptanceTest`, `PatchClientAcceptanceTest` |
+| Delete a client: active contracts closed at the deletion date | `ClientDeletionAcceptanceTest` |
+| Create a contract (start date defaults to now, positive cost) | `CreateContractAcceptanceTest`, `ContractLifecycleAcceptanceTest` |
+| Update the cost (updates the internal modification date) | `UpdateContractCostAcceptanceTest` |
+| List active contracts, `updatedSince` filter, pagination | `ListContractsAcceptanceTest` |
+| Sum of active contracts, including a contract that expires without any write | `ContractTotalUseCaseAcceptanceTest`, `ContractTotalOverTimeAcceptanceTest` |
+| Same "active" rule in the domain and in SQL | `ActiveContractRuleAlignmentAcceptanceTest` |
+| No lost update when a client is deleted during a cost update | `ContractClosureConcurrencyAcceptanceTest` |
+
+Current result: 269 unit tests and 130 acceptance tests, 0 failure.
+
+Also run by the build:
+- **Unit tests** of domain objects and use case handlers (mocked ports, fixed clock);
+- **`ArchitectureTest`** (ArchUnit): dependency rules between layers;
+- **JaCoCo**: the build fails below 70% line and branch coverage on domain and features, currently 94% (report: `target/site/jacoco/index.html`).
 
 ### 4. Postman Collections
 
@@ -206,7 +206,7 @@ Import from `api-collections/` for complete API examples:
 ```
 
 **Test Statistics:**
-- 80%+ code coverage
+- 94% line and branch coverage on domain and features (minimum enforced: 70%)
 - Unit and acceptance tests
 - Testcontainers for real database
 
@@ -263,7 +263,6 @@ The `Content-Language` response header echoes the resolved locale. Error message
 - Docker build uses **Azul Zulu 27** and runtime uses a **custom Java 27 `jlink` image**
 - Docker image runs as non-root user `appuser`
 - Use environment variables for production credentials
-- Dependencies scanned for vulnerabilities (OWASP)
 
 ---
 
