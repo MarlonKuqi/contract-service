@@ -145,6 +145,9 @@ Also run by the build:
 - **`ArchitectureTest`** (ArchUnit): dependency rules between layers;
 - **JaCoCo**: the build fails below 70% line and branch coverage on domain and features, currently 94% (report: `target/site/jacoco/index.html`).
 
+Mutation testing (separate profile and CI job, ADR-016):
+- **PIT** mutates the bytecode of domain and features and checks that the unit tests detect each mutant: `./mvnw test -Pmutation` (report: `target/pit-reports/index.html`). Current score: 97% test strength (killed among mutants covered by unit tests, minimum enforced: 95%) and 96% of all mutants killed (minimum enforced: 90%). The remaining mutants are equivalent mutants or plumbing covered by acceptance tests, documented in ADR-016.
+
 ### 4. Postman Collections
 
 Import from `api-collections/` for complete API examples:
@@ -203,6 +206,10 @@ Import from `api-collections/` for complete API examples:
 # Generate coverage report
 ./mvnw jacoco:report
 # Open: target/site/jacoco/index.html
+
+# Run mutation tests (PIT)
+./mvnw test -Pmutation
+# Open: target/pit-reports/index.html
 ```
 
 **Test Statistics:**

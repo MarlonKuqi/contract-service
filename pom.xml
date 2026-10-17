@@ -37,6 +37,8 @@
 		<jspecify.version>1.0.0</jspecify.version>
 		<archunit.version>1.5.0</archunit.version>
 		<jacoco.version>0.8.15</jacoco.version>
+		<pitest.version>1.30.1</pitest.version>
+		<pitest-junit5.version>1.2.3</pitest-junit5.version>
 		<flyway.version>13.9.0</flyway.version>
 		<springdoc.version>3.1.1</springdoc.version>
 		<libphonenumber.version>9.0.41</libphonenumber.version>
@@ -329,5 +331,63 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>mutation</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-maven</artifactId>
+						<version>${pitest.version}</version>
+						<dependencies>
+							<dependency>
+								<groupId>org.pitest</groupId>
+								<artifactId>pitest-junit5-plugin</artifactId>
+								<version>${pitest-junit5.version}</version>
+							</dependency>
+						</dependencies>
+						<executions>
+							<execution>
+								<id>mutation-coverage</id>
+								<phase>test</phase>
+								<goals>
+									<goal>mutationCoverage</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<targetClasses>
+								<param>com.mk.contractservice.domain.*</param>
+								<param>com.mk.contractservice.features.*</param>
+							</targetClasses>
+							<targetTests>
+								<param>com.mk.contractservice.domain.*</param>
+								<param>com.mk.contractservice.features.*</param>
+							</targetTests>
+							<excludedTestClasses>
+								<param>**.*AcceptanceTest</param>
+							</excludedTestClasses>
+							<mutators>
+								<mutator>DEFAULTS</mutator>
+							</mutators>
+							<jvmArgs>
+								<value>-XX:+EnableDynamicAgentLoading</value>
+								<value>-Xshare:off</value>
+							</jvmArgs>
+							<mutationThreshold>90</mutationThreshold>
+							<testStrengthThreshold>95</testStrengthThreshold>
+							<timestampedReports>false</timestampedReports>
+							<outputFormats>
+								<format>HTML</format>
+								<format>XML</format>
+							</outputFormats>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>

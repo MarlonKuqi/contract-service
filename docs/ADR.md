@@ -33,6 +33,7 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 **Qualité et exécution**
 - [ADR-014 — Stratégie de tests](#adr-014--stratégie-de-tests)
 - [ADR-015 — Image Docker et exécution](#adr-015--image-docker-et-exécution)
+- [ADR-016 — Mutation testing (PIT)](#adr-016--mutation-testing-pit)
 
 ---
 
@@ -359,6 +360,33 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 
 **Conséquences.**
 - Image réduite et surface d'attaque limitée.
-- Le fuseau n'est pas fixé dans l'image (ADR-013).
+- Le fuseau est fixé dans l'image : `TZ=Europe/Zurich` (ADR-013).
+
+**Statut.** Acceptée.
+
+---
+
+## ADR-016 — Mutation testing (PIT)
+
+**Contexte.** JaCoCo mesure le code *exécuté* par les tests, pas le code *vérifié*. Les règles métier du domaine (bornes de dates exclusives, montants insensibles à l'échelle, no-op des `change*`, longueurs maximales) sont exactement celles qu'un test peut traverser sans les vérifier.
+
+**Décision.**
+- **PIT** (`pitest-maven` + `pitest-junit5-plugin`) dans un profil Maven `mutation` : `./mvnw test -Pmutation`.
+- Périmètre : `domain` et `features` uniquement, avec les tests unitaires (Surefire). Les tests d'acceptance (Testcontainers) sont exclus : un démarrage PostgreSQL par mutant est trop lent pour un gain faible. `controllers` et `infrastructure` sont exclus : leurs mutants sont surtout du mapping ou de la configuration.
+- Aucune classe du périmètre n'est exclue de la mutation : exclure du code pour améliorer le score masquerait ce que les tests unitaires ne vérifient pas.
+- Mutateurs `DEFAULTS`. Deux seuils, le build du profil échoue en dessous :
+  - `testStrengthThreshold = 95` : mutants tués parmi les mutants **couverts** par les tests unitaires. C'est le seuil qui garde les règles métier ;
+  - `mutationThreshold = 90` : mutants tués parmi **tous** les mutants. Il tolère la plomberie couverte uniquement par l'acceptance (handlers de pure délégation), qui reste visible en `NO_COVERAGE` dans le rapport.
+- On écrit des tests unitaires pour des comportements (agrégats, services de domaine, décisions d'orchestration des handlers), pas pour tuer des mutants. Un survivant sur une règle métier se tue par un test ; un mutant non couvert sur de la plomberie testée par l'acceptance ne justifie pas un test unitaire.
+- Hors du `clean verify` standard (environ 1 minute de plus), exécuté dans un job CI dédié `mutation-tests` ; rapport dans `target/pit-reports/index.html`.
+- Pas d'historique incrémental (`withHistory`) : avec PIT 1.30 il exige le plugin commercial Arcmutate.
+
+**Conséquences.**
+- Premier passage : 92 % de mutants tués. Les survivants ont révélé des trous réels : aucune vérification de la longueur maximale *acceptée* (nom 200, email 254), chemins nominaux de `CreateContract` et `CreateCompany` non testés en unitaire. Ils ont aussi révélé un « find or throw » écrit dans les handlers `GetContractById` et `PatchContractCost`, et des ports qui exposaient `findById`/`existsById` uniquement pour servir leurs propres méthodes par défaut `getById`/`ensureExists`. Les ports n'exposent plus que `getById` et `ensureExists`, implémentés par les adapters JPA qui lèvent l'exception du domaine.
+- Score actuel : 96 % de mutants tués, test strength 97 %.
+- Mutants non tués, acceptés :
+  - `rawValue.isBlank()` dans `normalize` (`ClientName`, `ClientEmail`, `ClientPhoneNumber`, `CompanyIdentifier`) : mutant équivalent, une valeur blanche est rejetée ensuite par `validate` (longueur vide) ou par le parseur, avec la même exception ;
+  - `ClientPhoneNumber.toString` : non utilisé par le code de production ;
+  - `NO_COVERAGE` sur `GetClientById` et `GetContractById` : plomberie couverte par les tests d'acceptance (404).
 
 **Statut.** Acceptée.
