@@ -23,6 +23,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -39,6 +40,9 @@ class ReadClientAcceptanceTest {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private Clock clock;
 
     @Autowired
     private ClientRepository clientRepository;
@@ -65,7 +69,7 @@ class ReadClientAcceptanceTest {
                 ClientName.of("John Doe"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("john.doe")),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15), LocalDate.now(clock))
         );
         givenPerson = (Person) clientRepository.save(givenPerson);
 

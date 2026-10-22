@@ -19,6 +19,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
@@ -37,6 +38,9 @@ class ClientDeletionAcceptanceTest {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private Clock clock;
 
     @Autowired
     private ClientJpaRepository clientJpaRepository;
@@ -83,7 +87,7 @@ class ClientDeletionAcceptanceTest {
                 .statusCode(201)
                 .extract().path("id");
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         // Contrat 1: endDate = null (actif indefiniment)
         String contract1Payload = String.format("""
@@ -152,7 +156,7 @@ class ClientDeletionAcceptanceTest {
                 .then()
                 .statusCode(204);
 
-        LocalDateTime deletionTime = LocalDateTime.now();
+        LocalDateTime deletionTime = LocalDateTime.now(clock);
 
         // THEN: Le client est supprime
         given()
@@ -269,7 +273,7 @@ class ClientDeletionAcceptanceTest {
                 .statusCode(201)
                 .extract().path("id");
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime expiredEndDate1 = now.minusMonths(3);
         LocalDateTime expiredEndDate2 = now.minusDays(1);
 
@@ -309,7 +313,7 @@ class ClientDeletionAcceptanceTest {
                 .then()
                 .statusCode(204);
 
-        LocalDateTime deletionTime = LocalDateTime.now();
+        LocalDateTime deletionTime = LocalDateTime.now(clock);
 
         // THEN: Le client n'existe plus
         given()
@@ -383,7 +387,7 @@ class ClientDeletionAcceptanceTest {
                     "endDate": null,
                     "costAmount": "5000.00"
                 }
-                """, clientId, LocalDateTime.now().minusDays(30));
+                """, clientId, LocalDateTime.now(clock).minusDays(30));
 
         String contractId = given()
                 .contentType(ContentType.JSON)
@@ -401,7 +405,7 @@ class ClientDeletionAcceptanceTest {
                 .then()
                 .statusCode(204);
 
-        LocalDateTime deletionTime = LocalDateTime.now();
+        LocalDateTime deletionTime = LocalDateTime.now(clock);
 
         // THEN: Le client n'existe plus
         given()
@@ -552,7 +556,7 @@ class ClientDeletionAcceptanceTest {
                             "startDate": "%s",
                             "costAmount": "100.00"
                         }
-                        """.formatted(clientId, LocalDateTime.now().minusDays(10)))
+                        """.formatted(clientId, LocalDateTime.now(clock).minusDays(10)))
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()

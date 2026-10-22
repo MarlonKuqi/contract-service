@@ -112,7 +112,8 @@ No domain object can exist in an invalid state.
 ## Testing strategy
 - We work in TDD mode, NOT TEST-FIRST.
 - Unit tests (Surefire, `./mvnw test`): domain main objects and handlers, mocked ports, `Clock.fixed`.
-- Acceptance tests (Failsafe, classes named `*AcceptanceTest`, `./mvnw verify`): REST API end to end with RestAssured on PostgreSQL via Testcontainers. Use `MutableClock` to make time pass.
+- Acceptance tests (Failsafe, classes named `*AcceptanceTest`, `./mvnw verify`): REST API end to end with RestAssured on PostgreSQL via Testcontainers. Reserved for features seen by an API user. The JVM runs in UTC (`-Duser.timezone=UTC`). To make time pass, replace only the `InstantSource` with `MutableInstantSource`, never the `Clock`.
+- Tests never call `now()` without a clock: acceptance tests inject the application `Clock` bean, unit tests use fixed dates or `Clock.fixed`.
 - Concurrency bugs are reproduced with two real transactions (`TransactionTemplate` + `PROPAGATION_REQUIRES_NEW`).
 - A regression test must fail without the fix: check it before delivering.
 - Value Objects are tested through entity factories and the REST API. A dedicated VO test exists only when the VO is shared across aggregates or carries logic not observable through an entity.

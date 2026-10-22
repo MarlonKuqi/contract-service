@@ -1,6 +1,6 @@
 package com.mk.contractservice.acceptance;
 
-import com.mk.contractservice.acceptance.config.MutableClock;
+import com.mk.contractservice.acceptance.config.MutableInstantSource;
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
@@ -25,30 +25,30 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@Import({TestcontainersConfiguration.class, ContractTotalOverTimeAcceptanceTest.MutableClockConfiguration.class})
+@Import({TestcontainersConfiguration.class, ContractTotalOverTimeAcceptanceTest.MutableInstantSourceConfiguration.class})
 @DisplayName("Sum of active contracts over time - Acceptance Tests")
 class ContractTotalOverTimeAcceptanceTest {
 
     private static final Instant REFERENCE_INSTANT = Instant.parse("2026-06-01T10:00:00Z");
 
     @TestConfiguration(proxyBeanMethods = false)
-    static class MutableClockConfiguration {
+    static class MutableInstantSourceConfiguration {
 
         @Bean
         @Primary
-        MutableClock mutableClock() {
-            return new MutableClock(REFERENCE_INSTANT, ZoneOffset.UTC);
+        MutableInstantSource mutableInstantSource() {
+            return new MutableInstantSource(REFERENCE_INSTANT);
         }
     }
 
@@ -59,7 +59,10 @@ class ContractTotalOverTimeAcceptanceTest {
     private ClientRepository clientRepository;
 
     @Autowired
-    private MutableClock clock;
+    private MutableInstantSource instantSource;
+
+    @Autowired
+    private Clock clock;
 
     private Client testClient;
 
@@ -67,7 +70,7 @@ class ContractTotalOverTimeAcceptanceTest {
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
-        clock.setInstant(REFERENCE_INSTANT);
+        instantSource.setInstant(REFERENCE_INSTANT);
 
         testClient = clientRepository.save(Person.of(
                 ClientName.of("Time Travel Client"),
@@ -86,7 +89,21 @@ class ContractTotalOverTimeAcceptanceTest {
 
         assertTotal("1250.00");
 
-        clock.advance(Duration.ofDays(2));
+        instantSource.advance(Duration.ofDays(2));
+
+        assertTotal("1000.00");
+    }
+
+    @Test
+    @DisplayName("GIVEN a contract ending at midnight Swiss time WHEN it is 00:30 in Switzerland THEN the sum no longer includes it, whatever the server time zone")
+    void shouldExcludeContractFromSumOnceSwissMidnightHasPassed() {
+        instantSource.setInstant(Instant.parse("2026-05-31T21:30:00Z"));
+        createContract(LocalDateTime.of(2026, 5, 1, 0, 0), null, "1000.00");
+        createContract(LocalDateTime.of(2026, 5, 1, 0, 0), LocalDateTime.of(2026, 6, 1, 0, 0), "250.00");
+
+        assertTotal("1250.00");
+
+        instantSource.setInstant(Instant.parse("2026-05-31T22:30:00Z"));
 
         assertTotal("1000.00");
     }

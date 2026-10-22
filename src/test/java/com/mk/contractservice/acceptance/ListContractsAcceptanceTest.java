@@ -28,6 +28,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -46,6 +47,9 @@ class ListContractsAcceptanceTest {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private Clock clock;
 
     @Autowired
     private ClientRepository clientRepository;
@@ -69,7 +73,7 @@ class ListContractsAcceptanceTest {
                 ClientName.of("List Test Client"),
                 ClientEmail.of("list.test." + uniqueId + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
         );
         testClient = clientRepository.save(testClient);
     }
@@ -227,7 +231,7 @@ class ListContractsAcceptanceTest {
 
             await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
 
-            LocalDateTime filterDate = LocalDateTime.now();
+            LocalDateTime filterDate = LocalDateTime.now(clock);
 
             await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
 

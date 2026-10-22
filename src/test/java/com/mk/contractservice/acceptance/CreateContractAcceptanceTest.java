@@ -23,6 +23,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -40,6 +41,9 @@ class CreateContractAcceptanceTest {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private Clock clock;
 
     @Autowired
     private ClientRepository clientRepository;
@@ -65,7 +69,7 @@ class CreateContractAcceptanceTest {
                 ClientName.of("Marie Durand"),
                 ClientEmail.of("marie.durand." + uniqueId + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
         );
         testClient = clientRepository.save(testClient);
     }
@@ -73,7 +77,7 @@ class CreateContractAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Create contract with all fields succeeds")
     void shouldCreateContractWithAllFields() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
@@ -111,7 +115,7 @@ class CreateContractAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Create contract with null endDate (open-ended) succeeds")
     void shouldCreateOpenEndedContract() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
@@ -147,7 +151,7 @@ class CreateContractAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Create contract with very high cost succeeds")
     void shouldCreateContractWithHighCost() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
@@ -170,7 +174,7 @@ class CreateContractAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Create contract with cost exceeding the storage precision fails")
     void shouldRejectContractWithCostExceedingStoragePrecision() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
@@ -192,7 +196,7 @@ class CreateContractAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Create contract with zero cost fails (must be positive non zero)")
     void shouldRejectContractWithZeroCost() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
@@ -215,7 +219,7 @@ class CreateContractAcceptanceTest {
     @DisplayName("SCENARIO: Create contract for non-existent client fails")
     void shouldRejectContractForNonExistentClient() {
         UUID fakeClientId = UUID.randomUUID();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
@@ -237,7 +241,7 @@ class CreateContractAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Create contract with negative cost fails")
     void shouldRejectContractWithNegativeCost() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
@@ -259,7 +263,7 @@ class CreateContractAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Create contract with endDate before startDate fails")
     void shouldRejectContractWithEndDateBeforeStartDate() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
@@ -281,7 +285,7 @@ class CreateContractAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Create contract without required fields fails")
     void shouldRejectContractWithoutRequiredFields() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         // Missing clientId
         String payloadWithoutClient = String.format("""
@@ -321,7 +325,7 @@ class CreateContractAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Create multiple contracts for same client succeeds")
     void shouldCreateMultipleContractsForSameClient() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         String contract1 = String.format("""
                 {

@@ -24,6 +24,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -46,6 +47,9 @@ class ContractLifecycleAcceptanceTest {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private Clock clock;
 
     @Autowired
     private ClientRepository clientRepository;
@@ -73,7 +77,7 @@ class ContractLifecycleAcceptanceTest {
                 ClientName.of("Marie Durand"),
                 ClientEmail.of("marie.durand." + uniqueId + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
         );
         testClient = clientRepository.save(testClient);
     }
@@ -81,7 +85,7 @@ class ContractLifecycleAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Create contract, retrieve it, update cost, verify changes")
     void shouldCompleteContractLifecycle() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
@@ -142,7 +146,7 @@ class ContractLifecycleAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Client signs multiple contracts, sum calculation reflects all active ones")
     void shouldTrackMultipleContractsForSameClient() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         String contract1 = String.format("""
                 {
@@ -250,7 +254,7 @@ class ContractLifecycleAcceptanceTest {
                 .then()
                 .statusCode(anyOf(is(400), is(422), is(500)));
 
-        LocalDateTime testNow = LocalDateTime.now();
+        LocalDateTime testNow = LocalDateTime.now(clock);
         String invalidDateRange = String.format("""
                 {
                     "clientId": "%s",
@@ -342,7 +346,7 @@ class ContractLifecycleAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Contract without endDate is considered active indefinitely")
     void shouldTreatNullEndDateAsIndefinitelyActive() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
@@ -380,7 +384,7 @@ class ContractLifecycleAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Active contracts from JPA query match domain isActive() logic")
     void shouldReturnOnlyActiveContractsConsistentWithDomainLogic() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         String activeNoEndDatePayload = String.format("""
                 {
@@ -448,7 +452,7 @@ class ContractLifecycleAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Sum of active contracts via JPA matches manual sum with domain isActive()")
     void shouldSumActiveContractsConsistentlyWithDomainLogic() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         // Create 2 active contracts (1000 + 2000 = 3000)
         String active1Payload = String.format("""
@@ -598,7 +602,7 @@ class ContractLifecycleAcceptanceTest {
     @Test
     @DisplayName("EDGE CASE: Very large cost amounts should be handled correctly")
     void shouldHandleVeryLargeCostAmounts() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
@@ -621,7 +625,7 @@ class ContractLifecycleAcceptanceTest {
     @Test
     @DisplayName("EDGE CASE: Boundary dates should be handled correctly")
     void shouldHandleBoundaryDates() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime endDate = now.plusMonths(11)
                 .withDayOfMonth(1)
                 .plusMonths(1)
@@ -655,7 +659,7 @@ class ContractLifecycleAcceptanceTest {
     @Test
     @DisplayName("EDGE CASE: Concurrent contract creation should work")
     void shouldHandleConcurrentContractCreation() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
@@ -679,7 +683,7 @@ class ContractLifecycleAcceptanceTest {
     @Test
     @DisplayName("EDGE CASE: Zero cost amount should be rejected")
     void shouldRejectZeroCostAmount() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         String zeroAmountPayload = String.format("""
                 {
                     "clientId": "%s",

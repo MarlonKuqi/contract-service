@@ -25,6 +25,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -41,6 +42,9 @@ class UpdateClientAcceptanceTest {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private Clock clock;
 
     @Autowired
     private ClientRepository clientRepository;
@@ -66,7 +70,7 @@ class UpdateClientAcceptanceTest {
                 ClientName.of("Alice Before"),
                 ClientEmail.of("alice.before." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
         );
         person = (Person) clientRepository.save(person);
         String updatePayload = """
@@ -143,7 +147,7 @@ class UpdateClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
         ));
         String invalidPayload = """
                 {
@@ -191,7 +195,7 @@ class UpdateClientAcceptanceTest {
                 ClientName.of("Person Type Test"),
                 ClientEmail.of("person.type." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
         );
         person = (Person) clientRepository.save(person);
         String updatePayload = """
@@ -266,7 +270,7 @@ class UpdateClientAcceptanceTest {
                 ClientName.of("Concurrent Test"),
                 ClientEmail.of("concurrent." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
         ));
         String update1 = """
                 {
@@ -317,7 +321,7 @@ class UpdateClientAcceptanceTest {
                 ClientName.of("Immutable Birth"),
                 ClientEmail.of("immutable.birth." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15), LocalDate.now(clock))
         );
         person = (Person) clientRepository.save(person);
 
@@ -356,7 +360,7 @@ class UpdateClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
         ));
         String invalidPayload = """
                 {

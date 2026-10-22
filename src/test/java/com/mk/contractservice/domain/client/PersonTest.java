@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import static com.mk.contractservice.domain.client.ClientTestData.TODAY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -24,23 +25,23 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class PersonTest {
     static Stream<LocalDate> validBirthDates() {
         return Stream.of(
-                LocalDate.now(),
+                TODAY,
                 LocalDate.of(1990, 5, 15),
                 LocalDate.of(1950, 1, 1),
                 LocalDate.of(2000, 12, 31),
-                LocalDate.now().minusYears(18),
-                LocalDate.now().minusDays(1)
+                TODAY.minusYears(18),
+                TODAY.minusDays(1)
         );
     }
 
     static Stream<LocalDate> invalidBirthDates() {
         return Stream.of(
                 null,
-                LocalDate.now().plusDays(1),
-                LocalDate.now().plusWeeks(1),
-                LocalDate.now().plusMonths(1),
-                LocalDate.now().plusYears(1),
-                LocalDate.now().plusYears(10),
+                TODAY.plusDays(1),
+                TODAY.plusWeeks(1),
+                TODAY.plusMonths(1),
+                TODAY.plusYears(1),
+                TODAY.plusYears(10),
                 LocalDate.of(2100, 1, 1),
                 LocalDate.MAX
         );
@@ -63,7 +64,7 @@ class PersonTest {
                         "john@example.com",
                         "+33123456789",
                         LocalDate.of(1990, 5, 15),
-                        LocalDate.now()
+                        TODAY
                 )).isInstanceOf(InvalidClientNameException.class);
             }
 
@@ -76,7 +77,7 @@ class PersonTest {
                         email,
                         "+33123456789",
                         LocalDate.of(1990, 5, 15),
-                        LocalDate.now()
+                        TODAY
                 )).isInstanceOf(InvalidClientEmailException.class);
             }
 
@@ -89,7 +90,7 @@ class PersonTest {
                         "john@example.com",
                         phone,
                         LocalDate.of(1990, 5, 15),
-                        LocalDate.now()
+                        TODAY
                 )).isInstanceOf(InvalidClientPhoneNumberException.class);
             }
 
@@ -102,7 +103,7 @@ class PersonTest {
                         "john@example.com",
                         "+33123456789",
                         LocalDate.of(1990, 5, 15),
-                        LocalDate.now()
+                        TODAY
                 )).isInstanceOf(InvalidClientNameException.class)
                         .hasMessageContaining("blank");
             }
@@ -116,7 +117,7 @@ class PersonTest {
                         email,
                         "+33123456789",
                         LocalDate.of(1990, 5, 15),
-                        LocalDate.now()
+                        TODAY
                 )).isInstanceOf(InvalidClientEmailException.class)
                         .hasMessageContaining("blank");
             }
@@ -130,7 +131,7 @@ class PersonTest {
                         "john@example.com",
                         phone,
                         LocalDate.of(1990, 5, 15),
-                        LocalDate.now()
+                        TODAY
                 )).isInstanceOf(InvalidClientPhoneNumberException.class)
                         .hasMessageContaining("blank");
             }
@@ -144,7 +145,7 @@ class PersonTest {
                         "john@example.com",
                         format.raw(),
                         LocalDate.of(1990, 5, 15),
-                        LocalDate.now()
+                        TODAY
                 );
 
                 assertThat(person.getPhone().getValue()).isEqualTo(format.expectedE164());
@@ -153,8 +154,8 @@ class PersonTest {
             @Test
             @DisplayName("GIVEN same phone in different formats WHEN creating Persons THEN phones are equal")
             void shouldConsiderDifferentlyFormattedPhonesEqual() {
-                final Person first = PersonFactory.createFromCommand("John Doe", "john@example.com", "+41 79 123 45 67", LocalDate.of(1990, 5, 15), LocalDate.now());
-                final Person second = PersonFactory.createFromCommand("Jane Doe", "jane@example.com", "+41791234567", LocalDate.of(1985, 1, 1), LocalDate.now());
+                final Person first = PersonFactory.createFromCommand("John Doe", "john@example.com", "+41 79 123 45 67", LocalDate.of(1990, 5, 15), TODAY);
+                final Person second = PersonFactory.createFromCommand("Jane Doe", "jane@example.com", "+41791234567", LocalDate.of(1985, 1, 1), TODAY);
 
                 assertThat(first.getPhone()).isEqualTo(second.getPhone());
             }
@@ -167,7 +168,7 @@ class PersonTest {
                         "john@example.com",
                         "+33123456789",
                         null,
-                        LocalDate.now()
+                        TODAY
                 )).isInstanceOf(InvalidPersonBirthDateException.class);
             }
 
@@ -180,7 +181,7 @@ class PersonTest {
                         data.email(),
                         data.phone(),
                         data.birthDate(),
-                        LocalDate.now()
+                        TODAY
                 );
 
                 assertThat(person.getName().getValue()).isEqualTo(data.name());
@@ -203,7 +204,7 @@ class PersonTest {
                         "john@example.com",
                         "+33123456789",
                         birthDate,
-                        LocalDate.now()
+                        TODAY
                 );
 
                 assertThat(person.getBirthDate().getValue()).isEqualTo(birthDate);
@@ -218,7 +219,7 @@ class PersonTest {
                         "john@example.com",
                         "+33123456789",
                         birthDate,
-                        LocalDate.now()
+                        TODAY
                 )).isInstanceOf(InvalidPersonBirthDateException.class);
             }
         }
@@ -263,7 +264,7 @@ class PersonTest {
         @Test
         @DisplayName("GIVEN person WHEN updating common fields THEN birthdate remains unchanged")
         void shouldKeepBirthdateImmutableWhenUpdating() {
-            PersonBirthDate originalBirthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15), LocalDate.now());
+            PersonBirthDate originalBirthDate = PersonBirthDate.of(LocalDate.of(1990, 5, 15), TODAY);
             Person person = Person.of(
                     ClientName.of("John Doe"),
                     ClientEmail.of("john.doe@example.com"),
@@ -294,7 +295,7 @@ class PersonTest {
                     "john@example.com",
                     "+33123456789",
                     LocalDate.of(1990, 5, 15),
-                    LocalDate.now()
+                    TODAY
             );
 
             Person updated = person.changeCoreFields(
@@ -317,7 +318,7 @@ class PersonTest {
                     "john@example.com",
                     "+33123456789",
                     LocalDate.of(1990, 5, 15),
-                    LocalDate.now()
+                    TODAY
             );
 
             Person updated = person.changeCoreFields(
@@ -340,7 +341,7 @@ class PersonTest {
                     "john@example.com",
                     "+33123456789",
                     LocalDate.of(1990, 5, 15),
-                    LocalDate.now()
+                    TODAY
             );
 
             Person updated = person.changeCoreFields(
@@ -362,7 +363,7 @@ class PersonTest {
                     "john@example.com",
                     "+33123456789",
                     LocalDate.of(1990, 5, 15),
-                    LocalDate.now()
+                    TODAY
             );
 
             Person updated = person.changeCoreFields(

@@ -10,6 +10,8 @@ import java.util.stream.Stream;
 @NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public final class ClientTestData {
 
+    public static final LocalDate TODAY = LocalDate.of(2026, 6, 1);
+
     // ==================== Common Valid Client Data (Generic) ====================
 
     public record CommonClientData(String name, String email, String phone, String expectedPhone) {
@@ -53,7 +55,7 @@ public final class ClientTestData {
                 ValidPersonData.from(commonClients.get(5), LocalDate.of(1970, 9, 18)),
                 ValidPersonData.from(commonClients.get(6), LocalDate.of(2000, 2, 29)), // Leap year
                 ValidPersonData.from(commonClients.get(7), LocalDate.of(1988, 12, 25)),
-                ValidPersonData.from(commonClients.get(8), LocalDate.now().minusYears(18)) // Exactly 18
+                ValidPersonData.from(commonClients.get(8), TODAY.minusYears(18)) // Exactly 18
         );
     }
 
@@ -107,7 +109,7 @@ public final class ClientTestData {
 
                 // Invalid birth dates
                 new InvalidPersonData("John Doe", "test@example.com", "+41211234567", null),
-                new InvalidPersonData("John Doe", "test@example.com", "+41211234567", LocalDate.now().plusDays(1)),
+                new InvalidPersonData("John Doe", "test@example.com", "+41211234567", TODAY.plusDays(1)),
                 new InvalidPersonData("John Doe", "test@example.com", "+41211234567", LocalDate.of(2100, 1, 1))
         );
     }

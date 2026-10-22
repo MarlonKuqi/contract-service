@@ -81,7 +81,8 @@ ARG APP_USER
 ENV JAVA_HOME=${JRE_HOME} \
     PATH=${JRE_HOME}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
+    LC_ALL=C.UTF-8 \
+    TZ=Europe/Zurich
 
 WORKDIR ${APP_HOME}
 

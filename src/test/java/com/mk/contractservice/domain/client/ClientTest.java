@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import static com.mk.contractservice.domain.client.ClientTestData.TODAY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -101,7 +102,7 @@ class ClientTest {
                     "test@example.com",
                     "+33123456789",
                     LocalDate.of(1990, 1, 1),
-                    LocalDate.now()
+                    TODAY
             );
 
             assertThatThrownBy(() -> person.changeCoreFields(name, email, phone))
@@ -147,7 +148,7 @@ class ClientTest {
 
         static Stream<Client> clients() {
             return Stream.of(
-                    PersonFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", LocalDate.of(1990, 1, 1), LocalDate.now()),
+                    PersonFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", LocalDate.of(1990, 1, 1), TODAY),
                     CompanyFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", "acme-123")
             );
         }
@@ -177,7 +178,7 @@ class ClientTest {
 
         static Stream<Client> clients() {
             return Stream.of(
-                    PersonFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", LocalDate.of(1990, 1, 1), LocalDate.now()),
+                    PersonFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", LocalDate.of(1990, 1, 1), TODAY),
                     CompanyFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", "acme-123")
             );
         }

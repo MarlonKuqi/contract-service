@@ -23,6 +23,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -42,6 +43,9 @@ class ContractTotalUseCaseAcceptanceTest {
     private int port;
 
     @Autowired
+    private Clock clock;
+
+    @Autowired
     private ClientRepository clientRepository;
 
     private Client testClient;
@@ -56,7 +60,7 @@ class ContractTotalUseCaseAcceptanceTest {
                 ClientName.of("Sum Test Client"),
                 ClientEmail.of("sum.test." + uniqueId + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
         );
         testClient = clientRepository.save(testClient);
     }
@@ -71,7 +75,7 @@ class ContractTotalUseCaseAcceptanceTest {
             // ========================================
             // GIVEN: 2 active contracts + 2 expired contracts
             // ========================================
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now(clock);
 
             // Active 1: endDate = null (active indefinitely)
             String activeContract1 = String.format("""
@@ -145,7 +149,7 @@ class ContractTotalUseCaseAcceptanceTest {
         @DisplayName("Should treat NULL endDate as active indefinitely")
         void shouldIncludeContractsWithNullEndDate() {
             // GIVEN: 3 contracts with endDate = null
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now(clock);
 
             for (int i = 0; i < 3; i++) {
                 String contractPayload = String.format("""
@@ -176,7 +180,7 @@ class ContractTotalUseCaseAcceptanceTest {
         @DisplayName("Should return 0 for client with NO active contracts")
         void shouldReturn0WhenNoActiveContracts() {
             // GIVEN
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now(clock);
 
             String expiredContract1 = String.format("""
                     {
@@ -236,7 +240,7 @@ class ContractTotalUseCaseAcceptanceTest {
         @DisplayName("Should handle very large sum amounts correctly")
         void shouldHandleVeryLargeAmounts() {
             // GIVEN
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now(clock);
 
             for (int i = 0; i < 5; i++) {
                 String contractPayload = String.format("""
@@ -267,7 +271,7 @@ class ContractTotalUseCaseAcceptanceTest {
         @DisplayName("Should correctly sum decimal amounts (no rounding errors)")
         void shouldHandleDecimalPrecision() {
             // GIVEN
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now(clock);
 
             String contract1 = String.format("""
                     {
@@ -326,7 +330,7 @@ class ContractTotalUseCaseAcceptanceTest {
         @DisplayName("PERFORMANCE: Should respond quickly even with many contracts (< 1 second for 100 contracts)")
         void shouldBePerformantWithManyContracts() {
             // GIVEN
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now(clock);
 
             for (int i = 0; i < 100; i++) {
                 String contractPayload = String.format("""
@@ -410,7 +414,7 @@ class ContractTotalUseCaseAcceptanceTest {
                     .statusCode(201)
                     .extract().path("id");
 
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now(clock);
             String contractPayload = String.format("""
                     {
                         "clientId": "%s",

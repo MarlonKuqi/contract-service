@@ -25,6 +25,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -42,6 +43,9 @@ class PatchClientAcceptanceTest {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private Clock clock;
 
     @Autowired
     private ClientRepository clientRepository;
@@ -68,7 +72,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Original Name"),
                 ClientEmail.of("original." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
         );
         person = (Person) clientRepository.save(person);
 
@@ -105,7 +109,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("old." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
         );
         person = (Person) clientRepository.save(person);
 
@@ -141,7 +145,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
         );
         person = (Person) clientRepository.save(person);
 
@@ -218,7 +222,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
         ));
 
         String invalidPatchPayload = """
@@ -243,7 +247,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
         ));
 
         String invalidPatchPayload = """
@@ -289,7 +293,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
         );
         person = (Person) clientRepository.save(person);
 
@@ -322,7 +326,7 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Same Name"),
                 ClientEmail.of(email),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
         );
         person = (Person) clientRepository.save(person);
 

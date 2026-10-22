@@ -26,6 +26,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -38,6 +39,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Import(TestcontainersConfiguration.class)
 @DisplayName("Contract closure concurrency - Integration Tests")
 class ContractClosureConcurrencyAcceptanceTest {
+
+    @Autowired
+    private Clock clock;
 
     @Autowired
     private ClientRepository clientRepository;
@@ -54,7 +58,7 @@ class ContractClosureConcurrencyAcceptanceTest {
     @Test
     @DisplayName("GIVEN a contract loaded before a concurrent closure WHEN the stale copy is written THEN it is rejected and the contract stays closed")
     void shouldRejectStaleWriteAfterConcurrentClosure() {
-        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MICROS);
+        LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MICROS);
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Concurrent Closure"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("concurrent.closure")),

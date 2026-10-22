@@ -111,7 +111,7 @@ com.mk.contractservice
 - Un même use case utilise **un seul `now`** pour toutes ses décisions (ex. suppression : `deleted_at` = date de fermeture des contrats).
 
 **Conséquences.**
-- Le domaine est déterministe et testable sans base de données (`Clock.fixed` dans les tests unitaires, `MutableClock` dans les tests d'acceptance qui font avancer le temps).
+- Le domaine est déterministe et testable sans base de données (`Clock.fixed` dans les tests unitaires, `MutableInstantSource` dans les tests d'acceptance qui font avancer le temps).
 - Les champs d'audit purement techniques (`created_at`, `last_modified` du client) utilisent encore l'horloge de Hibernate. L'écart avec la `Clock` est de quelques millisecondes en production, et rien ne compare ces champs. Passage à l'audit Spring Data branché sur la `Clock` : voir TODO.
 
 **Statut.** Acceptée.
@@ -245,7 +245,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 
 **Conséquences.**
 - Résultat toujours exact, quel que soit le nombre d'instances.
-- Test d'acceptance `ContractTotalOverTimeAcceptanceTest` : il avance une `MutableClock` au-delà de la date de fin d'un contrat et vérifie que celui-ci sort de la somme.
+- Test d'acceptance `ContractTotalOverTimeAcceptanceTest` : il avance une `MutableInstantSource` au-delà de la date de fin d'un contrat et vérifie que celui-ci sort de la somme.
 
 **Statut.** Acceptée (merge #71).
 
@@ -318,15 +318,21 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 
 **Décision.**
 - Garder `LocalDateTime` (un seul fuseau métier).
-- Fixer le fuseau **explicitement** : `Clock.system(ZoneId.of("Europe/Zurich"))` via une propriété de configuration, `hibernate.jdbc.time_zone=Europe/Zurich`, et `TZ=Europe/Zurich` dans l'image.
+- Une seule propriété porte le fuseau métier : `app.time-zone=Europe/Zurich`, liée et validée au démarrage par `TimeZoneProperties` (`@ConfigurationProperties`), injectée là où le fuseau est nécessaire.
+- Horloge : l'instant et le fuseau sont séparés. `ClockConfiguration` expose une `InstantSource` (`InstantSource.system()`) et un `Clock` qui lui applique le fuseau métier (`instantSource.withZone(timeZoneProperties.timeZone())`). Le « maintenant » métier ne dépend plus du fuseau de la JVM. Les tests remplacent uniquement l'`InstantSource` : le fuseau reste celui de l'application.
+- Persistance : `BusinessZoneDateTimeConverter` (`@Converter(autoApply = true)`) convertit chaque `LocalDateTime` en `OffsetDateTime` dans `app.time-zone` avant écriture, et inversement à la lecture. L'instant stocké en `TIMESTAMPTZ` ne dépend plus du fuseau de la JVM.
+- `hibernate.jdbc.time_zone` est **écarté** : avec des `LocalDateTime`, Hibernate 7 passe toujours par `ZoneId.systemDefault()`. Le scénario de relecture des dates restait rouge avec ce réglage.
+- Image Docker : `ENV TZ=Europe/Zurich`, pour ce qui dépend encore du fuseau de la JVM (`@CreationTimestamp`/`@UpdateTimestamp`, logs).
 - `birthDate` reste un `LocalDate` (date civile).
 - Si l'application s'ouvre à des utilisateurs d'autres fuseaux : passage à `Instant` dans le domaine, `OffsetDateTime` dans l'API, UTC en base.
 
 **Conséquences.**
-- Comportement identique en local, en CI et en production.
+- Comportement identique en local, en CI et en production. Vérifié par deux scénarios métier, sur une suite d'acceptance exécutée avec une JVM en UTC (`-Duser.timezone=UTC`) : un contrat qui se termine à minuit heure suisse ne compte plus dans le total à 00:30 heure suisse (`ContractTotalOverTimeAcceptanceTest`) ; les dates saisies sont relues identiques après un redéploiement du serveur dans un autre fuseau (`ReadContractAcceptanceTest`).
+- Un fuseau absent ou inconnu empêche le démarrage (`@Validated`, `@NotNull`, conversion en `ZoneId`).
+- Limite connue : `created_at`/`last_modified` générés par Hibernate (`@CreationTimestamp`, `@UpdateTimestamp`) utilisent l'horloge de la JVM. Ils sont justes avec `TZ=Europe/Zurich` et décalés sur une JVM dans un autre fuseau. Ces champs sont techniques et ne sont pas exposés (ADR-005).
 - Limite connue : lors du passage à l'heure d'hiver, l'heure de 02:00 à 03:00 existe deux fois et une `LocalDateTime` à cette heure est ambiguë. Acceptable pour des contrats d'assurance.
 
-**Statut.** Proposée (prioritaire).
+**Statut.** Acceptée.
 
 ---
 
@@ -334,7 +340,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 
 **Décision.**
 - **Tests unitaires** (Surefire, `mvn test`) : domaine et handlers, avec repositories mockés et `Clock.fixed`.
-- **Tests d'acceptance** (Failsafe, `*AcceptanceTest`, `mvn verify`) : API REST de bout en bout avec RestAssured, sur un vrai PostgreSQL via **Testcontainers**.
+- **Tests d'acceptance** (Failsafe, `*AcceptanceTest`, `mvn verify`) : API REST de bout en bout avec RestAssured, sur un vrai PostgreSQL via **Testcontainers**. Réservés aux fonctionnalités vues par un utilisateur de l'API. La JVM tourne en UTC (`-Duser.timezone=UTC`), comme un hôte sans fuseau configuré ; le temps se contrôle en remplaçant uniquement l'`InstantSource` par une `MutableInstantSource`, jamais le `Clock`.
 - **Tests de concurrence** : deux transactions réelles (`TransactionTemplate` + `REQUIRES_NEW`) pour reproduire les courses.
 - **ArchUnit** pour les règles de dépendance (ADR-001).
 - **JaCoCo** avec seuil de couverture vérifié en CI.

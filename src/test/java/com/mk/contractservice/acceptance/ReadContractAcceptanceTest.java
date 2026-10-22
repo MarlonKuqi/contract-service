@@ -16,6 +16,10 @@ import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
+import io.restassured.response.ExtractableResponse;
+import io.restassured.response.Response;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,11 +30,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -44,6 +51,9 @@ class ReadContractAcceptanceTest {
     private int port;
 
     @Autowired
+    private Clock clock;
+
+    @Autowired
     private ClientRepository clientRepository;
 
     @Autowired
@@ -55,12 +65,14 @@ class ReadContractAcceptanceTest {
     @Autowired
     private ContractJpaRepository contractJpaRepository;
 
+    private TimeZone originalTimeZone;
     private Client testClient;
 
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
+        originalTimeZone = TimeZone.getDefault();
 
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
@@ -70,16 +82,21 @@ class ReadContractAcceptanceTest {
                 ClientName.of("Marie Durand"),
                 ClientEmail.of("marie.durand." + uniqueId + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now())
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
         );
         testClient = clientRepository.save(testClient);
+    }
+
+    @AfterEach
+    void tearDown() {
+        TimeZone.setDefault(originalTimeZone);
     }
 
     @Test
     @DisplayName("SCENARIO: Read contract with all fields returns correct data")
     void shouldReadContractWithAllFields() {
-        LocalDateTime now = LocalDateTime.now();
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("5000.00"), LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now(clock);
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("5000.00"), LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         given()
@@ -99,8 +116,8 @@ class ReadContractAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Read open-ended contract returns null endDate")
     void shouldReadOpenEndedContract() {
-        LocalDateTime now = LocalDateTime.now();
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, null, new BigDecimal("1000.00"), LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now(clock);
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, null, new BigDecimal("1000.00"), LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         given()
@@ -116,8 +133,8 @@ class ReadContractAcceptanceTest {
     @Test
     @DisplayName("SCENARIO: Read expired contract returns active false")
     void shouldReadExpiredContract() {
-        LocalDateTime now = LocalDateTime.now();
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now.minusMonths(12), now.minusDays(1), new BigDecimal("1000.00"), LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now(clock);
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now.minusMonths(12), now.minusDays(1), new BigDecimal("1000.00"), LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         given()
@@ -127,6 +144,41 @@ class ReadContractAcceptanceTest {
                 .statusCode(200)
                 .body("id", equalTo(savedContract.getId().toString()))
                 .body("active", equalTo(false));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Dates entered by a counselor are read back unchanged after the server is redeployed in another time zone")
+    void shouldReadBackEnteredDatesAfterServerTimeZoneChange() {
+        LocalDateTime summerStartDate = LocalDateTime.of(2030, 7, 15, 9, 30);
+        LocalDateTime winterEndDate = LocalDateTime.of(2031, 1, 15, 9, 30);
+
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        String contractId = given()
+                .contentType(ContentType.JSON)
+                .body(String.format("""
+                        {
+                            "clientId": "%s",
+                            "startDate": "%s",
+                            "endDate": "%s",
+                            "costAmount": "1000.00"
+                        }
+                        """, testClient.getId(), summerStartDate, winterEndDate))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract().path("id");
+
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Tokyo"));
+        ExtractableResponse<Response> response = given()
+                .when()
+                .get(ContractEndpoints.CONTRACT_BY_ID, contractId)
+                .then()
+                .statusCode(200)
+                .extract();
+
+        assertThat(LocalDateTime.parse(response.path("startDate"))).isEqualTo(summerStartDate);
+        assertThat(LocalDateTime.parse(response.path("endDate"))).isEqualTo(winterEndDate);
     }
 
     @Test
