@@ -12,6 +12,7 @@ import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.CompanyIdentifier;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
+import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.RestAssured;
@@ -237,7 +238,8 @@ class PatchClientAcceptanceTest {
                 .when()
                 .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
-                .statusCode(anyOf(is(400), is(422)));
+                .statusCode(422)
+                .body("code", equalTo(InvalidClientEmailException.DEFAULT_CODE));
     }
 
     @Test

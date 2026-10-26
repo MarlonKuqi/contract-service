@@ -157,8 +157,44 @@ public final class ClientTestData {
                 "johnexample.com",
                 "contact@",
                 "contactacme.com",
+                "a@b",
+                ".jean@example.ch",
+                "jean.@example.ch",
+                "je..an@example.ch",
+                "jean@@example.ch",
+                "jean@-example.ch",
+                "jean@example-.ch",
+                "jean@example..ch",
+                "jean@example.c",
+                "jean@example.123",
+                "jean dupont@example.ch",
+                "a".repeat(65) + "@example.ch",
+                "jean@" + "a".repeat(64) + ".ch",
                 "a".repeat(ClientEmail.MAX_LENGTH) + "@example.com" // Exceeds RFC 5321 (254 chars)
         );
+    }
+
+    public static List<String> validEmails() {
+        return List.of(
+                "jean@etu.unige.ch",
+                "contact@etat.ge.ch",
+                "john@bluewin.co.uk",
+                "o'neil@example.ch",
+                "jean+assurance@example.ch",
+                "jean_dupont@example.ch",
+                "j@x.ch",
+                "contact@my-company.ch",
+                "contact@xn--bcher-kva.ch",
+                "a".repeat(64) + "@example.ch",
+                "jean@" + "a".repeat(63) + ".ch"
+        );
+    }
+
+    public static String maxLengthEmail() {
+        final String label = "a".repeat(63);
+        final String domain = label + "." + label + "." + label + ".ch";
+        final String localPart = "b".repeat(ClientEmail.MAX_LENGTH - domain.length() - 1);
+        return localPart + "@" + domain;
     }
 
     public static List<String> invalidPhones() {

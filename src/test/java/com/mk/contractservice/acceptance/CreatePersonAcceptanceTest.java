@@ -3,13 +3,13 @@ package com.mk.contractservice.acceptance;
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
+import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -150,6 +150,31 @@ class CreatePersonAcceptanceTest {
     }
 
     @Test
+    @DisplayName("SCENARIO: Create person with a university email on a subdomain succeeds")
+    void shouldCreatePersonWithSubdomainEmail() {
+        String subdomainEmail = "o'neil." + UUID.randomUUID().toString().substring(0, 8) + "@etu.unige.ch";
+
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Student Person",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "2002-04-10"
+                }
+                """, subdomainEmail, TestDataHelper.randomSwissPhoneNumber());
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("email", equalTo(subdomainEmail));
+    }
+
+    @Test
     @DisplayName("SCENARIO: Create person with invalid email fails")
     void shouldRejectPersonWithInvalidEmail() {
         String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
@@ -170,7 +195,8 @@ class CreatePersonAcceptanceTest {
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo(InvalidClientEmailException.DEFAULT_CODE));
     }
 
     @Test

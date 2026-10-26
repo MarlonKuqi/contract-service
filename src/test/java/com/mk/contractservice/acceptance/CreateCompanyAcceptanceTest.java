@@ -3,6 +3,7 @@ package com.mk.contractservice.acceptance;
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
+import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.RestAssured;
@@ -145,7 +146,8 @@ class CreateCompanyAcceptanceTest {
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo(InvalidClientEmailException.DEFAULT_CODE));
     }
 
     @Test

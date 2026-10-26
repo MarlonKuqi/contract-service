@@ -51,6 +51,20 @@ class CompanyTest {
             }
 
             @ParameterizedTest
+            @MethodSource("com.mk.contractservice.domain.client.ClientTestData#validEmails")
+            @DisplayName("GIVEN valid email with subdomains, apostrophe or punycode WHEN creating Company THEN email is kept")
+            void shouldAcceptValidEmail(String email) {
+                final Company company = CompanyFactory.createFromCommand(
+                        "ACME Corp",
+                        email,
+                        "+33123456789",
+                        "acme-123"
+                );
+
+                assertThat(company.getEmail().getValue()).isEqualTo(email);
+            }
+
+            @ParameterizedTest
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidNames")
             @DisplayName("GIVEN invalid name WHEN creating Company THEN throw exception")
             void shouldRejectInvalidName(String name) {
@@ -164,8 +178,7 @@ class CompanyTest {
             @Test
             @DisplayName("GIVEN email at max length WHEN creating Company THEN company is created")
             void shouldCreateCompanyWithMaxLengthEmail() {
-                final String domain = "@example.com";
-                final String maxLengthEmail = "a".repeat(ClientEmail.MAX_LENGTH - domain.length()) + domain;
+                final String maxLengthEmail = ClientTestData.maxLengthEmail();
 
                 final Company company = CompanyFactory.createFromCommand(
                         "Max Length Corp",

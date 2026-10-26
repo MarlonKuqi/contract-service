@@ -82,6 +82,34 @@ class PersonTest {
             }
 
             @ParameterizedTest
+            @MethodSource("com.mk.contractservice.domain.client.ClientTestData#validEmails")
+            @DisplayName("GIVEN valid email with subdomains, apostrophe or punycode WHEN creating Person THEN email is kept")
+            void shouldAcceptValidEmail(String email) {
+                final Person person = PersonFactory.createFromCommand(
+                        "John Doe",
+                        email,
+                        "+33123456789",
+                        LocalDate.of(1990, 5, 15),
+                        TODAY
+                );
+
+                assertThat(person.getEmail().getValue()).isEqualTo(email);
+            }
+
+            @Test
+            @DisplayName("GIVEN email with invalid format WHEN creating Person THEN error message does not disclose the address")
+            void shouldNotDiscloseInvalidEmailInMessage() {
+                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                        "John Doe",
+                        "jean..dupont@example.ch",
+                        "+33123456789",
+                        LocalDate.of(1990, 5, 15),
+                        TODAY
+                )).isInstanceOf(InvalidClientEmailException.class)
+                        .message().doesNotContain("jean..dupont");
+            }
+
+            @ParameterizedTest
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidPhones")
             @DisplayName("GIVEN invalid phone WHEN creating Person THEN throw exception")
             void shouldRejectInvalidPhone(String phone) {
