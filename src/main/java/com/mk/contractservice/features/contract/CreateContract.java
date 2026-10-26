@@ -41,8 +41,6 @@ public interface CreateContract {
 
         @Override
         public Contract execute(final Command command) {
-            clientRepository.ensureExists(command.clientId());
-
             final Contract contract = ContractFactory.createFromCommand(
                     command.clientId(),
                     command.startDate(),
@@ -50,6 +48,8 @@ public interface CreateContract {
                     command.costAmount(),
                     LocalDateTime.now(clock)
             );
+
+            clientRepository.ensureExists(command.clientId());
 
             return contractRepository.save(contract);
         }

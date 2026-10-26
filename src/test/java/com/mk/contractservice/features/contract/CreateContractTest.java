@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -91,6 +92,23 @@ class CreateContractTest {
         // When & Then
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(ClientNotFoundException.class);
+        verify(contractRepository, never()).save(any(Contract.class));
+    }
+
+    @Test
+    @DisplayName("GIVEN coût invalide WHEN execute THEN lève InvalidContractCostException sans interroger les clients")
+    void shouldValidateContractBeforeCheckingClientExistence() {
+        LocalDateTime now = LocalDateTime.now(clock);
+        CreateContract.Command command = new CreateContract.Command(
+                UUID.randomUUID(),
+                now,
+                now.plusMonths(12),
+                new BigDecimal("-1000.00")
+        );
+
+        assertThatThrownBy(() -> createContractHandler.execute(command))
+                .isInstanceOf(InvalidContractCostException.class);
+        verify(clientRepository, never()).ensureExists(any(UUID.class));
         verify(contractRepository, never()).save(any(Contract.class));
     }
 }

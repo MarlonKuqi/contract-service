@@ -143,6 +143,18 @@ class ContractTest {
             }
 
             @ParameterizedTest
+            @CsvSource({
+                    "-0.001, decimal places",
+                    "-99999999999999, integer digits"
+            })
+            @DisplayName("GIVEN negative cost with an invalid precision WHEN creating Contract THEN the precision error is reported first")
+            void shouldReportPrecisionBeforePositivity(BigDecimal invalidCost, String expectedMessage) {
+                assertThatThrownBy(() -> ContractFactory.createFromCommand(testClientId, NOW, NOW.plusDays(30), invalidCost, NOW))
+                        .isInstanceOf(InvalidContractCostException.class)
+                        .hasMessageContaining(expectedMessage);
+            }
+
+            @ParameterizedTest
             @MethodSource("com.mk.contractservice.domain.contract.ContractTest#invalidPeriods")
             @DisplayName("GIVEN invalid period WHEN creating Contract THEN throw InvalidContractPeriodException")
             void shouldRejectInvalidPeriod(LocalDateTime startDate, LocalDateTime endDate) {
@@ -273,6 +285,16 @@ class ContractTest {
                 assertThatThrownBy(() -> contract.changeCost(ContractCost.of(new BigDecimal("200.00")), NOW))
                         .isInstanceOf(ExpiredContractException.class)
                         .hasMessageContaining(contractId.toString());
+            }
+
+            @Test
+            @DisplayName("GIVEN expired contract and null cost WHEN changing cost THEN throw InvalidDomainObjectError")
+            void shouldRejectNullCostBeforeCheckingExpiration() {
+                Contract expiredContract = ContractFactory.buildFromDatabase(
+                        UUID.randomUUID(), testClientId, NOW.minusDays(100), NOW.minusDays(1), new BigDecimal("100.00"), NOW.minusDays(100));
+
+                assertThatThrownBy(() -> expiredContract.changeCost(null, NOW))
+                        .isInstanceOf(InvalidDomainObjectError.class);
             }
 
             @Test

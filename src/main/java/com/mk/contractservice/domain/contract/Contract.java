@@ -76,12 +76,13 @@ public class Contract {
     }
 
     public Contract changeCost(@Nullable final ContractCost newCost, final LocalDateTime now) {
+        final ContractCost cost = notNull(newCost);
         assertModifiableAt(now);
-        if (costAmount.isSameAmountAs(notNull(newCost))) {
+        if (costAmount.isSameAmountAs(cost)) {
             return this;
         }
         return toBuilder()
-                .costAmount(newCost)
+                .costAmount(cost)
                 .lastModified(now)
                 .build();
     }

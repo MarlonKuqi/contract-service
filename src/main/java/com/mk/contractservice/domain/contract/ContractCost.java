@@ -57,14 +57,14 @@ public class ContractCost {
     }
 
     private static void validate(@Nullable final BigDecimal rawValue) {
-        if (IS_ZERO_OR_NEGATIVE.test(rawValue)) {
-            throw new InvalidContractCostException("Contract cost amount must be greater than zero: " + rawValue);
-        }
         if (HAS_INVALID_SCALE.test(rawValue)) {
             throw new InvalidContractCostException("Contract cost amount must have at most " + SCALE + " decimal places: " + rawValue);
         }
         if (HAS_TOO_MANY_INTEGER_DIGITS.test(rawValue)) {
             throw new InvalidContractCostException("Contract cost amount must have at most " + MAX_INTEGER_DIGITS + " integer digits: " + rawValue);
+        }
+        if (IS_ZERO_OR_NEGATIVE.test(rawValue)) {
+            throw new InvalidContractCostException("Contract cost amount must be greater than zero: " + rawValue);
         }
     }
 }
