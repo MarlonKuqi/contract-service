@@ -4,7 +4,34 @@
     "description": "Contract management endpoints (CRUD, filters, aggregations)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "oauth2",
+    "oauth2": [
+      { "key": "grant_type", "value": "password_credentials", "type": "string" },
+      { "key": "accessTokenUrl", "value": "{{keycloakUrl}}/realms/contract-service/protocol/openid-connect/token", "type": "string" },
+      { "key": "clientId", "value": "contract-service-local", "type": "string" },
+      { "key": "username", "value": "{{username}}", "type": "string" },
+      { "key": "password", "value": "{{password}}", "type": "string" },
+      { "key": "addTokenTo", "value": "header", "type": "string" },
+      { "key": "tokenName", "value": "contract-service", "type": "string" }
+    ]
+  },
   "variable": [
+    {
+      "key": "keycloakUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "counselor.demo",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "counselor",
+      "type": "string"
+    },
     {
       "key": "baseUrl",
       "value": "http://localhost:8080",

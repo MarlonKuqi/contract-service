@@ -1,6 +1,7 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -12,8 +13,6 @@ import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -58,8 +57,7 @@ class CreateContractAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
 
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
@@ -88,7 +86,6 @@ class CreateContractAcceptanceTest {
                 """, testClient.getId(), now, now.plusMonths(12));
 
         String contractId = given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -126,7 +123,6 @@ class CreateContractAcceptanceTest {
                 """, testClient.getId(), now);
 
         String contractId = given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -162,7 +158,6 @@ class CreateContractAcceptanceTest {
                 """, testClient.getId(), now, now.plusYears(5));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -185,7 +180,6 @@ class CreateContractAcceptanceTest {
                 """, testClient.getId(), now, now.plusMonths(6));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -207,7 +201,6 @@ class CreateContractAcceptanceTest {
                 """, testClient.getId(), now, now.plusMonths(6));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -230,7 +223,6 @@ class CreateContractAcceptanceTest {
                 """, fakeClientId, now, now.plusMonths(12));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -252,7 +244,6 @@ class CreateContractAcceptanceTest {
                 """, testClient.getId(), now, now.plusMonths(12));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -274,7 +265,6 @@ class CreateContractAcceptanceTest {
                 """, testClient.getId(), now, now.minusDays(10));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -297,7 +287,6 @@ class CreateContractAcceptanceTest {
                 """, now, now.plusMonths(12));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(payloadWithoutClient)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -314,7 +303,6 @@ class CreateContractAcceptanceTest {
                 """, testClient.getId(), now, now.plusMonths(12));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(payloadWithoutCost)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -354,9 +342,9 @@ class CreateContractAcceptanceTest {
                 }
                 """, testClient.getId(), now.minusDays(3), now.plusMonths(3));
 
-        given().contentType(ContentType.JSON).body(contract1).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(contract2).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(contract3).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
+        given().body(contract1).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
+        given().body(contract2).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
+        given().body(contract3).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
 
         // Verify all contracts are created
         given()

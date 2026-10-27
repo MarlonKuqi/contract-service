@@ -1,6 +1,7 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
@@ -11,8 +12,6 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -52,8 +51,7 @@ class ContractTotalUseCaseAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
 
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         testClient = Person.of(
@@ -118,19 +116,19 @@ class ContractTotalUseCaseAcceptanceTest {
                     """, testClient.getId(), now.minusDays(60), now.minusDays(30));
 
             // Create all contracts
-            given().contentType(ContentType.JSON).body(activeContract1)
+            given().body(activeContract1)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
-            given().contentType(ContentType.JSON).body(activeContract2)
+            given().body(activeContract2)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
-            given().contentType(ContentType.JSON).body(expiredContract1)
+            given().body(expiredContract1)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
-            given().contentType(ContentType.JSON).body(expiredContract2)
+            given().body(expiredContract2)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
@@ -161,7 +159,7 @@ class ContractTotalUseCaseAcceptanceTest {
                         }
                         """, testClient.getId(), now.minusDays(10), (i + 1) * 100);
 
-                given().contentType(ContentType.JSON).body(contractPayload)
+                given().body(contractPayload)
                         .post(ContractEndpoints.CONTRACTS_BASE)
                         .then().statusCode(201);
             }
@@ -200,11 +198,11 @@ class ContractTotalUseCaseAcceptanceTest {
                     }
                     """, testClient.getId(), now.minusMonths(12), now.minusDays(1));
 
-            given().contentType(ContentType.JSON).body(expiredContract1)
+            given().body(expiredContract1)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
-            given().contentType(ContentType.JSON).body(expiredContract2)
+            given().body(expiredContract2)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
@@ -252,7 +250,7 @@ class ContractTotalUseCaseAcceptanceTest {
                         }
                         """, testClient.getId(), now.minusDays(10));
 
-                given().contentType(ContentType.JSON).body(contractPayload)
+                given().body(contractPayload)
                         .post(ContractEndpoints.CONTRACTS_BASE)
                         .then().statusCode(201);
             }
@@ -300,15 +298,15 @@ class ContractTotalUseCaseAcceptanceTest {
                     }
                     """, testClient.getId(), now.minusDays(10));
 
-            given().contentType(ContentType.JSON).body(contract1)
+            given().body(contract1)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
-            given().contentType(ContentType.JSON).body(contract2)
+            given().body(contract2)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
-            given().contentType(ContentType.JSON).body(contract3)
+            given().body(contract3)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
@@ -342,7 +340,7 @@ class ContractTotalUseCaseAcceptanceTest {
                         }
                         """, testClient.getId(), now.minusDays(10));
 
-                given().contentType(ContentType.JSON).body(contractPayload)
+                given().body(contractPayload)
                         .post(ContractEndpoints.CONTRACTS_BASE)
                         .then().statusCode(201);
             }
@@ -386,7 +384,6 @@ class ContractTotalUseCaseAcceptanceTest {
                     """, uniqueId1, TestDataHelper.randomSwissPhoneNumber());
 
             String clientId1 = given()
-                    .contentType(ContentType.JSON)
                     .body(client1Payload)
                     .when()
                     .post(ClientEndpoints.CLIENTS_BASE)
@@ -406,7 +403,6 @@ class ContractTotalUseCaseAcceptanceTest {
                     """, uniqueId2, TestDataHelper.randomSwissPhoneNumber());
 
             String clientId2 = given()
-                    .contentType(ContentType.JSON)
                     .body(client2Payload)
                     .when()
                     .post(ClientEndpoints.CLIENTS_BASE)
@@ -425,7 +421,6 @@ class ContractTotalUseCaseAcceptanceTest {
                     """, clientId1, now.minusDays(5));
 
             given()
-                    .contentType(ContentType.JSON)
                     .body(contractPayload)
                     .when()
                     .post(ContractEndpoints.CONTRACTS_BASE)

@@ -6,7 +6,6 @@ import com.mk.contractservice.controllers.client.shared.ClientResponse;
 import com.mk.contractservice.controllers.client.shared.ClientSwaggerTags;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.features.client.GetClientById;
-import com.mk.contractservice.infrastructure.security.ApplicationRoles;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -58,7 +56,6 @@ public class SearchClientController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @GetMapping(ClientEndpoints.PATH_VAR_ID)
-    @PreAuthorize(ApplicationRoles.HAS_ADMIN_OR_COUNSELOR)
     public ResponseEntity<ClientResponse> getClientById(
             @PathVariable final UUID id,
             final Locale locale

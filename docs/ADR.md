@@ -35,6 +35,9 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 - [ADR-015 — Image Docker et exécution](#adr-015--image-docker-et-exécution)
 - [ADR-016 — Mutation testing (PIT)](#adr-016--mutation-testing-pit)
 
+**Sécurité**
+- [ADR-017 — Authentification des conseillers par Keycloak](#adr-017--authentification-des-conseillers-par-keycloak)
+
 ---
 
 ## ADR-001 — Vertical Slice + Clean Architecture
@@ -400,5 +403,81 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
   - `ClientPhoneNumber.toString` n'était utilisé par aucun code de production : supprimé plutôt que testé.
 - Score actuel : 99 % de mutants tués (191/193), test strength 100 %.
 - Mutants non tués, acceptés : `NO_COVERAGE` sur `GetClientById.Handler` et `GetContractById.Handler` (« replaced return value with null »). Ces handlers délèguent à `getById` du port, qui lève l'exception métier si l'agrégat n'existe pas. Un test unitaire avec un port mocké ne vérifierait que le mock lui-même : il n'y a ni règle ni décision d'orchestration à vérifier. Le comportement (200 avec le bon agrégat, 404 sinon) est vérifié par les tests d'acceptance, que PIT exclut. Ces deux mutants sont donc attendus. Un nouveau `NO_COVERAGE` sur un handler qui orchestre (plusieurs ports, condition, appel à un service de domaine) doit, lui, être couvert par un test unitaire.
+
+**Statut.** Acceptée.
+
+---
+
+## ADR-017 — Authentification des conseillers par Keycloak
+
+**Contexte.** Le sujet décrit une API utilisée par des conseillers (« As a counselor, I want to create clients and contracts […] and manage them »). Aujourd'hui, n'importe qui peut appeler l'API, alors qu'elle expose des données personnelles (nom, email, téléphone, date de naissance) et des montants de contrats. La branche `feat/add-auth-keycloak` pose une première version :
+- Resource server OAuth2 JWT (Spring Security), avec Keycloak 26 et sa base PostgreSQL dans `docker-compose.yml`.
+- `KeycloakJwtConverter` transforme en `ROLE_*` les rôles du realm et les rôles de **tous** les clients Keycloak (`resource_access`).
+- `@PreAuthorize` sur chaque contrôleur, via `ApplicationRoles` (dans `infrastructure.security`). Les écritures sont réservées à `ADMIN`, les lectures ouvertes à `ADMIN` et `COUNSELOR`.
+- Dans les tests, `TestSecurityConfig` remplace la chaîne de sécurité par `permitAll`.
+
+Cette version pose six problèmes :
+1. **Les conseillers ne peuvent pas faire leur travail.** Réserver les écritures à `ADMIN` contredit le sujet : créer, modifier et supprimer des clients et des contrats est justement le travail du conseiller. Avec une dizaine de conseillers et aucun besoin d'administration identifié, un rôle `ADMIN` n'apporte rien.
+2. **Les rôles sont mélangés entre clients Keycloak.** Les rôles de n'importe quel client Keycloak du realm deviennent des rôles applicatifs. Un rôle `admin` défini pour une autre application donnerait donc `ROLE_ADMIN` ici.
+3. **L'audience n'est pas vérifiée.** Un jeton émis pour une autre application du même realm est accepté.
+4. **Les règles sont dispersées.** Une annotation par endpoint : un endpoint ajouté sans annotation reste accessible à tout utilisateur authentifié. De plus, un refus levé par `@PreAuthorize` part en `AccessDeniedException` depuis l'appel du contrôleur : il passe par les `@ControllerAdvice`, où le handler générique `@ExceptionHandler(Exception.class)` de `BaseControllerAdvice` le transforme en `500`, sauf si on ajoute un handler dédié.
+5. **Aucun test d'autorisation.** Avec `permitAll` en test, aucun test ne vérifie qui a le droit de faire quoi : une règle supprimée par erreur passerait inaperçue.
+6. **Le reste n'est pas prêt.** Les dépendances `jjwt` ne sont pas utilisées (le resource server s'appuie sur Nimbus). Le realm n'est pas provisionné, il faut le créer à la main. Le CORS est ouvert à toutes les origines (`*`). Les erreurs 401/403 n'ont pas de corps `ProblemDetail`.
+
+**Décision.**
+- **Un seul rôle : `COUNSELOR`.** C'est un rôle du realm `contract-service`. Toutes les routes `/v2/**` l'exigent, en lecture comme en écriture. Pas de rôle `ADMIN` tant qu'aucun besoin réel n'apparaît : en ajouter un plus tard ne casse rien.
+
+  | Endpoint | Accès |
+  |---|---|
+  | `POST /v2/clients` | `COUNSELOR` |
+  | `GET`, `PUT`, `PATCH`, `DELETE /v2/clients/{id}` | `COUNSELOR` |
+  | `POST /v2/contracts` | `COUNSELOR` |
+  | `GET /v2/contracts?clientId=`, `GET /v2/contracts/{id}`, `GET /v2/contracts/total?clientId=` | `COUNSELOR` |
+  | `PATCH /v2/contracts/{id}/cost` | `COUNSELOR` |
+  | `/actuator/health/**`, `/actuator/info` | public |
+  | `/swagger-ui/**`, `/v3/api-docs/**` | public (la documentation ne contient aucune donnée) |
+  | toute autre route | refusée (`denyAll`) |
+
+- **Les règles sont dans la chaîne de filtres, en un seul endroit.** `SecurityConfig` les déclare par URL (`requestMatchers("/v2/**").hasRole("COUNSELOR")`, puis `anyRequest().denyAll()`). Les `@PreAuthorize`, `ApplicationRoles` et `@EnableMethodSecurity` sont retirés. Un nouvel endpoint sous `/v2` est protégé sans rien ajouter ; une route oubliée hors de `/v2` est refusée. Le refus a lieu dans le filtre, avant le `DispatcherServlet`, donc les `@ControllerAdvice` ne le voient jamais. `@PreAuthorize` reviendra le jour où des règles différeront d'un endpoint à l'autre (par exemple, un endpoint ouvert à un futur rôle `CLIENT`).
+- **Jeton accepté.**
+  - Signature vérifiée avec les clés publiées par Keycloak (`jwk-set-uri`).
+  - Émetteur vérifié : `iss` doit être le realm (`issuer-uri`).
+  - Audience vérifiée : `aud` doit contenir `contract-service` (`spring.security.oauth2.resourceserver.jwt.audiences`).
+  - Rôles lus uniquement dans `realm_access.roles`. `resource_access` est ignoré.
+- **Erreurs au format `ProblemDetail`**, comme le reste de l'API :
+  - sans jeton, jeton expiré ou signature invalide : `401`, code `unauthenticated`, en-tête `WWW-Authenticate: Bearer` ;
+  - jeton valide sans le rôle `COUNSELOR` : `403`, code `accessDenied`.
+
+  Ces réponses sont produites par un `AuthenticationEntryPoint` et un `AccessDeniedHandler` dans `infrastructure.security`. Le `detail` ne révèle pas pourquoi le jeton a été refusé.
+- **L'autorisation est vérifiée avant tout le reste** : `401`, puis `403`, puis validation (`422`), puis existence (`404`). Sans les droits, un appel n'apprend donc pas si une ressource existe.
+- **Le domaine et les use cases ne savent rien de la sécurité.** Les rôles sont une règle d'accès à l'API, pas une règle métier. Aucun changement dans `domain` ni dans `features`.
+- **Le realm est versionné.** Un export du realm `contract-service` (rôle `COUNSELOR`, client `contract-service`, utilisateurs de démo pour le développement uniquement) est importé au démarrage (`start-dev --import-realm`). Les mots de passe de démo ne servent qu'en local.
+- **CORS** : origines autorisées lues dans une propriété (`app.cors.allowed-origins`), vide par défaut. Pas de `*`.
+- **Dépendances** : `jjwt` est retiré, `spring-boot-starter-oauth2-resource-server` suffit.
+
+**Tests.**
+- `TestSecurityConfig` en `permitAll` est supprimé. Les tests d'acceptance passent par la vraie chaîne de sécurité.
+- Pas de conteneur Keycloak en test. Un `JwtDecoder` de test vérifie des jetons signés par une clé RSA générée au démarrage des tests ; un helper émet des jetons avec l'émetteur, l'audience et les rôles voulus. Ce qui est testé, c'est notre configuration (règles, audience, rôles, erreurs), pas Keycloak.
+- La spécification RestAssured par défaut envoie un jeton `COUNSELOR` : les scénarios existants ne changent pas.
+- Une classe `SecurityAcceptanceTest` couvre :
+  - sans jeton → `401 unauthenticated` ;
+  - jeton expiré, mauvaise audience ou mauvais émetteur → `401` ;
+  - jeton sans `COUNSELOR`, ou avec un rôle `counselor` venant de `resource_access` → `403 accessDenied` ;
+  - avec `COUNSELOR` → `2xx` sur chaque endpoint `/v2` ;
+  - `/actuator/health` sans jeton → `200` ;
+  - route inconnue hors de `/v2` avec un jeton `COUNSELOR` → refusée ;
+  - sans jeton et avec un corps invalide → `401`, pas `422`.
+
+**Hors périmètre, évolutions prévues.**
+- **Un client consulte ses propres contrats.** Le rôle seul ne suffit pas : il faut savoir à quel client correspond le compte. Cela demandera de relier le compte Keycloak au client (`sub` ↔ `client.id`, donc une migration), de transmettre l'identité de l'appelant dans la commande ou la requête du use case, et de vérifier dans le use case que le contrat lui appartient. Ce contrôle de propriété est une règle métier : il ira dans `features`/`domain`, pas dans la configuration de sécurité. Les règles par URL resteront valables pour les rôles.
+- **Traçabilité** (quel conseiller a modifié quoi) : le `sub` du jeton est disponible, mais rien n'est stocké tant que le besoin n'est pas exprimé.
+- **Rôle `ADMIN`** : seulement quand une action réservée apparaît (par exemple une purge RGPD).
+
+**Conséquences.**
+- Changement cassant pour les consommateurs de l'API : chaque appel `/v2` exige un jeton `Bearer`. À annoncer dans les release notes, avec la façon d'obtenir un jeton en local.
+- Collections Bruno / Postman : authentification OAuth2 (password grant sur le realm local) au niveau de la collection.
+- OpenAPI : `securityScheme` bearer JWT déclaré globalement.
+- README : démarrer Keycloak, utilisateurs de démo, obtenir un jeton.
+- La branche `feat/add-auth-keycloak` est à remettre sur `develop` et à aligner sur cette décision : retirer `ApplicationRoles` et les `@PreAuthorize`, limiter le converter aux rôles du realm, ajouter la vérification d'audience.
 
 **Statut.** Acceptée.

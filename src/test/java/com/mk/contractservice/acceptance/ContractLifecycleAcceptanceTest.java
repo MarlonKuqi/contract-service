@@ -1,6 +1,7 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -13,8 +14,6 @@ import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -66,8 +65,7 @@ class ContractLifecycleAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
 
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
@@ -96,7 +94,6 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.getId(), now, now.plusMonths(12));
 
         String contractId = given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -128,7 +125,6 @@ class ContractLifecycleAcceptanceTest {
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, contractId)
@@ -175,9 +171,9 @@ class ContractLifecycleAcceptanceTest {
                 }
                 """, testClient.getId(), now.minusDays(3).toString(), now.plusMonths(3).toString());
 
-        given().contentType(ContentType.JSON).body(contract1).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(contract2).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(contract3).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
+        given().body(contract1).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
+        given().body(contract2).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
+        given().body(contract3).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
 
         given()
                 .when()
@@ -215,8 +211,8 @@ class ContractLifecycleAcceptanceTest {
                 }
                 """, testClient.getId());
 
-        given().contentType(ContentType.JSON).body(expiredContract).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
-        given().contentType(ContentType.JSON).body(activeContract).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
+        given().body(expiredContract).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
+        given().body(activeContract).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
 
         given()
                 .when()
@@ -247,7 +243,6 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.getId());
 
         given()
-                .contentType(ContentType.JSON)
                 .body(invalidPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -265,7 +260,6 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.getId(), testNow.plusDays(30).toString(), testNow.toString());
 
         given()
-                .contentType(ContentType.JSON)
                 .body(invalidDateRange)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -288,7 +282,6 @@ class ContractLifecycleAcceptanceTest {
                 """, fakeClientId);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(payload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -309,7 +302,6 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.getId());
 
         String location = given()
-                .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -326,7 +318,6 @@ class ContractLifecycleAcceptanceTest {
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, contractId)
@@ -357,7 +348,6 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.getId(), now.minusDays(10).toString());
 
         given()
-                .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -422,19 +412,19 @@ class ContractLifecycleAcceptanceTest {
                 }
                 """, testClient.getId(), now.minusDays(60), now.minusDays(30));
 
-        given().contentType(ContentType.JSON).body(activeNoEndDatePayload)
+        given().body(activeNoEndDatePayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then().statusCode(201);
 
-        given().contentType(ContentType.JSON).body(activeFutureEndPayload)
+        given().body(activeFutureEndPayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then().statusCode(201);
 
-        given().contentType(ContentType.JSON).body(expiredYesterdayPayload)
+        given().body(expiredYesterdayPayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then().statusCode(201);
 
-        given().contentType(ContentType.JSON).body(expiredLastMonthPayload)
+        given().body(expiredLastMonthPayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then().statusCode(201);
 
@@ -492,19 +482,19 @@ class ContractLifecycleAcceptanceTest {
                 }
                 """, testClient.getId(), now.minusDays(60), now.minusDays(30));
 
-        given().contentType(ContentType.JSON).body(active1Payload)
+        given().body(active1Payload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then().statusCode(201);
 
-        given().contentType(ContentType.JSON).body(active2Payload)
+        given().body(active2Payload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then().statusCode(201);
 
-        given().contentType(ContentType.JSON).body(expired1Payload)
+        given().body(expired1Payload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then().statusCode(201);
 
-        given().contentType(ContentType.JSON).body(expired2Payload)
+        given().body(expired2Payload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then().statusCode(201);
 
@@ -529,7 +519,6 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.getId());
 
         given()
-                .contentType(ContentType.JSON)
                 .header("Accept-Language", "it-CH")
                 .body(contractPayload)
                 .when()
@@ -561,7 +550,6 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.getId());
 
         given()
-                .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
@@ -589,7 +577,6 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.getId());
 
         given()
-                .contentType(ContentType.JSON)
                 .header("Accept-Language", "de-CH")
                 .body(contractPayload)
                 .when()
@@ -613,7 +600,6 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.getId(), now.minusDays(5));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -644,7 +630,6 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.getId(), now.minusDays(30), endDate);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -670,7 +655,7 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.getId(), now.minusDays(5));
 
         for (int i = 0; i < 5; i++) {
-            given().contentType(ContentType.JSON).body(contractPayload)
+            given().body(contractPayload)
                     .when().post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
         }
@@ -692,7 +677,7 @@ class ContractLifecycleAcceptanceTest {
                     "costAmount": "0.00"
                 }
                 """, testClient.getId(), now.minusDays(1));
-        given().contentType(ContentType.JSON).body(zeroAmountPayload)
+        given().body(zeroAmountPayload)
                 .when().post(ContractEndpoints.CONTRACTS_BASE)
                 .then().statusCode(anyOf(is(400), is(422), is(500)));
     }

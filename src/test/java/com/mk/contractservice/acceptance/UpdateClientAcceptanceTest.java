@@ -1,6 +1,7 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -15,8 +16,6 @@ import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -58,8 +57,7 @@ class UpdateClientAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
     }
@@ -83,7 +81,6 @@ class UpdateClientAcceptanceTest {
                 """.formatted(UUID.randomUUID().toString().substring(0, 8));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .put(ClientEndpoints.CLIENT_BY_ID, person.getId())
@@ -123,7 +120,6 @@ class UpdateClientAcceptanceTest {
                 """.formatted(UUID.randomUUID().toString().substring(0, 8));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .put(ClientEndpoints.CLIENT_BY_ID, company.getId())
@@ -159,7 +155,6 @@ class UpdateClientAcceptanceTest {
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .body(invalidPayload)
                 .when()
                 .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
@@ -182,7 +177,6 @@ class UpdateClientAcceptanceTest {
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .put(ClientEndpoints.CLIENT_BY_ID, fakeId)
@@ -209,7 +203,6 @@ class UpdateClientAcceptanceTest {
                 """.formatted(UUID.randomUUID().toString().substring(0, 8));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .put(ClientEndpoints.CLIENT_BY_ID, person.getId())
@@ -248,7 +241,6 @@ class UpdateClientAcceptanceTest {
                 """.formatted(UUID.randomUUID().toString().substring(0, 8));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .put(ClientEndpoints.CLIENT_BY_ID, company.getId())
@@ -291,7 +283,6 @@ class UpdateClientAcceptanceTest {
                 """.formatted(UUID.randomUUID().toString().substring(0, 8));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(update1)
                 .when()
                 .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
@@ -299,7 +290,6 @@ class UpdateClientAcceptanceTest {
                 .statusCode(204);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(update2)
                 .when()
                 .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
@@ -338,7 +328,6 @@ class UpdateClientAcceptanceTest {
                 """.formatted(UUID.randomUUID().toString().substring(0, 8));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayloadWithNewBirthDate)
                 .when()
                 .put(ClientEndpoints.CLIENT_BY_ID, person.getId())
@@ -373,7 +362,6 @@ class UpdateClientAcceptanceTest {
                 """.formatted(UUID.randomUUID().toString().substring(0, 8));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(invalidPayload)
                 .when()
                 .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
@@ -406,7 +394,6 @@ class UpdateClientAcceptanceTest {
                 """.formatted(UUID.randomUUID().toString().substring(0, 8), newIdentifier);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayloadWithNewIdentifier)
                 .when()
                 .put(ClientEndpoints.CLIENT_BY_ID, company.getId())

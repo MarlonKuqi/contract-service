@@ -13,3 +13,12 @@ logging:
     com.mk.contractservice: DEBUG
 
 
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://keycloak.test/realms/contract-service
+          jwk-set-uri: https://keycloak.test/realms/contract-service/protocol/openid-connect/certs
+          audiences: contract-service

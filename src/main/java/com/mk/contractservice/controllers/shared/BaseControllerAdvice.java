@@ -2,11 +2,8 @@ package com.mk.contractservice.controllers.shared;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -15,11 +12,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import java.net.URI;
 import java.time.Clock;
-import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.UUID;
 
 public abstract class BaseControllerAdvice {
 
@@ -114,13 +108,7 @@ public abstract class BaseControllerAdvice {
     }
 
     protected ProblemDetail problem(final HttpStatus status, final String title, final String detail, final String code) {
-        final ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
-        problemDetail.setTitle(title);
-        problemDetail.setType(URI.create("about:blank"));
-        problemDetail.setProperty("code", code);
-        problemDetail.setProperty("timestamp", LocalDateTime.now(clock));
-        problemDetail.setProperty("traceId", UUID.randomUUID().toString());
-        return problemDetail;
+        return ProblemDetails.problem(clock, status, title, detail, code);
     }
 
     protected ProblemDetail problemWithStackTrace(final HttpStatus status, final String title, final String detail, final String code, final Exception ex) {
@@ -131,12 +119,7 @@ public abstract class BaseControllerAdvice {
     }
 
     protected ResponseEntity<ProblemDetail> respond(final ProblemDetail problemDetail) {
-        final String lang = LocaleContextHolder.getLocale().toLanguageTag();
-        return ResponseEntity
-                .status(problemDetail.getStatus())
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PROBLEM_JSON_VALUE)
-                .header(HttpHeaders.CONTENT_LANGUAGE, lang)
-                .body(problemDetail);
+        return ProblemDetails.responseFor(problemDetail).body(problemDetail);
     }
 
     protected String messageOf(final FieldError fieldError) {

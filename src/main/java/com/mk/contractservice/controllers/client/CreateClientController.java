@@ -8,7 +8,6 @@ import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.features.client.CreateCompany;
 import com.mk.contractservice.features.client.CreatePerson;
-import com.mk.contractservice.infrastructure.security.ApplicationRoles;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -21,7 +20,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -81,7 +79,6 @@ public class CreateClientController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize(ApplicationRoles.HAS_ADMIN)
     public ResponseEntity<ClientResponse> create(
             @Valid @RequestBody final CreateClientRequest request,
             final UriComponentsBuilder uriBuilder,

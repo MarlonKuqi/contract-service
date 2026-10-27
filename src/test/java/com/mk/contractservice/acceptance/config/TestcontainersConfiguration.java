@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Import;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @TestConfiguration(proxyBeanMethods = false)
-@Import(TestSecurityConfig.class)
+@Import(TestJwtConfiguration.class)
 public class TestcontainersConfiguration {
 
     @Bean

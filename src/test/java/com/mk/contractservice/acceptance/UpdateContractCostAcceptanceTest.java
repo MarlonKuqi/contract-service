@@ -1,6 +1,7 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -15,8 +16,6 @@ import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,8 +62,7 @@ class UpdateContractCostAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
 
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
@@ -93,7 +91,6 @@ class UpdateContractCostAcceptanceTest {
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
@@ -123,7 +120,6 @@ class UpdateContractCostAcceptanceTest {
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
@@ -152,7 +148,6 @@ class UpdateContractCostAcceptanceTest {
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
@@ -181,7 +176,6 @@ class UpdateContractCostAcceptanceTest {
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
@@ -231,7 +225,6 @@ class UpdateContractCostAcceptanceTest {
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, fakeId)
@@ -253,7 +246,6 @@ class UpdateContractCostAcceptanceTest {
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
@@ -275,7 +267,6 @@ class UpdateContractCostAcceptanceTest {
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
@@ -297,7 +288,6 @@ class UpdateContractCostAcceptanceTest {
                 }
                 """;
         given()
-                .contentType(ContentType.JSON)
                 .body(update1)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
@@ -311,7 +301,6 @@ class UpdateContractCostAcceptanceTest {
                 }
                 """;
         given()
-                .contentType(ContentType.JSON)
                 .body(update2)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
@@ -325,7 +314,6 @@ class UpdateContractCostAcceptanceTest {
                 }
                 """;
         given()
-                .contentType(ContentType.JSON)
                 .body(update3)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())

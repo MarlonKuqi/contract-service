@@ -24,6 +24,7 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/contract-service}
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8081/realms/contract-service/protocol/openid-connect/certs}
+          audiences: ${KEYCLOAK_AUDIENCE:contract-service}
 
 server:
   port: 8080
@@ -54,6 +55,8 @@ springdoc:
     tagsSorter: alpha
 app:
   time-zone: Europe/Zurich
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
   pagination:
     default-page-size: 20
     max-page-size: 100

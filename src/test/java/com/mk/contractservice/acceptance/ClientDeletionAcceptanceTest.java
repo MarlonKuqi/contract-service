@@ -1,13 +1,12 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,8 +52,7 @@ class ClientDeletionAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
 
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
@@ -79,7 +77,6 @@ class ClientDeletionAcceptanceTest {
                 """.formatted(uniqueId, phoneNumber);
 
         String clientId = given()
-                .contentType(ContentType.JSON)
                 .body(clientPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -100,7 +97,6 @@ class ClientDeletionAcceptanceTest {
                 """, clientId);
 
         String contract1Id = given()
-                .contentType(ContentType.JSON)
                 .body(contract1Payload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -119,7 +115,6 @@ class ClientDeletionAcceptanceTest {
                 """, clientId, now.minusDays(10), now.plusMonths(6));
 
         String contract2Id = given()
-                .contentType(ContentType.JSON)
                 .body(contract2Payload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -138,7 +133,6 @@ class ClientDeletionAcceptanceTest {
                 """, clientId, now.minusMonths(12), now.minusDays(30));
 
         String contract3Id = given()
-                .contentType(ContentType.JSON)
                 .body(contract3Payload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -226,7 +220,6 @@ class ClientDeletionAcceptanceTest {
                 """.formatted(UUID.randomUUID().toString().substring(0, 8));
 
         String clientId = given()
-                .contentType(ContentType.JSON)
                 .body(clientPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -265,7 +258,6 @@ class ClientDeletionAcceptanceTest {
                 """, uniqueId);
 
         String clientId = given()
-                .contentType(ContentType.JSON)
                 .body(clientPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -296,12 +288,12 @@ class ClientDeletionAcceptanceTest {
                 }
                 """, clientId, now.minusMonths(12), expiredEndDate2);
 
-        String contract1Id = given().contentType(ContentType.JSON).body(expiredContract1)
+        String contract1Id = given().body(expiredContract1)
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then().statusCode(201)
                 .extract().path("id");
 
-        String contract2Id = given().contentType(ContentType.JSON).body(expiredContract2)
+        String contract2Id = given().body(expiredContract2)
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then().statusCode(201)
                 .extract().path("id");
@@ -371,7 +363,6 @@ class ClientDeletionAcceptanceTest {
         );
 
         String clientId = given()
-                .contentType(ContentType.JSON)
                 .body(companyPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -390,7 +381,6 @@ class ClientDeletionAcceptanceTest {
                 """, clientId, LocalDateTime.now(clock).minusDays(30));
 
         String contractId = given()
-                .contentType(ContentType.JSON)
                 .body(contractPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
@@ -480,7 +470,6 @@ class ClientDeletionAcceptanceTest {
         given().when().delete(ClientEndpoints.CLIENT_BY_ID, clientId).then().statusCode(204);
 
         given()
-                .contentType(ContentType.JSON)
                 .body("""
                         {
                             "clientId": "%s",
@@ -508,7 +497,6 @@ class ClientDeletionAcceptanceTest {
                 """;
 
         String companyId = given()
-                .contentType(ContentType.JSON)
                 .body(companyPayload.formatted(TestDataHelper.uniqueEmail("deleted.corp"), TestDataHelper.randomSwissPhoneNumber(), companyIdentifier))
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -519,7 +507,6 @@ class ClientDeletionAcceptanceTest {
         given().when().delete(ClientEndpoints.CLIENT_BY_ID, companyId).then().statusCode(204);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(companyPayload.formatted(TestDataHelper.uniqueEmail("new.corp"), TestDataHelper.randomSwissPhoneNumber(), companyIdentifier))
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -530,7 +517,6 @@ class ClientDeletionAcceptanceTest {
 
     private String createPerson() {
         return given()
-                .contentType(ContentType.JSON)
                 .body("""
                         {
                             "type": "PERSON",
@@ -549,7 +535,6 @@ class ClientDeletionAcceptanceTest {
 
     private String createOpenEndedContract(final String clientId) {
         return given()
-                .contentType(ContentType.JSON)
                 .body("""
                         {
                             "clientId": "%s",

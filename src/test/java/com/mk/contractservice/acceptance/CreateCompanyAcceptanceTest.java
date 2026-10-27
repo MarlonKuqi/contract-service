@@ -1,14 +1,13 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.client.entities.CompanyJpaEntity;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,8 +44,7 @@ class CreateCompanyAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
 
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
@@ -71,7 +69,6 @@ class CreateCompanyAcceptanceTest {
                 """, uniqueEmail, phoneNumber, companyIdentifier);
 
         String companyId = given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -117,7 +114,6 @@ class CreateCompanyAcceptanceTest {
                 """, uniqueEmail, phoneNumber, companyIdentifier);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -144,7 +140,6 @@ class CreateCompanyAcceptanceTest {
                 """, phoneNumber, companyIdentifier);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -174,7 +169,6 @@ class CreateCompanyAcceptanceTest {
                 """, duplicateEmail, phone1, companyId1);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload1)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -193,7 +187,6 @@ class CreateCompanyAcceptanceTest {
                 """, duplicateEmail, phone2, companyId2);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload2)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -223,7 +216,6 @@ class CreateCompanyAcceptanceTest {
                 """, email1, duplicatePhone, companyId1);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload1)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -242,7 +234,6 @@ class CreateCompanyAcceptanceTest {
                 """, email2, duplicatePhone, companyId2);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload2)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -272,7 +263,6 @@ class CreateCompanyAcceptanceTest {
                 """, email1, phone1, duplicateIdentifier);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload1)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -291,7 +281,6 @@ class CreateCompanyAcceptanceTest {
                 """, email2, phone2, duplicateIdentifier);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload2)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -389,7 +378,6 @@ class CreateCompanyAcceptanceTest {
                 """, email, phoneNumber);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -424,7 +412,6 @@ class CreateCompanyAcceptanceTest {
                     """, email, phone, companyIdentifier);
 
             given()
-                    .contentType(ContentType.JSON)
                     .body(createPayload)
                     .when()
                     .post(ClientEndpoints.CLIENTS_BASE)

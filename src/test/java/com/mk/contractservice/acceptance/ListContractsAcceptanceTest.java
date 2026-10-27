@@ -1,6 +1,7 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -12,8 +13,6 @@ import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -64,7 +63,7 @@ class ListContractsAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
 
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
@@ -179,19 +178,19 @@ class ListContractsAcceptanceTest {
                     """, testClient.getId());
 
             // Create contracts with explicit delays to ensure distinct lastModified timestamps
-            given().contentType(ContentType.JSON).body(middleContract)
+            given().body(middleContract)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
             await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
 
-            given().contentType(ContentType.JSON).body(oldContract)
+            given().body(oldContract)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
             await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
 
-            given().contentType(ContentType.JSON).body(recentContract)
+            given().body(recentContract)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then().statusCode(201);
 
@@ -224,7 +223,7 @@ class ListContractsAcceptanceTest {
                         }
                         """, testClient.getId(), i * 100);
 
-                given().contentType(ContentType.JSON).body(oldContract)
+                given().body(oldContract)
                         .post(ContractEndpoints.CONTRACTS_BASE)
                         .then().statusCode(201);
             }
@@ -245,7 +244,7 @@ class ListContractsAcceptanceTest {
                         }
                         """, testClient.getId(), i * 100);
 
-                given().contentType(ContentType.JSON).body(recentContract)
+                given().body(recentContract)
                         .post(ContractEndpoints.CONTRACTS_BASE)
                         .then().statusCode(201);
             }
@@ -367,7 +366,6 @@ class ListContractsAcceptanceTest {
                         """, testClient.getId(), i * 100);
 
                 given()
-                        .contentType(ContentType.JSON)
                         .body(expiredContract)
                         .post(ContractEndpoints.CONTRACTS_BASE)
                         .then()
@@ -385,7 +383,6 @@ class ListContractsAcceptanceTest {
                         """, testClient.getId(), i * 100);
 
                 given()
-                        .contentType(ContentType.JSON)
                         .body(activeContract)
                         .post(ContractEndpoints.CONTRACTS_BASE)
                         .then()
@@ -445,7 +442,6 @@ class ListContractsAcceptanceTest {
                     """.formatted(testClient.getId(), String.format(java.util.Locale.US, "%.2f", costAmount));
 
             given()
-                    .contentType(ContentType.JSON)
                     .body(contractPayload)
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then()
