@@ -62,7 +62,14 @@ TOKEN=$(curl -s -X POST http://localhost:8081/realms/contract-service/protocol/o
 
 Without a token the API answers `401` (`code: unauthenticated`), without the counselor role `403` (`code: accessDenied`). Tokens last 5 minutes.
 
-The realm is imported only when it does not exist yet: if Keycloak already has data in the `keycloak_pgdata` volume, remove the volume (`docker compose down -v`) to re-import it.
+The realm is imported only when it does not exist yet: Keycloak keeps its data in the `keycloak_pgdata` volume, so changes to the JSON file are ignored once the realm exists. To re-import it, remove only that volume, then restart the application:
+
+```bash
+docker compose down
+docker volume rm contract-service_keycloak_pgdata
+```
+
+Do not use `docker compose down -v`: it also removes `pgdata`, the application database.
 
 **Create a Person Client:**
 ```bash
