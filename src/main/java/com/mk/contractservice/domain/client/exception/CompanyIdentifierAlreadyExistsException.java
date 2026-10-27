@@ -1,5 +1,8 @@
 package com.mk.contractservice.domain.client.exception;
 
+import lombok.Getter;
+
+@Getter
 public class CompanyIdentifierAlreadyExistsException extends IllegalArgumentException {
 
     private final String companyIdentifier;
@@ -9,8 +12,5 @@ public class CompanyIdentifierAlreadyExistsException extends IllegalArgumentExce
         this.companyIdentifier = companyIdentifier;
     }
 
-    public String getCompanyIdentifier() {
-        return companyIdentifier;
-    }
 }
 

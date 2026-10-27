@@ -1,13 +1,12 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,8 +42,7 @@ class CreatePersonAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
 
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
@@ -67,7 +65,6 @@ class CreatePersonAcceptanceTest {
                 """, uniqueEmail, phoneNumber);
 
         String personId = given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -112,7 +109,6 @@ class CreatePersonAcceptanceTest {
                 """, uniqueEmail, phoneNumber);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -139,7 +135,6 @@ class CreatePersonAcceptanceTest {
                 """, uniqueEmail, phoneNumber);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -165,7 +160,6 @@ class CreatePersonAcceptanceTest {
                 """, subdomainEmail, TestDataHelper.randomSwissPhoneNumber());
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -190,7 +184,6 @@ class CreatePersonAcceptanceTest {
                 """, phoneNumber);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -213,7 +206,6 @@ class CreatePersonAcceptanceTest {
                 """, TestDataHelper.uniqueEmail("long-phone"));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -241,7 +233,6 @@ class CreatePersonAcceptanceTest {
                 """, duplicateEmail, phoneNumber1);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload1)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -260,7 +251,6 @@ class CreatePersonAcceptanceTest {
                 """, duplicateEmail, phoneNumber2);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload2)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -288,7 +278,6 @@ class CreatePersonAcceptanceTest {
                 """, email1, duplicatePhone);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload1)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -307,7 +296,6 @@ class CreatePersonAcceptanceTest {
                 """, email2, duplicatePhone);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload2)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -343,7 +331,6 @@ class CreatePersonAcceptanceTest {
                 """, sharedEmail, sharedPhone, TestDataHelper.uniqueCompanyIdentifier("CHE"));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(personPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -351,7 +338,6 @@ class CreatePersonAcceptanceTest {
                 .statusCode(201);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(companyPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -383,7 +369,6 @@ class CreatePersonAcceptanceTest {
                 """, TestDataHelper.uniqueEmail("formatted"), formattedPhone);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -408,7 +393,6 @@ class CreatePersonAcceptanceTest {
                 """, email.toUpperCase(Locale.ROOT), TestDataHelper.randomSwissPhoneNumber());
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -433,7 +417,6 @@ class CreatePersonAcceptanceTest {
                 """, email, phoneNumber);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(createPayload)
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)

@@ -1,0 +1,86 @@
+{
+  "realm": "contract-service",
+  "enabled": true,
+  "accessTokenLifespan": 300,
+  "roles": {
+    "realm": [
+      {
+        "name": "counselor",
+        "description": "Insurance counselor: manages clients and their contracts"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "contract-service",
+      "name": "Contract Service API",
+      "description": "Resource server. Exists only as the audience of access tokens.",
+      "enabled": true,
+      "bearerOnly": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "contract-service-local",
+      "name": "Local tools (Bruno, Postman, curl)",
+      "description": "Development only: password grant to obtain a token for contract-service.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "contract-service-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "contract-service",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "counselor.demo",
+      "enabled": true,
+      "email": "counselor.demo@contract-service.local",
+      "emailVerified": true,
+      "firstName": "Counselor",
+      "lastName": "Demo",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "counselor",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-contract-service",
+        "counselor"
+      ]
+    },
+    {
+      "username": "visitor.demo",
+      "enabled": true,
+      "email": "visitor.demo@contract-service.local",
+      "emailVerified": true,
+      "firstName": "Visitor",
+      "lastName": "Demo",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "visitor",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-contract-service"
+      ]
+    }
+  ]
+}

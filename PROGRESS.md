@@ -24,15 +24,11 @@ Suivi des sujets en cours. Les décisions sont détaillées dans [ADR.md](docs/A
 | Collections Bruno / Postman alignées sur les contrôleurs, `Close Contract.bru` supprimée | `develop` (non commité) | — |
 | README racine (structure, soft delete, endpoints `/v2`), `docs/DDD/` supprimé | `develop` (non commité) | ADR-009 |
 | Fuseau `Europe/Zurich` explicite (`app.time-zone`, converter JPA, `TZ` Docker) ; `hibernate.jdbc.time_zone` écarté (sans effet sur `LocalDateTime` en Hibernate 7) | `develop` (7b8b366) | ADR-013 |
+| Authentification des conseillers par Keycloak : rôle unique `counselor` par règles d'URL, audience vérifiée, rôles du realm uniquement, 401/403 en `ProblemDetail`, realm versionné, tests avec JWT signés localement | `feat/add-auth-keycloak` (non commité) | ADR-017 |
 
 ## 1. Priorité haute
 
-- [ ] **Authentification des conseillers via Keycloak** (branche `feat/add-auth-keycloak`, ADR à écrire). Spring Security vérifie que chaque appel API vient d'un conseiller authentifié ; certains endpoints leur sont réservés.
-  - État de la branche : resource server JWT, `KeycloakJwtConverter`, rôles `ADMIN` / `COUNSELOR` en `@PreAuthorize`, realm Keycloak dans `docker-compose.yml`. Elle part de `f2409d7` et a 9 commits de retard sur `develop` (dont le fuseau 7b8b366) : la remettre à jour avant de continuer.
-  - ADR sécurité d'abord : rôles nécessaires (`ADMIN` est-il utile pour ~10 conseillers ?), endpoints réservés aux conseillers, réponses `401` / `403` en `ProblemDetail` avec un `code` stable.
-  - Tests : `TestSecurityConfig` ouvre tout (`permitAll`), donc l'autorisation n'est vérifiée nulle part. Ajouter des tests d'acceptance avec un JWT (sans jeton → `401`, mauvais rôle → `403`, conseiller → `2xx`).
-  - Docs : collections Bruno / Postman avec l'authentification, README (lancer Keycloak en local, obtenir un jeton), OpenAPI (`securityScheme` bearer).
-  - Trier en même temps les fichiers Keycloak non suivis à la racine (`KEYCLOAK_QUICK_START.md`, `SECURITY_README.md`…), voir Priorité moyenne.
+- [ ] **Fichiers Keycloak non suivis à la racine** (`KEYCLOAK_QUICK_START.md`, `SECURITY_README.md`…) : les comparer au README et à l'ADR-017, puis les supprimer ou les fusionner.
 
 ## 2. Priorité moyenne
 

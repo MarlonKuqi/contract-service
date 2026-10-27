@@ -1,6 +1,7 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.domain.client.ClientEmail;
@@ -13,7 +14,6 @@ import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
-import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,8 +55,7 @@ class ReadClientAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
     }

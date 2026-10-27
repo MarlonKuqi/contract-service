@@ -1,11 +1,10 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,8 +36,7 @@ class OptimisticLockingAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
 
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
@@ -50,7 +48,6 @@ class OptimisticLockingAcceptanceTest {
         String uniqueEmail = "sequential." + UUID.randomUUID() + "@example.com";
 
         String clientId = given()
-                .contentType(ContentType.JSON)
                 .body("""
                         {
                             "type": "PERSON",
@@ -66,7 +63,6 @@ class OptimisticLockingAcceptanceTest {
                 .extract().path("id");
 
         given()
-                .contentType(ContentType.JSON)
                 .body("""
                         {
                             "name": "Alice Martin Updated 1",
@@ -79,7 +75,6 @@ class OptimisticLockingAcceptanceTest {
                 .statusCode(204);
 
         given()
-                .contentType(ContentType.JSON)
                 .body("""
                         {
                             "name": "Alice Martin Updated 2",
@@ -104,7 +99,6 @@ class OptimisticLockingAcceptanceTest {
         String uniqueEmail = "contract." + UUID.randomUUID() + "@example.com";
 
         String clientId = given()
-                .contentType(ContentType.JSON)
                 .body("""
                         {
                             "type": "PERSON",
@@ -120,7 +114,6 @@ class OptimisticLockingAcceptanceTest {
                 .extract().path("id");
 
         String contractId = given()
-                .contentType(ContentType.JSON)
                 .body(String.format("""
                         {
                             "clientId": "%s",
@@ -143,7 +136,6 @@ class OptimisticLockingAcceptanceTest {
                     """, 10 + i);
 
             given()
-                    .contentType(ContentType.JSON)
                     .body(updatePayload)
                     .queryParam("clientId", clientId)
                     .patch(ContractEndpoints.CONTRACT_COST, contractId)

@@ -78,6 +78,17 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 
 ---
 
+## 🔐 Authentification
+
+Chaque collection s'authentifie au niveau de la collection (OAuth2, *password grant*) auprès du Keycloak local, avec le client public `contract-service-local` et l'utilisateur de démonstration `counselor.demo` (ADR-017). Les requêtes héritent de cette authentification.
+
+- **Postman** : onglet *Authorization* de la collection, puis *Get New Access Token* et *Use Token*.
+- **Bruno** : le jeton est récupéré automatiquement à partir de `collection.bru`.
+- Sans jeton : `401 unauthenticated`. Avec `visitor.demo` (sans rôle) : `403 accessDenied`.
+- Ne jamais coller un jeton en dur dans une requête : il expire après 5 minutes et contient les données de l'utilisateur.
+
+---
+
 ## 🔧 Variables de Collection
 
 Chaque collection définit ses propres variables :
@@ -86,12 +97,18 @@ Chaque collection définit ses propres variables :
 | Variable | Valeur par défaut |
 |----------|-------------------|
 | `baseUrl` | `http://localhost:8080` |
+| `keycloakUrl` | `http://localhost:8081` |
+| `username` | `counselor.demo` |
+| `password` | `counselor` |
 | `clientId` | `REPLACE_WITH_CLIENT_UUID` |
 
 ### ContractController
 | Variable | Valeur par défaut |
 |----------|-------------------|
 | `baseUrl` | `http://localhost:8080` |
+| `keycloakUrl` | `http://localhost:8081` |
+| `username` | `counselor.demo` |
+| `password` | `counselor` |
 | `clientId` | `REPLACE_WITH_CLIENT_UUID` |
 | `contractId` | `REPLACE_WITH_CONTRACT_UUID` |
 
@@ -203,6 +220,11 @@ api-collections/
 - Vérifier que la variable est bien définie dans la collection
 - Dans Postman : Collection > Variables > Current Value
 - Dans Insomnia : Créer un environnement et y définir les variables
+
+### Erreur 401 ou 403
+- ✅ Vérifier que Keycloak tourne sur `http://localhost:8081`
+- ✅ Récupérer un nouveau jeton (durée de vie : 5 minutes)
+- ✅ Utiliser `counselor.demo` : `visitor.demo` n'a pas le rôle `counselor`
 
 ### Erreur "Connection Refused"
 - ✅ Vérifier que Spring Boot tourne sur `http://localhost:8080`

@@ -2,6 +2,7 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.MutableInstantSource;
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -11,8 +12,6 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -68,8 +67,7 @@ class ContractTotalOverTimeAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
         instantSource.setInstant(REFERENCE_INSTANT);
 
         testClient = clientRepository.save(Person.of(
@@ -118,7 +116,7 @@ class ContractTotalOverTimeAcceptanceTest {
                 }
                 """, testClient.getId(), startDate, endDate == null ? "null" : "\"" + endDate + "\"", costAmount);
 
-        given().contentType(ContentType.JSON).body(payload)
+        given().body(payload)
                 .when().post(ContractEndpoints.CONTRACTS_BASE)
                 .then().statusCode(201);
     }

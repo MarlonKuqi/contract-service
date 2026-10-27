@@ -1,6 +1,7 @@
 package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -15,8 +16,6 @@ import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.AfterEach;
@@ -70,8 +69,7 @@ class ReadContractAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = port;
+        AcceptanceRestAssured.configure(port);
         originalTimeZone = TimeZone.getDefault();
 
         contractJpaRepository.deleteAll();
@@ -154,7 +152,6 @@ class ReadContractAcceptanceTest {
 
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
         String contractId = given()
-                .contentType(ContentType.JSON)
                 .body(String.format("""
                         {
                             "clientId": "%s",

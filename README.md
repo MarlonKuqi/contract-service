@@ -47,9 +47,33 @@ Try all endpoints live with auto-generated examples!
 
 ### 2. Quick Test Examples
 
+Every `/v2` endpoint requires a Keycloak access token of a counselor ([ADR-017](docs/ADR.md#adr-017--authentification-des-conseillers-par-keycloak)). The local Keycloak (`http://localhost:8081`, admin console `admin`/`admin`) imports the `contract-service` realm from `keycloak/realm-contract-service.json` on first start, with two development-only users:
+
+| User | Password | Role | Result |
+|---|---|---|---|
+| `counselor.demo` | `counselor` | `counselor` | full access |
+| `visitor.demo` | `visitor` | none | `403 accessDenied` |
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8081/realms/contract-service/protocol/openid-connect/token \
+  -d grant_type=password -d client_id=contract-service-local \
+  -d username=counselor.demo -d password=counselor | sed -E 's/.*"access_token":"([^"]+)".*/\1/')
+```
+
+Without a token the API answers `401` (`code: unauthenticated`), without the counselor role `403` (`code: accessDenied`). Tokens last 5 minutes.
+
+The realm is imported only when it does not exist yet: Keycloak keeps its data in the `keycloak_pgdata` volume, so changes to the JSON file are ignored once the realm exists. To re-import it, remove only that volume, then restart the application:
+
+```bash
+docker compose down
+docker volume rm contract-service_keycloak_pgdata
+```
+
+Do not use `docker compose down -v`: it also removes `pgdata`, the application database.
+
 **Create a Person Client:**
 ```bash
-curl -X POST http://localhost:8080/v2/clients \
+curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:8080/v2/clients \
   -H "Content-Type: application/json" \
   -d '{
     "type": "PERSON",
@@ -63,7 +87,7 @@ curl -X POST http://localhost:8080/v2/clients \
 
 **Create a Company Client:**
 ```bash
-curl -X POST http://localhost:8080/v2/clients \
+curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:8080/v2/clients \
   -H "Content-Type: application/json" \
   -d '{
     "type": "COMPANY",
@@ -77,7 +101,7 @@ curl -X POST http://localhost:8080/v2/clients \
 
 **Create a Contract** (startDate defaults to now if not provided):
 ```bash
-curl -X POST http://localhost:8080/v2/contracts \
+curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:8080/v2/contracts \
   -H "Content-Type: application/json" \
   -d '{
     "clientId": "{client-uuid}",
@@ -88,24 +112,24 @@ curl -X POST http://localhost:8080/v2/contracts \
 
 **Get Active Contracts** (paginated, only active):
 ```bash
-curl "http://localhost:8080/v2/contracts?clientId={client-uuid}&page=0&size=20"
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/v2/contracts?clientId={client-uuid}&page=0&size=20"
 ```
 ✅ **Response:** `200 OK` with pagination metadata (isFirst, isLast, totalElements)
 
 **Filter by Update Date:**
 ```bash
-curl "http://localhost:8080/v2/contracts?clientId={uuid}&updatedSince=2025-01-01T00:00:00"
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/v2/contracts?clientId={uuid}&updatedSince=2025-01-01T00:00:00"
 ```
 
 **Get Sum of Active Contracts:**
 ```bash
-curl "http://localhost:8080/v2/contracts/total?clientId={client-uuid}"
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/v2/contracts/total?clientId={client-uuid}"
 ```
 ✅ **Response:** `4500.00` (SQL aggregation, always computed from the database)
 
 **Update Contract Cost** (the internal last modification date is updated, the same amount is a no-op):
 ```bash
-curl -X PATCH "http://localhost:8080/v2/contracts/{contract-uuid}/cost" \
+curl -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/v2/contracts/{contract-uuid}/cost" \
   -H "Content-Type: application/json" \
   -d '{"amount": 2000.00}'
 ```
@@ -113,7 +137,7 @@ curl -X PATCH "http://localhost:8080/v2/contracts/{contract-uuid}/cost" \
 
 **Delete Client** (soft delete, closes its active contracts):
 ```bash
-curl -X DELETE "http://localhost:8080/v2/clients/{client-uuid}"
+curl -H "Authorization: Bearer $TOKEN" -X DELETE "http://localhost:8080/v2/clients/{client-uuid}"
 ```
 ✅ **Response:** `204 No Content` (active contracts get `endDate = deletion date`, the client then answers 404)
 
@@ -266,7 +290,9 @@ The `Content-Language` response header echoes the resolved locale. Error message
 
 ## 🔐 Security Notes
 
-- Default credentials (`postgres`/`postgres`) are for **development only**
+- Every `/v2` endpoint requires a JWT issued by Keycloak for the `contract-service` audience, with the realm role `counselor`; health, info and the OpenAPI documentation are public, every other route is denied ([ADR-017](docs/ADR.md#adr-017--authentification-des-conseillers-par-keycloak))
+- Keycloak settings: `KEYCLOAK_ISSUER_URI`, `KEYCLOAK_JWK_SET_URI`, `KEYCLOAK_AUDIENCE`; CORS is closed unless `APP_CORS_ALLOWED_ORIGINS` lists the allowed origins
+- Default credentials (`postgres`/`postgres`, Keycloak `admin`/`admin`, demo users) are for **development only**
 - Docker build uses **Azul Zulu 27** and runtime uses a **custom Java 27 `jlink` image**
 - Docker image runs as non-root user `appuser`
 - Use environment variables for production credentials
