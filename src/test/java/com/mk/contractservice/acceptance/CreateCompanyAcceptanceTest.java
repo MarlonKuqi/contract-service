@@ -292,7 +292,6 @@ class CreateCompanyAcceptanceTest {
     @DisplayName("SCENARIO: Create company with a lower case identifier stores and returns it in upper case")
     void shouldReturnCompanyIdentifierInUpperCase() {
         String companyId = given()
-                .contentType(ContentType.JSON)
                 .body(companyPayload("aaa-" + TestDataHelper.shortUuid()))
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -316,7 +315,6 @@ class CreateCompanyAcceptanceTest {
         String identifier = TestDataHelper.uniqueCompanyIdentifier("CHE");
 
         given()
-                .contentType(ContentType.JSON)
                 .body(companyPayload(identifier.toUpperCase(Locale.ROOT)))
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -324,7 +322,6 @@ class CreateCompanyAcceptanceTest {
                 .statusCode(201);
 
         given()
-                .contentType(ContentType.JSON)
                 .body(companyPayload(identifier.toLowerCase(Locale.ROOT)))
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
@@ -341,7 +338,6 @@ class CreateCompanyAcceptanceTest {
                 TestDataHelper.uniqueEmail("legacy"), TestDataHelper.randomSwissPhoneNumber(), legacyIdentifier));
 
         given()
-                .contentType(ContentType.JSON)
                 .body(companyPayload(legacyIdentifier))
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
