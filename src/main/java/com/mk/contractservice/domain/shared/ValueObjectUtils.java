@@ -1,15 +1,14 @@
 package com.mk.contractservice.domain.shared;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ValueObjectUtils {
-
-    private ValueObjectUtils() {
-        throw new UnsupportedOperationException("Utility class");
-    }
 
     public static <T, V, N> T validateAndCreate(
             final V rawValue,

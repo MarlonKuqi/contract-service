@@ -58,7 +58,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients"]
         },
-        "description": "Create a Company client. Requires 'type': 'COMPANY' and companyIdentifier field (format: CHE-XXX.XXX.XXX)."
+        "description": "Create a Company client. Requires 'type': 'COMPANY' and companyIdentifier field (format: CHE-XXX.XXX.XXX). The identifier is case-insensitive: it is stored and returned in upper case, and an identifier differing only by case from an existing one returns 409 companyIdentifierAlreadyExists."
       }
     },
     {

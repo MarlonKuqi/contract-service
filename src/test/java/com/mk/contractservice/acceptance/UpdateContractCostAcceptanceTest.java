@@ -190,6 +190,35 @@ class UpdateContractCostAcceptanceTest {
     }
 
     @Test
+    @DisplayName("SCENARIO: Update cost of an expired contract returns 409 contractExpired and keeps the cost")
+    void shouldRejectCostChangeOnExpiredContract() {
+        LocalDateTime now = LocalDateTime.now(clock);
+        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now.minusMonths(12), now.minusDays(1), new BigDecimal("1000.00"), now);
+        Contract savedContract = contractRepository.save(contract);
+
+        String updatePayload = """
+                {
+                    "amount": "2000.00"
+                }
+                """;
+
+        given()
+                .body(updatePayload)
+                .when()
+                .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
+                .then()
+                .statusCode(409)
+                .body("code", equalTo("contractExpired"));
+
+        given()
+                .when()
+                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId())
+                .then()
+                .statusCode(200)
+                .body("costAmount", equalTo(1000.00f));
+    }
+
+    @Test
     @DisplayName("SCENARIO: Update cost for non-existent contract returns 404")
     void shouldReturn404WhenUpdatingNonExistentContract() {
         UUID fakeId = UUID.randomUUID();

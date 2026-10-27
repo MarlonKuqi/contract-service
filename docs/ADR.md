@@ -199,11 +199,15 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 **Décision.**
 - Suppression de l'unicité de l'email et du téléphone (migration `V2.0.0.1`, exceptions et handlers 409 supprimés).
 - `company_identifier` reste unique, **y compris après suppression de la société** (ADR-009) : il identifie l'entité légale.
+- L'unicité de `company_identifier` est **insensible à la casse** : deux entités légales ne se distinguent pas par la casse de leur identifiant. `CompanyIdentifier` normalise la valeur en majuscules (`Locale.ROOT`), et la vérification d'unicité compare `upper(company_identifier)`.
+- Pas de migration des données : les identifiants enregistrés avant la normalisation restent tels quels et sont renvoyés tels quels par l'API. La comparaison `upper(...)` les couvre quand même.
 - Le sujet ne demande qu'une validation de format ; aucune unicité n'était exigée.
 
 **Conséquences.**
 - L'API ne renvoie plus `409 emailAlreadyExists` / `phoneAlreadyExists`. Changement de comportement compatible (une requête valide hier l'est toujours), à signaler dans les release notes ; pas de version majeure.
 - Une détection de doublons non bloquante (avertissement au conseiller) reste possible plus tard.
+- La contrainte `UNIQUE` de la base reste sensible à la casse. Elle ne protège donc pas contre deux créations simultanées qui ne diffèrent que par la casse, ni contre un doublon de casse déjà présent en base. Les doublons déjà présents ne sont pas corrigés automatiquement. Avec une dizaine de conseillers, ce risque est jugé acceptable.
+- La vérification `upper(...)` n'utilise pas l'index unique : parcours séquentiel de `company`, négligeable à ce volume.
 
 **Statut.** Acceptée.
 

@@ -179,7 +179,7 @@ class PatchClientAcceptanceTest {
     @DisplayName("GIVEN company WHEN patch with multiple fields THEN updates only those fields")
     void shouldPatchCompanyClientWithMultipleFields() {
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-        String companyId = String.format("CHE-%s.999.888", uniqueId.substring(0, 6));
+        String companyId = TestDataHelper.uniqueCompanyIdentifier("CHE");
         String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
 
         Company company = Company.of(

@@ -64,7 +64,6 @@ public abstract class BaseControllerAdvice {
                 "The resource you are trying to modify was updated by another user. Please refresh the data and try again.",
                 "optimisticLockFailure"
         );
-        problemDetail.setProperty("entityType", ex.getPersistentClassName());
         problemDetail.setProperty("entityId", ex.getIdentifier());
         return respond(problemDetail);
     }

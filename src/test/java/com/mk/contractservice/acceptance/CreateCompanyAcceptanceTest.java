@@ -5,6 +5,7 @@ import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
+import com.mk.contractservice.infrastructure.persistence.client.entities.CompanyJpaEntity;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -17,9 +18,11 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.Locale;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -294,6 +297,76 @@ class CreateCompanyAcceptanceTest {
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(409);
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create company with a lower case identifier stores and returns it in upper case")
+    void shouldReturnCompanyIdentifierInUpperCase() {
+        String companyId = given()
+                .body(companyPayload("aaa-" + TestDataHelper.shortUuid()))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract().path("id");
+
+        String identifier = given()
+                .when()
+                .get(ClientEndpoints.CLIENT_BY_ID, companyId)
+                .then()
+                .statusCode(200)
+                .extract().path("companyIdentifier");
+
+        assertThat(identifier).isUpperCase().startsWith("AAA-");
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create company with an identifier differing only by case from an existing one fails")
+    void shouldRejectCompanyIdentifierDifferingOnlyByCase() {
+        String identifier = TestDataHelper.uniqueCompanyIdentifier("CHE");
+
+        given()
+                .body(companyPayload(identifier.toUpperCase(Locale.ROOT)))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201);
+
+        given()
+                .body(companyPayload(identifier.toLowerCase(Locale.ROOT)))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(409)
+                .body("code", equalTo("companyIdentifierAlreadyExists"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create company with an identifier matching, in another case, one stored before normalization fails")
+    void shouldRejectCompanyIdentifierMatchingLegacyLowerCaseIdentifier() {
+        String legacyIdentifier = TestDataHelper.uniqueCompanyIdentifier("che").toLowerCase(Locale.ROOT);
+        clientJpaRepository.save(new CompanyJpaEntity("Legacy Company",
+                TestDataHelper.uniqueEmail("legacy"), TestDataHelper.randomSwissPhoneNumber(), legacyIdentifier));
+
+        given()
+                .body(companyPayload(legacyIdentifier))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(409)
+                .body("code", equalTo("companyIdentifierAlreadyExists"));
+    }
+
+    private static String companyPayload(final String companyIdentifier) {
+        return String.format("""
+                {
+                    "type": "COMPANY",
+                    "name": "Case Company",
+                    "email": "%s",
+                    "phone": "%s",
+                    "companyIdentifier": "%s"
+                }
+                """, TestDataHelper.uniqueEmail("case"), TestDataHelper.randomSwissPhoneNumber(), companyIdentifier);
     }
 
     @Test

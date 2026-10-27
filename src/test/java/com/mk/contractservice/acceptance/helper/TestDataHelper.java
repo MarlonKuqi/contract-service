@@ -2,6 +2,7 @@ package com.mk.contractservice.acceptance.helper;
 
 import lombok.NoArgsConstructor;
 
+import java.util.Locale;
 import java.util.SplittableRandom;
 import java.util.UUID;
 
@@ -18,7 +19,7 @@ public final class TestDataHelper {
                 prefix,
                 uuid.substring(0, 3),
                 uuid.substring(3, 6),
-                uuid.substring(6, 9));
+                uuid.substring(6, 9)).toUpperCase(Locale.ROOT);
     }
 
     public static String shortUuid() {

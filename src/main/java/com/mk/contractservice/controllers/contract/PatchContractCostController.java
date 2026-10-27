@@ -56,8 +56,15 @@ public class PatchContractCostController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @ApiResponse(
+            responseCode = "409",
+            description = "Contract is expired and cannot be modified (code contractExpired), "
+                    + "or it was modified concurrently by another user (code optimisticLockFailure)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
             responseCode = "422",
-            description = "Business validation failed (e.g., contract is expired and cannot be modified)",
+            description = "Invalid cost amount (e.g., zero, negative or not a number)",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )

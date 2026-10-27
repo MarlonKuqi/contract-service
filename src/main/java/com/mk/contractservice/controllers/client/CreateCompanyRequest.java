@@ -41,7 +41,9 @@ public record CreateCompanyRequest(
 
         @NotBlank(message = "Company identifier is required")
         @Size(max = 64, message = "Company identifier must not exceed 64 characters")
-        @Schema(description = "Swiss company identifier (e.g., CHE number)", example = "CHE-123.456.789",
+        @Schema(description = "Swiss company identifier (e.g., CHE number). Case-insensitive: stored and returned in upper case, "
+                + "and an identifier differing only by case from an existing one is rejected with 409 companyIdentifierAlreadyExists",
+                example = "CHE-123.456.789",
                 maxLength = 64, requiredMode = Schema.RequiredMode.REQUIRED)
         String companyIdentifier
 ) implements CreateClientRequest {

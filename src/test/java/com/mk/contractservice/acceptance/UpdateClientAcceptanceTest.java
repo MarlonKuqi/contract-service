@@ -105,7 +105,7 @@ class UpdateClientAcceptanceTest {
     @DisplayName("GIVEN company WHEN update with valid data THEN succeeds")
     void shouldUpdateCompanyClientSuccessfully() {
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-        String companyId = String.format("CHE-%s.222.333", uniqueId.substring(0, 6));
+        String companyId = TestDataHelper.uniqueCompanyIdentifier("CHE");
 
         Company company = Company.of(
                 ClientName.of("Old Corp"),
@@ -230,7 +230,7 @@ class UpdateClientAcceptanceTest {
     @DisplayName("GIVEN company WHEN update THEN maintains type (Company stays Company)")
     void shouldMaintainCompanyTypeAfterUpdate() {
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-        String companyId = String.format("CHE-%s.888.777", uniqueId.substring(0, 6));
+        String companyId = TestDataHelper.uniqueCompanyIdentifier("CHE");
 
         Company company = Company.of(
                 ClientName.of("Company Type Test"),

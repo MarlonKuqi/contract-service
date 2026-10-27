@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Locale;
 import java.util.function.Predicate;
 
 import static com.mk.contractservice.domain.shared.Assert.notNull;
@@ -39,7 +40,7 @@ public class CompanyIdentifier {
         if (rawValue == null || rawValue.isBlank()) {
             throw new InvalidCompanyIdentifierException("Company identifier must not be null or blank");
         }
-        return rawValue.trim();
+        return rawValue.trim().toUpperCase(Locale.ROOT);
     }
 
     private static void validate(final String normalized) {

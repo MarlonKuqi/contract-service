@@ -9,7 +9,7 @@ import java.util.UUID;
 public interface CompanyJpaRepository extends JpaRepository<CompanyJpaEntity, UUID> {
 
     @Query(
-            value = "SELECT EXISTS (SELECT 1 FROM contracts.company WHERE company_identifier = :companyIdentifier)",
+            value = "SELECT EXISTS (SELECT 1 FROM contracts.company WHERE upper(company_identifier) = upper(:companyIdentifier))",
             nativeQuery = true
     )
     boolean existsByCompanyIdentifierIncludingDeleted(String companyIdentifier);

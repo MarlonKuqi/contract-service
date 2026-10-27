@@ -10,9 +10,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -142,7 +144,25 @@ class CompanyTest {
                 assertThat(company.getName().getValue()).isEqualTo(data.name());
                 assertThat(company.getEmail().getValue()).isEqualTo(data.email());
                 assertThat(company.getPhone().getValue()).isEqualTo(data.expectedPhone());
-                assertThat(company.getCompanyIdentifier().getValue()).isEqualTo(data.companyIdentifier());
+                assertThat(company.getCompanyIdentifier().getValue()).isEqualTo(data.companyIdentifier().toUpperCase(Locale.ROOT));
+            }
+
+            @ParameterizedTest
+            @CsvSource(delimiter = '|', value = {
+                    "aaa-123|AAA-123",
+                    "Che-123.456.789|CHE-123.456.789",
+                    "  acme-123  |ACME-123"
+            })
+            @DisplayName("GIVEN company identifier in any case WHEN creating Company THEN identifier is stored in upper case")
+            void shouldNormalizeCompanyIdentifierToUpperCase(String identifier, String expected) {
+                final Company company = CompanyFactory.createFromCommand(
+                        "ACME Corp",
+                        "contact@acme.com",
+                        "+33123456789",
+                        identifier
+                );
+
+                assertThat(company.getCompanyIdentifier().getValue()).isEqualTo(expected);
             }
 
             @Test
@@ -207,6 +227,20 @@ class CompanyTest {
                 );
 
                 assertThat(company.getPhone().getValue()).isEqualTo("+41791234567");
+            }
+
+            @Test
+            @DisplayName("GIVEN identifier stored in lower case before normalization WHEN rebuilding Company THEN identifier is kept as is")
+            void shouldRebuildCompanyWithLegacyLowerCaseIdentifier() {
+                final Company company = CompanyFactory.buildFromDatabase(
+                        UUID.randomUUID(),
+                        "ACME Corp",
+                        "contact@acme.com",
+                        "+41791234567",
+                        "acme-123"
+                );
+
+                assertThat(company.getCompanyIdentifier().getValue()).isEqualTo("acme-123");
             }
 
             @ParameterizedTest
