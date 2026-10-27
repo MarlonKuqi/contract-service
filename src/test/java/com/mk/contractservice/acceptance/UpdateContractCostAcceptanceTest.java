@@ -203,6 +203,7 @@ class UpdateContractCostAcceptanceTest {
                 """;
 
         given()
+                .contentType(ContentType.JSON)
                 .body(updatePayload)
                 .when()
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
