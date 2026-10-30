@@ -208,7 +208,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated. Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged."
+        "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated. Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged. A concurrent modification is retried by the server; if the conflict persists after several retries, it returns 409 with code optimisticLockFailure."
       }
     },
     {
@@ -221,7 +221,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Delete a client. This will set endDate to current date for all active contracts."
+        "description": "Delete a client. This will set endDate to current date for all active contracts. A concurrent modification is retried by the server; if the conflict persists after several retries, it returns 409 with code optimisticLockFailure."
       }
     }
   ]

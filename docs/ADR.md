@@ -267,6 +267,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 **Décision.**
 1. **Correctif (fait)** : la fermeture en masse des contrats incrémente `version`. Sans cela, une modification du coût lancée avant la suppression du client pouvait rouvrir le contrat (`end_date` remis à `null`). Test : `ContractClosureConcurrencyAcceptanceTest`.
 2. **Différée** : protection entre deux requêtes HTTP par `ETag` / `If-Match`. Entre deux requêtes HTTP, on garde « le dernier gagne ».
+3. **Réessai côté serveur (fait : coût d'un contrat, `PATCH` et suppression d'un client)** : `PatchContractCost.Handler`, `PatchClient.Handler` et `DeleteClient.Handler` sont annotés `@Retryable` sur `OptimisticLockingFailureException` (3 nouveaux essais, `delay` 20 ms, `jitter` 10 ms), activé par `@EnableResilientMethods` (`ResilienceConfig`). Chaque essai ouvre une nouvelle transaction : il relit l'agrégat et revérifie les règles métier. Le `409 optimisticLockFailure` n'apparaît plus qu'après épuisement des essais. Tests : `ContractCostConflictAcceptanceTest`, `ClientConflictAcceptanceTest`.
 
 **Pourquoi différer l'étape 2.**
 - Il y a au plus une dizaine de conseillers, qui gèrent chacun leur portefeuille. Deux modifications concurrentes du même client ou du même contrat, entre la lecture et l'envoi d'un formulaire, sont rares.
@@ -277,6 +278,21 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
   - un breaking change de l'API, puisque `If-Match` devient obligatoire ;
   - la version à faire transiter dans les ports, les commandes, les handlers et les controllers ;
   - la reprise de tous les tests d'acceptance `PUT`/`PATCH`.
+
+**Pourquoi réessayer (étape 3).**
+- Le `PATCH` du coût remplace une valeur sans la calculer à partir de l'ancienne : « le dernier gagne » ne perd rien. Sans réessai, le résultat dépendait du timing : 204 si les transactions se suivent, 409 si elles se chevauchent (9 requêtes sur 10 en échec avec 10 conseillers simultanés).
+- Le réessai relit l'état : un contrat fermé entre la lecture et l'écriture est rejeté avec `409 contractExpired`, il n'est pas rouvert.
+- Le `PATCH` d'un client n'écrit que les champs envoyés : réessayé, il garde la modification concurrente d'un autre champ (un nom et un téléphone modifiés en même temps sont tous deux conservés). Un client supprimé entre-temps donne `404`.
+- La suppression d'un client ne dépend pas de l'état lu : la rejouer après une modification concurrente donne le résultat voulu.
+- Pas de réessai pour le `PUT` d'un client : il réécrit aussi les champs que l'utilisateur n'a pas touchés, avec les valeurs de son formulaire. Le réessayer écraserait sans bruit la modification concurrente, ce qui est exactement une modification perdue. Ici, le `409` est le bon signal.
+- Pas de réessai pour les créations : un `INSERT` n'a pas de version, donc pas de conflit optimiste.
+- Une dizaine de conseillers : pas de risque d'avalanche de réessais. Le `jitter` empêche les essais de repartir ensemble (avec 2 ms de `jitter` et 200 ms de `delay`, 6 requêtes concurrentes sur 10 échouaient encore).
+
+**Contraintes du réessai.**
+- Il doit envelopper la transaction : l'exception survient au commit, dans l'intercepteur de transaction, et un réessai à l'intérieur relirait l'entité périmée du contexte de persistance. Spring place l'intercepteur `@Retryable` avant les intercepteurs existants (`beforeExistingAdvisors`), ce qui permet de garder `@Retryable` et `@Transactional` sur le même handler. `ContractCostConflictAcceptanceTest` vérifie cet ordre : il injecte une écriture concurrente entre la lecture et l'écriture, et attend deux lectures.
+- Sans `@EnableResilientMethods`, `@Retryable` est ignoré.
+- Un cas d'usage réessayable ne doit pas être appelé depuis une transaction existante : il la rejoindrait (`REQUIRED`) et le réessai serait sans effet.
+- Ses effets de bord doivent pouvoir être rejoués. Aujourd'hui, il n'écrit qu'en base ; une publication de message devra se faire après le commit.
 
 **Atténuation sans code.** Le front utilise `PATCH` plutôt que `PUT` : `PUT` réécrit aussi les champs que l'utilisateur n'a pas touchés, alors que `PATCH` n'écrit que les champs envoyés. Une perte n'est alors possible que si deux personnes modifient le même champ.
 
@@ -297,10 +313,10 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 - L'ETag ne sélectionne pas une version : il empêche d'écrire sur la base d'une lecture périmée, et le client doit relire avant de réessayer.
 
 **Conséquences.**
-- Un conflit entre deux transactions qui se chevauchent reste détecté (`409 optimisticLockFailure`).
+- Un conflit entre deux transactions qui se chevauchent reste détecté. Pour le coût d'un contrat, ainsi que pour le `PATCH` et la suppression d'un client, il est réessayé. Pour le `PUT` d'un client, il donne `409 optimisticLockFailure`.
 - Le test `UpdateClientAcceptanceTest` « last one wins » documente le comportement voulu.
 
-**Statut.** Étape 1 acceptée (branche `bugfix/contract-closure-lost-update`). Étape 2 différée.
+**Statut.** Étape 1 acceptée (branche `bugfix/contract-closure-lost-update`). Étape 2 différée. Étape 3 acceptée pour le coût d'un contrat, ainsi que pour le `PATCH` et la suppression d'un client.
 
 ---
 

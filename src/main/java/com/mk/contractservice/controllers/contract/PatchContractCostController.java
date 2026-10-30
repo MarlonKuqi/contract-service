@@ -58,7 +58,7 @@ public class PatchContractCostController {
     @ApiResponse(
             responseCode = "409",
             description = "Contract is expired and cannot be modified (code contractExpired), "
-                    + "or it was modified concurrently by another user (code optimisticLockFailure)",
+                    + "or it was still modified concurrently by another user after several retries (code optimisticLockFailure)",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )

@@ -42,6 +42,12 @@ public class DeleteClientController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @ApiResponse(
+            responseCode = "409",
+            description = "Client was still modified concurrently by another user after several retries (code optimisticLockFailure)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
             responseCode = "500",
             description = "Unexpected server error",
             content = @Content(mediaType = "application/problem+json",

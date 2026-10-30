@@ -54,6 +54,12 @@ public class PatchClientController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @ApiResponse(
+            responseCode = "409",
+            description = "Client was still modified concurrently by another user after several retries (code optimisticLockFailure)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
             responseCode = "422",
             description = "Business validation failed (e.g., invalid email or phone format)",
             content = @Content(mediaType = "application/problem+json",
