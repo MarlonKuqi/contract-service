@@ -40,6 +40,7 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 
 **API**
 - [ADR-018 — Pagination par offset, paramètres validés dans le contrôleur](#adr-018--pagination-par-offset-paramètres-validés-dans-le-contrôleur)
+- [ADR-019 — Export des contrats actifs : pagination par curseur sur l'identifiant](#adr-019--export-des-contrats-actifs--pagination-par-curseur-sur-lidentifiant)
 
 ---
 
@@ -453,6 +454,7 @@ Cette version pose six problèmes :
   | `POST /v2/contracts` | `COUNSELOR` |
   | `GET /v2/contracts?clientId=`, `GET /v2/contracts/{id}`, `GET /v2/contracts/total?clientId=` | `COUNSELOR` |
   | `PATCH /v2/contracts/{id}/cost` | `COUNSELOR` |
+  | `GET /v2/contracts/export` (ADR-019) | `COUNSELOR` |
   | `/actuator/health/**`, `/actuator/info` | public |
   | `/swagger-ui/**`, `/v3/api-docs/**` | public (la documentation ne contient aucune donnée) |
   | toute autre route | refusée (`denyAll`) |
@@ -528,6 +530,41 @@ Une pagination par curseur a été écartée :
 - Le contrat est lisible dans la signature du contrôleur et dans OpenAPI (`minimum`/`maximum`), sans `sort` exposé.
 - Changement de contrat (sans impact : la V2 n'est pas en production) : `sort` est ignoré, un `page`/`size` non numérique renvoie le code `invalidParameterType` au lieu de `invalidParameter`.
 - Le domaine garde `Page`/`Pageable` (compromis de l'ADR-001) : le contrôleur construit un `PageRequest`.
-- Un endpoint d'export de tous les contrats (gros volumes) pourrait justifier un curseur. Il fera l'objet d'une décision séparée.
+- Un endpoint d'export de tous les contrats (gros volumes) pourrait justifier un curseur. Il fera l'objet d'une décision séparée (ADR-019).
 
 **Statut.** Acceptée (branche).
+
+---
+
+## ADR-019 — Export des contrats actifs : pagination par curseur sur l'identifiant
+
+**Contexte.** Exercice : un système tiers (entrepôt de données, archivage) doit récupérer tous les contrats actifs, tous clients confondus. Contrairement à la liste par client (ADR-018), le volume peut être grand, et donc :
+- avec un `OFFSET`, PostgreSQL lit puis jette toutes les lignes qui précèdent la page, si bien que chaque page coûte plus cher que la précédente ;
+- un `COUNT(*)` sur toute la table, à chaque page, ne sert à rien pour un export ;
+- l'export dure longtemps, et les contrats changent pendant ce temps. Avec un `OFFSET`, une ligne qui change de rang entre deux pages est sautée ou exportée deux fois.
+
+**Décision.**
+- `GET /v2/contracts/export?cursor=&size=`, rôle `COUNSELOR` (couvert par `/v2/**`, ADR-017).
+- **Périmètre** : les contrats actifs (ADR-004) de tous les clients, à l'instant de **chaque** requête. Aucun filtre tant que personne n'en a besoin.
+- **Curseur sur `id` seul** (pagination *keyset*) : `WHERE <actif> AND id > :after ORDER BY id LIMIT size + 1`. L'`id` est unique et immuable, et l'index de la clé primaire sert à la fois au tri et au point de reprise. La clé `(lastModified, id)` est écartée : `lastModified` change à chaque `changeCost` (ADR-005). Une ligne modifiée pendant l'export passerait derrière le curseur et serait perdue, ou repasserait devant et serait exportée deux fois.
+- **Curseur opaque** : le Base64 URL-safe des 16 octets de l'`id` du dernier contrat renvoyé. Le client le renvoie tel quel. Son format ne fait pas partie du contrat d'API : on pourra le changer (le signer, y ajouter une version) sans casser les clients. Un curseur qui ne se décode pas en UUID renvoie `400`, code `invalidCursor`.
+- **Réponse** : `{ "items": [ContractResponse…], "nextCursor": "…" | null }`. On lit `size + 1` lignes : la ligne en trop indique qu'il existe une page suivante, sans `COUNT`. `nextCursor` vaut `null` sur la dernière page. La réponse n'expose pas `lastModified` (ADR-005).
+- **Taille de page** : `1 ≤ size ≤ 1000`, `100` par défaut, validée par Bean Validation comme dans l'ADR-018 (`400`, code `invalidParameter`).
+- **JSON paginé plutôt que streaming** (NDJSON, CSV). Un flux garde une transaction et une connexion ouvertes pendant tout l'export, et on ne peut pas le reprendre après une coupure. Avec un curseur, chaque page est une requête courte, et le client reprend au dernier curseur reçu.
+- **Répartition des responsabilités** :
+  - le controller (`ExportContractController`) encode et décode le curseur, qui est un détail du protocole HTTP ;
+  - le use case (`ExportActiveContracts`) prend l'heure de la `Clock` (ADR-003) et décide s'il existe une page suivante ;
+  - le port `ContractRepository.findActiveAfter(activeAt, afterId, limit)` renvoie une `List`, sans `Page` ni `Pageable` ;
+  - l'adapter JPA utilise une `Specification` et `findBy(...).limit(...)`, ce qui évite la requête de comptage.
+
+**Conséquences.**
+- Coût constant par page, quelle que soit la profondeur de l'export. Aucune migration : l'index de la clé primaire suffit.
+- Garanties vérifiées par `ExportContractsAcceptanceTest` :
+  - chaque contrat actif est exporté une seule fois, et aucun contrat expiré ne l'est ;
+  - un contrat dont le coût change pendant l'export n'est ni sauté ni répété ;
+  - un contrat qui expire avant que sa page soit lue n'est pas exporté.
+- L'export n'est **pas un instantané** : chaque page reflète l'état de la base au moment de la requête. Un contrat créé pendant l'export a un UUID v7 (ADR-012), plus grand que le curseur, et il apparaît donc dans une page suivante. Un contrat ancien en UUID v4 ne suit pas cet ordre : s'il est actif mais placé avant le curseur, il n'est pas exporté dans cette passe. Pour obtenir un instantané cohérent, il faudrait une transaction `REPEATABLE READ` sur tout l'export ou une table d'export dédiée : hors périmètre.
+- L'ordre est celui de PostgreSQL sur le type `uuid` (octet par octet), et non celui de `UUID.compareTo` en Java (qui compare des `long` signés). Le tri et la comparaison au curseur se font tous les deux en base, donc ils restent cohérents. Il ne faut jamais trier ou filtrer ces identifiants en mémoire côté Java.
+- Le filtre « actif » n'est pas couvert par l'index utilisé pour le tri. Si la plupart des contrats étaient expirés, chaque page parcourrait beaucoup de lignes inactives. Un index partiel ou `(end_date, id)` serait alors à mesurer : pas avant d'avoir des volumes réels.
+
+**Statut.** Acceptée (branche `feat/contract-export`, exercice).

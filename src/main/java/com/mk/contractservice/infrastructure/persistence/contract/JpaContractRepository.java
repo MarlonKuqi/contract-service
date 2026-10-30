@@ -10,11 +10,15 @@ import jakarta.persistence.criteria.CriteriaUpdate;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -50,6 +54,21 @@ public class JpaContractRepository implements ContractRepository {
     public Page<Contract> findByCriteria(final ContractSearchCriteria criteria, final Pageable pageable) {
         return contractJpaRepository.findAll(ContractCriteriaAdapter.toSpecification(criteria), pageable)
                 .map(ContractJpaMapper::toDomain);
+    }
+
+    @Override
+    public List<Contract> findActiveAfter(final LocalDateTime activeAt, @Nullable final UUID afterId, final int limit) {
+        Specification<ContractJpaEntity> spec = ContractSpecifications.isActive(activeAt);
+        if (afterId != null) {
+            spec = spec.and(ContractSpecifications.idGreaterThan(afterId));
+        }
+        return contractJpaRepository.findBy(spec, query -> query
+                        .sortBy(Sort.by(ContractSpecifications.FIELD_ID))
+                        .limit(limit)
+                        .all())
+                .stream()
+                .map(ContractJpaMapper::toDomain)
+                .toList();
     }
 
     @Override
