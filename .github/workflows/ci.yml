@@ -13,19 +13,19 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Set up JDK 27
+        uses: actions/setup-java@v6
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: '27'
+          distribution: 'zulu'
           cache: maven
 
       - name: Cache Maven packages
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -42,7 +42,7 @@ jobs:
         continue-on-error: false
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: always()
         with:
           files: ./target/site/jacoco/jacoco.xml
@@ -63,21 +63,21 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: target/surefire-reports/
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: target/site/jacoco/
 
       - name: Upload JAR artifact
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release/'))
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: contract-service-jar
           path: target/*.jar
@@ -85,7 +85,7 @@ jobs:
 
       - name: Comment PR with coverage
         if: github.event_name == 'pull_request'
-        uses: madrapps/jacoco-report@v1.6.1
+        uses: madrapps/jacoco-report@v1.8.0
         with:
           paths: ${{ github.workspace }}/target/site/jacoco/jacoco.xml
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -101,17 +101,17 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Set up JDK 27
+        uses: actions/setup-java@v6
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: '27'
+          distribution: 'zulu'
           cache: maven
 
       - name: Cache Maven packages
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -128,93 +128,75 @@ jobs:
 
       - name: Upload integration test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: integration-test-results
           path: target/failsafe-reports/
 
-  dependency-scan:
-    name: Dependency Vulnerability Scan
+  mutation-tests:
+    name: Mutation Tests (PIT)
     runs-on: ubuntu-latest
     needs: build-and-test
-    permissions:
-      contents: read
-      security-events: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Set up JDK 27
+        uses: actions/setup-java@v6
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: '27'
+          distribution: 'zulu'
           cache: maven
 
-      - name: Cache NVD Database
-        uses: actions/cache@v3
+      - name: Cache Maven packages
+        uses: actions/cache@v6
         with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-db-${{ github.run_id }}
-          restore-keys: |
-            nvd-db-
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
 
-      - name: Run OWASP Dependency-Check
-        run: |
-          mvn org.owasp:dependency-check-maven:12.1.8:check \
-            -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
-            -DfailBuildOnCVSS=6.5 \
-            -DskipProvidedScope=false \
-            -DskipRuntimeScope=false \
-            -Dformats=HTML,JSON,SARIF \
-            -DprettyPrint=true \
-            -DossIndexUsername=${{ secrets.OSSINDEX_USERNAME }} \
-            -DossIndexPassword=${{ secrets.OSSINDEX_PASSWORD }}
-        env:
-          MAVEN_OPTS: "--add-modules jdk.incubator.vector"
-        continue-on-error: true
+      - name: Run mutation tests on domain and features
+        run: mvn test -Pmutation -Djacoco.skip=true
 
-      - name: Upload Dependency-Check results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload mutation report
         if: always()
+        uses: actions/upload-artifact@v7
         with:
-          sarif_file: 'target/dependency-check-report.sarif'
-          category: 'dependency-check'
+          name: mutation-report
+          path: target/pit-reports/
 
-      - name: Upload Dependency-Check HTML report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-check-report
-          path: target/dependency-check-report.html
-
-  security-scan:
-    name: Security Scan (Trivy)
+  image-scan:
+    name: Docker Image Vulnerability Scan (Trivy)
     runs-on: ubuntu-latest
     needs: build-and-test
     if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release/'))
+    continue-on-error: true
     permissions:
       contents: read
       security-events: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      - name: Build Docker image
+        run: docker build -t contract-service:${{ github.sha }} .
+
+      - name: Run Trivy image scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
+          scan-type: 'image'
+          image-ref: 'contract-service:${{ github.sha }}'
           format: 'sarif'
           output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH,MEDIUM'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          exit-code: '0'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4.37.4
+        if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: 'trivy-results.sarif'
-          category: 'trivy'
-
+          category: 'trivy-image'

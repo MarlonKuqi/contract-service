@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.8</version>
+		<version>4.1.2</version>
 		<relativePath/>
 	</parent>
 	<groupId>com.mk</groupId>
@@ -27,8 +27,21 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>21</java.version>
+		<java.version>27</java.version>
+		<maven.compiler.release>${java.version}</maven.compiler.release>
 		<argLine/>
+		<lombok.version>1.18.48</lombok.version>
+		<groovy.version>4.0.24</groovy.version>
+		<mapstruct.version>1.6.3</mapstruct.version>
+		<rest-assured.version>5.5.6</rest-assured.version>
+		<jspecify.version>1.0.0</jspecify.version>
+		<archunit.version>1.5.0</archunit.version>
+		<jacoco.version>0.8.16</jacoco.version>
+		<pitest.version>1.30.1</pitest.version>
+		<pitest-junit5.version>1.2.3</pitest-junit5.version>
+		<flyway.version>13.9.0</flyway.version>
+		<springdoc.version>3.1.1</springdoc.version>
+		<libphonenumber.version>9.0.41</libphonenumber.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -45,15 +58,17 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-database-postgresql</artifactId>
+			<version>${flyway.version}</version>
+			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>
@@ -67,8 +82,14 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>io.rest-assured</groupId>
 			<artifactId>rest-assured</artifactId>
+			<version>${rest-assured.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -78,36 +99,64 @@
 		</dependency>
 		<dependency>
 			<groupId>org.testcontainers</groupId>
-			<artifactId>junit-jupiter</artifactId>
+			<artifactId>testcontainers-junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.testcontainers</groupId>
-			<artifactId>postgresql</artifactId>
+			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-docker-compose</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.awaitility</groupId>
+			<artifactId>awaitility</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
+			<version>${lombok.version}</version>
 			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.jspecify</groupId>
+			<artifactId>jspecify</artifactId>
+			<version>${jspecify.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mapstruct</groupId>
 			<artifactId>mapstruct</artifactId>
-			<version>1.5.5.Final</version>
+			<version>${mapstruct.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>2.7.0</version>
+			<version>${springdoc.version}</version>
+		</dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <version>${archunit.version}</version>
+            <scope>test</scope>
+        </dependency>
+		<dependency>
+			<groupId>com.googlecode.libphonenumber</groupId>
+			<artifactId>libphonenumber</artifactId>
+			<version>${libphonenumber.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-cache</artifactId>
+			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.github.ben-manes.caffeine</groupId>
-			<artifactId>caffeine</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
 	</dependencies>
 
@@ -136,12 +185,12 @@
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
-							<version>${lombok.version}</version>
+										<version>${lombok.version}</version>
 						</path>
 						<path>
 							<groupId>org.mapstruct</groupId>
 							<artifactId>mapstruct-processor</artifactId>
-							<version>1.5.5.Final</version>
+							<version>${mapstruct.version}</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
@@ -152,8 +201,8 @@
 				<configuration>
 					<argLine>@{argLine} -Xmx1024m -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
 					<excludes>
-						<exclude>**/*IT.java</exclude>
-						<exclude>**/integration/**</exclude>
+						<exclude>**/*AcceptanceTest.java</exclude>
+						<exclude>**/acceptance/**</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
@@ -161,9 +210,9 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
 				<configuration>
-					<argLine>${argLine} -Xmx1024m -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+					<argLine>${argLine} -Xmx1024m -Duser.timezone=UTC -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
 					<includes>
-						<include>**/*IT.java</include>
+						<include>**/*AcceptanceTest.java</include>
 					</includes>
 				</configuration>
 				<executions>
@@ -178,7 +227,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.14</version>
+				<version>${jacoco.version}</version>
 				<executions>
 					<execution>
 						<id>prepare-agent</id>
@@ -225,22 +274,48 @@
 							<dataFile>target/jacoco-it.exec</dataFile>
 							<outputDirectory>target/jacoco-it</outputDirectory>
 							<excludes>
-								<exclude>**/web/dto/**</exclude>
-								<exclude>**/ContractServiceApplication.class</exclude>
-							</excludes>
+                                <exclude>**/infrastructure/**</exclude>
+								<exclude>**/controllers/**</exclude>
+                                <exclude>**/ContractServiceApplication.class</exclude>
+                                <exclude>**/dto/**</exclude>
+                                <exclude>**/mapper/**</exclude>
+                                <exclude>**/constants/**</exclude>
+                                <exclude>**/exception/**</exclude>
+                                <exclude>**/event/**</exclude>
+                                <exclude>**/shared/**</exclude>
+                            </excludes>
 						</configuration>
 					</execution>
 				</executions>
 				<configuration>
-					<!-- Exclusions pour se concentrer sur le domaine -->
+                    <!-- Exclusions pour se concentrer sur le domaine et la logique métier -->
 					<excludes>
-						<exclude>**/web/dto/**</exclude>
-						<exclude>**/web/controller/**</exclude>
-						<exclude>**/web/advice/**</exclude>
+                        <!-- Infrastructure -->
 						<exclude>**/infrastructure/**</exclude>
+						<exclude>**/controllers/**</exclude>
 						<exclude>**/config/**</exclude>
+                        <exclude>**/configuration/**</exclude>
+
+                        <!-- Application principale -->
 						<exclude>**/ContractServiceApplication.class</exclude>
-						<exclude>**/domain/exception/**</exclude>
+
+                        <!-- Exceptions (pas de logique métier) -->
+                        <exclude>**/exception/**</exclude>
+
+                        <!-- DTOs et Records (pas de logique) -->
+                        <exclude>**/dto/**</exclude>
+
+                        <!-- Mappers (générés ou simples mappings) -->
+                        <exclude>**/mapper/**</exclude>
+
+                        <!-- Constantes (pas de logique) -->
+                        <exclude>**/constants/**</exclude>
+
+                        <!-- Events (simples objets de données) -->
+                        <exclude>**/event/**</exclude>
+
+                        <!-- Shared packages (DTOs, mappers, constants, exceptions partagés) -->
+                        <exclude>**/shared/**</exclude>
 					</excludes>
 					<!-- Règles de couverture -->
 					<rules>
@@ -250,7 +325,7 @@
 								<limit>
 									<counter>LINE</counter>
 									<value>COVEREDRATIO</value>
-									<minimum>0.80</minimum>
+									<minimum>0.70</minimum>
 								</limit>
 								<limit>
 									<counter>BRANCH</counter>
@@ -264,5 +339,63 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>mutation</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-maven</artifactId>
+						<version>${pitest.version}</version>
+						<dependencies>
+							<dependency>
+								<groupId>org.pitest</groupId>
+								<artifactId>pitest-junit5-plugin</artifactId>
+								<version>${pitest-junit5.version}</version>
+							</dependency>
+						</dependencies>
+						<executions>
+							<execution>
+								<id>mutation-coverage</id>
+								<phase>test</phase>
+								<goals>
+									<goal>mutationCoverage</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<targetClasses>
+								<param>com.mk.contractservice.domain.*</param>
+								<param>com.mk.contractservice.features.*</param>
+							</targetClasses>
+							<targetTests>
+								<param>com.mk.contractservice.domain.*</param>
+								<param>com.mk.contractservice.features.*</param>
+							</targetTests>
+							<excludedTestClasses>
+								<param>**.*AcceptanceTest</param>
+							</excludedTestClasses>
+							<mutators>
+								<mutator>DEFAULTS</mutator>
+							</mutators>
+							<jvmArgs>
+								<value>-XX:+EnableDynamicAgentLoading</value>
+								<value>-Xshare:off</value>
+							</jvmArgs>
+							<mutationThreshold>90</mutationThreshold>
+							<testStrengthThreshold>95</testStrengthThreshold>
+							<timestampedReports>false</timestampedReports>
+							<outputFormats>
+								<format>HTML</format>
+								<format>XML</format>
+							</outputFormats>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>

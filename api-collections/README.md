@@ -23,24 +23,22 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 - `POST /v2/clients` - Create client (Person or Company) with type discriminator
 - `GET /v2/clients/{id}` - Read client
 - `PUT /v2/clients/{id}` - Update client
-- `DELETE /v2/clients/{id}` - Delete client
+- `PATCH /v2/clients/{id}` - Partial update (name, email, phone)
+- `DELETE /v2/clients/{id}` - Delete client (soft delete, closes its active contracts)
 
 **Requêtes** : CRUD complet sur les clients
-
-**⚠️ Note:** Les collections PersonController et CompanyController ont été **supprimées** en v2.0.0. 
-Utilisez cette collection unifiée pour créer des clients Person ou Company.
 
 ### 2️⃣ ContractController
 **Fichier** : `ContractController.postman_collection.json`  
 **Endpoints** :
-- `POST /v1/contracts?clientId={clientId}` - Create contract
-- `GET /v1/contracts?clientId={clientId}` - List active contracts (paginated)
-- `GET /v1/contracts?clientId={clientId}&updatedSince=...` - Filter by update date
-- `GET /v1/contracts/{contractId}?clientId={clientId}` - Get specific contract
-- `PATCH /v1/contracts/{contractId}/cost?clientId={clientId}` - Update cost
-- `GET /v1/contracts/sum?clientId={clientId}` - Sum of active contracts
+- `POST /v2/contracts` - Create contract (`clientId` in the body)
+- `GET /v2/contracts?clientId={clientId}` - List active contracts (paginated)
+- `GET /v2/contracts?clientId={clientId}&updatedSince=...` - Filter by update date
+- `GET /v2/contracts/{contractId}` - Get specific contract
+- `PATCH /v2/contracts/{contractId}/cost` - Update cost
+- `GET /v2/contracts/total?clientId={clientId}` - Sum of active contracts
 
-**Requêtes** : CRUD complet + agrégation sur les contrats
+**Requêtes** : création, lecture, mise à jour du coût et agrégation. Il n'existe pas d'endpoint de suppression ou de clôture de contrat : un contrat se termine par sa `endDate`, ou à la suppression de son client.
 
 ---
 
@@ -80,25 +78,37 @@ Utilisez cette collection unifiée pour créer des clients Person ou Company.
 
 ---
 
+## 🔐 Authentification
+
+Chaque collection s'authentifie au niveau de la collection (OAuth2, *password grant*) auprès du Keycloak local, avec le client public `contract-service-local` et l'utilisateur de démonstration `counselor.demo` (ADR-017). Les requêtes héritent de cette authentification.
+
+- **Postman** : onglet *Authorization* de la collection, puis *Get New Access Token* et *Use Token*.
+- **Bruno** : le jeton est récupéré automatiquement à partir de `collection.bru`.
+- Sans jeton : `401 unauthenticated`. Avec `visitor.demo` (sans rôle) : `403 accessDenied`.
+- Ne jamais coller un jeton en dur dans une requête : il expire après 5 minutes et contient les données de l'utilisateur.
+
+---
+
 ## 🔧 Variables de Collection
 
 Chaque collection définit ses propres variables :
-
-### PersonController & CompanyController
-| Variable | Valeur par défaut |
-|----------|-------------------|
-| `baseUrl` | `http://localhost:8080` |
 
 ### ClientController
 | Variable | Valeur par défaut |
 |----------|-------------------|
 | `baseUrl` | `http://localhost:8080` |
+| `keycloakUrl` | `http://localhost:8081` |
+| `username` | `counselor.demo` |
+| `password` | `counselor` |
 | `clientId` | `REPLACE_WITH_CLIENT_UUID` |
 
 ### ContractController
 | Variable | Valeur par défaut |
 |----------|-------------------|
 | `baseUrl` | `http://localhost:8080` |
+| `keycloakUrl` | `http://localhost:8081` |
+| `username` | `counselor.demo` |
+| `password` | `counselor` |
 | `clientId` | `REPLACE_WITH_CLIENT_UUID` |
 | `contractId` | `REPLACE_WITH_CONTRACT_UUID` |
 
@@ -146,7 +156,7 @@ Chaque collection définit ses propres variables :
 1. Importer `ContractController.postman_collection.json`
 2. Modifier la variable `clientId` avec l'UUID copié
 3. Exécuter "Create Contract - Default Dates"
-4. Copier l'`id` du contrat retourné
+4. Le contrat est créé et l'`id` est retourné
 
 ### Mettre à Jour le Coût
 
@@ -166,7 +176,7 @@ Chaque collection définit ses propres variables :
 | **Format** | JSON standard | Format propriétaire |
 | **Compatibilité** | ✅ Universel (tous outils) | ❌ Bruno uniquement |
 | **Lisibilité** | JSON structuré | DSL lisible |
-| **Versionning Git** | ✅ Oui | ✅ Oui |
+| **Versionning Git** | ✅ Oui | ❌ Non (`.gitignore`, copie locale) |
 | **Import/Export** | ✅ Tous outils | ❌ Bruno uniquement |
 
 **Recommandation** : Utiliser les collections Postman pour **maximum de compatibilité**.
@@ -176,14 +186,12 @@ Chaque collection définit ses propres variables :
 ## 📝 Notes Importantes
 
 ### Format des Dates
-Toutes les dates doivent respecter **ISO 8601** :
+Toutes les dates doivent respecter **ISO 8601**, sans fuseau (heure suisse, `Europe/Zurich`) :
 - `"2025-01-15"` (date simple)
-- `"2025-01-01T00:00:00+01:00"` (datetime avec timezone)
+- `"2025-01-01T00:00:00"` (date et heure)
 
 ### Variables Non Auto-Remplies
 Les variables `clientId` et `contractId` doivent être **manuellement copiées** depuis les réponses.
-
-**Alternative** : Utiliser les scripts de test Postman (voir `postman-collections/` pour version avec auto-fill).
 
 ### Ordre des Requêtes
 1. Créer client (Person/Company)
@@ -197,14 +205,12 @@ Les variables `clientId` et `contractId` doivent être **manuellement copiées**
 
 ```
 api-collections/
-├── PersonController.postman_collection.json        (3 requêtes)
-├── CompanyController.postman_collection.json       (3 requêtes)
-├── ClientController.postman_collection.json        (3 requêtes)
-├── ContractController.postman_collection.json      (7 requêtes)
+├── ClientController.postman_collection.json        (9 requêtes)
+├── ContractController.postman_collection.json      (8 requêtes)
 └── README.md
 ```
 
-**Total : 16 requêtes réparties dans 4 fichiers**
+**Total : 17 requêtes réparties dans 2 fichiers**
 
 ---
 
@@ -214,6 +220,11 @@ api-collections/
 - Vérifier que la variable est bien définie dans la collection
 - Dans Postman : Collection > Variables > Current Value
 - Dans Insomnia : Créer un environnement et y définir les variables
+
+### Erreur 401 ou 403
+- ✅ Vérifier que Keycloak tourne sur `http://localhost:8081`
+- ✅ Récupérer un nouveau jeton (durée de vie : 5 minutes)
+- ✅ Utiliser `counselor.demo` : `visitor.demo` n'a pas le rôle `counselor`
 
 ### Erreur "Connection Refused"
 - ✅ Vérifier que Spring Boot tourne sur `http://localhost:8080`
@@ -227,84 +238,3 @@ api-collections/
 ---
 
 **Bon testing ! 🚀**
-{
-  "info": {
-    "name": "PersonController",
-    "description": "Endpoints for creating persons (physical clients)",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8080",
-      "type": "string"
-    }
-  ],
-  "item": [
-    {
-      "name": "Create Person",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+41791234567\",\n  \"birthDate\": \"1990-01-15\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/v1/persons",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "persons"]
-        },
-        "description": "Create a new person client with name, email, phone and birthdate"
-      }
-    },
-    {
-      "name": "Create Person - Example 2",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Jane Smith\",\n  \"email\": \"jane.smith@example.com\",\n  \"phone\": \"+41792345678\",\n  \"birthDate\": \"1985-05-20\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/v1/persons",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "persons"]
-        }
-      }
-    },
-    {
-      "name": "Create Person - Example 3",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Alice Martin\",\n  \"email\": \"alice.martin@example.com\",\n  \"phone\": \"+41793456789\",\n  \"birthDate\": \"1995-12-10\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/v1/persons",
-          "host": ["{{baseUrl}}"],
-          "path": ["v1", "persons"]
-        }
-      }
-    }
-  ]
-}
-

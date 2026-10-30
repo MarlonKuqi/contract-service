@@ -4,7 +4,34 @@
     "description": "Contract management endpoints (CRUD, filters, aggregations)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "oauth2",
+    "oauth2": [
+      { "key": "grant_type", "value": "password_credentials", "type": "string" },
+      { "key": "accessTokenUrl", "value": "{{keycloakUrl}}/realms/contract-service/protocol/openid-connect/token", "type": "string" },
+      { "key": "clientId", "value": "contract-service-local", "type": "string" },
+      { "key": "username", "value": "{{username}}", "type": "string" },
+      { "key": "password", "value": "{{password}}", "type": "string" },
+      { "key": "addTokenTo", "value": "header", "type": "string" },
+      { "key": "tokenName", "value": "contract-service", "type": "string" }
+    ]
+  },
   "variable": [
+    {
+      "key": "keycloakUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "counselor.demo",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "counselor",
+      "type": "string"
+    },
     {
       "key": "baseUrl",
       "value": "http://localhost:8080",
@@ -34,19 +61,12 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"costAmount\": 1500.50\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"costAmount\": 1500.50\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts",
           "host": ["{{baseUrl}}"],
-          "path": ["v2", "contracts"],
-          "query": [
-            {
-              "key": "clientId",
-              "value": "{{clientId}}",
-              "description": "UUID of the client (required)"
-            }
-          ]
+          "path": ["v2", "contracts"]
         },
         "description": "Create a contract with default dates. If not provided, startDate defaults to current date and endDate is null (open-ended contract)."
       }
@@ -63,19 +83,12 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2025-12-31T23:59:59\",\n  \"costAmount\": 2500.00\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2025-12-31T23:59:59\",\n  \"costAmount\": 2500.00\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts",
           "host": ["{{baseUrl}}"],
-          "path": ["v2", "contracts"],
-          "query": [
-            {
-              "key": "clientId",
-              "value": "{{clientId}}",
-              "description": "UUID of the client (required)"
-            }
-          ]
+          "path": ["v2", "contracts"]
         },
         "description": "Create a contract with specific start and end dates (ISO 8601 format without timezone - Swiss time assumed)."
       }
@@ -92,19 +105,12 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts",
           "host": ["{{baseUrl}}"],
-          "path": ["v2", "contracts"],
-          "query": [
-            {
-              "key": "clientId",
-              "value": "{{clientId}}",
-              "description": "UUID of the client (required)"
-            }
-          ]
+          "path": ["v2", "contracts"]
         },
         "description": "Create an open-ended contract (no end date - Swiss time assumed)."
       }
@@ -185,18 +191,11 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v2", "contracts", "{{contractId}}"],
-          "query": [
-            {
-              "key": "clientId",
-              "value": "{{clientId}}",
-              "description": "UUID of the client (required)"
-            }
-          ]
+          "path": ["v2", "contracts", "{{contractId}}"]
         },
-        "description": "Get a specific contract by its ID. Validates that the contract belongs to the specified client. Returns 403 if the contract doesn't belong to the client."
+        "description": "Get a specific contract by its ID. Returns 404 if the contract does not exist."
       }
     },
     {
@@ -214,29 +213,22 @@
           "raw": "{\n  \"amount\": 3000.00\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}/cost?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}/cost",
           "host": ["{{baseUrl}}"],
-          "path": ["v2", "contracts", "{{contractId}}", "cost"],
-          "query": [
-            {
-              "key": "clientId",
-              "value": "{{clientId}}",
-              "description": "UUID of the client (required)"
-            }
-          ]
+          "path": ["v2", "contracts", "{{contractId}}", "cost"]
         },
-        "description": "Update the cost amount of a contract. Automatically updates lastModifiedDate to current date. Only active (non-expired) contracts can be updated."
+        "description": "Update the cost amount of a contract and its internal last modification date (used by the updatedSince filter). Only active (non-expired) contracts can be updated: an expired contract returns 409 with code contractExpired. A concurrent modification is retried by the server; if the conflict persists after several retries, it returns 409 with code optimisticLockFailure. An invalid amount returns 422. Sending the same amount (scale-insensitive, e.g. 100.0 = 100.00) is a no-op: the contract is not modified."
       }
     },
     {
-      "name": "Get Sum of Active Contracts",
+      "name": "Get Total of Active Contracts",
       "request": {
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts/sum?clientId={{clientId}}",
+          "raw": "{{baseUrl}}/v2/contracts/total?clientId={{clientId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["v2", "contracts", "sum"],
+          "path": ["v2", "contracts", "total"],
           "query": [
             {
               "key": "clientId",
@@ -245,7 +237,7 @@
             }
           ]
         },
-        "description": "Very performant endpoint using database aggregation. Returns the sum of costAmount for all active contracts of a client."
+        "description": "Very performant endpoint using database aggregation. Returns the total of costAmount for all active contracts of a client."
       }
     }
   ]

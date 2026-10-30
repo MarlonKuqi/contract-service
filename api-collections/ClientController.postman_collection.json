@@ -4,7 +4,34 @@
     "description": "Common client operations (Read, Update, Delete) for both Person and Company",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "oauth2",
+    "oauth2": [
+      { "key": "grant_type", "value": "password_credentials", "type": "string" },
+      { "key": "accessTokenUrl", "value": "{{keycloakUrl}}/realms/contract-service/protocol/openid-connect/token", "type": "string" },
+      { "key": "clientId", "value": "contract-service-local", "type": "string" },
+      { "key": "username", "value": "{{username}}", "type": "string" },
+      { "key": "password", "value": "{{password}}", "type": "string" },
+      { "key": "addTokenTo", "value": "header", "type": "string" },
+      { "key": "tokenName", "value": "contract-service", "type": "string" }
+    ]
+  },
   "variable": [
+    {
+      "key": "keycloakUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "counselor.demo",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "counselor",
+      "type": "string"
+    },
     {
       "key": "baseUrl",
       "value": "http://localhost:8080",
@@ -51,14 +78,14 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"type\": \"COMPANY\",\n  \"name\": \"Assurance Vaudoise SA\",\n  \"email\": \"contact@vaudoise.ch\",\n  \"phone\": \"+41219258111\",\n  \"companyIdentifier\": \"CHE-123.456.789\"\n}"
+          "raw": "{\n  \"type\": \"COMPANY\",\n  \"name\": \"Assurance SA\",\n  \"email\": \"contact@assurance.ch\",\n  \"phone\": \"+41219258111\",\n  \"companyIdentifier\": \"CHE-123.456.789\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/v2/clients",
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients"]
         },
-        "description": "Create a Company client. Requires 'type': 'COMPANY' and companyIdentifier field (format: CHE-XXX.XXX.XXX)."
+        "description": "Create a Company client. Requires 'type': 'COMPANY' and companyIdentifier field (format: CHE-XXX.XXX.XXX). The identifier is case-insensitive: it is stored and returned in upper case, and an identifier differing only by case from an existing one returns 409 companyIdentifierAlreadyExists."
       }
     },
     {
@@ -93,7 +120,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Update client common fields (name, email, phone). Note: Cannot update birthDate (Person) or companyIdentifier (Company)."
+        "description": "Update client common fields (name, email, phone). Note: Cannot update birthDate (Person) or companyIdentifier (Company). Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged."
       }
     },
     {
@@ -181,7 +208,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated."
+        "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated. Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged. A concurrent modification is retried by the server; if the conflict persists after several retries, it returns 409 with code optimisticLockFailure."
       }
     },
     {
@@ -194,7 +221,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Delete a client. This will set endDate to current date for all active contracts."
+        "description": "Delete a client. This will set endDate to current date for all active contracts. A concurrent modification is retried by the server; if the conflict persists after several retries, it returns 409 with code optimisticLockFailure."
       }
     }
   ]

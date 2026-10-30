@@ -1,21 +1,19 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.valueobject.Email;
-import java.util.Optional;
+import com.mk.contractservice.domain.shared.RepositoryPort;
+
+import java.time.LocalDateTime;
 import java.util.UUID;
 
+@RepositoryPort
 public interface ClientRepository {
-    Optional<Client> findById(final UUID id);
+    Client getById(final UUID id);
 
-    Client save(Client client);
+    Client save(final Client client);
 
-    void deleteById(final UUID id);
+    void delete(final UUID id, final LocalDateTime deletedAt);
 
-    boolean existsById(final UUID id);
-
-    boolean existsByEmail(final Email email);
-
-    boolean existsByEmail(final String email);
+    void ensureExists(final UUID id);
 
     boolean existsByCompanyIdentifier(final String companyIdentifier);
 }

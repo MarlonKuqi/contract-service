@@ -1,0 +1,426 @@
+package com.mk.contractservice.acceptance;
+
+import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
+import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
+import com.mk.contractservice.acceptance.helper.TestDataHelper;
+import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
+import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
+import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
+import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+
+import java.util.Locale;
+import java.util.UUID;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
+@Import(TestcontainersConfiguration.class)
+@DisplayName("Create Person Client - Acceptance Tests")
+class CreatePersonAcceptanceTest {
+
+    @LocalServerPort
+    private int port;
+
+    @Autowired
+    private ClientJpaRepository clientJpaRepository;
+
+    @Autowired
+    private ContractJpaRepository contractJpaRepository;
+
+    @BeforeEach
+    void setUp() {
+        AcceptanceRestAssured.configure(port);
+
+        contractJpaRepository.deleteAll();
+        clientJpaRepository.deleteAll();
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person client with all fields succeeds")
+    void shouldCreatePersonClientWithAllFields() {
+        String uniqueEmail = "john.doe." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
+
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "John Doe",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1990-05-15"
+                }
+                """, uniqueEmail, phoneNumber);
+
+        String personId = given()
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .header("Location", containsString(ClientEndpoints.CLIENTS_BASE + "/"))
+                .header("Content-Language", equalTo("fr-CH"))
+                .body("id", notNullValue())
+                .body("type", equalTo("PERSON"))
+                .body("name", equalTo("John Doe"))
+                .body("email", equalTo(uniqueEmail))
+                .body("phone", equalTo(phoneNumber))
+                .body("birthDate", equalTo("1990-05-15"))
+                .body("companyIdentifier", nullValue())
+                .extract().path("id");
+
+        // Verify persistence
+        given()
+                .when()
+                .get(ClientEndpoints.CLIENT_BY_ID, personId)
+                .then()
+                .statusCode(200)
+                .body("type", equalTo("PERSON"))
+                .body("name", equalTo("John Doe"))
+                .body("birthDate", equalTo("1990-05-15"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person with special characters in name succeeds")
+    void shouldCreatePersonWithSpecialCharactersInName() {
+        String uniqueEmail = "francois." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
+
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "François O'Brien-Müller",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1990-01-01"
+                }
+                """, uniqueEmail, phoneNumber);
+
+        given()
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("name", equalTo("François O'Brien-Müller"))
+                .body("type", equalTo("PERSON"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person with very old birth date succeeds")
+    void shouldCreatePersonWithVeryOldBirthDate() {
+        String uniqueEmail = "old.person." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
+
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Very Old Person",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1920-01-01"
+                }
+                """, uniqueEmail, phoneNumber);
+
+        given()
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("birthDate", equalTo("1920-01-01"))
+                .body("type", equalTo("PERSON"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person with a university email on a subdomain succeeds")
+    void shouldCreatePersonWithSubdomainEmail() {
+        String subdomainEmail = "o'neil." + UUID.randomUUID().toString().substring(0, 8) + "@etu.unige.ch";
+
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Student Person",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "2002-04-10"
+                }
+                """, subdomainEmail, TestDataHelper.randomSwissPhoneNumber());
+
+        given()
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("email", equalTo(subdomainEmail));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person with invalid email fails")
+    void shouldRejectPersonWithInvalidEmail() {
+        String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
+
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Invalid Email Person",
+                    "email": "invalid-email-format",
+                    "phone": "%s",
+                    "birthDate": "1990-01-01"
+                }
+                """, phoneNumber);
+
+        given()
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(422)
+                .body("code", equalTo(InvalidClientEmailException.DEFAULT_CODE));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person with a valid phone number of maximum E.164 length succeeds")
+    void shouldAcceptPersonWithMaxLengthPhone() {
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Long Phone Person",
+                    "email": "%s",
+                    "phone": "+493742508450764",
+                    "birthDate": "1990-01-01"
+                }
+                """, TestDataHelper.uniqueEmail("long-phone"));
+
+        given()
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("phone", equalTo("+493742508450764"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person with an email already used by another client succeeds")
+    void shouldAcceptPersonWithSharedEmail() {
+        String duplicateEmail = "duplicate." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        String phoneNumber1 = TestDataHelper.randomSwissPhoneNumber();
+        String phoneNumber2 = TestDataHelper.randomSwissPhoneNumber();
+
+        // Create first person
+        String createPayload1 = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "First Person",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1990-01-01"
+                }
+                """, duplicateEmail, phoneNumber1);
+
+        given()
+                .body(createPayload1)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201);
+
+        // Try to create second person with same email
+        String createPayload2 = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Second Person",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1985-01-01"
+                }
+                """, duplicateEmail, phoneNumber2);
+
+        given()
+                .body(createPayload2)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("email", equalTo(duplicateEmail));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person with a phone already used by another client succeeds")
+    void shouldAcceptPersonWithSharedPhone() {
+        String duplicatePhone = TestDataHelper.randomSwissPhoneNumber();
+        String email1 = "person1." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        String email2 = "person2." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+
+        // Create first person
+        String createPayload1 = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "First Person",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1990-01-01"
+                }
+                """, email1, duplicatePhone);
+
+        given()
+                .body(createPayload1)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201);
+
+        // Try to create second person with same phone
+        String createPayload2 = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Second Person",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1985-01-01"
+                }
+                """, email2, duplicatePhone);
+
+        given()
+                .body(createPayload2)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("phone", equalTo(duplicatePhone));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Freelancer registered as person and company with same email and phone succeeds")
+    void shouldAcceptPersonAndCompanySharingContactDetails() {
+        String sharedEmail = TestDataHelper.uniqueEmail("freelance");
+        String sharedPhone = TestDataHelper.randomSwissPhoneNumber();
+
+        String personPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Jane Freelance",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1988-03-12"
+                }
+                """, sharedEmail, sharedPhone);
+
+        String companyPayload = String.format("""
+                {
+                    "type": "COMPANY",
+                    "name": "Jane Freelance Consulting",
+                    "email": "%s",
+                    "phone": "%s",
+                    "companyIdentifier": "%s"
+                }
+                """, sharedEmail, sharedPhone, TestDataHelper.uniqueCompanyIdentifier("CHE"));
+
+        given()
+                .body(personPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201);
+
+        given()
+                .body(companyPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("email", equalTo(sharedEmail))
+                .body("phone", equalTo(sharedPhone));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person with phone in human-friendly format returns E.164 phone")
+    void shouldNormalizeFormattedPhoneToE164() {
+        String e164Phone = TestDataHelper.randomSwissPhoneNumber();
+        String formattedPhone = "%s-%s-%s-%s-%s".formatted(
+                e164Phone.substring(0, 3),
+                e164Phone.substring(3, 5),
+                e164Phone.substring(5, 8),
+                e164Phone.substring(8, 10),
+                e164Phone.substring(10));
+
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Formatted Phone",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1990-01-01"
+                }
+                """, TestDataHelper.uniqueEmail("formatted"), formattedPhone);
+
+        given()
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("phone", equalTo(e164Phone));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person with uppercase email returns lowercase email")
+    void shouldNormalizeEmailToLowercase() {
+        String email = TestDataHelper.uniqueEmail("case");
+
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "Uppercase Email",
+                    "email": "%s",
+                    "phone": "%s",
+                    "birthDate": "1990-01-01"
+                }
+                """, email.toUpperCase(Locale.ROOT), TestDataHelper.randomSwissPhoneNumber());
+
+        given()
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("email", equalTo(email.toLowerCase(Locale.ROOT)));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person without birthDate fails")
+    void shouldRejectPersonWithoutBirthDate() {
+        String email = "nobirth." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        String phoneNumber = TestDataHelper.randomSwissPhoneNumber();
+
+        String createPayload = String.format("""
+                {
+                    "type": "PERSON",
+                    "name": "No Birth Date",
+                    "email": "%s",
+                    "phone": "%s"
+                }
+                """, email, phoneNumber);
+
+        given()
+                .body(createPayload)
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(422);
+    }
+}

@@ -1,0 +1,54 @@
+package com.mk.contractservice.features.client;
+
+import com.mk.contractservice.domain.client.ClientRepository;
+import com.mk.contractservice.domain.client.Company;
+import com.mk.contractservice.domain.client.CompanyFactory;
+import com.mk.contractservice.domain.client.CompanyIdentifierUniqueness;
+import com.mk.contractservice.domain.shared.UseCase;
+import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Objects;
+
+public interface CreateCompany {
+
+    record Command(
+            String name,
+            String email,
+            String phoneNumber,
+            String companyIdentifier
+    ) {
+        public Command {
+            Objects.requireNonNull(name, "Name cannot be null");
+            Objects.requireNonNull(email, "Email cannot be null");
+            Objects.requireNonNull(phoneNumber, "Phone number cannot be null");
+            Objects.requireNonNull(companyIdentifier, "Company identifier cannot be null");
+        }
+    }
+
+    Company execute(Command command);
+
+    @UseCase
+    @Transactional
+    @RequiredArgsConstructor
+    class Handler implements CreateCompany {
+
+        private final ClientRepository clientRepository;
+        private final CompanyIdentifierUniqueness companyIdentifierUniqueness;
+
+        @Override
+        public Company execute(final Command command) {
+            final Company company = CompanyFactory.createFromCommand(
+                    command.name(),
+                    command.email(),
+                    command.phoneNumber(),
+                    command.companyIdentifier()
+            );
+
+            companyIdentifierUniqueness.ensureIsUnique(company.getCompanyIdentifier());
+
+            return (Company) clientRepository.save(company);
+        }
+    }
+}
+
