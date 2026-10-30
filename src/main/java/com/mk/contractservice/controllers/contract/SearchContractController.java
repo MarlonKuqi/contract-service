@@ -15,10 +15,15 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
@@ -40,6 +45,10 @@ import java.util.UUID;
 @RequestMapping(ContractEndpoints.CONTRACTS_BASE)
 @RequiredArgsConstructor
 public class SearchContractController {
+
+    private static final String DEFAULT_PAGE = "0";
+    private static final String DEFAULT_PAGE_SIZE = "20";
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final GetContractById getContractById;
     private final ListActiveContractsByClient listActiveContractsByClient;
@@ -86,7 +95,8 @@ public class SearchContractController {
             description = "Returns all active contracts (current date < end date or endDate = null). "
                     + "Can be filtered by lastModified >= updatedSince. "
                     + "Supports pagination (default size: 20, max: 100). "
-                    + "Use query params: ?page=0&size=20&sort=lastModified,desc. "
+                    + "Use query params: ?page=0&size=20. "
+                    + "Results are always sorted by last modification, most recent first. "
                     + "Returns 200 OK if all resources are present, 206 Partial Content with Content-Range header if paginated."
     )
     @ApiResponse(
@@ -106,7 +116,7 @@ public class SearchContractController {
     )
     @ApiResponse(
             responseCode = "400",
-            description = "Invalid query parameters (e.g., invalid date format)",
+            description = "Invalid query parameters (e.g., invalid date format, page < 0, size outside 1..100)",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
@@ -127,9 +137,14 @@ public class SearchContractController {
             @RequestParam final UUID clientId,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) @Nullable final LocalDateTime updatedSince,
-            final Pageable pageable,
+            @RequestParam(defaultValue = DEFAULT_PAGE)
+            @PositiveOrZero(message = "Page number must not be less than zero") final int page,
+            @RequestParam(defaultValue = DEFAULT_PAGE_SIZE)
+            @Positive(message = "Page size must not be less than one")
+            @Max(value = MAX_PAGE_SIZE, message = "Page size must not exceed {value}") final int size,
             final Locale locale
     ) {
+        final Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "lastModified"));
         final Page<Contract> contracts = listActiveContractsByClient.execute(
                 new ListActiveContractsByClient.Query(clientId, updatedSince, pageable)
         );

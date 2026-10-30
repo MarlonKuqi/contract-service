@@ -121,7 +121,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&page=0&size=20&sort=lastModified,desc",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&page=0&size=20",
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts"],
           "query": [
@@ -138,16 +138,11 @@
             {
               "key": "size",
               "value": "20",
-              "description": "Number of items per page (default: 20)"
-            },
-            {
-              "key": "sort",
-              "value": "lastModified,desc",
-              "description": "Sort order (field,direction)"
+              "description": "Number of items per page (default: 20, min: 1, max: 100)"
             }
           ]
         },
-        "description": "Get all active contracts for a client (paginated). Returns only contracts where current date < end date (or endDate is null). Default page size is 20. Response format: {content: [...], pageNumber, pageSize, totalElements, totalPages, first, last}"
+        "description": "Get all active contracts for a client (paginated). Returns only contracts where current date < end date (or endDate is null). Default page size is 20, max is 100. Results are always sorted by last modification, most recent first; a sort parameter is ignored. Response format: {content: [...], pageNumber, pageSize, totalElements, totalPages, first, last}"
       }
     },
     {

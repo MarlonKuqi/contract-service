@@ -38,6 +38,9 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 **Sécurité**
 - [ADR-017 — Authentification des conseillers par Keycloak](#adr-017--authentification-des-conseillers-par-keycloak)
 
+**API**
+- [ADR-018 — Pagination par offset, paramètres validés dans le contrôleur](#adr-018--pagination-par-offset-paramètres-validés-dans-le-contrôleur)
+
 ---
 
 ## ADR-001 — Vertical Slice + Clean Architecture
@@ -497,3 +500,34 @@ Cette version pose six problèmes :
 - La branche `feat/add-auth-keycloak` est à remettre sur `develop` et à aligner sur cette décision : retirer `ApplicationRoles` et les `@PreAuthorize`, limiter le converter aux rôles du realm, ajouter la vérification d'audience.
 
 **Statut.** Acceptée.
+
+---
+
+## ADR-018 — Pagination par offset, paramètres validés dans le contrôleur
+
+**Contexte.** `GET /v2/contracts?clientId=` est paginé. La pagination passait par un `ValidatingPageableArgumentResolver` (sous-classe de `PageableHandlerMethodArgumentResolver`), enregistré par un `WebMvcConfigurer` avec `@EnableSpringDataWebSupport`. Il validait `page` et `size` à la main (`parseInt`, bornes lues dans `app.pagination`). Il transmettait aussi le paramètre `sort` du client à JPA sans contrôle :
+- `?sort=lastModified,asc` triait sur un champ que l'API n'expose pas (ADR-005) ;
+- `?sort=version` triait sur un champ technique ;
+- `?sort=champInconnu` levait une `PropertyReferenceException`, transformée en `500`.
+
+`VIA_DTO` ne servait à rien : le contrôleur renvoie déjà son propre DTO `PagedContractResponse`.
+
+Une pagination par curseur a été écartée :
+- le sujet n'exige pas de pagination ;
+- la liste concerne les contrats actifs d'un seul client (quelques dizaines au plus), consultés par une dizaine de conseillers : le coût d'un `OFFSET` est négligeable ;
+- la clé de tri `lastModified` change à chaque `changeCost` : un curseur sur une clé qui bouge ferait sauter des éléments, et demanderait un curseur composite `(lastModified, id)` ;
+- `updatedSince` couvre déjà le besoin de synchronisation incrémentale.
+
+**Décision.**
+- `page` et `size` sont des `@RequestParam` validés par Bean Validation : `page ≥ 0`, `1 ≤ size ≤ 100`, `size = 20` par défaut. Les bornes sont des constantes : elles font partie du contrat de l'API.
+- Le tri est fixé côté serveur : `lastModified` décroissant. Le paramètre `sort` est ignoré.
+- Une contrainte non respectée lève une `HandlerMethodValidationException` : `400`, code `invalidParameter`. Une valeur non numérique lève une `MethodArgumentTypeMismatchException` : `400`, code `invalidParameterType`, comme pour les autres paramètres.
+- `PaginationConfig`, `ValidatingPageableArgumentResolver`, `PaginationProperties` (`app.pagination`) et `InvalidPaginationException` sont supprimés.
+
+**Conséquences.**
+- Le contrat est lisible dans la signature du contrôleur et dans OpenAPI (`minimum`/`maximum`), sans `sort` exposé.
+- Changement de contrat (sans impact : la V2 n'est pas en production) : `sort` est ignoré, un `page`/`size` non numérique renvoie le code `invalidParameterType` au lieu de `invalidParameter`.
+- Le domaine garde `Page`/`Pageable` (compromis de l'ADR-001) : le contrôleur construit un `PageRequest`.
+- Un endpoint d'export de tous les contrats (gros volumes) pourrait justifier un curseur. Il fera l'objet d'une décision séparée.
+
+**Statut.** Acceptée (branche).
