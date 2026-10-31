@@ -1,5 +1,6 @@
 package com.mk.contractservice.controllers.shared;
 
+import com.mk.contractservice.features.shared.InvalidPageRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -38,9 +39,9 @@ public abstract class BaseControllerAdvice {
         return respond(problemDetail);
     }
 
-    @ExceptionHandler(InvalidPaginationException.class)
-    public ResponseEntity<ProblemDetail> handleInvalidPagination(final InvalidPaginationException ex) {
-        log.debug("Invalid pagination parameter: {}", ex.getMessage());
+    @ExceptionHandler(InvalidPageRequestException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidPageRequest(final InvalidPageRequestException ex) {
+        log.debug("Invalid page request: {}", ex.getMessage());
 
         final ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Invalid Parameter",
                 ex.getMessage(), "invalidParameter");

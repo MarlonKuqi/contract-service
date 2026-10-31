@@ -46,6 +46,11 @@
       "key": "contractId",
       "value": "REPLACE_WITH_CONTRACT_UUID",
       "type": "string"
+    },
+    {
+      "key": "exportCursor",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -121,7 +126,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&page=0&size=20&sort=lastModified,desc",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&page=0&size=20",
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts"],
           "query": [
@@ -138,16 +143,11 @@
             {
               "key": "size",
               "value": "20",
-              "description": "Number of items per page (default: 20)"
-            },
-            {
-              "key": "sort",
-              "value": "lastModified,desc",
-              "description": "Sort order (field,direction)"
+              "description": "Number of items per page (default: 20, min: 1, max: 100)"
             }
           ]
         },
-        "description": "Get all active contracts for a client (paginated). Returns only contracts where current date < end date (or endDate is null). Default page size is 20. Response format: {content: [...], pageNumber, pageSize, totalElements, totalPages, first, last}"
+        "description": "Get all active contracts for a client (paginated). Returns only contracts where current date < end date (or endDate is null). Default page size is 20, max is 100. Results are always sorted by last modification, most recent first; a sort parameter is ignored. Response format: {content: [...], pageNumber, pageSize, totalElements, totalPages, first, last}"
       }
     },
     {
@@ -183,6 +183,58 @@
           ]
         },
         "description": "Get active contracts updated since a specific date (Swiss time assumed), with pagination support."
+      }
+    },
+    {
+      "name": "Export Active Contracts",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('exportCursor')) {",
+              "    pm.request.url.query.remove('cursor');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const nextCursor = pm.response.json().nextCursor;",
+              "if (nextCursor) {",
+              "    pm.collectionVariables.set('exportCursor', nextCursor);",
+              "} else {",
+              "    pm.collectionVariables.unset('exportCursor');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/export?size=100&cursor={{exportCursor}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "export"],
+          "query": [
+            {
+              "key": "size",
+              "value": "100",
+              "description": "Number of contracts per page (default: 100, min: 1, max: 1000)"
+            },
+            {
+              "key": "cursor",
+              "value": "{{exportCursor}}",
+              "description": "Opaque cursor: the nextCursor of the previous page, unchanged. Removed automatically when exportCursor is empty (first page)."
+            }
+          ]
+        },
+        "description": "Export the contracts active at request time, of all clients, ordered by id (keyset pagination, ADR-019). Send the request repeatedly: the first call has no cursor, the test script stores each nextCursor in the exportCursor variable and clears it on the last page (nextCursor null), so the next call starts a new export. A contract whose cost changes during the export is neither skipped nor exported twice. An invalid cursor returns 400 with code invalidCursor; a size outside 1..1000 returns 400 with code invalidParameter. Response format: {items: [...], nextCursor}"
       }
     },
     {

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -148,7 +149,7 @@ class ListContractsAcceptanceTest {
         }
 
         @Test
-        @DisplayName("Should sort contracts by lastModified descending")
+        @DisplayName("Should sort contracts by lastModified descending by default")
         void shouldSortContractsByLastModifiedDescending() {
             String oldContract = String.format("""
                     {
@@ -198,7 +199,6 @@ class ListContractsAcceptanceTest {
             await().pollDelay(Duration.ofMillis(50)).atMost(Duration.ofSeconds(1)).until(() -> true);
 
             given()
-                    .queryParam("sort", "lastModified,desc")
                     .when()
                     .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
                     .then()
@@ -207,6 +207,25 @@ class ListContractsAcceptanceTest {
                     .body("content[0].costAmount", equalTo(300.00f))  // most recent
                     .body("content[1].costAmount", equalTo(100.00f))  // middle
                     .body("content[2].costAmount", equalTo(200.00f)); // oldest
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"lastModified,asc", "costAmount,asc", "unknownField,desc", "version"})
+        @DisplayName("Should ignore client-provided sort and keep lastModified descending")
+        void shouldIgnoreClientProvidedSort(String sort) {
+            createContract(100);
+            await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
+            createContract(200);
+
+            given()
+                    .queryParam("sort", sort)
+                    .when()
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .then()
+                    .statusCode(200)
+                    .body("content.size()", equalTo(2))
+                    .body("content[0].costAmount", equalTo(200.00f))
+                    .body("content[1].costAmount", equalTo(100.00f));
         }
 
         @Test
@@ -556,11 +575,11 @@ class ListContractsAcceptanceTest {
 
         @ParameterizedTest
         @CsvSource({
-                "abc, 20, 'Invalid page number format'",
-                "0, xyz, 'Invalid page size format'"
+                "abc, 20, page",
+                "0, xyz, size"
         })
         @DisplayName("Should reject invalid number formats")
-        void shouldRejectInvalidFormats(String page, String size, String expectedMessage) {
+        void shouldRejectInvalidFormats(String page, String size, String invalidParameter) {
             given()
                     .param("clientId", testClient.getId())
                     .param("page", page)
@@ -569,8 +588,8 @@ class ListContractsAcceptanceTest {
                     .get(ContractEndpoints.CONTRACTS_BASE)
                     .then()
                     .statusCode(HttpStatus.BAD_REQUEST.value())
-                    .body("title", containsString("Invalid Parameter"))
-                    .body("detail", containsString(expectedMessage));
+                    .body("code", equalTo("invalidParameterType"))
+                    .body("parameterName", equalTo(invalidParameter));
         }
     }
 }

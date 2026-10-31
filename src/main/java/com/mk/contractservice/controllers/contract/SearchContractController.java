@@ -18,7 +18,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
@@ -40,6 +39,9 @@ import java.util.UUID;
 @RequestMapping(ContractEndpoints.CONTRACTS_BASE)
 @RequiredArgsConstructor
 public class SearchContractController {
+
+    private static final String DEFAULT_PAGE = "0";
+    private static final String DEFAULT_PAGE_SIZE = "20";
 
     private final GetContractById getContractById;
     private final ListActiveContractsByClient listActiveContractsByClient;
@@ -85,8 +87,9 @@ public class SearchContractController {
             summary = "List all ACTIVE contracts for a client (paginated)",
             description = "Returns all active contracts (current date < end date or endDate = null). "
                     + "Can be filtered by lastModified >= updatedSince. "
-                    + "Supports pagination (default size: 20, max: 100). "
-                    + "Use query params: ?page=0&size=20&sort=lastModified,desc. "
+                    + "Supports pagination (default size: " + DEFAULT_PAGE_SIZE + ", max: " + ListActiveContractsByClient.MAX_PAGE_SIZE + "). "
+                    + "Use query params: ?page=0&size=20. "
+                    + "Results are always sorted by last modification, most recent first. "
                     + "Returns 200 OK if all resources are present, 206 Partial Content with Content-Range header if paginated."
     )
     @ApiResponse(
@@ -99,14 +102,15 @@ public class SearchContractController {
             responseCode = "206",
             description = "Partial list of active contracts (paginated)",
             headers = {
-                    @Header(name = "Content-Range", description = "Range of resources returned (e.g., contracts 0-19/50)")
+                    @Header(name = "Content-Range",
+                            description = "Range of resources returned (e.g., contracts 0-19/50)")
             },
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = PagedContractResponse.class))
     )
     @ApiResponse(
             responseCode = "400",
-            description = "Invalid query parameters (e.g., invalid date format)",
+            description = "Invalid query parameters (e.g., invalid date format, page < 0, size outside 1..max)",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
@@ -126,12 +130,14 @@ public class SearchContractController {
     public ResponseEntity<PagedContractResponse> listActive(
             @RequestParam final UUID clientId,
             @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) @Nullable final LocalDateTime updatedSince,
-            final Pageable pageable,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            @Nullable final LocalDateTime updatedSince,
+            @RequestParam(defaultValue = DEFAULT_PAGE) final int page,
+            @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) final int size,
             final Locale locale
     ) {
         final Page<Contract> contracts = listActiveContractsByClient.execute(
-                new ListActiveContractsByClient.Query(clientId, updatedSince, pageable)
+                new ListActiveContractsByClient.Query(clientId, updatedSince, page, size)
         );
 
         final LocalDateTime now = LocalDateTime.now(clock);

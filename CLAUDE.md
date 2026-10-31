@@ -67,6 +67,7 @@ Dependencies point inward: `controllers → features → domain ← infrastructu
 
 ### Use cases (`features/`)
 - One interface per use case containing its `Command`/`Query` record, its `execute` method and its `Handler`.
+- The `Command`/`Query` validates itself: its constructor checks the application rules no Value Object covers (e.g. pagination bounds through `PageBounds`, `InvalidPageRequestException` → 400). The use case never relies on a controller to protect it; controllers only convert (ADR-002, ADR-018).
 - The handler is annotated `@UseCase` and declares `@Transactional` or `@Transactional(readOnly = true)` explicitly.
 - Handlers orchestrate: they load aggregates and check existence through the ports (`getById`, `ensureExists`), delegate rules to domain objects and domain services, and call ports. No business rule in a handler.
 - A domain service holds a business rule that no single aggregate can check on its own (e.g. `CompanyIdentifierUniqueness`). Data access helpers ("find or throw", "exists or throw") belong to the port, not to a domain service.
@@ -129,7 +130,7 @@ No domain object can exist in an invalid state.
 
 ## Git
 - Never perform git actions (commit, push, branch switch, stash) without being explicitly asked.
-- Branches start from `develop`: `feat/<topic>`, `bugfix/<topic>`. Releases: `release/x.y.z`. Main branch: `master`.
+- `feat/<topic>` starts from `develop`. `bugfix/<topic>` starts from the branch it fixes: `develop`, `release/x.y.z` or `master`, and goes back to that same branch (ADR-020). Releases: `release/x.y.z`. Main branch: `master`.
 - Before switching branches, check `git status`: uncommitted changes follow the switch.
 
 ### Commit rules
