@@ -11,8 +11,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
@@ -36,7 +34,6 @@ import java.util.UUID;
 public class ExportContractController {
 
     private static final String DEFAULT_PAGE_SIZE = "100";
-    private static final int MAX_PAGE_SIZE = 1000;
 
     private final ExportActiveContracts exportActiveContracts;
     private final ContractDtoMapper contractMapper;
@@ -48,7 +45,7 @@ public class ExportContractController {
                     + "ordered by id. Start without cursor, then send back nextCursor unchanged until it is null. "
                     + "A contract whose cost changes during the export is neither skipped nor exported twice; "
                     + "a contract that expires before its page is read is not exported. "
-                    + "Page size: default 100, max 1000."
+                    + "Page size: default " + DEFAULT_PAGE_SIZE + ", max " + ExportActiveContracts.MAX_PAGE_SIZE + "."
     )
     @ApiResponse(
             responseCode = "200",
@@ -71,9 +68,7 @@ public class ExportContractController {
     @GetMapping(ContractEndpoints.RELATIVE_CONTRACT_EXPORT)
     public ResponseEntity<ContractExportResponse> export(
             @RequestParam(required = false) @Nullable final String cursor,
-            @RequestParam(defaultValue = DEFAULT_PAGE_SIZE)
-            @Positive(message = "Page size must not be less than one")
-            @Max(value = MAX_PAGE_SIZE, message = "Page size must not exceed {value}") final int size,
+            @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) final int size,
             final Locale locale
     ) {
         final UUID after = cursor == null ? null : ContractExportCursor.decode(cursor);

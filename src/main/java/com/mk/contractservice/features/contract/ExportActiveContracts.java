@@ -3,6 +3,7 @@ package com.mk.contractservice.features.contract;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.features.shared.PageBounds;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,20 +16,17 @@ import java.util.UUID;
 
 public interface ExportActiveContracts {
 
+    int MAX_PAGE_SIZE = 1000;
+
     record Query(
             @Nullable UUID after,
             int size
     ) {
         public Query {
-            if (size < 1) {
-                throw new IllegalArgumentException("Export page size must be at least 1, got " + size);
-            }
+            PageBounds.requireValidSize(size, MAX_PAGE_SIZE);
         }
     }
 
-    /**
-     * @param nextAfter id to resume the export after; empty when this page is the last one
-     */
     record Result(
             List<Contract> contracts,
             Optional<UUID> nextAfter

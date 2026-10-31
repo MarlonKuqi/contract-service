@@ -8,10 +8,6 @@ import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.UUID;
 
-/**
- * Opaque export cursor: the URL-safe Base64 of the last exported contract id.
- * Clients must send it back unchanged; its content is not part of the API contract (ADR-019).
- */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class ContractExportCursor {
 

@@ -3,10 +3,13 @@ package com.mk.contractservice.features.contract;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.features.shared.InvalidPageRequestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -20,6 +23,7 @@ import java.util.UUID;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
@@ -40,11 +44,24 @@ class ExportActiveContractsTest {
         handler = new ExportActiveContracts.Handler(contractRepository, FIXED_CLOCK);
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "0, 'Page size must not be less than one'",
+            "-1, 'Page size must not be less than one'",
+            "1001, 'Page size must not exceed 1000'"
+    })
+    @DisplayName("GIVEN a size out of bounds WHEN building Query THEN throw InvalidPageRequestException")
+    void shouldRejectSizeOutOfBounds(int size, String expectedMessage) {
+        assertThatThrownBy(() -> new ExportActiveContracts.Query(null, size))
+                .isInstanceOf(InvalidPageRequestException.class)
+                .hasMessageContaining(expectedMessage);
+    }
+
     @Test
-    @DisplayName("GIVEN a size below one WHEN building Query THEN throw IllegalArgumentException")
-    void shouldRejectSizeBelowOne() {
-        assertThatThrownBy(() -> new ExportActiveContracts.Query(null, 0))
-                .isInstanceOf(IllegalArgumentException.class);
+    @DisplayName("GIVEN a size equal to the maximum WHEN building Query THEN accept it")
+    void shouldAcceptMaxSize() {
+        assertThatCode(() -> new ExportActiveContracts.Query(null, ExportActiveContracts.MAX_PAGE_SIZE))
+                .doesNotThrowAnyException();
     }
 
     @Test

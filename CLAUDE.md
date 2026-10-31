@@ -67,6 +67,7 @@ Dependencies point inward: `controllers → features → domain ← infrastructu
 
 ### Use cases (`features/`)
 - One interface per use case containing its `Command`/`Query` record, its `execute` method and its `Handler`.
+- The `Command`/`Query` validates itself: its constructor checks the application rules no Value Object covers (e.g. pagination bounds through `PageBounds`, `InvalidPageRequestException` → 400). The use case never relies on a controller to protect it; controllers only convert (ADR-002, ADR-018).
 - The handler is annotated `@UseCase` and declares `@Transactional` or `@Transactional(readOnly = true)` explicitly.
 - Handlers orchestrate: they load aggregates and check existence through the ports (`getById`, `ensureExists`), delegate rules to domain objects and domain services, and call ports. No business rule in a handler.
 - A domain service holds a business rule that no single aggregate can check on its own (e.g. `CompanyIdentifierUniqueness`). Data access helpers ("find or throw", "exists or throw") belong to the port, not to a domain service.
