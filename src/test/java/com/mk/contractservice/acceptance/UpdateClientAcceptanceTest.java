@@ -2,6 +2,7 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
+import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Clock;
@@ -83,6 +85,7 @@ class UpdateClientAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
                 .put(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
@@ -122,6 +125,7 @@ class UpdateClientAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, company.getId()))
                 .put(ClientEndpoints.CLIENT_BY_ID, company.getId())
                 .then()
                 .statusCode(204);
@@ -157,6 +161,7 @@ class UpdateClientAcceptanceTest {
         given()
                 .body(invalidPayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId()))
                 .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(422)
@@ -179,6 +184,7 @@ class UpdateClientAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
                 .put(ClientEndpoints.CLIENT_BY_ID, fakeId)
                 .then()
                 .statusCode(404);
@@ -205,6 +211,7 @@ class UpdateClientAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
                 .put(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
@@ -243,6 +250,7 @@ class UpdateClientAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, company.getId()))
                 .put(ClientEndpoints.CLIENT_BY_ID, company.getId())
                 .then()
                 .statusCode(204);
@@ -258,8 +266,8 @@ class UpdateClientAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN concurrent updates WHEN both execute THEN last one wins")
-    void shouldHandleConcurrentUpdates() {
+    @DisplayName("GIVEN sequential updates each based on a fresh read WHEN both execute THEN the last one is kept")
+    void shouldKeepLastOfSequentialUpdates() {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Concurrent Test"),
                 ClientEmail.of("concurrent." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
@@ -285,6 +293,7 @@ class UpdateClientAcceptanceTest {
         given()
                 .body(update1)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId()))
                 .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(204);
@@ -292,6 +301,7 @@ class UpdateClientAcceptanceTest {
         given()
                 .body(update2)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId()))
                 .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(204);
@@ -330,6 +340,7 @@ class UpdateClientAcceptanceTest {
         given()
                 .body(updatePayloadWithNewBirthDate)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
                 .put(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
@@ -364,6 +375,7 @@ class UpdateClientAcceptanceTest {
         given()
                 .body(invalidPayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId()))
                 .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(422);
@@ -396,6 +408,7 @@ class UpdateClientAcceptanceTest {
         given()
                 .body(updatePayloadWithNewIdentifier)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, company.getId()))
                 .put(ClientEndpoints.CLIENT_BY_ID, company.getId())
                 .then()
                 .statusCode(204);

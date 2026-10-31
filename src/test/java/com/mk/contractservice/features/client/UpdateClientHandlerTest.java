@@ -7,6 +7,7 @@ import com.mk.contractservice.domain.client.CompanyFactory;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonFactory;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,6 +22,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,6 +30,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UpdateClient Handler")
 class UpdateClientHandlerTest {
+
+    private static final long VERSION = 3L;
 
     @Mock
     private ClientRepository clientRepository;
@@ -67,6 +71,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "Jane Smith",
                     "jane.new@example.com",
                     "+33222222222"
@@ -90,6 +95,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "John Updated",
                     "john@example.com",
                     "+33222222222"
@@ -113,6 +119,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "John Updated",
                     "john.new@example.com",
                     "+33111111111"
@@ -136,6 +143,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "John Smith",
                     "john@example.com",
                     "+33111111111"
@@ -158,6 +166,7 @@ class UpdateClientHandlerTest {
         void shouldSaveWhenOneFieldChanges() {
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "John Doe",
                     "john@example.com",
                     "+33222222222"
@@ -196,6 +205,7 @@ class UpdateClientHandlerTest {
         void shouldNotSaveWhenValuesAreIdentical() {
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "John Doe",
                     "john@example.com",
                     "+33111111111"
@@ -214,6 +224,7 @@ class UpdateClientHandlerTest {
         void shouldNotSaveWhenSameValuesWrittenDifferently() {
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "  John Doe  ",
                     "JOHN@Example.com",
                     "+33 1 11 11 11 11"
@@ -255,6 +266,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "Acme Corporation",
                     "contact.new@acme.com",
                     "+33222222222"
@@ -278,6 +290,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "Acme Corporation",
                     "contact@acme.com",
                     "+33111111111"
@@ -321,6 +334,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "New Name",
                     "new@example.com",
                     "+33222222222"
@@ -332,6 +346,49 @@ class UpdateClientHandlerTest {
             // When & Then
             assertThatThrownBy(() -> updateClientHandler.execute(command))
                     .isInstanceOf(ClientNotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Version attendue")
+    class ExpectedVersion {
+
+        private UUID clientId;
+        private Person existingPerson;
+
+        @BeforeEach
+        void setUp() {
+            clientId = UUID.randomUUID();
+            existingPerson = PersonFactory.buildFromDatabase(
+                    clientId,
+                    "John Doe",
+                    "john@example.com",
+                    "+33111111111",
+                    LocalDate.of(1990, 1, 1)
+            );
+        }
+
+        @Test
+        @DisplayName("GIVEN une modification WHEN execute THEN vérifie la version attendue")
+        void shouldCheckExpectedVersion() {
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            updateClientHandler.execute(new UpdateClient.Command(clientId, VERSION, "Jane Doe", "john@example.com", "+33111111111"));
+
+            verify(clientRepository).ensureVersion(clientId, VERSION);
+        }
+
+        @Test
+        @DisplayName("GIVEN une version périmée WHEN execute THEN lève VersionMismatchException sans sauvegarder")
+        void shouldRejectStaleVersion() {
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
+            doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(clientRepository).ensureVersion(clientId, VERSION);
+
+            assertThatThrownBy(() -> updateClientHandler.execute(
+                    new UpdateClient.Command(clientId, VERSION, "Jane Doe", "john@example.com", "+33111111111")))
+                    .isInstanceOf(VersionMismatchException.class);
+            verify(clientRepository, never()).save(any(Client.class));
         }
     }
 }

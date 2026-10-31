@@ -5,6 +5,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import com.mk.contractservice.infrastructure.persistence.client.entities.ClientJpaEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -56,6 +57,14 @@ public class JpaClientRepository implements ClientRepository {
     public void ensureExists(final UUID id) {
         if (!jpa.existsById(id)) {
             throw ClientNotFoundException.forId(id);
+        }
+    }
+
+    @Override
+    public void ensureVersion(final UUID id, final long expectedVersion) {
+        final ClientJpaEntity entity = jpa.findById(id).orElseThrow(() -> ClientNotFoundException.forId(id));
+        if (entity.getVersion() != expectedVersion) {
+            throw new VersionMismatchException(expectedVersion, entity.getVersion());
         }
     }
 

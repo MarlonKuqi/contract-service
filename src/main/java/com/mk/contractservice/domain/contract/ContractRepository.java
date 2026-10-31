@@ -25,6 +25,8 @@ public interface ContractRepository {
 
     Contract getById(UUID contractId);
 
+    void ensureVersion(UUID contractId, long expectedVersion);
+
     Page<Contract> findByCriteria(ContractSearchCriteria criteria, Pageable pageable);
 
     List<Contract> findActiveAfter(LocalDateTime activeAt, @Nullable UUID afterId, int limit);

@@ -2,9 +2,12 @@ package com.mk.contractservice.controllers.contract;
 
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractSwaggerTags;
+import com.mk.contractservice.controllers.shared.EntityTags;
 import com.mk.contractservice.domain.contract.ContractCost;
 import com.mk.contractservice.features.contract.PatchContractCost;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,11 +17,14 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -37,7 +43,8 @@ public class PatchContractCostController {
             summary = "Update the cost amount of a contract",
             description = "Updates only the costAmount field and its internal last modification date, used by the updatedSince filter. "
                     + "Business rule: Only active contracts (not expired) can be updated. "
-                    + "Sending the same amount (scale-insensitive, e.g. 100.0 = 100.00) is a no-op: the contract is not modified."
+                    + "Sending the same amount (scale-insensitive, e.g. 100.0 = 100.00) is a no-op: the contract is not modified. "
+                    + "Requires If-Match with the ETag of the contract as read (GET). The response carries no ETag: read the contract again before another change."
     )
     @ApiResponse(
             responseCode = "204",
@@ -57,8 +64,19 @@ public class PatchContractCostController {
     )
     @ApiResponse(
             responseCode = "409",
-            description = "Contract is expired and cannot be modified (code contractExpired), "
-                    + "or it was still modified concurrently by another user after several retries (code optimisticLockFailure)",
+            description = "Contract is expired and cannot be modified (code contractExpired)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "412",
+            description = "The contract was modified since the ETag sent in If-Match was read, including its closure by a client deletion (code preconditionFailed)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "428",
+            description = "If-Match is missing or is the wildcard * (code preconditionRequired)",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
@@ -77,9 +95,16 @@ public class PatchContractCostController {
     @PatchMapping(ContractEndpoints.RELATIVE_CONTRACT_COST)
     public ResponseEntity<Void> patchContractCost(
             @PathVariable final UUID contractId,
+            @Parameter(in = ParameterIn.HEADER, required = true,
+                    description = "ETag of the contract as read (GET). Wildcard * is not accepted.")
+            @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) @Nullable final String ifMatch,
             @Valid @RequestBody final Request request
     ) {
-        patchContractCost.execute(new PatchContractCost.Command(contractId, request.amount()));
+        patchContractCost.execute(new PatchContractCost.Command(
+                contractId,
+                EntityTags.requiredVersion(ifMatch),
+                request.amount()
+        ));
         return ResponseEntity.noContent().build();
     }
 

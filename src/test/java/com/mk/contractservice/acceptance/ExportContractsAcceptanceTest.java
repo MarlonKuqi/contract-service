@@ -3,6 +3,7 @@ package com.mk.contractservice.acceptance;
 import com.mk.contractservice.acceptance.config.MutableInstantSource;
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
+import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -28,6 +29,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Clock;
@@ -247,6 +249,7 @@ class ExportContractsAcceptanceTest {
 
     private void changeCost(final String contractId, final String amount) {
         given().body("{\"amount\": " + amount + "}")
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, UUID.fromString(contractId)))
                 .when().patch(ContractEndpoints.CONTRACT_COST, UUID.fromString(contractId))
                 .then().statusCode(204);
     }

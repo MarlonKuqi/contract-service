@@ -7,6 +7,8 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.resilience.annotation.Retryable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
@@ -16,6 +18,7 @@ public interface UpdateClient {
 
     record Command(
             UUID clientId,
+            long expectedVersion,
             String name,
             String email,
             String phoneNumber
@@ -38,8 +41,15 @@ public interface UpdateClient {
         private final ClientRepository clientRepository;
 
         @Override
+        @Retryable(
+                includes = OptimisticLockingFailureException.class,
+                maxRetries = 3,
+                delay = 20,
+                jitter = 10
+        )
         public Client execute(final Command command) {
             final Client client = clientRepository.getById(command.clientId());
+            clientRepository.ensureVersion(command.clientId(), command.expectedVersion());
             final ClientEmail email = ClientEmail.of(command.email());
             final ClientPhoneNumber phone = ClientPhoneNumber.of(command.phoneNumber());
             final ClientName name = ClientName.of(command.name());

@@ -268,61 +268,56 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 
 ## ADR-011 — Optimistic locking
 
-**Contexte.** `@Version` existe sur `client` et `contract` (migration `V2.0.0.0`), et un conflit est traduit en `409 optimisticLockFailure` par `BaseControllerAdvice`. Mais `save()` recharge l'entité avant d'y recopier les valeurs du domaine : seuls les conflits entre deux transactions qui se chevauchent sont détectés, pas une modification basée sur une lecture périmée faite lors d'une requête HTTP précédente.
+**Contexte.** `@Version` existe sur `client` et `contract` (migration `V2.0.0.0`), et un conflit est traduit en `409 optimisticLockFailure` par `BaseControllerAdvice`. Mais `save()` recharge l'entité avant d'y recopier les valeurs du domaine : sans autre mécanisme, seuls les conflits entre deux transactions qui se chevauchent sont détectés, pas une modification basée sur une lecture périmée faite lors d'une requête HTTP précédente.
 
 **Décision.**
 1. **Correctif (fait)** : la fermeture en masse des contrats incrémente `version`. Sans cela, une modification du coût lancée avant la suppression du client pouvait rouvrir le contrat (`end_date` remis à `null`). Test : `ContractClosureConcurrencyAcceptanceTest`.
-2. **Différée** : protection entre deux requêtes HTTP par `ETag` / `If-Match`. Entre deux requêtes HTTP, on garde « le dernier gagne ».
-3. **Réessai côté serveur (fait : coût d'un contrat, `PATCH` et suppression d'un client)** : `PatchContractCost.Handler`, `PatchClient.Handler` et `DeleteClient.Handler` sont annotés `@Retryable` sur `OptimisticLockingFailureException` (3 nouveaux essais, `delay` 20 ms, `jitter` 10 ms), activé par `@EnableResilientMethods` (`ResilienceConfig`). Chaque essai ouvre une nouvelle transaction : il relit l'agrégat et revérifie les règles métier. Le `409 optimisticLockFailure` n'apparaît plus qu'après épuisement des essais. Tests : `ContractCostConflictAcceptanceTest`, `ClientConflictAcceptanceTest`.
+2. **Protection entre deux requêtes HTTP par `ETag` / `If-Match` (faite, après avoir été différée)** :
+   - seul le `GET` unitaire d'un client ou d'un contrat renvoie un ETag fort `"<version>"` ;
+   - `PUT`/`PATCH` d'un client et `PATCH` du coût d'un contrat exigent `If-Match` :
+     - `428 preconditionRequired` si l'en-tête manque ou vaut `*` (le joker contournerait le verrou) ;
+     - `412 preconditionFailed` si la version a changé depuis la lecture, si l'ETag est faible (`If-Match` utilise la comparaison forte) ou s'il ne contient pas exactement un ETag ;
+   - les réponses de création et de modification ne portent pas d'ETag : le client relit la ressource avant une nouvelle modification. Pour le `PUT`, c'est de toute façon imposé par RFC 9110 §9.3.4, qui interdit un validateur dans la réponse quand la représentation stockée diffère de celle reçue (on normalise l'email et le téléphone) ;
+   - la suppression d'un client n'exige pas `If-Match` : la rejouer après une modification concurrente donne le résultat voulu ;
+   - un `GET` avec `If-None-Match` égal à l'ETag courant renvoie `304` (comportement standard de Spring MVC dès que la réponse porte un ETag).
+3. **Réessai côté serveur (fait : `PUT`/`PATCH` et suppression d'un client, coût d'un contrat)** : les handlers sont annotés `@Retryable` sur `OptimisticLockingFailureException` (3 nouveaux essais, `delay` 20 ms, `jitter` 10 ms), activé par `@EnableResilientMethods` (`ResilienceConfig`). Chaque essai ouvre une nouvelle transaction : il relit l'agrégat et revérifie la version attendue et les règles métier.
 
-**Pourquoi différer l'étape 2.**
+**Conception de l'étape 2.**
+- La version est un détail de persistance, pas une donnée métier : le domaine ne décide rien à partir d'elle (contrairement à `lastModified`, ADR-005). Elle reste hors des agrégats et hors des types renvoyés par les ports d'écriture : `getById` et `save` renvoient `Client` et `Contract`.
+- **Lecture (CQRS)** : le `GET` passe par un read model, `ClientQueryPort.getDetails` (`PersonDetails` / `CompanyDetails`) et `ContractQueryPort.getDetails` (`ContractDetails`). Un read model n'est pas un agrégat : il peut porter la version, lue dans la même requête que les données. Les read models ne portent que des types simples. Le champ `active` de `ContractDetails` est calculé par l'adaptateur à l'instant fourni par le use case, en reconstituant `ContractPeriod` et en appelant `isEffectiveAt` : la règle de l'ADR-004 n'est pas dupliquée.
+- **Écriture** : la commande porte la version attendue (`expectedVersion`) ; le handler appelle `ensureVersion(id, expectedVersion)` sur le port juste après le chargement, sur le modèle de `ensureExists`. Dans la même transaction, l'adaptateur relit l'entité depuis le contexte de persistance, donc la version comparée est celle des données chargées. Ordre des erreurs : `404` (ressource absente), puis `412` (précondition), puis validation du contenu et règles métier (`409 contractExpired`, `422`). Une précondition est évaluée avant de traiter le contenu (RFC 9110 §13.2.2).
+- **Quand exiger une version attendue** : seulement quand la commande traduit la décision d'un utilisateur prise sur un état qu'il a lu dans une requête précédente (`PUT`/`PATCH`). Pas pour une création, ni pour une opération dont le résultat ne dépend pas de l'état lu (suppression d'un client), ni pour un traitement qui lit et écrit dans la même transaction (fermeture en masse, futurs jobs) : `@Version` suffit. Un import qui met à jour des données existantes demandera une règle métier, le système source n'ayant pas d'ETag.
+- Le controller convertit l'en-tête (`EntityTags.requiredVersion`) et renvoie `428` sans appeler le use case quand il manque. La validation Bean Validation du corps a lieu avant : un corps invalide sans `If-Match` donne `422`.
+- Une modification concurrente qui se glisse entre la vérification de la version et le `flush` lève `OptimisticLockingFailureException`. Le réessai relit l'agrégat, voit la nouvelle version et répond `412`. Il n'y a pas de modification perdue, et pas de `409 optimisticLockFailure` sur les endpoints protégés par `If-Match`.
+- `ETag`, `Location` et `Content-Range` sont exposés en CORS (`exposedHeaders`), `If-Match` et `If-None-Match` autorisés (`allowedHeaders`).
+- Limite assumée : `If-Match` avec une liste de plusieurs ETags donne `412` même si l'un d'eux correspond. Un client n'envoie que l'ETag qu'il a reçu.
+
+**Première conception, abandonnée.** Les ports d'écriture renvoyaient une enveloppe `Versioned<Client>` / `Versioned<Contract>` depuis `getById` et `save`, et les réponses `POST`/`PATCH` portaient le nouvel ETag. Abandonnée avant merge : une préoccupation HTTP traversait les ports d'écriture et tous les handlers, `save` devait faire un `saveAndFlush` pour connaître la nouvelle version, et chaque nouvelle méta-donnée technique aurait de nouveau changé ces signatures. Séparer lecture et écriture garde le modèle d'écriture inchangé, au prix d'un `GET` avant chaque modification.
+
+**Pourquoi l'étape 2 avait été différée (17/10).**
 - Il y a au plus une dizaine de conseillers, qui gèrent chacun leur portefeuille. Deux modifications concurrentes du même client ou du même contrat, entre la lecture et l'envoi d'un formulaire, sont rares.
-- Le seul cas grave, rouvrir un contrat fermé, est couvert par l'étape 1. Le domaine rejette déjà toute modification d'un contrat expiré.
-- Ce qu'on peut encore perdre se rattrape : un nom, un email ou un téléphone écrasé. Pour un coût, la dernière décision est en général celle qu'on veut garder.
+- Le seul cas grave, rouvrir un contrat fermé, est couvert par l'étape 1.
+- Ce qu'on pouvait perdre se rattrape : un nom, un email ou un téléphone écrasé.
 - `docs/sujet.txt` n'exige rien sur la concurrence.
-- Le coût serait élevé :
-  - un breaking change de l'API, puisque `If-Match` devient obligatoire ;
-  - la version à faire transiter dans les ports, les commandes, les handlers et les controllers ;
-  - la reprise de tous les tests d'acceptance `PUT`/`PATCH`.
+- Le coût était élevé : breaking change, version à faire transiter dans les ports, les commandes, les handlers et les controllers, reprise des tests d'acceptance `PUT`/`PATCH`.
 
-**Pourquoi réessayer (étape 3).**
-- Le `PATCH` du coût remplace une valeur sans la calculer à partir de l'ancienne : « le dernier gagne » ne perd rien. Sans réessai, le résultat dépendait du timing : 204 si les transactions se suivent, 409 si elles se chevauchent (9 requêtes sur 10 en échec avec 10 conseillers simultanés).
-- Le réessai relit l'état : un contrat fermé entre la lecture et l'écriture est rejeté avec `409 contractExpired`, il n'est pas rouvert.
-- Le `PATCH` d'un client n'écrit que les champs envoyés : réessayé, il garde la modification concurrente d'un autre champ (un nom et un téléphone modifiés en même temps sont tous deux conservés). Un client supprimé entre-temps donne `404`.
-- La suppression d'un client ne dépend pas de l'état lu : la rejouer après une modification concurrente donne le résultat voulu.
-- Pas de réessai pour le `PUT` d'un client : il réécrit aussi les champs que l'utilisateur n'a pas touchés, avec les valeurs de son formulaire. Le réessayer écraserait sans bruit la modification concurrente, ce qui est exactement une modification perdue. Ici, le `409` est le bon signal.
-- Pas de réessai pour les créations : un `INSERT` n'a pas de version, donc pas de conflit optimiste.
-- Une dizaine de conseillers : pas de risque d'avalanche de réessais. Le `jitter` empêche les essais de repartir ensemble (avec 2 ms de `jitter` et 200 ms de `delay`, 6 requêtes concurrentes sur 10 échouaient encore).
+**Pourquoi la reprendre.** Les arguments ci-dessus restent vrais à l'échelle actuelle. L'étape 2 est reprise comme exercice, et parce qu'elle prépare les sujets prévus ensuite (`PROGRESS.md`, « Pour aller plus loin ») : l'import en masse fait écrire des automates en parallèle des conseillers, l'un des signaux qui justifiaient la reprise, et le handler connaît la version attendue, qu'il pourra transmettre aux événements d'une outbox.
+
+**Effet sur l'étape 3.** Avant `If-Match`, le réessai appliquait « le dernier gagne » : le coût réessayé écrasait le coût concurrent, le `PATCH` d'un client gardait aussi la modification concurrente d'un autre champ, et le `PUT` n'était pas réessayé parce qu'il aurait écrasé sans bruit les champs non touchés. Avec `If-Match`, le réessai ne peut plus écraser une modification concurrente : il aboutit à `412`. Il ne sert plus qu'à transformer un conflit détecté au commit en la bonne réponse, d'où son ajout sur le `PUT`. Pour la suppression d'un client, sans `If-Match`, il garde son rôle d'origine : rejouer la suppression.
 
 **Contraintes du réessai.**
-- Il doit envelopper la transaction : l'exception survient au commit, dans l'intercepteur de transaction, et un réessai à l'intérieur relirait l'entité périmée du contexte de persistance. Spring place l'intercepteur `@Retryable` avant les intercepteurs existants (`beforeExistingAdvisors`), ce qui permet de garder `@Retryable` et `@Transactional` sur le même handler. `ContractCostConflictAcceptanceTest` vérifie cet ordre : il injecte une écriture concurrente entre la lecture et l'écriture, et attend deux lectures.
+- Il doit envelopper la transaction : un réessai à l'intérieur relirait l'entité périmée du contexte de persistance. Spring place l'intercepteur `@Retryable` avant les intercepteurs existants (`beforeExistingAdvisors`), ce qui permet de garder `@Retryable` et `@Transactional` sur le même handler. `ContractCostConflictAcceptanceTest` et `ClientConflictAcceptanceTest` vérifient cet ordre : ils injectent une écriture concurrente entre la lecture et l'écriture, et attendent deux lectures.
 - Sans `@EnableResilientMethods`, `@Retryable` est ignoré.
 - Un cas d'usage réessayable ne doit pas être appelé depuis une transaction existante : il la rejoindrait (`REQUIRED`) et le réessai serait sans effet.
 - Ses effets de bord doivent pouvoir être rejoués. Aujourd'hui, il n'écrit qu'en base ; une publication de message devra se faire après le commit.
 
-**Atténuation sans code.** Le front utilise `PATCH` plutôt que `PUT` : `PUT` réécrit aussi les champs que l'utilisateur n'a pas touchés, alors que `PATCH` n'écrit que les champs envoyés. Une perte n'est alors possible que si deux personnes modifient le même champ.
-
-**Signaux pour reprendre l'étape 2.**
-- Les clients modifient eux-mêmes leurs données (self-service).
-- Des intégrations ou des imports automatiques écrivent en parallèle des conseillers.
-- Le nombre d'utilisateurs augmente fortement, ou les portefeuilles deviennent partagés.
-- Un premier incident réel de modification perdue.
-
-**Pistes de conception pour la reprise.**
-- `GET` unitaire renvoie `ETag: "<version>"`. L'ETag doit être fort : `If-Match` utilise la comparaison forte, un ETag `W/` ne correspondrait jamais.
-- `PUT`/`PATCH` exigent `If-Match` :
-  - `428 Precondition Required` si l'en-tête manque ;
-  - `412 Precondition Failed` si la version a changé ;
-  - `*` refusé, car il contournerait le verrou.
-- La version est un détail de persistance : la garder hors des agrégats, par exemple dans une enveloppe `Versioned<T>` renvoyée par les ports. Elle doit être lue dans la même requête que les données.
-- Exposer `ETag` dans la configuration CORS (`exposedHeaders`), sinon un navigateur ne peut pas le lire.
-- L'ETag ne sélectionne pas une version : il empêche d'écrire sur la base d'une lecture périmée, et le client doit relire avant de réessayer.
-
 **Conséquences.**
-- Un conflit entre deux transactions qui se chevauchent reste détecté. Pour le coût d'un contrat, ainsi que pour le `PATCH` et la suppression d'un client, il est réessayé. Pour le `PUT` d'un client, il donne `409 optimisticLockFailure`.
-- Le test `UpdateClientAcceptanceTest` « last one wins » documente le comportement voulu.
+- Breaking change de l'API : un client qui modifie sans `If-Match` reçoit `428`. Les collections (`api-collections/`) capturent l'ETag et l'envoient automatiquement.
+- Une modification basée sur une lecture périmée, entre deux requêtes HTTP ou entre deux transactions qui se chevauchent, donne `412`. Un contrat fermé par la suppression de son client depuis la lecture donne aussi `412` (sa version a été incrémentée par l'étape 1), et il reste fermé.
+- `409 optimisticLockFailure` ne subsiste que pour la suppression d'un client, après épuisement des essais.
+- Tests : `OptimisticLockingAcceptanceTest` (contrat HTTP), `ClientConflictAcceptanceTest` et `ContractCostConflictAcceptanceTest` (conflits entre transactions), et les tests des handlers.
 
-**Statut.** Étape 1 acceptée (branche `bugfix/contract-closure-lost-update`). Étape 2 différée. Étape 3 acceptée pour le coût d'un contrat, ainsi que pour le `PATCH` et la suppression d'un client.
+**Statut.** Étapes 1 et 3 acceptées. Étape 2 acceptée (branche `feat/etag-if-match`).
 
 ---
 

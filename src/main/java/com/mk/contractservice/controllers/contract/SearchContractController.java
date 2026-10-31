@@ -5,7 +5,9 @@ import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractResponse;
 import com.mk.contractservice.controllers.contract.shared.ContractSwaggerTags;
 import com.mk.contractservice.controllers.contract.shared.PagedContractResponse;
+import com.mk.contractservice.controllers.shared.EntityTags;
 import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.ContractDetails;
 import com.mk.contractservice.features.contract.GetContractById;
 import com.mk.contractservice.features.contract.GetTotalCostAmountOfActiveContractsByClient;
 import com.mk.contractservice.features.contract.ListActiveContractsByClient;
@@ -56,8 +58,15 @@ public class SearchContractController {
     @ApiResponse(
             responseCode = "200",
             description = "Contract found and returned successfully",
+            headers = {
+                    @Header(name = "ETag", description = "Strong entity tag of the contract, to send in If-Match when changing its cost")
+            },
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ContractResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "304",
+            description = "Contract not modified since the ETag sent in If-None-Match"
     )
     @ApiResponse(
             responseCode = "404",
@@ -76,9 +85,10 @@ public class SearchContractController {
             @PathVariable final UUID contractId,
             final Locale locale
     ) {
-        final Contract contract = getContractById.execute(new GetContractById.Query(contractId));
-        final ContractResponse response = contractMapper.toResponse(contract, LocalDateTime.now(clock));
+        final ContractDetails contract = getContractById.execute(new GetContractById.Query(contractId));
+        final ContractResponse response = contractMapper.toResponse(contract);
         return ResponseEntity.ok()
+                .eTag(EntityTags.of(contract.version()))
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
                 .body(response);
     }

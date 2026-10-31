@@ -43,6 +43,7 @@ The end date is exclusive. A contract whose `startDate` is in the future **is ac
 - Only active contracts can be modified (`ExpiredContractException`).
 - Updating the cost updates `lastModified`; the same amount (scale-insensitive) is a no-op. `lastModified` is never exposed by the API (ADR-005).
 - `birthDate` and `companyIdentifier` are immutable.
+- `PUT`/`PATCH` of a client and `PATCH` of a contract cost require `If-Match` with the strong ETag `"<version>"` (`428` if missing or `*`, `412` if stale). Only the single-resource `GET` returns the ETag, through read models (`ClientQueryPort`, `ContractQueryPort.getDetails`). The version stays out of the aggregates and of the write ports: commands carry `expectedVersion`, handlers call `repository.ensureVersion(id, expectedVersion)` right after loading (ADR-011). Only commands that apply a user decision taken on a previously read state carry `expectedVersion`; creations, state-independent operations (client deletion) and same-transaction processing (bulk closure, jobs) rely on `@Version` alone.
 - Email and phone are NOT unique. `companyIdentifier` is unique, even after the company is deleted (ADR-008).
 - Deleting a client is a soft delete: `deleted_at` is set, the client answers 404 everywhere, and its active contracts are closed with `endDate = deleted_at` (ADR-009).
 

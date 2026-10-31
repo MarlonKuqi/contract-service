@@ -7,6 +7,7 @@ import com.mk.contractservice.domain.client.CompanyFactory;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonFactory;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,6 +22,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,6 +30,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PatchClient Handler")
 class PatchClientHandlerTest {
+
+    private static final long VERSION = 3L;
 
     @Mock
     private ClientRepository clientRepository;
@@ -66,6 +70,7 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
+                    VERSION,
                     "Jane Smith",
                     "jane@example.com",
                     "+33222222222"
@@ -88,6 +93,7 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
+                    VERSION,
                     "Jane Smith",
                     null,
                     null
@@ -110,6 +116,7 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
+                    VERSION,
                     null,
                     "jane@example.com",
                     null
@@ -132,6 +139,7 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
+                    VERSION,
                     null,
                     null,
                     "+33999999999"
@@ -167,6 +175,7 @@ class PatchClientHandlerTest {
             );
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
+                    VERSION,
                     null,
                     null,
                     null
@@ -200,6 +209,7 @@ class PatchClientHandlerTest {
             );
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
+                    VERSION,
                     null,
                     null,
                     null
@@ -247,6 +257,7 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
+                    VERSION,
                     "Acme Corporation",
                     "info@acme.com",
                     "+33222222222"
@@ -270,6 +281,7 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
+                    VERSION,
                     "Acme Corporation",
                     null,
                     null
@@ -312,6 +324,7 @@ class PatchClientHandlerTest {
             // Given
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
+                    VERSION,
                     "New Name",
                     null,
                     null
@@ -330,7 +343,7 @@ class PatchClientHandlerTest {
         void shouldNotThrowWhenEmailIsIdenticalToExisting() {
             // Given
             String existingEmail = existingPerson.getEmail().getValue();
-            PatchClient.Command command = new PatchClient.Command(clientId, null, existingEmail, null);
+            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, null, existingEmail, null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -346,7 +359,7 @@ class PatchClientHandlerTest {
         void shouldNotThrowWhenPhoneIsIdenticalToExisting() {
             // Given
             String existingPhone = existingPerson.getPhone().getValue();
-            PatchClient.Command command = new PatchClient.Command(clientId, null, null, existingPhone);
+            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, null, null, existingPhone);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -360,7 +373,7 @@ class PatchClientHandlerTest {
         @Test
         @DisplayName("GIVEN même téléphone dans un autre format WHEN execute THEN ne sauvegarde pas")
         void shouldNotSaveWhenSamePhoneInAnotherFormat() {
-            PatchClient.Command command = new PatchClient.Command(clientId, null, null, "+33 1 11 11 11 11");
+            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, null, null, "+33 1 11 11 11 11");
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -373,7 +386,7 @@ class PatchClientHandlerTest {
         @Test
         @DisplayName("GIVEN même email dans une autre casse WHEN execute THEN ne sauvegarde pas")
         void shouldNotSaveWhenSameEmailInAnotherCase() {
-            PatchClient.Command command = new PatchClient.Command(clientId, null, "JOHN@Example.com", null);
+            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, null, "JOHN@Example.com", null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -386,7 +399,7 @@ class PatchClientHandlerTest {
         @Test
         @DisplayName("GIVEN même nom avec espaces WHEN execute THEN ne sauvegarde pas")
         void shouldNotSaveWhenSameNameWithSpaces() {
-            PatchClient.Command command = new PatchClient.Command(clientId, "  John Doe  ", null, null);
+            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, "  John Doe  ", null, null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -399,7 +412,7 @@ class PatchClientHandlerTest {
         @Test
         @DisplayName("GIVEN tous les champs identiques WHEN execute THEN ne sauvegarde pas")
         void shouldNotSaveWhenAllFieldsAreIdentical() {
-            PatchClient.Command command = new PatchClient.Command(clientId, "John Doe", "john@example.com", "+33111111111");
+            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, "John Doe", "john@example.com", "+33111111111");
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -412,7 +425,7 @@ class PatchClientHandlerTest {
         @Test
         @DisplayName("GIVEN email identique et nom différent WHEN execute THEN sauvegarde une seule fois le client modifié")
         void shouldSaveOnceWhenOnlySomeFieldsChange() {
-            PatchClient.Command command = new PatchClient.Command(clientId, "Jane Doe", "john@example.com", null);
+            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, "Jane Doe", "john@example.com", null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -422,6 +435,58 @@ class PatchClientHandlerTest {
             verify(clientRepository).save(result);
             assertThat(result.getName().getValue()).isEqualTo("Jane Doe");
             assertThat(result.getEmail()).isEqualTo(existingPerson.getEmail());
+        }
+    }
+
+    @Nested
+    @DisplayName("Version attendue")
+    class ExpectedVersion {
+
+        private UUID clientId;
+        private Person existingPerson;
+
+        @BeforeEach
+        void setUp() {
+            clientId = UUID.randomUUID();
+            existingPerson = PersonFactory.buildFromDatabase(
+                    clientId,
+                    "John Doe",
+                    "john@example.com",
+                    "+33111111111",
+                    LocalDate.of(1990, 1, 1)
+            );
+        }
+
+        @Test
+        @DisplayName("GIVEN une modification WHEN execute THEN vérifie la version attendue")
+        void shouldCheckExpectedVersion() {
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            patchClientHandler.execute(new PatchClient.Command(clientId, VERSION, "Jane Doe", null, null));
+
+            verify(clientRepository).ensureVersion(clientId, VERSION);
+        }
+
+        @Test
+        @DisplayName("GIVEN une version périmée WHEN execute THEN lève VersionMismatchException sans sauvegarder")
+        void shouldRejectStaleVersion() {
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
+            doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(clientRepository).ensureVersion(clientId, VERSION);
+
+            assertThatThrownBy(() -> patchClientHandler.execute(new PatchClient.Command(clientId, VERSION, "Jane Doe", null, null)))
+                    .isInstanceOf(VersionMismatchException.class);
+            verify(clientRepository, never()).save(any(Client.class));
+        }
+
+        @Test
+        @DisplayName("GIVEN une version périmée et un email invalide WHEN execute THEN la précondition est évaluée avant la validation")
+        void shouldCheckVersionBeforeValidatingContent() {
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
+            doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(clientRepository).ensureVersion(clientId, VERSION);
+
+            assertThatThrownBy(() -> patchClientHandler.execute(new PatchClient.Command(clientId, VERSION, null, "not-an-email", null)))
+                    .isInstanceOf(VersionMismatchException.class);
         }
     }
 }
