@@ -42,6 +42,17 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 
 ---
 
+## 🔒 ETag / If-Match
+
+`PUT`/`PATCH` d'un client et `PATCH` du coût d'un contrat exigent l'en-tête `If-Match` avec l'ETag de la ressource lue (ADR-011).
+
+- Un script de collection copie l'en-tête `ETag` de chaque réponse dans `{{clientETag}}` ou `{{contractETag}}`. Les requêtes de modification l'envoient dans `If-Match`.
+- Seul le `GET` unitaire renvoie l'ETag (**Read Client**, **Get Contract By ID**). Les créations et les modifications n'en renvoient pas : relancer le `GET` avant chaque modification.
+- `428 preconditionRequired` : `If-Match` absent ou `*`. `412 preconditionFailed` : la ressource a changé depuis la lecture, il faut la relire.
+- Un `GET` avec `If-None-Match` égal à l'ETag courant renvoie `304 Not Modified`.
+
+---
+
 ## 🚀 Import Rapide
 
 ### Postman

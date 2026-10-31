@@ -19,6 +19,7 @@ public interface PatchContractCost {
 
     record Command(
             UUID contractId,
+            long expectedVersion,
             BigDecimal newCostAmount
     ) {
         public Command {
@@ -46,6 +47,7 @@ public interface PatchContractCost {
         )
         public Contract execute(final Command command) {
             final Contract contract = contractRepository.getById(command.contractId());
+            contractRepository.ensureVersion(command.contractId(), command.expectedVersion());
 
             final Contract updatedContract = contract.changeCost(
                     ContractCost.of(command.newCostAmount()),

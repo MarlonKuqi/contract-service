@@ -15,8 +15,26 @@
       { "key": "addTokenTo", "value": "header", "type": "string" },
       { "key": "tokenName", "value": "contract-service", "type": "string" }
     ]
-  },
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.response.headers.has('ETag')) {",
+          "    pm.collectionVariables.set('clientETag', pm.response.headers.get('ETag'));",
+          "}"
+        ]
+      }
+    }
+  ],
   "variable": [
+    {
+      "key": "clientETag",
+      "value": "",
+      "type": "string"
+    },
     {
       "key": "keycloakUrl",
       "value": "http://localhost:8081",
@@ -107,6 +125,10 @@
         "method": "PUT",
         "header": [
           {
+            "key": "If-Match",
+            "value": "{{clientETag}}"
+          },
+          {
             "key": "Content-Type",
             "value": "application/json"
           }
@@ -120,7 +142,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Update client common fields (name, email, phone). Note: Cannot update birthDate (Person) or companyIdentifier (Company). Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged."
+        "description": "Update client common fields (name, email, phone). Note: Cannot update birthDate (Person) or companyIdentifier (Company). Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged. Requires If-Match: {{clientETag}} is filled by the collection from the ETag of the last Read Client response. The response carries no ETag: run Read Client again before another modification. Missing If-Match or If-Match: * returns 428 (preconditionRequired), a stale ETag returns 412 (preconditionFailed)."
       }
     },
     {
@@ -128,6 +150,10 @@
       "request": {
         "method": "PATCH",
         "header": [
+          {
+            "key": "If-Match",
+            "value": "{{clientETag}}"
+          },
           {
             "key": "Content-Type",
             "value": "application/json"
@@ -142,7 +168,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Partially update a client - only name field. Other fields (email, phone) remain unchanged."
+        "description": "Partially update a client - only name field. Other fields (email, phone) remain unchanged. Requires If-Match ({{clientETag}}, filled by Read Client); the response carries no ETag, run Read Client again before another modification. Missing If-Match returns 428, a stale ETag returns 412."
       }
     },
     {
@@ -150,6 +176,10 @@
       "request": {
         "method": "PATCH",
         "header": [
+          {
+            "key": "If-Match",
+            "value": "{{clientETag}}"
+          },
           {
             "key": "Content-Type",
             "value": "application/json"
@@ -164,7 +194,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Partially update a client - only email field. Other fields (name, phone) remain unchanged."
+        "description": "Partially update a client - only email field. Other fields (name, phone) remain unchanged. Requires If-Match ({{clientETag}}, filled by Read Client); the response carries no ETag, run Read Client again before another modification. Missing If-Match returns 428, a stale ETag returns 412."
       }
     },
     {
@@ -172,6 +202,10 @@
       "request": {
         "method": "PATCH",
         "header": [
+          {
+            "key": "If-Match",
+            "value": "{{clientETag}}"
+          },
           {
             "key": "Content-Type",
             "value": "application/json"
@@ -186,7 +220,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Partially update a client - only phone field. Other fields (name, email) remain unchanged."
+        "description": "Partially update a client - only phone field. Other fields (name, email) remain unchanged. Requires If-Match ({{clientETag}}, filled by Read Client); the response carries no ETag, run Read Client again before another modification. Missing If-Match returns 428, a stale ETag returns 412."
       }
     },
     {
@@ -194,6 +228,10 @@
       "request": {
         "method": "PATCH",
         "header": [
+          {
+            "key": "If-Match",
+            "value": "{{clientETag}}"
+          },
           {
             "key": "Content-Type",
             "value": "application/json"
@@ -208,7 +246,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated. Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged. A concurrent modification is retried by the server; if the conflict persists after several retries, it returns 409 with code optimisticLockFailure."
+        "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated. Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged. A concurrent modification is retried by the server; if the conflict persists after several retries, it returns 409 with code optimisticLockFailure. Requires If-Match ({{clientETag}}, filled by Read Client); the response carries no ETag, run Read Client again before another modification. Missing If-Match returns 428, a stale ETag returns 412."
       }
     },
     {

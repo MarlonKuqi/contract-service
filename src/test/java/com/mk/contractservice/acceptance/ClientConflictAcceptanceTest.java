@@ -2,6 +2,7 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
+import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -24,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -41,6 +43,7 @@ import java.util.function.Consumer;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
@@ -95,11 +98,12 @@ class ClientConflictAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN another counselor changes the phone between the read and the write WHEN the name is patched THEN the update is retried and both changes are kept")
-    void shouldRetryPatchAndKeepConcurrentChangeOnAnotherField() {
+    @DisplayName("GIVEN another counselor changes the phone between the read and the write WHEN the name is patched THEN the retry rejects it with 412 and keeps the concurrent change")
+    void shouldRejectRetriedPatchWhenClientWasModifiedConcurrently() {
         injectConcurrentWriteAfterFirstRead(entity -> entity.setPhone(concurrentPhone));
 
         given()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
                 .body("""
                         {
                             "name": "Patched Name"
@@ -107,10 +111,36 @@ class ClientConflictAcceptanceTest {
                         """)
                 .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
-                .statusCode(204);
+                .statusCode(412)
+                .body("code", equalTo("preconditionFailed"));
 
         ClientJpaEntity persisted = clientJpaRepository.findById(client.getId()).orElseThrow();
-        assertThat(persisted.getName()).isEqualTo("Patched Name");
+        assertThat(persisted.getName()).isEqualTo("Client Conflict");
+        assertThat(persisted.getPhone()).isEqualTo(concurrentPhone);
+        verify(clientRepository, times(2)).getById(client.getId());
+    }
+
+    @Test
+    @DisplayName("GIVEN another counselor changes the phone between the read and the write WHEN the client is updated THEN the retry rejects it with 412 instead of a 409")
+    void shouldRejectRetriedUpdateWhenClientWasModifiedConcurrently() {
+        injectConcurrentWriteAfterFirstRead(entity -> entity.setPhone(concurrentPhone));
+
+        given()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
+                .body("""
+                        {
+                            "name": "Updated Name",
+                            "email": "%s",
+                            "phone": "%s"
+                        }
+                        """.formatted(client.getEmail().getValue(), client.getPhone().getValue()))
+                .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
+                .then()
+                .statusCode(412)
+                .body("code", equalTo("preconditionFailed"));
+
+        ClientJpaEntity persisted = clientJpaRepository.findById(client.getId()).orElseThrow();
+        assertThat(persisted.getName()).isEqualTo("Client Conflict");
         assertThat(persisted.getPhone()).isEqualTo(concurrentPhone);
         verify(clientRepository, times(2)).getById(client.getId());
     }
@@ -121,6 +151,7 @@ class ClientConflictAcceptanceTest {
         injectConcurrentWriteAfterFirstRead(entity -> entity.setDeletedAt(now));
 
         given()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
                 .body("""
                         {
                             "name": "Patched Name"

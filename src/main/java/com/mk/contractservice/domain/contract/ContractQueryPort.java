@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface ContractQueryPort {
 
     BigDecimal calculateTotalCostAmountForClient(UUID clientId, LocalDateTime activeAt);
+
+    ContractDetails getDetails(UUID contractId, LocalDateTime activeAt);
 }

@@ -2,6 +2,7 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
+import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Clock;
@@ -84,6 +86,7 @@ class PatchClientAcceptanceTest {
         given()
                 .body(patchPayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
                 .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
@@ -120,6 +123,7 @@ class PatchClientAcceptanceTest {
         given()
                 .body(patchPayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
                 .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
@@ -155,6 +159,7 @@ class PatchClientAcceptanceTest {
         given()
                 .body(patchPayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
                 .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
@@ -195,6 +200,7 @@ class PatchClientAcceptanceTest {
         given()
                 .body(patchPayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, company.getId()))
                 .patch(ClientEndpoints.CLIENT_BY_ID, company.getId())
                 .then()
                 .statusCode(204);
@@ -229,6 +235,7 @@ class PatchClientAcceptanceTest {
         given()
                 .body(invalidPatchPayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId()))
                 .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(422)
@@ -254,6 +261,7 @@ class PatchClientAcceptanceTest {
         given()
                 .body(invalidPatchPayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId()))
                 .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
                 .statusCode(anyOf(is(400), is(422)));
@@ -273,6 +281,7 @@ class PatchClientAcceptanceTest {
         given()
                 .body(patchPayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
                 .patch(ClientEndpoints.CLIENT_BY_ID, fakeId)
                 .then()
                 .statusCode(404);
@@ -295,6 +304,7 @@ class PatchClientAcceptanceTest {
         given()
                 .body(emptyPatchPayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
                 .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);
@@ -333,6 +343,7 @@ class PatchClientAcceptanceTest {
         given()
                 .body(patchPayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
                 .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
                 .then()
                 .statusCode(204);

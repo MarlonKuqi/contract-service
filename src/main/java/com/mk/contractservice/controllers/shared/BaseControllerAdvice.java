@@ -1,5 +1,6 @@
 package com.mk.contractservice.controllers.shared;
 
+import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import com.mk.contractservice.features.shared.InvalidPageRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +62,26 @@ public abstract class BaseControllerAdvice {
         );
         problemDetail.setProperty("entityId", ex.getIdentifier());
         return respond(problemDetail);
+    }
+
+    @ExceptionHandler(PreconditionRequiredException.class)
+    public ResponseEntity<ProblemDetail> handlePreconditionRequired(final PreconditionRequiredException ex) {
+        log.debug("Precondition required: {}", ex.getMessage());
+
+        return respond(problem(HttpStatus.PRECONDITION_REQUIRED, "Precondition Required",
+                ex.getMessage(), "preconditionRequired"));
+    }
+
+    @ExceptionHandler({VersionMismatchException.class, UnmatchableIfMatchException.class})
+    public ResponseEntity<ProblemDetail> handlePreconditionFailed(final RuntimeException ex) {
+        log.debug("Precondition failed: {}", ex.getMessage());
+
+        return respond(problem(
+                HttpStatus.PRECONDITION_FAILED,
+                "Precondition Failed",
+                "The resource was modified since you read it. Read it again to get its current ETag before retrying.",
+                "preconditionFailed"
+        ));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

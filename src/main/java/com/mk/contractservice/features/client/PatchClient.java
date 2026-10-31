@@ -19,6 +19,7 @@ public interface PatchClient {
 
     record Command(
             UUID clientId,
+            long expectedVersion,
             @Nullable String name,
             @Nullable String email,
             @Nullable String phoneNumber
@@ -46,6 +47,7 @@ public interface PatchClient {
         )
         public Client execute(final Command command) {
             final Client client = clientRepository.getById(command.clientId());
+            clientRepository.ensureVersion(command.clientId(), command.expectedVersion());
 
             final ClientName name = command.name() == null ? null : ClientName.of(command.name());
             final ClientEmail email = command.email() == null ? null : ClientEmail.of(command.email());

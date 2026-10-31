@@ -2,6 +2,7 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
+import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -21,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Clock;
@@ -127,6 +129,7 @@ class ContractLifecycleAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, contractId))
                 .patch(ContractEndpoints.CONTRACT_COST, contractId)
                 .then()
                 .statusCode(204);
@@ -320,6 +323,7 @@ class ContractLifecycleAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, contractId))
                 .patch(ContractEndpoints.CONTRACT_COST, contractId)
                 .then()
                 .statusCode(204);
