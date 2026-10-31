@@ -49,4 +49,5 @@ _Add logs, Postman captures, screenshots, etc._
 - [ ] No `TODO:` or unnecessary comments
 - [ ] Commit name follows convention (`feat:`, `fix:`…)
 - [ ] No dead code added
+- [ ] Merge method (ADR-020): **Squash** only for a feature/bugfix branch into `develop/master/release`. Between `develop`, `release/*` and `master`, use **Create a merge commit**, never squash or rebase.
 

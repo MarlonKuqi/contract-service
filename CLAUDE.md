@@ -130,7 +130,7 @@ No domain object can exist in an invalid state.
 
 ## Git
 - Never perform git actions (commit, push, branch switch, stash) without being explicitly asked.
-- Branches start from `develop`: `feat/<topic>`, `bugfix/<topic>`. Releases: `release/x.y.z`. Main branch: `master`.
+- `feat/<topic>` starts from `develop`. `bugfix/<topic>` starts from the branch it fixes: `develop`, `release/x.y.z` or `master`, and goes back to that same branch (ADR-020). Releases: `release/x.y.z`. Main branch: `master`.
 - Before switching branches, check `git status`: uncommitted changes follow the switch.
 
 ### Commit rules

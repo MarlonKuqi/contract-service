@@ -41,6 +41,7 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 **API**
 - [ADR-018 — Pagination par offset, bornes portées par le use case](#adr-018--pagination-par-offset-bornes-portées-par-le-use-case)
 - [ADR-019 — Export des contrats actifs : pagination par curseur sur l'identifiant](#adr-019--export-des-contrats-actifs--pagination-par-curseur-sur-lidentifiant)
+- [ADR-020 — Stratégie de merge entre branches majeures et mineures](#adr-020--stratégie-de-merge-entre-branches-majeures-et-mineures)
 
 ---
 
@@ -573,3 +574,36 @@ Une pagination par curseur a été écartée :
 - Le filtre « actif » n'est pas couvert par l'index utilisé pour le tri. Si la plupart des contrats étaient expirés, chaque page parcourrait beaucoup de lignes inactives. Un index partiel ou `(end_date, id)` serait alors à mesurer : pas avant d'avoir des volumes réels.
 
 **Statut.** Acceptée (branche `feat/contract-export`, exercice).
+
+---
+
+## ADR-020 — Stratégie de merge entre branches majeures et mineures
+
+**Contexte.** La PR #65 (`develop` → `release/2.0.0`) a été mergée en *squash* : `c01ffd4` contient tout le code de `develop`, mais c'est un commit neuf, sans lien avec les 76 commits d'origine. Le back-merge `d0b79da` (« Merge branch 'release/2.0.0' into develop ») avait été fait depuis l'ancien sommet de la release (`5a060e9`), pas depuis `c01ffd4`. Pour git, la release contenait donc un commit inconnu de `develop`, et `develop` 76 commits absents de la release. Après le merge d'une nouvelle feature sur `develop`, `git rebase release/2.0.0` a rejoué ces 76 commits un par un sur une base qui contenait déjà leur résultat final : chacun entrait en conflit avec sa propre version définitive. Un merge classique aurait donné 13 fichiers en conflit, alors que le contenu des deux branches ne différait que par les commits récents de `develop`.
+
+**Décision.**
+- **Deux types de branches :**
+  - **Branche majeure** : `master`, `develop` et `release/x.y.z`. Elle dure longtemps, elle est partagée, d'autres branches partent d'elle ou y reviennent, et son historique publié n'est jamais réécrit.
+    - `master` : le code livré en production. Chaque release mergée y est taguée `vx.y.z`.
+    - `develop` : la branche d'intégration de la prochaine version. Les features y arrivent.
+    - `release/x.y.z` : la stabilisation d'une version, créée depuis `develop`. Elle ne reçoit que des corrections, puis elle est mergée dans `master` et dans `develop`.
+  - **Branche mineure** : `feat/<topic>` et `bugfix/<topic>`. Elle dure peu de temps, elle porte un seul sujet, elle part d'une branche majeure et y revient par une seule PR, puis elle est supprimée. Personne ne repart de ses commits.
+    - `feat/<topic>` : part de `develop` et revient dans `develop`.
+    - `bugfix/<topic>` : part de la branche majeure à corriger (`develop`, `release/x.y.z` ou `master`) et revient dans cette même branche.
+- **PR d'une branche mineure vers une branche majeure** : **squash obligatoire**. Le sujet devient un seul commit au format Conventional Commits, et les commits de travail intermédiaires disparaissent. Comme la branche mineure est supprimée ensuite, perdre le lien avec ses commits n'a aucune conséquence.
+- **PR entre branches majeures** : **merge commit uniquement**, jamais de squash ni de rebase-merge. Le merge commit garde les commits d'origine comme ancêtres, et git sait qu'ils sont intégrés.
+- **Un bugfix est squashé dans une seule branche majeure**, la plus ancienne qu'il concerne. Il rejoint ensuite les autres par les merges entre branches majeures, jamais par une deuxième PR du même bugfix :
+  - un correctif de `release/x.y.z` arrive dans `master` et `develop` quand la release y est mergée ;
+  - un correctif de `master` arrive dans `develop` par un back-merge `master` → `develop`.
+- **Jamais de rebase d'une branche partagée.** Rebaser `develop` sur une release réécrit son historique publié et rejoue tous ses commits. On intègre une autre branche avec `git merge`.
+- **Back-merge** (`release/*` ou `master` → `develop`) depuis le sommet final de la branche, une fois la PR de release mergée.
+- **Rattrapage après un squash** : vérifier que la branche squashée n'apporte rien qui manque à la cible (`git diff`), puis `git merge -s ours <branche>`. Le commit de merge garde le contenu de la cible à l'identique (`git diff HEAD~1 HEAD` vide) et enregistre la branche comme intégrée. Appliqué sur `develop` pour `release/2.0.0`.
+- **Avant un merge entre branches majeures**, le simuler avec `git merge-tree --write-tree <cible> <branche>` : il liste les conflits sans toucher à l'arbre de travail.
+
+**Conséquences.**
+- Les merges suivants entre `develop`, `release/*` et `master` ne rejouent plus l'historique déjà intégré.
+- L'historique de `develop`, `release/*` et `master` garde des commits de merge : c'est le prix d'une ascendance que git sait suivre.
+- `-s ours` ignore tout le contenu de la branche fusionnée. Il ne faut l'utiliser qu'après avoir vérifié qu'elle n'apporte aucun correctif propre, sinon ce correctif est perdu sans conflit ni avertissement.
+- La règle repose sur la discipline. Un *ruleset* GitHub fixe les méthodes de merge autorisées par branche cible, pas par branche source : `master`, `release/*` et `develop` reçoivent à la fois des squash (branches mineures) et des merge commits (branches majeures), donc il ne peut pas imposer la bonne méthode. Il peut seulement interdire le rebase-merge sur les trois branches majeures. Le rappel figure dans la checklist du template de PR.
+
+**Statut.** Acceptée.
