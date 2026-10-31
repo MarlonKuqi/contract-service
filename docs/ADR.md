@@ -39,7 +39,8 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 - [ADR-017 — Authentification des conseillers par Keycloak](#adr-017--authentification-des-conseillers-par-keycloak)
 
 **API**
-- [ADR-018 — Pagination par offset, paramètres validés dans le contrôleur](#adr-018--pagination-par-offset-paramètres-validés-dans-le-contrôleur)
+- [ADR-018 — Pagination par offset, bornes portées par le use case](#adr-018--pagination-par-offset-bornes-portées-par-le-use-case)
+- [ADR-019 — Export des contrats actifs : pagination par curseur sur l'identifiant](#adr-019--export-des-contrats-actifs--pagination-par-curseur-sur-lidentifiant)
 
 ---
 
@@ -97,6 +98,7 @@ com.mk.contractservice
 - **Domain services réservés aux vraies règles métier** : un domain service porte une règle qu'aucun agrégat ne peut vérifier seul (`CompanyIdentifierUniqueness` : l'unicité demande de connaître les autres sociétés). « Charger ou lever 404 » et « vérifier l'existence » sont de l'accès aux données : ce sont des méthodes `default` du port (`ClientRepository.getById`, `ensureExists`), qui gardent la règle « introuvable → `ClientNotFoundException` » dans le domaine sans la dupliquer dans chaque adapter. `ClientService`, `ClientValidationService` et `ContractService`, qui ne portaient aucune règle, ont été supprimés.
 - Les entités JPA ne sortent jamais de l'infrastructure ; l'API n'expose que des DTO.
 - **Une seule définition d'une valeur valide : le Value Object.** Les DTO ne valident que la forme du contrat HTTP (présence, type, longueur maximale) et ne redéfinissent pas les règles de format. `@Email` a été retiré : ses règles différaient de `ClientEmail` (`a@b` passait le DTO puis échouait dans le domaine, `.a@x.ch` échouait dans le DTO avec un autre code d'erreur). Toute adresse au format invalide renvoie maintenant `EMAIL_INVALID`.
+- **Le modèle d'entrée d'un use case se valide lui-même.** Une `Query` ou une `Command` ne peut pas exister dans un état invalide pour son cas d'usage : son constructeur vérifie les règles applicatives qui ne relèvent d'aucun Value Object (par exemple les bornes de pagination, ADR-018). Le use case ne dépend pas d'un adaptateur pour se protéger : un batch ou un consommateur de messages se heurterait aux mêmes règles. L'adaptateur ne fait que convertir (types, présence, valeurs par défaut) et ne duplique pas ces règles. Ce ne sont pas des règles métier : elles restent dans `features`, pas dans `domain`.
 - **Format de `ClientEmail`** : partie locale *dot-atom* RFC 5322 (64 caractères au plus, sans point en tête, en fin ni doublé, apostrophe et `+` acceptés), domaine à un ou plusieurs labels (63 caractères au plus, sans tiret en bordure), TLD alphabétique ou punycode, 254 caractères au total. Les formes entre guillemets, les adresses IP et les domaines IDN en Unicode sont refusés (le punycode est accepté). Pas de liste de TLD, qui vieillit mal. Le but est d'attraper les fautes de frappe sans jamais refuser une adresse réelle ; seul l'envoi d'un email prouverait qu'elle existe. Le message d'erreur ne reprend pas l'adresse (donnée personnelle, exposée dans le `detail` et les logs).
 
 **Conséquences.**
@@ -453,6 +455,7 @@ Cette version pose six problèmes :
   | `POST /v2/contracts` | `COUNSELOR` |
   | `GET /v2/contracts?clientId=`, `GET /v2/contracts/{id}`, `GET /v2/contracts/total?clientId=` | `COUNSELOR` |
   | `PATCH /v2/contracts/{id}/cost` | `COUNSELOR` |
+  | `GET /v2/contracts/export` (ADR-019) | `COUNSELOR` |
   | `/actuator/health/**`, `/actuator/info` | public |
   | `/swagger-ui/**`, `/v3/api-docs/**` | public (la documentation ne contient aucune donnée) |
   | toute autre route | refusée (`denyAll`) |
@@ -503,7 +506,7 @@ Cette version pose six problèmes :
 
 ---
 
-## ADR-018 — Pagination par offset, paramètres validés dans le contrôleur
+## ADR-018 — Pagination par offset, bornes portées par le use case
 
 **Contexte.** `GET /v2/contracts?clientId=` est paginé. La pagination passait par un `ValidatingPageableArgumentResolver` (sous-classe de `PageableHandlerMethodArgumentResolver`), enregistré par un `WebMvcConfigurer` avec `@EnableSpringDataWebSupport`. Il validait `page` et `size` à la main (`parseInt`, bornes lues dans `app.pagination`). Il transmettait aussi le paramètre `sort` du client à JPA sans contrôle :
 - `?sort=lastModified,asc` triait sur un champ que l'API n'expose pas (ADR-005) ;
@@ -519,15 +522,54 @@ Une pagination par curseur a été écartée :
 - `updatedSince` couvre déjà le besoin de synchronisation incrémentale.
 
 **Décision.**
-- `page` et `size` sont des `@RequestParam` validés par Bean Validation : `page ≥ 0`, `1 ≤ size ≤ 100`, `size = 20` par défaut. Les bornes sont des constantes : elles font partie du contrat de l'API.
-- Le tri est fixé côté serveur : `lastModified` décroissant. Le paramètre `sort` est ignoré.
-- Une contrainte non respectée lève une `HandlerMethodValidationException` : `400`, code `invalidParameter`. Une valeur non numérique lève une `MethodArgumentTypeMismatchException` : `400`, code `invalidParameterType`, comme pour les autres paramètres.
+- **Les bornes et le tri appartiennent au use case**, pas au contrôleur (ADR-002 : le modèle d'entrée d'un use case se valide lui-même). Ils dépendent du cas d'usage (100 pour la liste, 1000 pour l'export, ADR-019), pas du canal :
+  - `ListActiveContractsByClient.Query(clientId, updatedSince, page, size)` vérifie `page ≥ 0` et `1 ≤ size ≤ MAX_PAGE_SIZE` (100) via `PageBounds` (`features/shared`) ;
+  - la `Query` construit le `PageRequest` avec le tri `lastModified` décroissant ; un appelant ne peut pas choisir le tri.
+- Le contrôleur ne fait que convertir : `@RequestParam int page` (`0` par défaut) et `int size` (`20` par défaut), sans annotation de validation. Le paramètre `sort` est ignoré. La description OpenAPI reprend `ListActiveContractsByClient.MAX_PAGE_SIZE` : une seule source de vérité.
+- Une borne non respectée lève une `InvalidPageRequestException` : `400`, code `invalidParameter`. C'est un paramètre de requête invalide, pas une règle métier violée : pas de `422`. Une valeur non numérique lève une `MethodArgumentTypeMismatchException` : `400`, code `invalidParameterType`, comme pour les autres paramètres.
 - `PaginationConfig`, `ValidatingPageableArgumentResolver`, `PaginationProperties` (`app.pagination`) et `InvalidPaginationException` sont supprimés.
 
 **Conséquences.**
-- Le contrat est lisible dans la signature du contrôleur et dans OpenAPI (`minimum`/`maximum`), sans `sort` exposé.
+- Tout appelant du use case (contrôleur, batch, consommateur de messages) se heurte aux mêmes bornes ; les tests unitaires de la `Query` les couvrent, les tests d'acceptation vérifient le `400`.
+- OpenAPI n'expose plus `minimum`/`maximum` sur `page` et `size` : les bornes sont dans la description. `sort` n'est pas exposé.
+- Une première version validait `page`/`size` par Bean Validation dans le contrôleur (`@PositiveOrZero`, `@Positive`, `@Max`, `HandlerMethodValidationException`) ; elle a été abandonnée parce que le use case dépendait alors de l'adaptateur pour se protéger.
 - Changement de contrat (sans impact : la V2 n'est pas en production) : `sort` est ignoré, un `page`/`size` non numérique renvoie le code `invalidParameterType` au lieu de `invalidParameter`.
-- Le domaine garde `Page`/`Pageable` (compromis de l'ADR-001) : le contrôleur construit un `PageRequest`.
-- Un endpoint d'export de tous les contrats (gros volumes) pourrait justifier un curseur. Il fera l'objet d'une décision séparée.
+- Le domaine garde `Page`/`Pageable` (compromis de l'ADR-001) : le use case construit le `PageRequest`, le contrôleur ne manipule plus de `Pageable`.
+- Un endpoint d'export de tous les contrats (gros volumes) pourrait justifier un curseur. Il fera l'objet d'une décision séparée (ADR-019).
 
 **Statut.** Acceptée (branche).
+
+---
+
+## ADR-019 — Export des contrats actifs : pagination par curseur sur l'identifiant
+
+**Contexte.** Exercice : un système tiers (entrepôt de données, archivage) doit récupérer tous les contrats actifs, tous clients confondus. Contrairement à la liste par client (ADR-018), le volume peut être grand, et donc :
+- avec un `OFFSET`, PostgreSQL lit puis jette toutes les lignes qui précèdent la page, si bien que chaque page coûte plus cher que la précédente ;
+- un `COUNT(*)` sur toute la table, à chaque page, ne sert à rien pour un export ;
+- l'export dure longtemps, et les contrats changent pendant ce temps. Avec un `OFFSET`, une ligne qui change de rang entre deux pages est sautée ou exportée deux fois.
+
+**Décision.**
+- `GET /v2/contracts/export?cursor=&size=`, rôle `COUNSELOR` (couvert par `/v2/**`, ADR-017).
+- **Périmètre** : les contrats actifs (ADR-004) de tous les clients, à l'instant de **chaque** requête. Aucun filtre tant que personne n'en a besoin.
+- **Curseur sur `id` seul** (pagination *keyset*) : `WHERE <actif> AND id > :after ORDER BY id LIMIT size + 1`. L'`id` est unique et immuable, et l'index de la clé primaire sert à la fois au tri et au point de reprise. La clé `(lastModified, id)` est écartée : `lastModified` change à chaque `changeCost` (ADR-005). Une ligne modifiée pendant l'export passerait derrière le curseur et serait perdue, ou repasserait devant et serait exportée deux fois.
+- **Curseur opaque** : le Base64 URL-safe des 16 octets de l'`id` du dernier contrat renvoyé. Le client le renvoie tel quel. Son format ne fait pas partie du contrat d'API : on pourra le changer (le signer, y ajouter une version) sans casser les clients. Un curseur qui ne se décode pas en UUID renvoie `400`, code `invalidCursor`.
+- **Réponse** : `{ "items": [ContractResponse…], "nextCursor": "…" | null }`. On lit `size + 1` lignes : la ligne en trop indique qu'il existe une page suivante, sans `COUNT`. `nextCursor` vaut `null` sur la dernière page. La réponse n'expose pas `lastModified` (ADR-005).
+- **Taille de page** : `1 ≤ size ≤ 1000` (`ExportActiveContracts.MAX_PAGE_SIZE`), vérifiée par `ExportActiveContracts.Query` via `PageBounds` comme dans l'ADR-018 (`400`, code `invalidParameter`). `100` par défaut, fixé par le contrôleur.
+- **JSON paginé plutôt que streaming** (NDJSON, CSV). Un flux garde une transaction et une connexion ouvertes pendant tout l'export, et on ne peut pas le reprendre après une coupure. Avec un curseur, chaque page est une requête courte, et le client reprend au dernier curseur reçu.
+- **Répartition des responsabilités** :
+  - le controller (`ExportContractController`) encode et décode le curseur, qui est un détail du protocole HTTP ;
+  - le use case (`ExportActiveContracts`) prend l'heure de la `Clock` (ADR-003) et décide s'il existe une page suivante ;
+  - le port `ContractRepository.findActiveAfter(activeAt, afterId, limit)` renvoie une `List`, sans `Page` ni `Pageable` ;
+  - l'adapter JPA utilise une `Specification` et `findBy(...).limit(...)`, ce qui évite la requête de comptage.
+
+**Conséquences.**
+- Coût constant par page, quelle que soit la profondeur de l'export. Aucune migration : l'index de la clé primaire suffit.
+- Garanties vérifiées par `ExportContractsAcceptanceTest` :
+  - chaque contrat actif est exporté une seule fois, et aucun contrat expiré ne l'est ;
+  - un contrat dont le coût change pendant l'export n'est ni sauté ni répété ;
+  - un contrat qui expire avant que sa page soit lue n'est pas exporté.
+- L'export n'est **pas un instantané** : chaque page reflète l'état de la base au moment de la requête. Un contrat créé pendant l'export a un UUID v7 (ADR-012), plus grand que le curseur, et il apparaît donc dans une page suivante. Un contrat ancien en UUID v4 ne suit pas cet ordre : s'il est actif mais placé avant le curseur, il n'est pas exporté dans cette passe. Pour obtenir un instantané cohérent, il faudrait une transaction `REPEATABLE READ` sur tout l'export ou une table d'export dédiée : hors périmètre.
+- L'ordre est celui de PostgreSQL sur le type `uuid` (octet par octet), et non celui de `UUID.compareTo` en Java (qui compare des `long` signés). Le tri et la comparaison au curseur se font tous les deux en base, donc ils restent cohérents. Il ne faut jamais trier ou filtrer ces identifiants en mémoire côté Java.
+- Le filtre « actif » n'est pas couvert par l'index utilisé pour le tri. Si la plupart des contrats étaient expirés, chaque page parcourrait beaucoup de lignes inactives. Un index partiel ou `(end_date, id)` serait alors à mesurer : pas avant d'avoir des volumes réels.
+
+**Statut.** Acceptée (branche `feat/contract-export`, exercice).

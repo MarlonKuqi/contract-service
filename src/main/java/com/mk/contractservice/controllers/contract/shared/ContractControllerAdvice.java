@@ -3,6 +3,7 @@ package com.mk.contractservice.controllers.contract.shared;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.mk.contractservice.controllers.contract.CreateContractController;
+import com.mk.contractservice.controllers.contract.ExportContractController;
 import com.mk.contractservice.controllers.contract.PatchContractCostController;
 import com.mk.contractservice.controllers.contract.SearchContractController;
 import com.mk.contractservice.controllers.shared.BaseControllerAdvice;
@@ -29,6 +30,7 @@ import java.util.Optional;
 
 @RestControllerAdvice(assignableTypes = {
         CreateContractController.class,
+        ExportContractController.class,
         PatchContractCostController.class,
         SearchContractController.class
 })
@@ -56,6 +58,15 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
 
         ProblemDetail problemDetail = problem(HttpStatus.NOT_FOUND, "Contract Not Found",
                 ex.getMessage(), "contractNotFound");
+        return respond(problemDetail);
+    }
+
+    @ExceptionHandler(InvalidExportCursorException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidExportCursor(InvalidExportCursorException ex) {
+        log.debug("Invalid export cursor");
+
+        ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Invalid Cursor",
+                ex.getMessage(), "invalidCursor");
         return respond(problemDetail);
     }
 

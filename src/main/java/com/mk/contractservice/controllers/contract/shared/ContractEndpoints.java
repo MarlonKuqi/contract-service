@@ -18,9 +18,11 @@ public final class ContractEndpoints {
 
     // Relative paths (for use in @RequestMapping controllers that already have base path)
     public static final String RELATIVE_CONTRACT_COST = PATH_VAR_CONTRACT_ID + "/cost";
+    public static final String RELATIVE_CONTRACT_EXPORT = "/export";
 
     // Composed paths (full paths for tests and API documentation)
     public static final String CONTRACT_BY_ID = CONTRACTS_BASE + PATH_VAR_CONTRACT_ID;
     public static final String CONTRACT_COST = CONTRACTS_BASE + RELATIVE_CONTRACT_COST;
+    public static final String CONTRACT_EXPORT = CONTRACTS_BASE + RELATIVE_CONTRACT_EXPORT;
     public static final String CONTRACT_TOTAL = "/total";
 }

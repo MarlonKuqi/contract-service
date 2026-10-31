@@ -1,8 +1,8 @@
 package com.mk.contractservice.controllers.shared;
 
+import com.mk.contractservice.features.shared.InvalidPageRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.MessageSourceResolvable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -11,13 +11,10 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Clock;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public abstract class BaseControllerAdvice {
 
@@ -42,16 +39,12 @@ public abstract class BaseControllerAdvice {
         return respond(problemDetail);
     }
 
-    @ExceptionHandler(HandlerMethodValidationException.class)
-    public ResponseEntity<ProblemDetail> handleHandlerMethodValidation(final HandlerMethodValidationException ex) {
-        final String detail = ex.getAllErrors().stream()
-                .map(MessageSourceResolvable::getDefaultMessage)
-                .filter(Objects::nonNull)
-                .collect(Collectors.joining("; "));
-        log.debug("Invalid request parameter: {}", detail);
+    @ExceptionHandler(InvalidPageRequestException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidPageRequest(final InvalidPageRequestException ex) {
+        log.debug("Invalid page request: {}", ex.getMessage());
 
         final ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Invalid Parameter",
-                detail, "invalidParameter");
+                ex.getMessage(), "invalidParameter");
         return respond(problemDetail);
     }
 
