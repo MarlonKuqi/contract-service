@@ -186,7 +186,8 @@ class UpdateContractCostAcceptanceTest {
                 .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("invalidContractCost"));
     }
 
     @Test
@@ -217,6 +218,18 @@ class UpdateContractCostAcceptanceTest {
                 .then()
                 .statusCode(200)
                 .body("costAmount", equalTo(1000.00f));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Update contract cost without a body fails with 422 validationError")
+    void shouldRejectCostUpdateWithoutBody() {
+        given()
+                .when()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
+                .patch(ContractEndpoints.CONTRACT_COST, UUID.randomUUID())
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("validationError"));
     }
 
     @Test
@@ -258,7 +271,8 @@ class UpdateContractCostAcceptanceTest {
                 .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("invalidContractCost"));
     }
 
     @Test
@@ -280,7 +294,9 @@ class UpdateContractCostAcceptanceTest {
                 .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("validationError"))
+                .body("detail", equalTo("Invalid value 'invalid' for field 'amount'. Expected type: BigDecimal"));
     }
 
     @Test

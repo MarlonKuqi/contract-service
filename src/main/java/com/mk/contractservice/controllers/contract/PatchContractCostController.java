@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
@@ -110,7 +109,6 @@ public class PatchContractCostController {
 
     public record Request(
             @NotNull(message = "Amount is required")
-            @Positive(message = "Cost amount must be positive and greater than zero")
             @Digits(integer = ContractCost.MAX_INTEGER_DIGITS,
                     fraction = ContractCost.SCALE,
                     message = "Amount must have at most " + ContractCost.MAX_INTEGER_DIGITS + " integer digits and " + ContractCost.SCALE + " decimal places")

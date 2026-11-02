@@ -8,8 +8,6 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.resilience.annotation.Retryable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
@@ -39,12 +37,6 @@ public interface PatchClient {
         private final ClientRepository clientRepository;
 
         @Override
-        @Retryable(
-                includes = OptimisticLockingFailureException.class,
-                maxRetries = 3,
-                delay = 20,
-                jitter = 10
-        )
         public Client execute(final Command command) {
             final Client client = clientRepository.getById(command.clientId());
             clientRepository.ensureVersion(command.clientId(), command.expectedVersion());

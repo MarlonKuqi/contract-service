@@ -5,6 +5,7 @@ import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
+import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -166,6 +167,34 @@ class OptimisticLockingAcceptanceTest {
         }
 
         @Test
+        @DisplayName("GIVEN a stale ETag and a phone refused by the domain WHEN the client is updated THEN 412 because the precondition comes before the domain rules")
+        void shouldCheckPreconditionBeforeDomainRulesOnUpdate() {
+            makeClientETagStale();
+
+            given()
+                    .header(HttpHeaders.IF_MATCH, clientETag)
+                    .body(CLIENT_PAYLOAD.formatted("Alice Updated", email, "invalid-phone"))
+                    .put(ClientEndpoints.CLIENT_BY_ID, clientId)
+                    .then()
+                    .statusCode(412)
+                    .body("code", equalTo("preconditionFailed"));
+        }
+
+        @Test
+        @DisplayName("GIVEN a stale ETag and a name too long for the API WHEN the client is updated THEN 422 because the syntax comes before the precondition")
+        void shouldCheckSyntaxBeforePreconditionOnUpdate() {
+            makeClientETagStale();
+
+            given()
+                    .header(HttpHeaders.IF_MATCH, clientETag)
+                    .body(CLIENT_PAYLOAD.formatted("x".repeat(ClientName.MAX_LENGTH + 1), email, phone))
+                    .put(ClientEndpoints.CLIENT_BY_ID, clientId)
+                    .then()
+                    .statusCode(422)
+                    .body("code", equalTo("validationError"));
+        }
+
+        @Test
         @DisplayName("GIVEN an unknown client WHEN it is updated with an ETag THEN 404")
         void shouldAnswerNotFoundBeforePrecondition() {
             given()
@@ -226,6 +255,38 @@ class OptimisticLockingAcceptanceTest {
                     .statusCode(204);
 
             assertThat(currentClientETag()).isEqualTo(clientETag);
+        }
+
+        @Test
+        @DisplayName("GIVEN a stale ETag and a phone refused by the domain WHEN the client is patched THEN 412 because the precondition comes before the domain rules")
+        void shouldCheckPreconditionBeforeDomainRulesOnPatch() {
+            makeClientETagStale();
+
+            given()
+                    .header(HttpHeaders.IF_MATCH, clientETag)
+                    .body("""
+                            { "phone": "invalid-phone" }
+                            """)
+                    .patch(ClientEndpoints.CLIENT_BY_ID, clientId)
+                    .then()
+                    .statusCode(412)
+                    .body("code", equalTo("preconditionFailed"));
+        }
+
+        @Test
+        @DisplayName("GIVEN a stale ETag and a name too long for the API WHEN the client is patched THEN 422 because the syntax comes before the precondition")
+        void shouldCheckSyntaxBeforePreconditionOnPatch() {
+            makeClientETagStale();
+
+            given()
+                    .header(HttpHeaders.IF_MATCH, clientETag)
+                    .body("""
+                            { "name": "%s" }
+                            """.formatted("x".repeat(ClientName.MAX_LENGTH + 1)))
+                    .patch(ClientEndpoints.CLIENT_BY_ID, clientId)
+                    .then()
+                    .statusCode(422)
+                    .body("code", equalTo("validationError"));
         }
 
         @Test
@@ -399,6 +460,15 @@ class OptimisticLockingAcceptanceTest {
                 .then()
                 .statusCode(200)
                 .extract().header(HttpHeaders.ETAG);
+    }
+
+    private void makeClientETagStale() {
+        given()
+                .header(HttpHeaders.IF_MATCH, clientETag)
+                .body(CLIENT_PAYLOAD.formatted("Another Counselor", email, phone))
+                .put(ClientEndpoints.CLIENT_BY_ID, clientId)
+                .then()
+                .statusCode(204);
     }
 
     private void assertName(final String expectedName) {

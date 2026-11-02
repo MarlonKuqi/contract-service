@@ -46,8 +46,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -99,8 +97,8 @@ class ContractCostConflictAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN another counselor changes the cost between the read and the write WHEN the cost is patched THEN the retry rejects it with 412 and keeps the concurrent cost")
-    void shouldRejectRetriedUpdateWhenAnotherCostWasCommittedConcurrently() {
+    @DisplayName("GIVEN another counselor changes the cost between the read and the write WHEN the cost is patched THEN 412 and the concurrent cost is kept")
+    void shouldRejectUpdateWhenAnotherCostWasCommittedConcurrently() {
         injectConcurrentWriteAfterFirstRead(id -> {
             ContractJpaEntity entity = contractJpaRepository.findById(id).orElseThrow();
             entity.setCostAmount(new BigDecimal("1200.00"));
@@ -119,12 +117,11 @@ class ContractCostConflictAcceptanceTest {
                 .body("code", equalTo("preconditionFailed"));
 
         assertThat(persistedContract().getCostAmount()).isEqualByComparingTo("1200.00");
-        verify(contractRepository, times(2)).getById(contract.getId());
     }
 
     @Test
-    @DisplayName("GIVEN the contract is closed between the read and the write WHEN the cost is patched THEN the retry rejects it with 412 and the contract stays closed")
-    void shouldRejectRetriedUpdateWhenContractWasClosedConcurrently() {
+    @DisplayName("GIVEN the contract is closed between the read and the write WHEN the cost is patched THEN 412 and the contract stays closed")
+    void shouldRejectUpdateWhenContractWasClosedConcurrently() {
         injectConcurrentWriteAfterFirstRead(id -> contractRepository.closeAllActiveByClientId(client.getId(), now));
 
         given()

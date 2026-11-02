@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
@@ -125,7 +124,6 @@ public class CreateContractController {
             LocalDateTime endDate,
 
             @NotNull(message = "Cost amount is required")
-            @Positive(message = "Cost amount must be positive and greater than zero")
             @Digits(integer = ContractCost.MAX_INTEGER_DIGITS,
                     fraction = ContractCost.SCALE,
                     message = "Cost amount must have at most " + ContractCost.MAX_INTEGER_DIGITS + " integer digits and " + ContractCost.SCALE + " decimal places")

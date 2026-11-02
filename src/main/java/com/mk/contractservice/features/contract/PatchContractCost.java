@@ -5,8 +5,6 @@ import com.mk.contractservice.domain.contract.ContractCost;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.resilience.annotation.Retryable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -39,12 +37,6 @@ public interface PatchContractCost {
         private final Clock clock;
 
         @Override
-        @Retryable(
-                includes = OptimisticLockingFailureException.class,
-                maxRetries = 3,
-                delay = 20,
-                jitter = 10
-        )
         public Contract execute(final Command command) {
             final Contract contract = contractRepository.getById(command.contractId());
             contractRepository.ensureVersion(command.contractId(), command.expectedVersion());

@@ -378,7 +378,8 @@ class UpdateClientAcceptanceTest {
                 .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId()))
                 .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("PHONE_INVALID"));
     }
 
     @Test

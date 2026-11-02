@@ -246,7 +246,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated. Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged. A concurrent modification is retried by the server; if the conflict persists after several retries, it returns 409 with code optimisticLockFailure. Requires If-Match ({{clientETag}}, filled by Read Client); the response carries no ETag, run Read Client again before another modification. Missing If-Match returns 428, a stale ETag returns 412."
+        "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated. Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged. A concurrent modification returns 412 with code preconditionFailed. Requires If-Match ({{clientETag}}, filled by Read Client); the response carries no ETag, run Read Client again before another modification. Missing If-Match returns 428, a stale ETag returns 412."
       }
     },
     {

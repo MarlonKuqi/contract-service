@@ -3,6 +3,9 @@ package com.mk.contractservice.controllers.client;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.client.shared.ClientSwaggerTags;
 import com.mk.contractservice.controllers.shared.EntityTags;
+import com.mk.contractservice.controllers.shared.OptionalNonNullStringDeserializer;
+import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.features.client.PatchClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,6 +15,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
@@ -23,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -39,6 +44,7 @@ public class PatchClientController {
             summary = "Partially update a client (PATCH)",
             description = "Updates only the provided fields of a client. "
                     + "All fields are optional. If no fields are provided, the operation is idempotent (no change). "
+                    + "A field sent with an explicit null is rejected (422): these fields are mandatory and cannot be cleared. "
                     + "Values identical to the current ones after normalization (email case, surrounding spaces, phone format) are ignored. "
                     + "birthDate and companyIdentifier cannot be updated as per business rules. "
                     + "Works for both Person and Company clients. "
@@ -103,15 +109,18 @@ public class PatchClientController {
     }
 
     public record Request(
-            @Schema(description = "Client name (optional)", example = "John Doe", maxLength = 200)
-            Optional<String> name,
+            @JsonDeserialize(using = OptionalNonNullStringDeserializer.class)
+            @Schema(description = "Client name (optional)", example = "John Doe", maxLength = ClientName.MAX_LENGTH)
+            Optional<@Size(max = ClientName.MAX_LENGTH, message = "Name must not exceed " + ClientName.MAX_LENGTH + " characters") String> name,
 
+            @JsonDeserialize(using = OptionalNonNullStringDeserializer.class)
             @Schema(description = "Client email address (optional)", example = "john.doe@example.com",
-                    format = "email", maxLength = 254)
-            Optional<String> email,
+                    format = "email", maxLength = ClientEmail.MAX_LENGTH)
+            Optional<@Size(max = ClientEmail.MAX_LENGTH, message = "Email must not exceed " + ClientEmail.MAX_LENGTH + " characters") String> email,
 
-            @Schema(description = "Client phone number (optional)", example = "+41791234567",
-                    pattern = "\\+?[0-9 .()/-]{7,20}", minLength = 7, maxLength = 20)
+            @JsonDeserialize(using = OptionalNonNullStringDeserializer.class)
+            @Schema(description = "Client phone number in international format (optional, +41, +33, +39 or +49). Normalized to E.164 in the response.",
+                    example = "+41791234567")
             Optional<String> phone
     ) {
     }

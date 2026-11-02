@@ -25,6 +25,7 @@ Les modifications exigent désormais l'en-tête `If-Match` avec l'ETag de la res
 
 - Une modification basée sur une lecture périmée donne `412` au lieu d'être appliquée (« le dernier gagne » disparaît pour le coût et le `PATCH` d'un client).
 - Le coût d'un contrat fermé par la suppression de son client depuis la lecture donne `412` (et non plus `409 contractExpired`) : relire le contrat montre sa date de fin.
+- Une suppression du client entre la lecture et l'écriture, pendant la requête, donne aussi `412` ; relire le client donne `404`.
 - `409 optimisticLockFailure` n'est plus renvoyé que par la suppression d'un client.
 
 ## Migration d'un client de l'API

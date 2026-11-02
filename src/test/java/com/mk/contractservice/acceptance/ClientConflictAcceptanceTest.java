@@ -98,8 +98,8 @@ class ClientConflictAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN another counselor changes the phone between the read and the write WHEN the name is patched THEN the retry rejects it with 412 and keeps the concurrent change")
-    void shouldRejectRetriedPatchWhenClientWasModifiedConcurrently() {
+    @DisplayName("GIVEN another counselor changes the phone between the read and the write WHEN the name is patched THEN 412 and the concurrent change is kept")
+    void shouldRejectPatchWhenClientWasModifiedConcurrently() {
         injectConcurrentWriteAfterFirstRead(entity -> entity.setPhone(concurrentPhone));
 
         given()
@@ -117,12 +117,11 @@ class ClientConflictAcceptanceTest {
         ClientJpaEntity persisted = clientJpaRepository.findById(client.getId()).orElseThrow();
         assertThat(persisted.getName()).isEqualTo("Client Conflict");
         assertThat(persisted.getPhone()).isEqualTo(concurrentPhone);
-        verify(clientRepository, times(2)).getById(client.getId());
     }
 
     @Test
-    @DisplayName("GIVEN another counselor changes the phone between the read and the write WHEN the client is updated THEN the retry rejects it with 412 instead of a 409")
-    void shouldRejectRetriedUpdateWhenClientWasModifiedConcurrently() {
+    @DisplayName("GIVEN another counselor changes the phone between the read and the write WHEN the client is updated THEN 412 instead of a 409")
+    void shouldRejectUpdateWhenClientWasModifiedConcurrently() {
         injectConcurrentWriteAfterFirstRead(entity -> entity.setPhone(concurrentPhone));
 
         given()
@@ -142,12 +141,11 @@ class ClientConflictAcceptanceTest {
         ClientJpaEntity persisted = clientJpaRepository.findById(client.getId()).orElseThrow();
         assertThat(persisted.getName()).isEqualTo("Client Conflict");
         assertThat(persisted.getPhone()).isEqualTo(concurrentPhone);
-        verify(clientRepository, times(2)).getById(client.getId());
     }
 
     @Test
-    @DisplayName("GIVEN the client is deleted between the read and the write WHEN the client is patched THEN the retry rejects it as not found")
-    void shouldRejectRetriedPatchWhenClientWasDeletedConcurrently() {
+    @DisplayName("GIVEN the client is deleted between the read and the write WHEN the client is patched THEN 412, and the next read answers 404")
+    void shouldRejectPatchWhenClientWasDeletedConcurrently() {
         injectConcurrentWriteAfterFirstRead(entity -> entity.setDeletedAt(now));
 
         given()
@@ -159,10 +157,10 @@ class ClientConflictAcceptanceTest {
                         """)
                 .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
-                .statusCode(404);
+                .statusCode(412)
+                .body("code", equalTo("preconditionFailed"));
 
         assertThat(clientJpaRepository.findById(client.getId())).isEmpty();
-        verify(clientRepository, times(2)).getById(client.getId());
     }
 
     @Test

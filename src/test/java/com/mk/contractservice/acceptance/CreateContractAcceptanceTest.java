@@ -205,7 +205,19 @@ class CreateContractAcceptanceTest {
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("invalidContractCost"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create contract without a body fails with 422 validationError")
+    void shouldRejectContractWithoutBody() {
+        given()
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("validationError"));
     }
 
     @Test
@@ -248,7 +260,8 @@ class CreateContractAcceptanceTest {
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("invalidContractCost"));
     }
 
     @Test

@@ -20,6 +20,8 @@ import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRep
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -32,10 +34,9 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -243,7 +244,7 @@ class PatchClientAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN invalid phone WHEN patch THEN returns 400/422")
+    @DisplayName("GIVEN invalid phone WHEN patch THEN returns 422 with the code of the domain")
     void shouldRejectPatchWithInvalidPhone() {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Test Person"),
@@ -264,7 +265,57 @@ class PatchClientAcceptanceTest {
                 .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId()))
                 .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
                 .then()
-                .statusCode(anyOf(is(400), is(422)));
+                .statusCode(422)
+                .body("code", equalTo("PHONE_INVALID"));
+    }
+
+    @Test
+    @DisplayName("GIVEN a name longer than the API allows WHEN patch THEN returns 422 validationError")
+    void shouldRejectPatchWithTooLongName() {
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Test Person"),
+                ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
+        ));
+
+        given()
+                .body("""
+                        { "name": "%s" }
+                        """.formatted("x".repeat(ClientName.MAX_LENGTH + 1)))
+                .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId()))
+                .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("validationError"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"name", "email", "phone"})
+    @DisplayName("GIVEN an explicit null WHEN patch THEN returns 422 and the client keeps its value, because these fields are mandatory")
+    void shouldRejectPatchWithExplicitNull(final String field) {
+        Client client = clientRepository.save(Person.of(
+                ClientName.of("Test Person"),
+                ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
+        ));
+        String eTagBeforePatch = ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId());
+
+        given()
+                .body("""
+                        { "%s": null }
+                        """.formatted(field))
+                .when()
+                .header(HttpHeaders.IF_MATCH, eTagBeforePatch)
+                .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("validationError"))
+                .body("detail", equalTo("Missing or invalid field: '%s'".formatted(field)));
+
+        assertThat(ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId())).isEqualTo(eTagBeforePatch);
     }
 
     @Test

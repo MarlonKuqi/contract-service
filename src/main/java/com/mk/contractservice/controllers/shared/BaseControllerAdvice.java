@@ -5,6 +5,7 @@ import com.mk.contractservice.features.shared.InvalidPageRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Clock;
@@ -50,9 +52,13 @@ public abstract class BaseControllerAdvice {
     }
 
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
-    public ResponseEntity<ProblemDetail> handleOptimisticLockingFailure(final ObjectOptimisticLockingFailureException ex) {
+    public ResponseEntity<ProblemDetail> handleOptimisticLockingFailure(final ObjectOptimisticLockingFailureException ex, final WebRequest request) {
         log.warn("Optimistic locking failure: The resource was modified by another user. Entity: {}, ID: {}",
                 ex.getPersistentClassName(), ex.getIdentifier());
+
+        if (request.getHeader(HttpHeaders.IF_MATCH) != null) {
+            return respond(preconditionFailed());
+        }
 
         final ProblemDetail problemDetail = problem(
                 HttpStatus.CONFLICT,
@@ -76,12 +82,16 @@ public abstract class BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handlePreconditionFailed(final RuntimeException ex) {
         log.debug("Precondition failed: {}", ex.getMessage());
 
-        return respond(problem(
+        return respond(preconditionFailed());
+    }
+
+    private ProblemDetail preconditionFailed() {
+        return problem(
                 HttpStatus.PRECONDITION_FAILED,
                 "Precondition Failed",
                 "The resource was modified since you read it. Read it again to get its current ETag before retrying.",
                 "preconditionFailed"
-        ));
+        );
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

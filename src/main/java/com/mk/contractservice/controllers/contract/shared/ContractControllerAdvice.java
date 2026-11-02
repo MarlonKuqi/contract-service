@@ -1,7 +1,5 @@
 package com.mk.contractservice.controllers.contract.shared;
 
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.mk.contractservice.controllers.contract.CreateContractController;
 import com.mk.contractservice.controllers.contract.ExportContractController;
 import com.mk.contractservice.controllers.contract.PatchContractCostController;
@@ -22,6 +20,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import tools.jackson.databind.exc.InvalidFormatException;
+import tools.jackson.databind.exc.MismatchedInputException;
 
 import java.time.Clock;
 import java.util.List;
@@ -88,14 +88,14 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
             case InvalidFormatException ife -> String.format(
                     "Invalid value '%s' for field '%s'. Expected type: %s",
                     ife.getValue(),
-                    ife.getPath().getFirst().getFieldName(),
+                    ife.getPath().getFirst().getPropertyName(),
                     ife.getTargetType().getSimpleName()
             );
             case MismatchedInputException mie when !mie.getPath().isEmpty() -> String.format(
                     "Missing or invalid field: '%s'",
-                    mie.getPath().getFirst().getFieldName()
+                    mie.getPath().getFirst().getPropertyName()
             );
-            default -> "Malformed JSON or invalid payload.";
+            case null, default -> "Malformed JSON or invalid payload.";
         };
 
         ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed", detail, "validationError");

@@ -3,6 +3,8 @@ package com.mk.contractservice.controllers.client;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.client.shared.ClientSwaggerTags;
 import com.mk.contractservice.controllers.shared.EntityTags;
+import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.features.client.UpdateClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,7 +15,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -105,22 +106,20 @@ public class UpdateClientController {
 
     public record Request(
             @NotBlank(message = "Name is required")
-            @Size(max = 200, message = "Name must not exceed 200 characters")
+            @Size(max = ClientName.MAX_LENGTH, message = "Name must not exceed 200 characters")
             @Schema(description = "Client name", example = "John Doe", maxLength = 200,
                     requiredMode = Schema.RequiredMode.REQUIRED)
             String name,
 
             @NotBlank(message = "Email is required")
-            @Size(max = 254, message = "Email must not exceed 254 characters")
+            @Size(max = ClientEmail.MAX_LENGTH, message = "Email must not exceed 254 characters")
             @Schema(description = "Client email address", example = "john.doe@example.com",
                     format = "email", maxLength = 254, requiredMode = Schema.RequiredMode.REQUIRED)
             String email,
 
             @NotBlank(message = "Phone number is required")
-            @Pattern(regexp = "\\+?[0-9 .()/-]{7,20}",
-                    message = "Phone number must be valid (7-20 characters, allowed: digits, +, -, ., (), /, spaces)")
-            @Schema(description = "Client phone number", example = "+41791234567", pattern = "\\+?[0-9 .()/-]{7,20}",
-                    minLength = 7, maxLength = 20, requiredMode = Schema.RequiredMode.REQUIRED)
+            @Schema(description = "Client phone number in international format (+41, +33, +39 or +49). Normalized to E.164 in the response.",
+                    example = "+41791234567", requiredMode = Schema.RequiredMode.REQUIRED)
             String phone
     ) {
     }
