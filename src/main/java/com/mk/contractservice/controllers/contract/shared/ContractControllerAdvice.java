@@ -14,6 +14,8 @@ import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodExc
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.DomainValidationException;
+import com.mk.contractservice.features.contract.ContractImportRejectedException;
+import com.mk.contractservice.features.contract.InvalidImportSizeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
