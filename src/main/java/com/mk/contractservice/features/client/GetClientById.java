@@ -1,7 +1,7 @@
 package com.mk.contractservice.features.client;
 
-import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.ClientRepository;
+import com.mk.contractservice.domain.client.ClientDetails;
+import com.mk.contractservice.domain.client.ClientQueryPort;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,18 +17,18 @@ public interface GetClientById {
         }
     }
 
-    Client execute(Query query);
+    ClientDetails execute(Query query);
 
     @UseCase
     @Transactional(readOnly = true)
     @RequiredArgsConstructor
     class Handler implements GetClientById {
 
-        private final ClientRepository clientRepository;
+        private final ClientQueryPort clientQueryPort;
 
         @Override
-        public Client execute(final Query query) {
-            return clientRepository.getById(query.clientId());
+        public ClientDetails execute(final Query query) {
+            return clientQueryPort.getDetails(query.clientId());
         }
     }
 }

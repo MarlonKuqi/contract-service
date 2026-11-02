@@ -2,6 +2,7 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
+import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.acceptance.helper.TestTokens;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
@@ -181,6 +183,7 @@ class SecurityAcceptanceTest {
                             "phone": "%s"
                         }
                         """.formatted(email, phone))
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, clientId))
                 .when().put(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then().statusCode(204);
 
@@ -188,6 +191,7 @@ class SecurityAcceptanceTest {
                 .body("""
                         { "name": "Counselor Flow Patched" }
                         """)
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, clientId))
                 .when().patch(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then().statusCode(204);
 
@@ -208,6 +212,7 @@ class SecurityAcceptanceTest {
                 .body("""
                         { "amount": "1200.00" }
                         """)
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, contractId))
                 .when().patch(ContractEndpoints.CONTRACT_COST, contractId)
                 .then().statusCode(204);
 

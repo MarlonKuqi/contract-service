@@ -2,6 +2,7 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
+import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
@@ -93,6 +95,7 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
                 .statusCode(204);
@@ -122,6 +125,7 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
                 .statusCode(204);
@@ -150,6 +154,7 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
                 .statusCode(204);
@@ -178,9 +183,11 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("invalidContractCost"));
     }
 
     @Test
@@ -199,6 +206,7 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
                 .statusCode(409)
@@ -210,6 +218,18 @@ class UpdateContractCostAcceptanceTest {
                 .then()
                 .statusCode(200)
                 .body("costAmount", equalTo(1000.00f));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Update contract cost without a body fails with 422 validationError")
+    void shouldRejectCostUpdateWithoutBody() {
+        given()
+                .when()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
+                .patch(ContractEndpoints.CONTRACT_COST, UUID.randomUUID())
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("validationError"));
     }
 
     @Test
@@ -226,6 +246,7 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
                 .patch(ContractEndpoints.CONTRACT_COST, fakeId)
                 .then()
                 .statusCode(404);
@@ -247,9 +268,11 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("invalidContractCost"));
     }
 
     @Test
@@ -268,9 +291,12 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("validationError"))
+                .body("detail", equalTo("Invalid value 'invalid' for field 'amount'. Expected type: BigDecimal"));
     }
 
     @Test
@@ -289,6 +315,7 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(update1)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
                 .statusCode(204);
@@ -302,6 +329,7 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(update2)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
                 .statusCode(204);
@@ -315,6 +343,7 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(update3)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId()))
                 .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
                 .then()
                 .statusCode(204);

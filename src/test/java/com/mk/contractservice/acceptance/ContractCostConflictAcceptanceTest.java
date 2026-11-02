@@ -2,6 +2,7 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
+import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -24,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -44,8 +46,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -97,14 +97,15 @@ class ContractCostConflictAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN another counselor changes the cost between the read and the write WHEN the cost is patched THEN the update is retried and the last cost wins")
-    void shouldRetryAndApplyCostWhenAnotherUpdateWasCommittedConcurrently() {
+    @DisplayName("GIVEN another counselor changes the cost between the read and the write WHEN the cost is patched THEN 412 and the concurrent cost is kept")
+    void shouldRejectUpdateWhenAnotherCostWasCommittedConcurrently() {
         injectConcurrentWriteAfterFirstRead(id -> {
             ContractJpaEntity entity = contractJpaRepository.findById(id).orElseThrow();
             entity.setCostAmount(new BigDecimal("1200.00"));
         });
 
         given()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
                 .body("""
                         {
                             "amount": "1500.00"
@@ -112,18 +113,19 @@ class ContractCostConflictAcceptanceTest {
                         """)
                 .patch(ContractEndpoints.CONTRACT_COST, contract.getId())
                 .then()
-                .statusCode(204);
+                .statusCode(412)
+                .body("code", equalTo("preconditionFailed"));
 
-        assertThat(persistedContract().getCostAmount()).isEqualByComparingTo("1500.00");
-        verify(contractRepository, times(2)).getById(contract.getId());
+        assertThat(persistedContract().getCostAmount()).isEqualByComparingTo("1200.00");
     }
 
     @Test
-    @DisplayName("GIVEN the contract is closed between the read and the write WHEN the cost is patched THEN the retry rejects it as expired and the contract stays closed")
-    void shouldRejectRetriedUpdateWhenContractWasClosedConcurrently() {
+    @DisplayName("GIVEN the contract is closed between the read and the write WHEN the cost is patched THEN 412 and the contract stays closed")
+    void shouldRejectUpdateWhenContractWasClosedConcurrently() {
         injectConcurrentWriteAfterFirstRead(id -> contractRepository.closeAllActiveByClientId(client.getId(), now));
 
         given()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
                 .body("""
                         {
                             "amount": "1500.00"
@@ -131,8 +133,8 @@ class ContractCostConflictAcceptanceTest {
                         """)
                 .patch(ContractEndpoints.CONTRACT_COST, contract.getId())
                 .then()
-                .statusCode(409)
-                .body("code", equalTo("contractExpired"));
+                .statusCode(412)
+                .body("code", equalTo("preconditionFailed"));
 
         ContractJpaEntity persisted = persistedContract();
         assertThat(persisted.getEndDate()).isEqualTo(now);

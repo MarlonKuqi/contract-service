@@ -15,8 +15,26 @@
       { "key": "addTokenTo", "value": "header", "type": "string" },
       { "key": "tokenName", "value": "contract-service", "type": "string" }
     ]
-  },
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.response.headers.has('ETag')) {",
+          "    pm.collectionVariables.set('contractETag', pm.response.headers.get('ETag'));",
+          "}"
+        ]
+      }
+    }
+  ],
   "variable": [
+    {
+      "key": "contractETag",
+      "value": "",
+      "type": "string"
+    },
     {
       "key": "keycloakUrl",
       "value": "http://localhost:8081",
@@ -256,6 +274,10 @@
         "method": "PATCH",
         "header": [
           {
+            "key": "If-Match",
+            "value": "{{contractETag}}"
+          },
+          {
             "key": "Content-Type",
             "value": "application/json"
           }
@@ -269,7 +291,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts", "{{contractId}}", "cost"]
         },
-        "description": "Update the cost amount of a contract and its internal last modification date (used by the updatedSince filter). Only active (non-expired) contracts can be updated: an expired contract returns 409 with code contractExpired. A concurrent modification is retried by the server; if the conflict persists after several retries, it returns 409 with code optimisticLockFailure. An invalid amount returns 422. Sending the same amount (scale-insensitive, e.g. 100.0 = 100.00) is a no-op: the contract is not modified."
+        "description": "Update the cost amount of a contract and its internal last modification date (used by the updatedSince filter). Only active (non-expired) contracts can be updated: an expired contract returns 409 with code contractExpired. Requires If-Match with the ETag of the contract ({{contractETag}} is filled by Get Contract By ID); the response carries no ETag, run Get Contract By ID again before another change. Missing If-Match or If-Match: * returns 428 (preconditionRequired); an ETag that is no longer current, including after the contract was closed by a client deletion, returns 412 (preconditionFailed). An invalid amount returns 422. Sending the same amount (scale-insensitive, e.g. 100.0 = 100.00) is a no-op: the contract is not modified."
       }
     },
     {

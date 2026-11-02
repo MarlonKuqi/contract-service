@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
+import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaUpdate;
@@ -48,6 +49,15 @@ public class JpaContractRepository implements ContractRepository {
         return contractJpaRepository.findById(id)
                 .map(ContractJpaMapper::toDomain)
                 .orElseThrow(() -> new ContractNotFoundException(id));
+    }
+
+    @Override
+    public void ensureVersion(final UUID contractId, final long expectedVersion) {
+        final ContractJpaEntity entity = contractJpaRepository.findById(contractId)
+                .orElseThrow(() -> new ContractNotFoundException(contractId));
+        if (entity.getVersion() != expectedVersion) {
+            throw new VersionMismatchException(expectedVersion, entity.getVersion());
+        }
     }
 
     @Override

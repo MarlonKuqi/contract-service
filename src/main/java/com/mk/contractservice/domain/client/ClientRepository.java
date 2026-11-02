@@ -15,5 +15,7 @@ public interface ClientRepository {
 
     void ensureExists(final UUID id);
 
+    void ensureVersion(final UUID id, final long expectedVersion);
+
     boolean existsByCompanyIdentifier(final String companyIdentifier);
 }

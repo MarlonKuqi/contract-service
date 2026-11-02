@@ -1,6 +1,7 @@
 package com.mk.contractservice.controllers.contract.shared;
 
 import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.ContractDetails;
 import org.mapstruct.Mapper;
 
 import java.time.LocalDateTime;
@@ -16,6 +17,17 @@ public interface ContractDtoMapper {
                 contract.getPeriod().getEndDate(),
                 contract.isActiveAt(referenceDate),
                 contract.getCostAmount().getValue()
+        );
+    }
+
+    default ContractResponse toResponse(ContractDetails contract) {
+        return new ContractResponse(
+                contract.id(),
+                contract.clientId(),
+                contract.startDate(),
+                contract.endDate(),
+                contract.active(),
+                contract.costAmount()
         );
     }
 }

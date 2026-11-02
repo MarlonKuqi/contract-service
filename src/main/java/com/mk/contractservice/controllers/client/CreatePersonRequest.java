@@ -1,10 +1,11 @@
 package com.mk.contractservice.controllers.client;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
@@ -24,13 +25,15 @@ import java.time.LocalDate;
 )
 public record CreatePersonRequest(
         @NotBlank(message = "Name is required")
-        @Size(max = 200, message = "Name must not exceed 200 characters")
-        @Schema(description = "Person name", example = "Alice Martin", maxLength = 200, requiredMode = Schema.RequiredMode.REQUIRED)
+        @Size(max = ClientName.MAX_LENGTH, message = "Name must not exceed " + ClientName.MAX_LENGTH + " characters")
+        @Schema(description = "Person name", example = "Alice Martin", maxLength = ClientName.MAX_LENGTH,
+                requiredMode = Schema.RequiredMode.REQUIRED)
         String name,
 
         @NotBlank(message = "Email is required")
-        @Size(max = 254, message = "Email must not exceed 254 characters")
-        @Schema(description = "Person email address", example = "alice.martin@example.com", format = "email", maxLength = 254, requiredMode = Schema.RequiredMode.REQUIRED)
+        @Size(max = ClientEmail.MAX_LENGTH, message = "Email must not exceed " + ClientEmail.MAX_LENGTH + " characters")
+        @Schema(description = "Person email address", example = "alice.martin@example.com", format = "email",
+                maxLength = ClientEmail.MAX_LENGTH, requiredMode = Schema.RequiredMode.REQUIRED)
         String email,
 
         @NotBlank(message = "Phone number is required")
@@ -42,8 +45,8 @@ public record CreatePersonRequest(
         String phone,
 
         @NotNull(message = "Birth date is required")
-        @PastOrPresent(message = "Birth date must be in the past or present")
-        @Schema(description = "Person birth date (must be in the past or present)", example = "1990-05-15", format = "date", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Person birth date (must be in the past or present)", example = "1990-05-15",
+                format = "date", requiredMode = Schema.RequiredMode.REQUIRED)
         LocalDate birthDate
 ) implements CreateClientRequest {
 }
