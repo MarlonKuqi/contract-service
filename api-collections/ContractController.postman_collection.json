@@ -256,6 +256,28 @@
       }
     },
     {
+      "name": "Import Contracts",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contracts\": [\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"costAmount\": 1500.50\n    },\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"startDate\": \"2027-01-01T00:00:00\",\n      \"endDate\": \"2028-01-01T00:00:00\",\n      \"costAmount\": 900.00\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/imports",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "imports"]
+        },
+        "description": "Import up to 1000 contracts, all or nothing (ADR-021). 201: {importedCount, contractIds} in the order of the lines; do not send it again, the contracts would be created twice. 422 contractImportRejected: nothing was created, the rejections property lists each problem with its zero-based index, clientId, code (invalidContractCost, invalidContractPeriod, clientNotFound) and message; fix the lines and send the whole import again. 422 invalidImportSize: no line or more than 1000. 422 validationError: missing or wrongly typed field, named contracts[n].field."
+      }
+    },
+    {
       "name": "Get Contract By ID",
       "request": {
         "method": "GET",

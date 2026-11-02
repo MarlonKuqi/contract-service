@@ -106,6 +106,21 @@ class SecurityAcceptanceTest {
     }
 
     @Test
+    @DisplayName("GIVEN a user without the counselor role WHEN importing contracts THEN 403 accessDenied")
+    void shouldRefuseImportWithoutCounselorRole() {
+        given()
+                .auth().oauth2(TestTokens.builder().realmRoles("offline_access").build())
+                .body("""
+                        { "contracts": [] }
+                        """)
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
+                .then()
+                .statusCode(403)
+                .body("code", equalTo("accessDenied"));
+    }
+
+    @Test
     @DisplayName("GIVEN a user without the counselor role WHEN reading a client THEN 403 accessDenied")
     void shouldRejectUserWithoutCounselorRole() {
         given()
@@ -207,6 +222,13 @@ class SecurityAcceptanceTest {
                 .extract().path("id");
 
         given().when().get(ContractEndpoints.CONTRACT_BY_ID, contractId).then().statusCode(200);
+
+        given()
+                .body("""
+                        { "contracts": [{ "clientId": "%s", "costAmount": "500.00" }] }
+                        """.formatted(clientId))
+                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
+                .then().statusCode(201);
 
         given()
                 .body("""

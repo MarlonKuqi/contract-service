@@ -42,6 +42,7 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 - [ADR-018 — Pagination par offset, bornes portées par le use case](#adr-018--pagination-par-offset-bornes-portées-par-le-use-case)
 - [ADR-019 — Export des contrats actifs : pagination par curseur sur l'identifiant](#adr-019--export-des-contrats-actifs--pagination-par-curseur-sur-lidentifiant)
 - [ADR-020 — Stratégie de merge entre branches majeures et mineures](#adr-020--stratégie-de-merge-entre-branches-majeures-et-mineures)
+- [ADR-021 — Import en masse de contrats : synchrone, tout ou rien](#adr-021--import-en-masse-de-contrats--synchrone-tout-ou-rien)
 
 ---
 
@@ -453,6 +454,7 @@ Cette version pose six problèmes :
   | `GET /v2/contracts?clientId=`, `GET /v2/contracts/{id}`, `GET /v2/contracts/total?clientId=` | `COUNSELOR` |
   | `PATCH /v2/contracts/{id}/cost` | `COUNSELOR` |
   | `GET /v2/contracts/export` (ADR-019) | `COUNSELOR` |
+  | `POST /v2/contracts/imports` (ADR-021) | `COUNSELOR` |
   | `/actuator/health/**`, `/actuator/info` | public |
   | `/swagger-ui/**`, `/v3/api-docs/**` | public (la documentation ne contient aucune donnée) |
   | toute autre route | refusée (`denyAll`) |
@@ -603,3 +605,65 @@ Une pagination par curseur a été écartée :
 - La règle repose sur la discipline. Un *ruleset* GitHub fixe les méthodes de merge autorisées par branche cible, pas par branche source : `master`, `release/*` et `develop` reçoivent à la fois des squash (branches mineures) et des merge commits (branches majeures), donc il ne peut pas imposer la bonne méthode. Il peut seulement interdire le rebase-merge sur les trois branches majeures. Le rappel figure dans la checklist du template de PR.
 
 **Statut.** Acceptée.
+
+---
+
+## ADR-021 — Import en masse de contrats : synchrone, tout ou rien
+
+**Contexte.** Exercice : ni `docs/sujet.txt` ni l'échelle actuelle (une dizaine de conseillers) n'exigent un import en masse. Il sert à s'entraîner sur la sémantique d'échec partiel et sur le JDBC batching. Il n'y a pas de besoin métier à invoquer.
+
+Un contrat n'a pas de clé naturelle : deux contrats identiques pour un même client sont légitimes. Le serveur ne peut donc pas reconnaître une ligne déjà importée, et cette contrainte décide de la sémantique d'échec.
+
+**Décision.**
+- `POST /v2/contracts/imports`, rôle `COUNSELOR` (couvert par `/v2/**`, ADR-017). Corps JSON : `{ "contracts": [ { clientId, startDate, endDate, costAmount }, … ] }`.
+- **Tout ou rien.** Toutes les lignes sont validées avant la première écriture, dans une seule transaction. Si une ligne est rejetée, rien n'est créé et la réponse liste tous les rejets : le conseiller corrige et renvoie l'import complet, sans risque de doublon.
+- **Réponses :**
+  - `201` : `{ "importedCount": n, "contractIds": [...] }`, les identifiants étant dans l'ordre des lignes. Pas de `Location` : aucune ressource d'import n'existe ;
+  - `422 contractImportRejected` : propriété `rejections`, avec pour chaque problème `index` (à partir de 0), `clientId`, `code` et `message`. `index` est le seul repère d'une ligne, car un import peut contenir plusieurs contrats du même client ; `clientId` permet de regrouper les lignes d'un même client manquant. Les codes sont ceux de `POST /v2/contracts` (`invalidContractCost`, `invalidContractPeriod`, `clientNotFound`) ;
+  - `422 invalidImportSize` : aucune ligne, ou plus de `ImportContracts.MAX_LINES` (1000) ;
+  - `422 validationError` : champ manquant ou mal typé, nommé `contracts[n].champ`.
+- **Syntaxe, puis règles.** Comme ailleurs (ADR-002), le DTO vérifie la syntaxe et s'arrête là : une erreur de syntaxe sur une ligne empêche d'évaluer les règles métier de toutes les autres. Une valeur mal typée interrompt le parsing JSON : seule la première est signalée.
+- **Un seul rejet par ligne, le client d'abord.** Une ligne dont le client est inconnu est rejetée sans construire le contrat : le conseiller sait qu'il doit d'abord créer ce client, et le contenu de la ligne sera évalué au renvoi. L'ordre diffère de `CreateContract`, qui valide le contrat avant de chercher le client : à l'échelle d'un import, signaler d'abord le client manquant donne la correction la plus utile. De même, `ContractFactory` s'arrête à la première règle violée : une ligne dont la période et le coût sont invalides ne signale que la période. Une correction peut donc faire apparaître un nouveau rejet sur la même ligne.
+- **L'import ne crée pas les clients manquants.** La ligne ne porte que `clientId`, alors que créer un client demande son type, son nom, son email, son téléphone et sa date de naissance ou son identifiant d'entreprise, que seul le conseiller peut fournir. De plus, l'identifiant est généré par le serveur : après `POST /v2/clients`, le conseiller remplace `clientId` dans la ligne par l'identifiant renvoyé. Enfin, `clientNotFound` couvre aussi un client supprimé (ADR-009), qu'il ne faut pas recréer sans décision du conseiller.
+- **« Always valid » conservé** : chaque contrat passe par `ContractFactory.createFromCommand`. Le handler traduit les exceptions du domaine en rejets ; il n'ajoute aucune règle.
+- **Taille** : la limite est portée par `ImportContracts.Command` (ADR-002). 1000 lignes suffisent largement à cette échelle et gardent une transaction courte (environ 30 ms d'écriture, mesuré ci-dessous).
+- **Existence des clients sans N+1** : le port `ClientRepository.findExistingIds(Set<UUID>)` fait une seule requête `IN`. `@SQLRestriction` s'y applique : un client supprimé est absent du résultat, donc rejeté comme inconnu (ADR-009).
+- **Une seule `now`** pour tout l'import (ADR-003) : date de début par défaut et `lastModified`.
+- **Pas de version attendue** (ADR-011) : l'import ne crée que de nouveaux contrats.
+- **Écriture** : `ContractRepository.insertAll(List<Contract>)` appelle `saveAll` de Spring Data, comme `save` dans le même adapter. Les `INSERT` partent au commit.
+
+**JDBC batching : ce qui est retenu, et pourquoi.** `hibernate.jdbc.batch_size: 50` dans `application.yml`. C'est possible parce que l'UUID v7 est généré côté application (ADR-012) : avec un `IDENTITY`, Hibernate devrait exécuter chaque `INSERT` pour lire l'identifiant, ce qui désactive le batching.
+
+Mesures : base PostgreSQL 18 en conteneur local (Docker, poste Windows), un seul client, médiane de 5 exécutions après 2 exécutions de chauffe. Ce sont des ordres de grandeur : la latence réseau réelle accentuerait l'écart.
+
+| Écriture | 1000 lignes | 10 000 lignes | Lots JDBC pour 1000 lignes |
+|---|---|---|---|
+| `persist`, sans batching | 296 ms | 2946 ms | 1000 exécutions |
+| `persist`, `batch_size=50` | **27 ms** | **276 ms** | 20 lots de 50 |
+| `persist`, `batch_size=50`, `flush`/`clear` tous les 50 | 27 ms | 277 ms | non compté |
+| `saveAll` Spring Data (`merge`), `batch_size=50` | 31 ms | 266 ms | non compté |
+
+- **Gain : un facteur 10 environ.** Le nombre de lots vient des traces `org.hibernate.orm.jdbc.batch` (20 fois `Executing JDBC batch (50 / 50)`).
+- **`flush`/`clear` écarté.** Aucun gain mesuré, même à 10 000 lignes, et `clear` détacherait toute autre entité du contexte de persistance. À réévaluer seulement si la limite augmente nettement.
+- **`order_inserts` écarté.** Il regroupe les `INSERT` de plusieurs tables ; l'import n'en écrit qu'une.
+- **`@Version` sans valeur initiale.** Spring Data considère comme nouvelle une entité dont le `@Version` de type objet est `null`. Les entités initialisaient ce champ à `0L` (commit `c307374`, sans justification) : `save` passait donc par `merge`, qui renvoyait une copie et laissait l'entité passée en argument sans identifiant. Comme son identifiant était `null`, Hibernate n'exécutait aucun `SELECT`, et le surcoût restait dans le bruit de mesure (dernière ligne du tableau, mesurée avant ce changement). L'initialisation est retirée de `ClientJpaEntity` et de `ContractJpaEntity` : Hibernate pose lui-même la version à `0` au `persist`, et `save` comme `saveAll` font désormais un `persist` pour une nouvelle entité. Le `DEFAULT 0` de la base reste pour les `INSERT` SQL manuels. Les lignes `persist` du tableau décrivent donc le chemin actuel.
+- **`reWriteBatchedInserts` de pgjdbc non retenu.** Il réécrit les lots en `INSERT` multi-valeurs ; non mesuré, et rien ne le justifie à ce volume.
+- **Effet global.** `batch_size` s'applique à toutes les écritures. Elles n'envoient qu'une ligne par entité et par table : un lot d'une ligne. La détection des conflits `@Version` reste vérifiée par les tests de concurrence existants.
+
+**Test technique, et sa justification.** `ContractBatchInsertAcceptanceTest` vérifie qu'un import de 1000 lignes prépare au plus une requête d'existence et une requête par lot (`Statistics.getPrepareStatementCount`). Un utilisateur de l'API ne peut pas observer cette garantie, et le réglage peut être perdu sans qu'aucun scénario métier échoue. Le test a échoué à 1001 requêtes avant l'ajout de `batch_size`. Limite : Hibernate réutilise le même `PreparedStatement` entre les lots (2 requêtes préparées en tout), donc cette statistique prouve l'absence d'une requête par ligne, sans compter les lots. Mesurer les lots demanderait `datasource-proxy`, une dépendance jugée inutile pour une seule assertion.
+
+**Options écartées.**
+- **Partiel dans une transaction** (lignes valides insérées, `207` ou `200` avec rapport). Si l'appelant renvoie tout le fichier au lieu des seules lignes rejetées, les lignes déjà acceptées sont créées une seconde fois. De plus, `207` vient de WebDAV et sert souvent mal à distinguer un succès d'un échec.
+- **Commit par lots.** Une panne en cours d'import laisse un état partiel que l'appelant ne connaît pas : il faudrait une `Idempotency-Key` ou un identifiant de ligne. Cela n'aurait d'intérêt que pour de gros volumes.
+- **Asynchrone** (`202 Accepted` + ressource d'import). Envisagé puis écarté : 1000 lignes tiennent en quelques dizaines de millisecondes, et il faudrait une table (migration), un worker et une reprise après crash. La piste la plus simple si le besoin apparaît : un `@Scheduled` qui traite chaque import dans une seule transaction avec `FOR UPDATE SKIP LOCKED`, contrats et statut étant commités ensemble.
+- **CSV.** Plus proche d'un fichier métier, mais il ajoute parsing, encodage et séparateurs, sans rapport avec le sujet de l'exercice. Le sujet demande du JSON. Un import CSV aurait son propre validateur (ADR-002) et pourrait réutiliser le même use case.
+
+**Conséquences.**
+- Aucune migration.
+- Un import rejeté se renvoie sans risque, et un conseiller voit toutes les erreurs de règles métier en une seule réponse.
+- Limite : un import **accepté** dont la réponse se perd (coupure réseau), puis renvoyé, crée des doublons. Le risque est le même que pour `POST /v2/contracts`, avec plus de lignes. Le traitement prévu est `Idempotency-Key` (`PROGRESS.md`).
+- Limite : tout le corps est lu en mémoire et validé avant le contrôle du nombre de lignes. Acceptable pour des utilisateurs authentifiés, à une dizaine de conseillers. Une API ouverte demanderait une limite de taille du corps.
+- Limite : un client supprimé entre le contrôle d'existence et le commit garde les contrats importés, actifs. Cette course existe déjà dans `CreateContract` ; un verrou sur les clients ne se justifie pas à cette échelle.
+- `ContractControllerAdvice` nomme désormais le chemin complet d'un champ mal typé (`contracts[1].costAmount`). Pour les corps à un seul niveau, le message ne change pas.
+
+**Statut.** Acceptée (exercice).

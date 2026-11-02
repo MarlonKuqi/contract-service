@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -58,6 +59,11 @@ public class JpaClientRepository implements ClientRepository {
         if (!jpa.existsById(id)) {
             throw ClientNotFoundException.forId(id);
         }
+    }
+
+    @Override
+    public Set<UUID> findExistingIds(final Set<UUID> ids) {
+        return jpa.findExistingIds(ids);
     }
 
     @Override
