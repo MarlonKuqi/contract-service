@@ -1,4 +1,4 @@
-package com.mk.contractservice.features.contract;
+package com.mk.contractservice.domain.contract.exception;
 
 public class InvalidImportSizeException extends RuntimeException {
 

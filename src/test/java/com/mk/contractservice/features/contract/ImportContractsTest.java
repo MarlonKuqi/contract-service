@@ -4,6 +4,8 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
+import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
