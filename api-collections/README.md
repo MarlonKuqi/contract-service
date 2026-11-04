@@ -239,6 +239,33 @@ api-collections/
 
 ## 🆘 Troubleshooting
 
+### Bruno : "Export Active Contracts" échoue ou renvoie toujours la première page
+
+La collection Postman retire le paramètre `cursor` avec `pm.request.url.query.remove`. Après l'import dans Bruno, le script devient `req.getUrl().query.remove('cursor')` et échoue : `TypeError: cannot read property 'remove' of undefined`. `req.getUrl()` y renvoie une chaîne.
+
+Remplacer les scripts de la requête dans Bruno.
+
+**Script > Pre Request :**
+
+```js
+if (!bru.getVar('exportCursor')) {
+  req.setUrl(req.getUrl().replace(/[?&]cursor=[^&]*/, ''));
+}
+```
+
+**Script > Post Response :**
+
+```js
+const nextCursor = res.getBody().nextCursor;
+if (nextCursor) {
+  bru.setVar('exportCursor', nextCursor);
+} else {
+  bru.deleteVar('exportCursor');
+}
+```
+
+Le premier envoi part sans curseur, chaque envoi suivant demande la page d'après, et l'envoi qui suit la dernière page repart du début. Le paramètre `cursor=` apparaît dans la **Timeline** de Bruno à partir du deuxième envoi.
+
 ### Les variables ne fonctionnent pas
 - Vérifier que la variable est bien définie dans la collection
 - Dans Postman : Collection > Variables > Current Value
