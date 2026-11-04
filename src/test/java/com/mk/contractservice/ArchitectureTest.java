@@ -44,6 +44,7 @@ class ArchitectureTest {
 
     private final DescribedPredicate<JavaClass> areInfrastructure = resideInAnyPackage("com.mk.contractservice.infrastructure..");
     private final DescribedPredicate<JavaClass> areControllers = resideInAnyPackage("com.mk.contractservice.controllers..");
+    private final DescribedPredicate<JavaClass> areBatch = resideInAnyPackage("com.mk.contractservice.batch..");
 
     @Test
     void domain_should_not_depend_on_infrastructure() {
@@ -72,6 +73,16 @@ class ArchitectureTest {
                 .should()
                 .dependOnClassesThat(areControllers)
                 .because("Domain must not depend on presentation layer (controllers)")
+                .check(classes);
+    }
+
+    @Test
+    void domain_should_not_depend_on_batch() {
+        noClasses()
+                .that(areCore)
+                .should()
+                .dependOnClassesThat(areBatch)
+                .because("Domain must not depend on inbound adapters: batch is one, like controllers")
                 .check(classes);
     }
 
@@ -111,6 +122,16 @@ class ArchitectureTest {
                 .should()
                 .dependOnClassesThat(areControllers)
                 .because("Features (application layer) must not depend on presentation layer (controllers)")
+                .check(classes);
+    }
+
+    @Test
+    void features_should_not_depend_on_batch() {
+        noClasses()
+                .that(areFeatures)
+                .should()
+                .dependOnClassesThat(areBatch)
+                .because("Features (application layer) must not depend on inbound adapters: batch is one, like controllers")
                 .check(classes);
     }
 }

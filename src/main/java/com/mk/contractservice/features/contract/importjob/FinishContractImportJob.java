@@ -1,0 +1,37 @@
+package com.mk.contractservice.features.contract.importjob;
+
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
+import com.mk.contractservice.domain.shared.UseCase;
+import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.UUID;
+
+public interface FinishContractImportJob {
+
+    record Command(UUID jobId) {
+        public Command {
+            Objects.requireNonNull(jobId, "Job ID cannot be null");
+        }
+    }
+
+    void execute(Command command);
+
+    @UseCase
+    @Transactional
+    @RequiredArgsConstructor
+    class Handler implements FinishContractImportJob {
+
+        private final ContractImportJobRepository jobRepository;
+        private final Clock clock;
+
+        @Override
+        public void execute(final Command command) {
+            final LocalDateTime now = LocalDateTime.now(clock);
+            jobRepository.save(jobRepository.getById(command.jobId()).finish(now));
+        }
+    }
+}

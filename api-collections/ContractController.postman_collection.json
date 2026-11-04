@@ -69,6 +69,10 @@
       "key": "exportCursor",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "importJobId",
+      "value": ""
     }
   ],
   "item": [
@@ -275,6 +279,72 @@
           "path": ["v2", "contracts", "imports"]
         },
         "description": "Import up to 1000 contracts, all or nothing (ADR-021). 201: {importedCount, contractIds} in the order of the lines; do not send it again, the contracts would be created twice. 422 contractImportRejected: nothing was created, the rejections property lists each problem with its zero-based index, clientId, code (invalidContractCost, invalidContractPeriod, clientNotFound) and message; fix the lines and send the whole import again. 422 invalidImportSize: no line or more than 1000. 422 validationError: missing or wrongly typed field, named contracts[n].field."
+      }
+    },
+    {
+      "name": "Submit Contract Import Job",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "contracts.csv"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs"]
+        },
+        "description": "Submit a CSV file for asynchronous, partial import (ADR-022). UTF-8, separator ';', first line clientId;startDate;endDate;costAmount, at most 500000 contracts and 50 MB. 202: Location header and job state; valid lines create their contract, the others are reported, so send only the rejected lines again. 400 missingParameter: no file part. 413 importFileTooLarge: over 50 MB. 422 invalidImportFile: no data, wrong header, encoding other than UTF-8 or too many lines; nothing is stored."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 202) {",
+              "    pm.collectionVariables.set('importJobId', pm.response.json().jobId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Contract Import Job",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs/{{importJobId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs", "{{importJobId}}"]
+        },
+        "description": "Follow an import job (ADR-022): status (PENDING, RUNNING, COMPLETED, FAILED), totalLines, processedLines, importedCount, rejectedCount, createdAt, finishedAt, failureCode (unexpectedError, incompleteProcessing, tooManyAttempts, null unless FAILED). A COMPLETED job can contain rejected lines. After FAILED, lines already processed stay imported. 404 contractImportJobNotFound: unknown job."
+      }
+    },
+    {
+      "name": "List Contract Import Job Rejections",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs/{{importJobId}}/rejections?page=0&size=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs", "{{importJobId}}", "rejections"],
+          "query": [
+            { "key": "page", "value": "0" },
+            { "key": "size", "value": "20" }
+          ]
+        },
+        "description": "List the lines rejected so far, ordered by line number (ADR-022). lineNumber is the line in the file, the header being line 1. Codes: invalidLineFormat, invalidContractCost, invalidContractPeriod, clientNotFound. size: at most 100, otherwise 400 invalidParameter. 404 contractImportJobNotFound: unknown job."
       }
     },
     {

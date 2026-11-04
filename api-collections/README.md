@@ -36,6 +36,9 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 - `GET /v2/contracts?clientId={clientId}&updatedSince=...` - Filter by update date
 - `GET /v2/contracts/export` - Export active contracts of all clients (cursor)
 - `POST /v2/contracts/imports` - Import up to 1000 contracts, all or nothing (ADR-021)
+- `POST /v2/contracts/import-jobs` - Submit a CSV file for asynchronous, partial import (ADR-022)
+- `GET /v2/contracts/import-jobs/{jobId}` - Follow an import job (ADR-022)
+- `GET /v2/contracts/import-jobs/{jobId}/rejections` - List the lines rejected by a job (ADR-022)
 - `GET /v2/contracts/{contractId}` - Get specific contract
 - `PATCH /v2/contracts/{contractId}/cost` - Update cost
 - `GET /v2/contracts/total?clientId={clientId}` - Sum of active contracts

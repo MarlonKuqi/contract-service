@@ -170,11 +170,12 @@ class ClientConflictAcceptanceTest {
                 client.id(), now.minusDays(1), null, new BigDecimal("1000.00"), now));
         AtomicBoolean concurrentWriteDone = new AtomicBoolean(false);
         doAnswer(invocation -> {
-            Object result = invocation.callRealMethod();
             if (concurrentWriteDone.compareAndSet(false, true)) {
-                writeConcurrently(invocation.getArgument(0), entity -> entity.setPhone(concurrentPhone));
+                UUID clientId = invocation.getArgument(0);
+                clientJpaRepository.findById(clientId).orElseThrow();
+                writeConcurrently(clientId, entity -> entity.setPhone(concurrentPhone));
             }
-            return result;
+            return invocation.callRealMethod();
         }).when(clientRepository).delete(any(), any());
 
         given()

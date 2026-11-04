@@ -22,7 +22,7 @@ Backend REST API for a Swiss insurance company (counselors manage clients and th
 
 Stack:
 - Java 27
-- Spring Boot 4.1.1, Hibernate 7.4
+- Spring Boot 4.1.2, Hibernate 7.4
 - PostgreSQL 18, schema `contracts`
 - Flyway (SQL migrations)
 - Docker / docker-compose for the local runtime
