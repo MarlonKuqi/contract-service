@@ -387,7 +387,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 **Décision.**
 - Build multi-étapes :
   1. dépendances Maven en cache ;
-  2. build avec Azul Zulu JDK 27, extraction des couches Spring Boot, puis JRE minimal construit par `jdeps` + `jlink` (`jdk.crypto.ec` ajouté explicitement) ;
+  2. build avec Azul Zulu JDK 27, extraction des couches Spring Boot, puis JRE minimal construit par `jdeps` + `jlink` (`jdk.crypto.ec`, `jdk.jfr` et `jdk.jcmd` ajoutés explicitement) ;
   3. exécution sur `debian:trixie-slim`.
 - Exécution sous un utilisateur non root, healthcheck sur `/actuator/health/liveness`, options JVM adaptées aux conteneurs (`MaxRAMPercentage=75`), profil `prod`.
 - `../docker-compose.yml` : PostgreSQL 18 avec healthcheck et volume persistant ; l'application dans le profil compose `full`.
@@ -395,6 +395,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 
 **Conséquences.**
 - Image réduite et surface d'attaque limitée.
+- JFR, `jcmd` et `jps` restent disponibles pour le diagnostic en production. JFR enregistre en continu dès le démarrage, avec une rétention limitée à 6 h et 500 Mo : les données les plus anciennes sont supprimées, et un `JFR.dump` récupère l'historique sans redémarrage.
 - Le fuseau est fixé dans l'image : `TZ=Europe/Zurich` (ADR-013).
 
 **Statut.** Acceptée.

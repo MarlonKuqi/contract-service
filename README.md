@@ -288,6 +288,55 @@ The `Content-Language` response header echoes the resolved locale. Error message
 
 ---
 
+## 🔍 Profiling with Java Flight Recorder (JFR)
+
+### Enable JFR in IntelliJ
+
+1. Open **Run > Edit Configurations...** and select the application configuration.
+2. If the **VM options** field is hidden, click **Modify options > Add VM options**.
+3. Add the following option, then start the application:
+
+```
+-XX:StartFlightRecording=name=continuous
+```
+
+The console displays `Started recording 1.` when JFR is running.
+
+Options can be combined, separated by commas:
+
+| Option | Description | Example |
+|---|---|---|
+| `name` | Recording name, used by the `jcmd` commands | `name=continuous` |
+| `maxage` | Maximum age of the data kept | `maxage=6h` |
+| `maxsize` | Maximum size of the data kept | `maxsize=500m` |
+| `duration` | Stops the recording after this time | `duration=5m` |
+| `filename` | File written when the recording ends | `filename=recording.jfr` |
+| `settings` | Event configuration: `default` (low overhead) or `profile` (more detail, higher overhead) | `settings=profile` |
+
+For example, to keep at most the last 6 hours and 500 MB of data:
+
+```
+-XX:StartFlightRecording=name=continuous,maxage=6h,maxsize=500m
+```
+
+### Dump a recording
+
+The dump does not stop the application or the recording. Send the requests to analyze first, then find the PID of the application:
+
+```bash
+jps -l
+```
+
+Write the recording to a timestamped file (Bash or Git Bash syntax):
+
+```bash
+jcmd <PID> JFR.dump name=continuous filename=recording-$(date +%Y%m%d-%H%M%S).jfr
+```
+
+A relative path is resolved from the working directory of the application. Open the file with JDK Mission Control, or with IntelliJ IDEA Ultimate through **Run > Open Profiler Snapshot**.
+
+---
+
 ## 🔐 Security Notes
 
 - Every `/v2` endpoint requires a JWT issued by Keycloak for the `contract-service` audience, with the realm role `counselor`; health, info and the OpenAPI documentation are public, every other route is denied ([ADR-017](docs/ADR.md#adr-017--authentification-des-conseillers-par-keycloak))
