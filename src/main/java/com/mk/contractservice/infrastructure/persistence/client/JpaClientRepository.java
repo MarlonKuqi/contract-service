@@ -52,6 +52,7 @@ public class JpaClientRepository implements ClientRepository {
                 () -> new IllegalStateException("Client with id " + id + " not found in database")
         );
         entity.setDeletedAt(deletedAt);
+        jpa.flush();
     }
 
     @Override
@@ -64,6 +65,11 @@ public class JpaClientRepository implements ClientRepository {
     @Override
     public Set<UUID> findExistingIds(final Set<UUID> ids) {
         return jpa.findExistingIds(ids);
+    }
+
+    @Override
+    public Set<UUID> lockExistingIds(final Set<UUID> ids) {
+        return ids.isEmpty() ? Set.of() : jpa.lockExistingIds(ids);
     }
 
     @Override

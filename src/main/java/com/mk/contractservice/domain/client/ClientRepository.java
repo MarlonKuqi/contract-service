@@ -18,6 +18,8 @@ public interface ClientRepository {
 
     Set<UUID> findExistingIds(final Set<UUID> ids);
 
+    Set<UUID> lockExistingIds(final Set<UUID> ids);
+
     void ensureVersion(final UUID id, final long expectedVersion);
 
     boolean existsByCompanyIdentifier(final String companyIdentifier);
