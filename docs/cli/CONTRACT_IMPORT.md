@@ -49,7 +49,7 @@ Codes d'une ligne rejetée : `invalidContractCost`, `invalidContractPeriod`, `cl
 
 ## Changement de configuration
 
-`hibernate.jdbc.batch_size: 50` (`application.yml`). Pour 1000 lignes : 20 lots JDBC au lieu de 1000 exécutions, environ 27 ms au lieu de 296 ms en local (détail dans l'ADR-021).
+`hibernate.jdbc.batch_size: 50` (`application.yml`). Pour 1000 lignes : 20 lots JDBC au lieu de 1000 exécutions, environ 27 ms au lieu de 296 ms en local (détail dans l'ADR-021). Cette valeur est depuis portée à 1000 par l'import asynchrone (ADR-022).
 
 ## Changement de comportement mineur
 
