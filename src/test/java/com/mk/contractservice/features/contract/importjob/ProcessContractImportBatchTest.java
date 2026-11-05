@@ -103,6 +103,31 @@ class ProcessContractImportBatchTest {
     }
 
     @Test
+    @DisplayName("GIVEN several valid lines around a rejected one WHEN processing THEN each imported line keeps its own contract")
+    void shouldLinkEachImportedLineToItsContract() {
+        final UUID firstContractId = UUID.randomUUID();
+        final UUID secondContractId = UUID.randomUUID();
+        when(jobRepository.getById(JOB_ID)).thenReturn(runningJob(3));
+        when(clientRepository.lockExistingIds(Set.of(CLIENT_ID))).thenReturn(Set.of(CLIENT_ID));
+        when(contractRepository.insertAll(anyList())).thenReturn(List.of(persisted(firstContractId), persisted(secondContractId)));
+
+        handler.execute(new ProcessContractImportBatch.Command(JOB_ID, List.of(
+                new RawLine(2, CLIENT_ID + ";;;100.00"),
+                new RawLine(3, CLIENT_ID + ";;;-1"),
+                new RawLine(4, CLIENT_ID + ";;;200.00")
+        )));
+
+        verify(jobRepository).insertLines(linesCaptor.capture());
+        assertThat(linesCaptor.getValue())
+                .filteredOn(line -> line.getContractId() != null)
+                .extracting(ContractImportJobLine::getLineNumber, ContractImportJobLine::getContractId)
+                .containsExactlyInAnyOrder(
+                        tuple(2, firstContractId),
+                        tuple(4, secondContractId)
+                );
+    }
+
+    @Test
     @DisplayName("GIVEN a batch WHEN processing THEN the job records its counters and renews its lease")
     void shouldRecordProgress() {
         when(jobRepository.getById(JOB_ID)).thenReturn(runningJob(5));
