@@ -2,6 +2,7 @@ package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobQueryPort;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.features.shared.InvalidPageRequestException;
@@ -24,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,11 +39,14 @@ class ListContractImportJobRejectionsTest {
     @Mock
     private ContractImportJobRepository jobRepository;
 
+    @Mock
+    private ContractImportJobQueryPort queryPort;
+
     private ListContractImportJobRejections handler;
 
     @BeforeEach
     void setUp() {
-        handler = new ListContractImportJobRejections.Handler(jobRepository);
+        handler = new ListContractImportJobRejections.Handler(jobRepository, queryPort);
     }
 
     @Test
@@ -49,22 +54,21 @@ class ListContractImportJobRejectionsTest {
     void shouldReturnRequestedPage() {
         final Page<ContractImportRejection> page = new PageImpl<>(List.of(ContractImportRejection.reconstituteFromDatabase(
                 3, null, ContractImportRejectionReason.INVALID_LINE_FORMAT, "Unreadable")));
-        when(jobRepository.findRejections(JOB_ID, PageRequest.of(2, 10))).thenReturn(page);
+        when(queryPort.findRejections(JOB_ID, PageRequest.of(2, 10))).thenReturn(page);
 
         assertThat(handler.execute(new ListContractImportJobRejections.Query(JOB_ID, 2, 10))).isSameAs(page);
 
-        verify(jobRepository).getById(JOB_ID);
     }
 
     @Test
     @DisplayName("GIVEN an unknown job WHEN listing THEN it is not found and no rejection is read")
     void shouldNotReadRejectionsOfUnknownJob() {
-        when(jobRepository.getById(JOB_ID)).thenThrow(new ContractImportJobNotFoundException(JOB_ID));
+        doThrow(new ContractImportJobNotFoundException(JOB_ID)).when(jobRepository).ensureExists(JOB_ID);
         final ListContractImportJobRejections.Query query = new ListContractImportJobRejections.Query(JOB_ID, 0, 20);
 
         assertThatThrownBy(() -> handler.execute(query)).isInstanceOf(ContractImportJobNotFoundException.class);
 
-        verify(jobRepository, never()).findRejections(any(), any());
+        verify(queryPort, never()).findRejections(any(), any());
     }
 
     @ParameterizedTest

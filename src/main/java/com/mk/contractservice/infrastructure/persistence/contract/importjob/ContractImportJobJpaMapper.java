@@ -74,7 +74,7 @@ public final class ContractImportJobJpaMapper {
 
     private static @Nullable ContractImportFailureReason failureReasonOf(@Nullable final ContractImportTermination termination) {
         return switch (termination) {
-            case ContractImportTermination.Failed failed -> failed.reason();
+            case ContractImportTermination.Failed(LocalDateTime _, ContractImportFailureReason reason) -> reason;
             case ContractImportTermination.Ended _ -> null;
             case null -> null;
         };

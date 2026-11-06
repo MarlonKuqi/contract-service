@@ -1,8 +1,5 @@
 package com.mk.contractservice.domain.contract.importjob;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
@@ -14,11 +11,11 @@ public sealed interface ContractImportTermination permits ContractImportTerminat
     LocalDateTime finishedAt();
 
     static Ended ended(@Nullable final LocalDateTime now) {
-        return new Ended(notNull(now));
+        return new Ended(now);
     }
 
     static Failed failed(@Nullable final ContractImportFailureReason reason, @Nullable final LocalDateTime now) {
-        return new Failed(notNull(now), notNull(reason));
+        return new Failed(now, reason);
     }
 
     static ContractImportTermination reconstituteFromDatabase(
@@ -28,19 +25,18 @@ public sealed interface ContractImportTermination permits ContractImportTerminat
         return failureReason == null ? ended(finishedAt) : failed(failureReason, finishedAt);
     }
 
-    @Value
-    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    class Ended implements ContractImportTermination {
+    record Ended(LocalDateTime finishedAt) implements ContractImportTermination {
 
-        LocalDateTime finishedAt;
+        public Ended {
+            notNull(finishedAt);
+        }
     }
 
-    @Value
-    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    class Failed implements ContractImportTermination {
+    record Failed(LocalDateTime finishedAt, ContractImportFailureReason reason) implements ContractImportTermination {
 
-        LocalDateTime finishedAt;
-
-        ContractImportFailureReason reason;
+        public Failed {
+            notNull(finishedAt);
+            notNull(reason);
+        }
     }
 }

@@ -9,7 +9,7 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportTerminatio
 import com.mk.contractservice.domain.contract.importjob.IdempotencyKey;
 import com.mk.contractservice.domain.contract.importjob.exception.IdempotencyKeyReusedException;
 import com.mk.contractservice.domain.contract.importjob.exception.InvalidIdempotencyKeyException;
-import com.mk.contractservice.domain.contract.importjob.exception.InvalidImportFileException;
+import com.mk.contractservice.features.shared.InvalidImportFileException;
 import com.mk.contractservice.features.shared.ContractImportCsv;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

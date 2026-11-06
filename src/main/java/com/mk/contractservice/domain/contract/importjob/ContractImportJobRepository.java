@@ -19,6 +19,8 @@ public interface ContractImportJobRepository {
 
     ContractImportJob getById(UUID jobId);
 
+    void ensureExists(UUID jobId);
+
     ContractImportJob getByIdForUpdate(UUID jobId);
 
     Optional<ContractImportJob> findByIdempotencyKey(String submittedBy, IdempotencyKey idempotencyKey);
@@ -30,6 +32,4 @@ public interface ContractImportJobRepository {
     byte[] loadFile(UUID jobId);
 
     void insertLines(List<ContractImportJobLine> lines);
-
-    Page<ContractImportRejection> findRejections(UUID jobId, Pageable pageable);
 }

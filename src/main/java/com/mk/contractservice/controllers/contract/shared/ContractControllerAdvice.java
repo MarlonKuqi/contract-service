@@ -15,7 +15,7 @@ import com.mk.contractservice.domain.contract.exception.ContractNotFoundExceptio
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
-import com.mk.contractservice.domain.contract.importjob.exception.InvalidImportFileException;
+import com.mk.contractservice.features.shared.InvalidImportFileException;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.DomainValidationException;
@@ -99,11 +99,7 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
                 "No contract was created. Fix the rejected lines and send the whole import again.",
                 "contractImportRejected");
         problemDetail.setProperty("rejections", ex.rejections().stream()
-                .map(rejection -> Map.of(
-                        "index", rejection.index(),
-                        "clientId", rejection.clientId(),
-                        "code", rejection.reason().code(),
-                        "message", rejection.message()))
+                .map(ContractImportLineRejectionResponse::from)
                 .toList());
         return respond(problemDetail);
     }

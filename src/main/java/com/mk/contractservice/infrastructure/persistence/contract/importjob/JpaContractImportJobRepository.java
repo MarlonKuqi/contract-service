@@ -4,7 +4,6 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
-import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
 import com.mk.contractservice.domain.contract.importjob.IdempotencyKey;
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import jakarta.persistence.EntityManager;
@@ -58,6 +57,13 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
     }
 
     @Override
+    public void ensureExists(final UUID jobId) {
+        if (!jobJpaRepository.existsById(jobId)) {
+            throw new ContractImportJobNotFoundException(jobId);
+        }
+    }
+
+    @Override
     public ContractImportJob getByIdForUpdate(final UUID jobId) {
         return jobJpaRepository.findForUpdate(jobId)
                 .map(ContractImportJobJpaMapper::toDomain)
@@ -96,11 +102,5 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
     @Override
     public void insertLines(final List<ContractImportJobLine> lines) {
         lines.forEach(line -> entityManager.persist(ContractImportJobJpaMapper.toLineEntity(line)));
-    }
-
-    @Override
-    public Page<ContractImportRejection> findRejections(final UUID jobId, final Pageable pageable) {
-        return lineJpaRepository.findRejections(jobId, pageable)
-                .map(ContractImportJobJpaMapper::toDomainRejection);
     }
 }

@@ -1,6 +1,7 @@
 package com.mk.contractservice.controllers.contract.shared;
 
 import com.mk.contractservice.domain.contract.importjob.ContractImportCancellation;
+import com.mk.contractservice.domain.contract.importjob.ContractImportFailureReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
 import com.mk.contractservice.domain.contract.importjob.ContractImportProgress;
@@ -82,7 +83,7 @@ public record ContractImportJobResponse(
 
     private static @Nullable String failureCodeOf(@Nullable final ContractImportTermination termination) {
         return switch (termination) {
-            case ContractImportTermination.Failed failed -> failed.reason().code();
+            case ContractImportTermination.Failed(LocalDateTime _, ContractImportFailureReason reason) -> ContractImportCodes.of(reason);
             case ContractImportTermination.Ended _ -> null;
             case null -> null;
         };

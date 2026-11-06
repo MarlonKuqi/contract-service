@@ -19,7 +19,7 @@ public final class ContractImportRejectionCsv {
         final StringBuilder csv = new StringBuilder(HEADER).append(LINE_END);
         for (final RejectedLine line : lines) {
             csv.append(line.lineNumber()).append(SEPARATOR)
-                    .append(line.reason().code()).append(SEPARATOR)
+                    .append(ContractImportCodes.of(line.reason())).append(SEPARATOR)
                     .append(quoted(line.message())).append(SEPARATOR)
                     .append(quoted(line.line())).append(LINE_END);
         }

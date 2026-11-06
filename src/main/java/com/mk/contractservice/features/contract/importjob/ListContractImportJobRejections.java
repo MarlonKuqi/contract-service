@@ -1,6 +1,7 @@
 package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobQueryPort;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.PageBounds;
@@ -37,11 +38,12 @@ public interface ListContractImportJobRejections {
     class Handler implements ListContractImportJobRejections {
 
         private final ContractImportJobRepository jobRepository;
+        private final ContractImportJobQueryPort queryPort;
 
         @Override
         public Page<ContractImportRejection> execute(final Query query) {
-            jobRepository.getById(query.jobId());
-            return jobRepository.findRejections(query.jobId(), query.pageable());
+            jobRepository.ensureExists(query.jobId());
+            return queryPort.findRejections(query.jobId(), query.pageable());
         }
     }
 }

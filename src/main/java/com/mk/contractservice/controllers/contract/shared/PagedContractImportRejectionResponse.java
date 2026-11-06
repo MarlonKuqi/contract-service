@@ -47,7 +47,7 @@ public record PagedContractImportRejectionResponse(
                         .map(rejection -> new Rejection(
                                 rejection.lineNumber(),
                                 rejection.clientId(),
-                                rejection.reason().code(),
+                                ContractImportCodes.of(rejection.reason()),
                                 rejection.message()))
                         .toList(),
                 page.getNumber(),
