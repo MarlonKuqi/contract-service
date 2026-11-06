@@ -34,6 +34,8 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 - `POST /v2/contracts` - Create contract (`clientId` in the body)
 - `GET /v2/contracts?clientId={clientId}` - List active contracts (paginated)
 - `GET /v2/contracts?clientId={clientId}&updatedSince=...` - Filter by update date
+- `GET /v2/contracts/export` - Export active contracts of all clients (cursor)
+- `POST /v2/contracts/imports` - Import up to 1000 contracts, all or nothing (ADR-021)
 - `GET /v2/contracts/{contractId}` - Get specific contract
 - `PATCH /v2/contracts/{contractId}/cost` - Update cost
 - `GET /v2/contracts/total?clientId={clientId}` - Sum of active contracts
@@ -174,6 +176,13 @@ Chaque collection définit ses propres variables :
 1. Modifier la variable `contractId` avec l'UUID du contrat
 2. Exécuter "Update Contract Cost"
 
+### Importer des Contrats en Masse
+
+1. Modifier la variable `clientId` avec l'UUID copié
+2. Exécuter "Import Contracts"
+3. `201` : tous les contrats sont créés (`contractIds`, dans l'ordre des lignes). Ne pas renvoyer l'import.
+4. `422 contractImportRejected` : rien n'est créé. Corriger les lignes listées dans `rejections`, puis renvoyer tout l'import.
+
 ### Calculer la Somme
 
 1. Exécuter "Get Sum of Active Contracts"
@@ -217,11 +226,11 @@ Les variables `clientId` et `contractId` doivent être **manuellement copiées**
 ```
 api-collections/
 ├── ClientController.postman_collection.json        (9 requêtes)
-├── ContractController.postman_collection.json      (8 requêtes)
+├── ContractController.postman_collection.json      (10 requêtes)
 └── README.md
 ```
 
-**Total : 17 requêtes réparties dans 2 fichiers**
+**Total : 19 requêtes réparties dans 2 fichiers**
 
 ---
 

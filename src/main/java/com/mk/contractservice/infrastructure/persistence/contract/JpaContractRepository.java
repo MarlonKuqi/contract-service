@@ -45,6 +45,16 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
+    public List<Contract> insertAll(final List<Contract> contracts) {
+        final List<ContractJpaEntity> entities = contracts.stream()
+                .map(ContractJpaMapper::toNewEntity)
+                .toList();
+        return contractJpaRepository.saveAll(entities).stream()
+                .map(ContractJpaMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public Contract getById(final UUID id) {
         return contractJpaRepository.findById(id)
                 .map(ContractJpaMapper::toDomain)

@@ -10,6 +10,8 @@ spring:
     properties:
       hibernate:
         default_schema: contracts
+        jdbc:
+          batch_size: 50
   flyway:
     enabled: true
     locations: classpath:db/migration

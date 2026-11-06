@@ -32,7 +32,7 @@ public class ContractJpaEntity {
 
     @Version
     @Column(name = "version", nullable = false)
-    private Long version = 0L;
+    private Long version;
 
     @Nullable
     @Column(name = "client_id")
