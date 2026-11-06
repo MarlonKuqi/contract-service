@@ -1,12 +1,14 @@
 package com.mk.contractservice.infrastructure.persistence.contract.importjob;
 
-import com.mk.contractservice.domain.contract.exception.ContractImportJobNotFoundException;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.IdempotencyKey;
+import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,28 +30,51 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
 
     @Override
     public ContractImportJob insert(final ContractImportJob job, final byte[] fileContent) {
-        final ContractImportJobJpaEntity entity = new ContractImportJobJpaEntity(job.getFileName(), job.getTotalLines(), job.getCreatedAt());
-        mergeIntoExisting(job, entity);
+        final ContractImportJobJpaEntity entity = ContractImportJobJpaMapper.toNewEntity(job);
         entityManager.persist(entity);
         entityManager.persist(new ContractImportJobFileJpaEntity(entity.getId(), fileContent));
-        return toDomain(entity);
+        return ContractImportJobJpaMapper.toDomain(entity);
     }
 
     @Override
     public ContractImportJob save(final ContractImportJob job) {
         final UUID jobId = job.getId();
+        if (jobId == null) {
+            throw new IllegalStateException("Import job must be inserted before it is saved");
+        }
         final ContractImportJobJpaEntity entity = jobJpaRepository.findById(jobId).orElseThrow(
                 () -> new IllegalStateException("Import job with id " + jobId + " not found in database")
         );
-        mergeIntoExisting(job, entity);
-        return toDomain(entity);
+        ContractImportJobJpaMapper.mergeIntoExisting(job, entity);
+        return ContractImportJobJpaMapper.toDomain(entity);
     }
 
     @Override
     public ContractImportJob getById(final UUID jobId) {
         return jobJpaRepository.findById(jobId)
-                .map(JpaContractImportJobRepository::toDomain)
+                .map(ContractImportJobJpaMapper::toDomain)
                 .orElseThrow(() -> new ContractImportJobNotFoundException(jobId));
+    }
+
+    @Override
+    public ContractImportJob getByIdForUpdate(final UUID jobId) {
+        return jobJpaRepository.findForUpdate(jobId)
+                .map(ContractImportJobJpaMapper::toDomain)
+                .orElseThrow(() -> new ContractImportJobNotFoundException(jobId));
+    }
+
+    @Override
+    public Optional<ContractImportJob> findByIdempotencyKey(final String submittedBy, final IdempotencyKey idempotencyKey) {
+        return jobJpaRepository.findBySubmittedByAndIdempotencyKey(submittedBy, idempotencyKey.getValue())
+                .map(ContractImportJobJpaMapper::toDomain);
+    }
+
+    @Override
+    public Page<ContractImportJob> findAll(@Nullable final String submittedBy, final Pageable pageable) {
+        final Page<ContractImportJobJpaEntity> page = submittedBy == null
+                ? jobJpaRepository.findAll(pageable)
+                : jobJpaRepository.findBySubmittedBy(submittedBy, pageable);
+        return page.map(ContractImportJobJpaMapper::toDomain);
     }
 
     @Override
@@ -57,7 +82,7 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
         return jobJpaRepository.findToRun(ContractImportJobStatus.PENDING, ContractImportJobStatus.RUNNING, now, Limit.of(1))
                 .stream()
                 .findFirst()
-                .map(JpaContractImportJobRepository::toDomain);
+                .map(ContractImportJobJpaMapper::toDomain);
     }
 
     @Override
@@ -69,50 +94,12 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
 
     @Override
     public void insertLines(final List<ContractImportJobLine> lines) {
-        lines.forEach(line -> entityManager.persist(new ContractImportJobLineJpaEntity(
-                new ContractImportJobLineJpaEntity.LineId(line.getJobId(), line.getLineNumber()),
-                line.getClientId(),
-                line.getContractId(),
-                line.getRejectionReason(),
-                line.getRejectionMessage()
-        )));
+        lines.forEach(line -> entityManager.persist(ContractImportJobJpaMapper.toLineEntity(line)));
     }
 
     @Override
     public Page<ContractImportJobLine> findRejections(final UUID jobId, final Pageable pageable) {
         return lineJpaRepository.findRejections(jobId, pageable)
-                .map(line -> ContractImportJobLine.rejected(
-                        line.getId().getJobId(),
-                        line.getId().getLineNumber(),
-                        line.getClientId(),
-                        line.getRejectionReason(),
-                        line.getRejectionMessage()
-                ));
-    }
-
-    private static void mergeIntoExisting(final ContractImportJob job, final ContractImportJobJpaEntity entity) {
-        entity.setStatus(job.getStatus());
-        entity.setProcessedLines(job.getProcessedLines());
-        entity.setImportedCount(job.getImportedCount());
-        entity.setRejectedCount(job.getRejectedCount());
-        entity.setLeaseUntil(job.getLeaseUntil());
-        entity.setFinishedAt(job.getFinishedAt());
-        entity.setFailureReason(job.getFailureReason());
-    }
-
-    private static ContractImportJob toDomain(final ContractImportJobJpaEntity entity) {
-        return ContractImportJob.reconstituteFromDatabase(
-                entity.getId(),
-                entity.getFileName(),
-                entity.getStatus(),
-                entity.getTotalLines(),
-                entity.getProcessedLines(),
-                entity.getImportedCount(),
-                entity.getRejectedCount(),
-                entity.getLeaseUntil(),
-                entity.getCreatedAt(),
-                entity.getFinishedAt(),
-                entity.getFailureReason()
-        );
+                .map(ContractImportJobJpaMapper::toDomainRejection);
     }
 }

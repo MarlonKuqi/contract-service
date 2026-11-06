@@ -1,7 +1,8 @@
 package com.mk.contractservice.features.contract.importjob;
 
-import com.mk.contractservice.domain.contract.exception.ContractImportJobNotFoundException;
+import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +38,7 @@ class GetContractImportJobTest {
     @Test
     @DisplayName("GIVEN an existing job WHEN getting it THEN it is returned")
     void shouldReturnJob() {
-        final ContractImportJob job = ContractImportJob.of("contracts.csv", 1, NOW);
+        final ContractImportJob job = ContractImportJobFixtures.pendingJob(1, NOW);
         when(jobRepository.getById(JOB_ID)).thenReturn(job);
 
         assertThat(handler.execute(new GetContractImportJob.Query(JOB_ID))).isSameAs(job);

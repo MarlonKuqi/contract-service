@@ -1,4 +1,4 @@
-package com.mk.contractservice.domain.contract.exception;
+package com.mk.contractservice.domain.contract.importjob.exception;
 
 import java.util.UUID;
 

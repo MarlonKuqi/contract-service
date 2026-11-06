@@ -1,6 +1,7 @@
 package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.ContractImportFailureReason;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +34,11 @@ public interface FailContractImportJob {
         @Override
         public void execute(final Command command) {
             final LocalDateTime now = LocalDateTime.now(clock);
-            jobRepository.save(jobRepository.getById(command.jobId()).fail(command.reason(), now));
+            final ContractImportJob loaded = jobRepository.getById(command.jobId());
+            final ContractImportJob failed = loaded.fail(command.reason(), now);
+            if (failed != loaded) {
+                jobRepository.save(failed);
+            }
         }
     }
 }

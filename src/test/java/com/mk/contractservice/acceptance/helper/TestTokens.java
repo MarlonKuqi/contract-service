@@ -28,6 +28,7 @@ public final class TestTokens {
     public static final String ISSUER = "https://keycloak.test/realms/contract-service";
     public static final String AUDIENCE = "contract-service";
     public static final String COUNSELOR_ROLE = "counselor";
+    public static final String DEFAULT_USERNAME = "counselor.test";
 
     private static final KeyPair KEY_PAIR = generateKeyPair();
     private static final NimbusJwtEncoder ENCODER = new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(
@@ -62,6 +63,7 @@ public final class TestTokens {
         private Instant expiresAt = Instant.now().plus(Duration.ofMinutes(5));
         private List<String> realmRoles = List.of();
         private Map<String, Object> resourceAccess = Map.of();
+        private String username = DEFAULT_USERNAME;
 
         public Builder issuer(final String issuer) {
             this.issuer = issuer;
@@ -83,6 +85,11 @@ public final class TestTokens {
             return this;
         }
 
+        public Builder username(final String username) {
+            this.username = username;
+            return this;
+        }
+
         public Builder clientRoles(final String clientId, final String... roles) {
             this.resourceAccess = Map.of(clientId, Map.of("roles", List.of(roles)));
             return this;
@@ -97,6 +104,7 @@ public final class TestTokens {
                     .expiresAt(expiresAt)
                     .claim("realm_access", Map.of("roles", realmRoles))
                     .claim("resource_access", resourceAccess)
+                    .claim("preferred_username", username)
                     .build();
             final JwsHeader header = JwsHeader.with(SignatureAlgorithm.RS256).keyId("test-key").build();
             return ENCODER.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

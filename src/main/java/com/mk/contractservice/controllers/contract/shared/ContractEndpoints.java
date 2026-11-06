@@ -25,6 +25,8 @@ public final class ContractEndpoints {
     // Relative paths (for use in import jobs controller that already have import-jobs as a base path)
     public static final String RELATIVE_CONTRACT_IMPORT_JOB = "/{" + JOB_ID + "}";
     public static final String RELATIVE_CONTRACT_IMPORT_JOB_REJECTIONS = RELATIVE_CONTRACT_IMPORT_JOB + "/rejections";
+    public static final String RELATIVE_CONTRACT_IMPORT_JOB_REJECTIONS_EXPORT = RELATIVE_CONTRACT_IMPORT_JOB_REJECTIONS + "/export";
+    public static final String RELATIVE_CONTRACT_IMPORT_JOB_CANCELLATION = RELATIVE_CONTRACT_IMPORT_JOB + "/cancellation";
 
     // Composed paths (full paths for tests and API documentation)
     public static final String CONTRACT_BY_ID = CONTRACTS_BASE + PATH_VAR_CONTRACT_ID;

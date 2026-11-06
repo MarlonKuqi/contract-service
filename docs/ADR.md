@@ -698,6 +698,9 @@ choisit explicitement l'un ou l'autre endpoint, sans bascule automatique selon l
   - `GET /v2/contracts/import-jobs/{jobId}` : statut, nom du fichier et compteurs ;
   - `GET /v2/contracts/import-jobs/{jobId}/rejections?page&size` : rejets paginés, triés par ligne (bornes de
     l'ADR-018).
+  - `GET /v2/contracts/import-jobs?submittedBy&page&size` : jobs du plus récent au plus ancien, avec leur auteur ;
+  - `POST /v2/contracts/import-jobs/{jobId}/cancellation` : annule le job et ferme ses contrats ;
+  - `GET /v2/contracts/import-jobs/{jobId}/rejections/export` : rejets en CSV, avec leur ligne d'origine.
 - **Un seul contrôleur.** `ContractImportJobController` porte les trois endpoints, par exception à la règle « un
   contrôleur par endpoint » : ils forment une seule ressource et partagent ses erreurs.
 - **Format CSV.** UTF-8, BOM toléré, séparateur `;` (celui d'Excel en Suisse et en France), en-tête obligatoire
@@ -766,6 +769,18 @@ choisit explicitement l'un ou l'autre endpoint, sans bascule automatique selon l
   `JpaClientRepository.delete` fait donc un `flush`. La course de l'import synchrone et de `CreateContract`, qui lisent
   sans verrou, reste celle décrite dans l'ADR-021.
 - **Pas de version attendue** (ADR-011) : le traitement ne dépend pas d'un état lu par l'utilisateur.
+- **Auteur d'un job.** La soumission enregistre le `preferred_username` du jeton dans `submitted_by`, ou son `sub` s'il n'en a pas. L'annulation enregistre de même `cancelled_by`. Les jobs soumis avant cet ajout ont un auteur `null`. La liste montre les jobs de tous les conseillers, avec un filtre facultatif `submittedBy` : aucune règle de propriété, comme dans le reste de l'API (ADR-017).
+- **Idempotence de la soumission.** Sans protection, une double soumission (double clic, nouvel essai après un timeout, réponse `202` perdue) importe deux fois tout le fichier. L'en-tête facultatif `Idempotency-Key` (255 caractères au plus) est unique par auteur, garanti par l'index unique partiel `(submitted_by, idempotency_key)`.
+  - même clé et même fichier : `202` avec le job déjà créé et son `Location`, sans nouveau job ;
+  - même clé et autre fichier : `422 idempotencyKeyReused`. Le fichier est comparé par son empreinte SHA-256 (`content_sha256`), calculée à chaque soumission et rétro-calculée par la migration pour les jobs existants ;
+  - clé vide ou trop longue : `400 invalidIdempotencyKey` ;
+  - deux soumissions simultanées avec la même clé : la seconde viole l'index unique et reçoit `409 dataIntegrityViolation`. Un nouvel essai renvoie alors le job créé par la première.
+  - Sans clé, rien ne change. La rendre obligatoire (`428`, comme `If-Match`) casserait les appelants existants. Les clés n'expirent pas.
+- **Annulation.** `POST /v2/contracts/import-jobs/{jobId}/cancellation` annule un job dans n'importe quel état. Un job `FAILED` n'est pas relancé : comme il est déjà importé en partie, le conseiller l'annule, puis soumet un fichier corrigé, sans doublon actif.
+  - Les contrats du job encore actifs sont fermés à l'instant de l'annulation (`end_date = last_modified = cancelled_at`, `version` incrémentée comme toute mise à jour en masse, ADR-011). Ce sont des contrats annulés au sens de l'ADR-009 : ils sortent de la liste et des totaux, et restent lisibles. Ils sont retrouvés par `contract_import_job_line.contract_id`. Un contrat déjà fermé (expiré, client supprimé) n'est pas touché ; un contrat dont le coût a changé depuis l'import est fermé quand même.
+  - Une seconde annulation ne change rien et renvoie `closedContracts = 0`. Pas de `If-Match` (ADR-011) : le résultat ne dépend pas d'un état lu par le conseiller.
+  - Pendant un chunk : l'annulation verrouille la ligne du job (`SELECT ... FOR UPDATE`) avant de fermer les contrats. Un chunk déjà commité voit ses contrats fermés. Un chunk en cours ne peut plus rien commiter : s'il relit le job annulé, `recordBatch` lève `ContractImportJobCancelledException` ; s'il l'avait lu avant, sa mise à jour du job échoue sur `@Version`. Dans les deux cas sa transaction est annulée. `finish`, `release` et `fail` laissent un job annulé tel quel, et le listener reconnaît l'annulation. Spring Batch journalise quand même l'arrêt du step en erreur.
+- **Export des rejets.** `GET /v2/contracts/import-jobs/{jobId}/rejections/export` renvoie un CSV `lineNumber;rejectionCode;rejectionMessage;line`, trié par ligne. La colonne `line` est relue dans le fichier stocké : aucune migration. Les colonnes de texte sont entre guillemets, car le message et la ligne d'origine contiennent des `;`. Le conseiller corrige la ligne et la recopie dans un nouveau fichier. L'export est construit en mémoire : quelques dizaines de Mo au pire, pour un fichier de 50 Mo entièrement rejeté. Acceptable à cette échelle ; au-delà, il faudrait le diffuser en flux.
 
 **Performance : ce qui est retenu, et pourquoi.** `CHUNK_SIZE = 2000`, `hibernate.jdbc.batch_size: 1000` et
 `reWriteBatchedInserts: true` (propriété de pgjdbc, via `spring.datasource.hikari.data-source-properties`).
@@ -818,6 +833,9 @@ Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des 
 - Limite : un worker vivant dont un chunk dépasse le bail de 5 minutes voit son job repris par un autre worker. Son
   chunk en cours est perdu (annulé) et le worker remplaçant continue. `ContractImportJobRecoveryAcceptanceTest` couvre ce cas.
 - Migration `V2.0.0.8` : `failure_reason` sur `contract_import_job`, exposé en `failureCode` par l'API.
+- Migration `V2.0.0.9` : `submitted_by`, `idempotency_key`, `content_sha256` (calculée pour les jobs existants), `cancelled_at`, `cancelled_by`, statut `CANCELLED` et index unique partiel de l'idempotence.
+- CORS : `Idempotency-Key` est autorisé, `Content-Disposition` exposé.
+- La purge des fichiers, si elle arrive, devra les garder tant que les rejets peuvent être exportés.
 - `contract_import_job_line.contract_id` référence `contract` : les tests suppriment les jobs avant les contrats.
 - Le worker est désactivé dans le profil `test` (`app.contract-import.worker-enabled`) et activé seulement par les tests
   qui le visent : sinon chaque contexte Spring en cache aurait son propre worker, avec une horloge parfois modifiée.

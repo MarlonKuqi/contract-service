@@ -1,5 +1,6 @@
 package com.mk.contractservice.batch;
 
+import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobCancelledException;
 import com.mk.contractservice.domain.contract.importjob.ContractImportFailureReason;
 import com.mk.contractservice.features.contract.importjob.FailContractImportJob;
 import com.mk.contractservice.features.contract.importjob.FinishContractImportJob;
@@ -47,6 +48,10 @@ public class ContractImportJobOutcomeListener implements JobExecutionListener {
     }
 
     private void onFailure(final UUID jobId, final JobExecution jobExecution) {
+        if (jobExecution.getAllFailureExceptions().stream().anyMatch(ContractImportJobOutcomeListener::isCancellation)) {
+            log.info("Import job {} was cancelled, its execution stops here", jobId);
+            return;
+        }
         if (jobExecution.getAllFailureExceptions().stream().anyMatch(ContractImportJobOutcomeListener::isTransient)) {
             log.warn("Import job {} hit a transient error, it goes back to the queue: {}", jobId, jobExecution.getAllFailureExceptions());
             releaseContractImportJob.execute(new ReleaseContractImportJob.Command(jobId));
@@ -54,6 +59,15 @@ public class ContractImportJobOutcomeListener implements JobExecutionListener {
         }
         log.error("Import job {} ended with status {}: {}", jobId, jobExecution.getStatus(), jobExecution.getAllFailureExceptions());
         failContractImportJob.execute(new FailContractImportJob.Command(jobId, ContractImportFailureReason.UNEXPECTED_ERROR));
+    }
+
+    private static boolean isCancellation(final Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ContractImportJobCancelledException) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isTransient(final Throwable failure) {

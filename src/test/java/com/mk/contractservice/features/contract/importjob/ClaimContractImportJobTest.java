@@ -1,6 +1,7 @@
 package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +35,7 @@ class ClaimContractImportJobTest {
     @Test
     @DisplayName("GIVEN a job to run WHEN claiming THEN it runs under a new lease")
     void shouldClaimUnderLease() {
-        when(jobRepository.findNextToRun(NOW)).thenReturn(Optional.of(ContractImportJob.of("contracts.csv", 1, LocalDateTime.now(CLOCK))));
+        when(jobRepository.findNextToRun(NOW)).thenReturn(Optional.of(ContractImportJobFixtures.pendingJob(1, LocalDateTime.now(CLOCK))));
         when(jobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         final Optional<ContractImportJob> claimed = new ClaimContractImportJob.Handler(jobRepository, CLOCK).execute();
@@ -49,7 +50,7 @@ class ClaimContractImportJobTest {
     void shouldKeepLeaseDurationAcrossClockChange() {
         final Instant duringRepeatedHour = Instant.parse("2026-10-25T00:58:00Z");
         final Clock clock = Clock.fixed(duringRepeatedHour, ZoneId.of("Europe/Zurich"));
-        when(jobRepository.findNextToRun(duringRepeatedHour)).thenReturn(Optional.of(ContractImportJob.of("contracts.csv", 1, LocalDateTime.now(clock))));
+        when(jobRepository.findNextToRun(duringRepeatedHour)).thenReturn(Optional.of(ContractImportJobFixtures.pendingJob(1, LocalDateTime.now(clock))));
         when(jobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         final Optional<ContractImportJob> claimed = new ClaimContractImportJob.Handler(jobRepository, clock).execute();

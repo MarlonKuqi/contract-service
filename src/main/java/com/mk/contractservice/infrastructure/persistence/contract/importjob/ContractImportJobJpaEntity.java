@@ -71,9 +71,38 @@ public class ContractImportJobJpaEntity {
     @Column(name = "failure_reason")
     private ContractImportFailureReason failureReason;
 
-    public ContractImportJobJpaEntity(final String fileName, final int totalLines, final LocalDateTime createdAt) {
+    @Nullable
+    @Column(name = "submitted_by", updatable = false)
+    private String submittedBy;
+
+    @Nullable
+    @Column(name = "idempotency_key", updatable = false)
+    private String idempotencyKey;
+
+    @Column(name = "content_sha256", nullable = false, updatable = false, length = 64)
+    private String contentSha256;
+
+    @Nullable
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @Nullable
+    @Column(name = "cancelled_by")
+    private String cancelledBy;
+
+    public ContractImportJobJpaEntity(
+            final String fileName,
+            final int totalLines,
+            final LocalDateTime createdAt,
+            @Nullable final String submittedBy,
+            @Nullable final String idempotencyKey,
+            final String contentSha256
+    ) {
         this.fileName = fileName;
         this.totalLines = totalLines;
         this.createdAt = createdAt;
+        this.submittedBy = submittedBy;
+        this.idempotencyKey = idempotencyKey;
+        this.contentSha256 = contentSha256;
     }
 }

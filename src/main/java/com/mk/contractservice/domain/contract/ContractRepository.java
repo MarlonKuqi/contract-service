@@ -34,4 +34,6 @@ public interface ContractRepository {
     List<Contract> findActiveAfter(LocalDateTime activeAt, @Nullable UUID afterId, int limit);
 
     int closeAllActiveByClientId(UUID clientId, LocalDateTime closureDate);
+
+    int closeAllActiveImportedBy(UUID importJobId, LocalDateTime closureDate);
 }

@@ -7,13 +7,15 @@ import com.mk.contractservice.controllers.contract.ImportContractsController;
 import com.mk.contractservice.controllers.contract.PatchContractCostController;
 import com.mk.contractservice.controllers.contract.SearchContractController;
 import com.mk.contractservice.controllers.shared.BaseControllerAdvice;
-import com.mk.contractservice.domain.contract.exception.ContractImportJobNotFoundException;
+import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
+import com.mk.contractservice.domain.contract.importjob.exception.IdempotencyKeyReusedException;
+import com.mk.contractservice.domain.contract.importjob.exception.InvalidIdempotencyKeyException;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
-import com.mk.contractservice.domain.contract.exception.InvalidImportFileException;
+import com.mk.contractservice.domain.contract.importjob.exception.InvalidImportFileException;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.DomainValidationException;
@@ -128,6 +130,22 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
 
         return respond(problem(HttpStatus.BAD_REQUEST, "Missing Required Parameter",
                 "Required part '" + ex.getRequestPartName() + "' is missing", "missingParameter"));
+    }
+
+    @ExceptionHandler(InvalidIdempotencyKeyException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidIdempotencyKey(InvalidIdempotencyKeyException ex) {
+        log.debug("Invalid idempotency key: {}", ex.getMessage());
+
+        return respond(problem(HttpStatus.BAD_REQUEST, "Invalid Idempotency Key",
+                ex.getMessage(), "invalidIdempotencyKey"));
+    }
+
+    @ExceptionHandler(IdempotencyKeyReusedException.class)
+    public ResponseEntity<ProblemDetail> handleIdempotencyKeyReused(IdempotencyKeyReusedException ex) {
+        log.debug("Idempotency key reused: {}", ex.getMessage());
+
+        return respond(problem(HttpStatus.UNPROCESSABLE_CONTENT, "Idempotency Key Reused",
+                ex.getMessage(), "idempotencyKeyReused"));
     }
 
     @ExceptionHandler(ContractImportJobNotFoundException.class)

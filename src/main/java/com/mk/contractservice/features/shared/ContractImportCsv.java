@@ -1,6 +1,6 @@
 package com.mk.contractservice.features.shared;
 
-import com.mk.contractservice.domain.contract.exception.InvalidImportFileException;
+import com.mk.contractservice.domain.contract.importjob.exception.InvalidImportFileException;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -11,9 +11,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.HashMap;
+import java.util.HexFormat;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -36,7 +42,7 @@ public final class ContractImportCsv {
         public Optional<UUID> clientIdIfReadable() {
             try {
                 return Optional.of(UUID.fromString(columns()[CLIENT_ID]));
-            } catch (final IllegalArgumentException ex) {
+            } catch (final IllegalArgumentException _) {
                 return Optional.empty();
             }
         }
@@ -108,8 +114,32 @@ public final class ContractImportCsv {
                 throw new InvalidImportFileException("The file must contain at least one contract");
             }
             return dataLines;
-        } catch (final IOException ex) {
+        } catch (final IOException _) {
             throw new InvalidImportFileException("The file must be encoded in UTF-8");
+        }
+    }
+
+    public static Map<Integer, String> linesAt(final byte[] content, final Set<Integer> lineNumbers) {
+        final Map<Integer, String> lines = new HashMap<>();
+        try (BufferedReader reader = readerOf(content)) {
+            int lineNumber = 1;
+            for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+                if (lineNumbers.contains(lineNumber)) {
+                    lines.put(lineNumber, line);
+                }
+                lineNumber++;
+            }
+            return lines;
+        } catch (final IOException ex) {
+            throw new IllegalStateException("The stored file can no longer be read", ex);
+        }
+    }
+
+    public static String fingerprintOf(final byte[] content) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content));
+        } catch (final NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available", ex);
         }
     }
 

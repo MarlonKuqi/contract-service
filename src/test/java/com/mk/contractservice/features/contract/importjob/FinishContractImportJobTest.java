@@ -2,6 +2,7 @@ package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.ContractImportFailureReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +20,8 @@ import java.time.ZoneId;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,8 +39,7 @@ class FinishContractImportJobTest {
     private ArgumentCaptor<ContractImportJob> jobCaptor;
 
     private ContractImportJob runningJob(final int processedLines) {
-        return ContractImportJob.reconstituteFromDatabase(JOB_ID, "contracts.csv", ContractImportJobStatus.RUNNING,
-                2, processedLines, processedLines, 0, CLOCK.instant(), NOW, null, null);
+        return ContractImportJobFixtures.runningJob(JOB_ID, 2, processedLines, 0, CLOCK.instant(), NOW);
     }
 
     @Test
@@ -49,7 +51,7 @@ class FinishContractImportJobTest {
 
         verify(jobRepository).save(jobCaptor.capture());
         assertThat(jobCaptor.getValue().getStatus()).isEqualTo(ContractImportJobStatus.COMPLETED);
-        assertThat(jobCaptor.getValue().getFinishedAt()).isEqualTo(NOW);
+        assertThat(jobCaptor.getValue().getTermination().getFinishedAt()).isEqualTo(NOW);
     }
 
     @Test
@@ -61,6 +63,16 @@ class FinishContractImportJobTest {
 
         verify(jobRepository).save(jobCaptor.capture());
         assertThat(jobCaptor.getValue().getStatus()).isEqualTo(ContractImportJobStatus.FAILED);
-        assertThat(jobCaptor.getValue().getFailureReason()).isEqualTo(ContractImportFailureReason.INCOMPLETE_PROCESSING);
+        assertThat(jobCaptor.getValue().getTermination().getFailureReason()).isEqualTo(ContractImportFailureReason.INCOMPLETE_PROCESSING);
+    }
+
+    @Test
+    @DisplayName("GIVEN a job cancelled while it ran WHEN finishing it THEN it stays cancelled and nothing is saved")
+    void shouldKeepCancelledJob() {
+        when(jobRepository.getById(JOB_ID)).thenReturn(ContractImportJobFixtures.cancelledJob(JOB_ID));
+
+        new FinishContractImportJob.Handler(jobRepository, CLOCK).execute(new FinishContractImportJob.Command(JOB_ID));
+
+        verify(jobRepository, never()).save(any());
     }
 }

@@ -12,5 +12,12 @@ public final class Assert {
         }
         return something;
     }
+
+    public static String notBlank(final String something) {
+        if (notNull(something).isBlank()) {
+            throw new InvalidDomainObjectError("Blank found for a non-blank model attribute");
+        }
+        return something;
+    }
 }
 
