@@ -8,7 +8,6 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejectionReason;
 import com.mk.contractservice.features.shared.ContractImportCsv.RawLine;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,8 +90,8 @@ class ProcessContractImportBatchTest {
 
         verify(jobRepository).insertLines(linesCaptor.capture());
         assertThat(linesCaptor.getValue())
-                .extracting(ContractImportJobLine::getLineNumber, ContractImportJobLine::getContractId,
-                        ContractImportJobLine::getClientId, ContractImportJobLine::getRejectionReason)
+                .extracting(ContractImportJobLine::lineNumber, ContractImportJobLine::contractId,
+                        ContractImportJobLine::clientId, ContractImportJobLine::rejectionReason)
                 .containsExactlyInAnyOrder(
                         tuple(2, contractId, CLIENT_ID, null),
                         tuple(3, null, CLIENT_ID, ContractImportRejectionReason.INVALID_COST),
@@ -103,7 +102,8 @@ class ProcessContractImportBatchTest {
     }
 
     @Test
-    @DisplayName("GIVEN several valid lines around a rejected one WHEN processing THEN each imported line keeps its own contract")
+    @DisplayName(
+            "GIVEN several valid lines around a rejected one WHEN processing THEN each imported line keeps its own contract")
     void shouldLinkEachImportedLineToItsContract() {
         final UUID firstContractId = UUID.randomUUID();
         final UUID secondContractId = UUID.randomUUID();
@@ -119,8 +119,8 @@ class ProcessContractImportBatchTest {
 
         verify(jobRepository).insertLines(linesCaptor.capture());
         assertThat(linesCaptor.getValue())
-                .filteredOn(line -> line.getContractId() != null)
-                .extracting(ContractImportJobLine::getLineNumber, ContractImportJobLine::getContractId)
+                .filteredOn(line -> line.contractId() != null)
+                .extracting(ContractImportJobLine::lineNumber, ContractImportJobLine::contractId)
                 .containsExactlyInAnyOrder(
                         tuple(2, firstContractId),
                         tuple(4, secondContractId)
@@ -140,9 +140,9 @@ class ProcessContractImportBatchTest {
         )));
 
         verify(jobRepository).save(jobCaptor.capture());
-        assertThat(jobCaptor.getValue().getProgress().getProcessedLines()).isEqualTo(2);
-        assertThat(jobCaptor.getValue().getProgress().getImportedCount()).isEqualTo(1);
-        assertThat(jobCaptor.getValue().getProgress().getRejectedCount()).isEqualTo(1);
-        assertThat(jobCaptor.getValue().getLeaseUntil()).isEqualTo(CLOCK.instant().plus(ClaimContractImportJob.LEASE));
+        assertThat(jobCaptor.getValue().progress().processedLines()).isEqualTo(2);
+        assertThat(jobCaptor.getValue().progress().importedCount()).isEqualTo(1);
+        assertThat(jobCaptor.getValue().progress().rejectedCount()).isEqualTo(1);
+        assertThat(jobCaptor.getValue().leaseUntil()).isEqualTo(CLOCK.instant().plus(ClaimContractImportJob.LEASE));
     }
 }

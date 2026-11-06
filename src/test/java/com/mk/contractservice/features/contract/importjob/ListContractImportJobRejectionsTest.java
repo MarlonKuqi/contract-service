@@ -1,7 +1,7 @@
 package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
+import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejectionReason;
 import com.mk.contractservice.features.shared.InvalidPageRequestException;
@@ -47,8 +47,8 @@ class ListContractImportJobRejectionsTest {
     @Test
     @DisplayName("GIVEN an existing job WHEN listing THEN the requested page of rejections is returned")
     void shouldReturnRequestedPage() {
-        final Page<ContractImportJobLine> page = new PageImpl<>(List.of(ContractImportJobLine.rejected(
-                JOB_ID, 3, null, ContractImportRejectionReason.INVALID_LINE_FORMAT, "Unreadable")));
+        final Page<ContractImportRejection> page = new PageImpl<>(List.of(ContractImportRejection.reconstituteFromDatabase(
+                3, null, ContractImportRejectionReason.INVALID_LINE_FORMAT, "Unreadable")));
         when(jobRepository.findRejections(JOB_ID, PageRequest.of(2, 10))).thenReturn(page);
 
         assertThat(handler.execute(new ListContractImportJobRejections.Query(JOB_ID, 2, 10))).isSameAs(page);

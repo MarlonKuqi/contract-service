@@ -42,8 +42,8 @@ class ReleaseContractImportJobTest {
         new ReleaseContractImportJob.Handler(jobRepository).execute(new ReleaseContractImportJob.Command(JOB_ID));
 
         verify(jobRepository).save(jobCaptor.capture());
-        assertThat(jobCaptor.getValue().getStatus()).isEqualTo(ContractImportJobStatus.PENDING);
-        assertThat(jobCaptor.getValue().getLeaseUntil()).isNull();
+        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobStatus.PENDING);
+        assertThat(jobCaptor.getValue().leaseUntil()).isNull();
     }
 
     @Test

@@ -41,8 +41,8 @@ class ClaimContractImportJobTest {
         final Optional<ContractImportJob> claimed = new ClaimContractImportJob.Handler(jobRepository, CLOCK).execute();
 
         assertThat(claimed).isPresent();
-        assertThat(claimed.get().getStatus()).isEqualTo(ContractImportJobStatus.RUNNING);
-        assertThat(claimed.get().getLeaseUntil()).isEqualTo(NOW.plus(ClaimContractImportJob.LEASE));
+        assertThat(claimed.get().status()).isEqualTo(ContractImportJobStatus.RUNNING);
+        assertThat(claimed.get().leaseUntil()).isEqualTo(NOW.plus(ClaimContractImportJob.LEASE));
     }
 
     @Test
@@ -55,7 +55,7 @@ class ClaimContractImportJobTest {
 
         final Optional<ContractImportJob> claimed = new ClaimContractImportJob.Handler(jobRepository, clock).execute();
 
-        assertThat(claimed.orElseThrow().getLeaseUntil()).isEqualTo(Instant.parse("2026-10-25T01:03:00Z"));
+        assertThat(claimed.orElseThrow().leaseUntil()).isEqualTo(Instant.parse("2026-10-25T01:03:00Z"));
     }
 
     @Test

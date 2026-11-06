@@ -1,7 +1,7 @@
 package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
+import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejectionReason;
 import org.junit.jupiter.api.DisplayName;
@@ -35,8 +35,8 @@ class ExportContractImportJobRejectionsTest {
     @Mock
     private ContractImportJobRepository jobRepository;
 
-    private static ContractImportJobLine rejected(final int lineNumber, final ContractImportRejectionReason reason) {
-        return ContractImportJobLine.rejected(JOB_ID, lineNumber, CLIENT_ID, reason, "reason of line " + lineNumber);
+    private static ContractImportRejection rejected(final int lineNumber, final ContractImportRejectionReason reason) {
+        return ContractImportRejection.reconstituteFromDatabase(lineNumber, CLIENT_ID, reason, "reason of line " + lineNumber);
     }
 
     @Test

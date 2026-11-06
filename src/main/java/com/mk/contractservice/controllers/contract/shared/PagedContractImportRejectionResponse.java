@@ -1,6 +1,6 @@
 package com.mk.contractservice.controllers.contract.shared;
 
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
+import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.data.domain.Page;
 
@@ -32,7 +32,8 @@ public record PagedContractImportRejectionResponse(
             @Schema(description = "Client of the line, null if unreadable")
             UUID clientId,
 
-            @Schema(description = "invalidLineFormat, invalidContractCost, invalidContractPeriod or clientNotFound", example = "invalidContractCost")
+            @Schema(description = "invalidLineFormat, invalidContractCost, invalidContractPeriod or clientNotFound",
+                    example = "invalidContractCost")
             String code,
 
             @Schema(description = "Reason of the rejection")
@@ -40,14 +41,14 @@ public record PagedContractImportRejectionResponse(
     ) {
     }
 
-    public static PagedContractImportRejectionResponse from(final Page<ContractImportJobLine> page) {
+    public static PagedContractImportRejectionResponse from(final Page<ContractImportRejection> page) {
         return new PagedContractImportRejectionResponse(
                 page.getContent().stream()
-                        .map(line -> new Rejection(
-                                line.getLineNumber(),
-                                line.getClientId(),
-                                line.getRejectionReason().getCode(),
-                                line.getRejectionMessage()))
+                        .map(rejection -> new Rejection(
+                                rejection.lineNumber(),
+                                rejection.clientId(),
+                                rejection.reason().code(),
+                                rejection.message()))
                         .toList(),
                 page.getNumber(),
                 page.getSize(),

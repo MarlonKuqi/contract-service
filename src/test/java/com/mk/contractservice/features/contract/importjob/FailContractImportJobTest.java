@@ -55,9 +55,9 @@ class FailContractImportJobTest {
         new FailContractImportJob.Handler(jobRepository, CLOCK).execute(COMMAND);
 
         verify(jobRepository).save(jobCaptor.capture());
-        assertThat(jobCaptor.getValue().getStatus()).isEqualTo(ContractImportJobStatus.FAILED);
-        assertThat(jobCaptor.getValue().getTermination().getFinishedAt()).isEqualTo(NOW);
-        assertThat(jobCaptor.getValue().getTermination().getFailureReason()).isEqualTo(ContractImportFailureReason.TOO_MANY_ATTEMPTS);
+        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobStatus.FAILED);
+        assertThat(jobCaptor.getValue().termination().finishedAt()).isEqualTo(NOW);
+        assertThat(jobCaptor.getValue().termination().failureReason()).isEqualTo(ContractImportFailureReason.TOO_MANY_ATTEMPTS);
     }
 
     @Test

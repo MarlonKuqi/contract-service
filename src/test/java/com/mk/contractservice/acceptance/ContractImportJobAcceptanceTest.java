@@ -6,9 +6,9 @@ import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.batch.ContractImportBatchConfiguration;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
-import com.mk.contractservice.domain.contract.importjob.ContractImportSubmission;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportSubmission;
 import com.mk.contractservice.features.contract.importjob.ProcessContractImportBatch;
 import com.mk.contractservice.features.shared.ContractImportCsv.RawLine;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
@@ -158,7 +158,8 @@ class ContractImportJobAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a valid and a rejected line WHEN the job runs THEN valid lines are imported and the others are reported")
+    @DisplayName(
+            "GIVEN a valid and a rejected line WHEN the job runs THEN valid lines are imported and the others are reported")
     void shouldImportValidLinesAndReportOthers() {
         final String unknownClient = UUID.randomUUID().toString();
         final String jobId = given()
@@ -212,7 +213,8 @@ class ContractImportJobAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN 10000 contracts for one client costing 1 to 10000 WHEN the job runs THEN all are active from now and their total is right")
+    @DisplayName(
+            "GIVEN 10000 contracts for one client costing 1 to 10000 WHEN the job runs THEN all are active from now and their total is right")
     void shouldImportTenThousandContractsForOneClient() {
         final int lines = 10_000;
         final LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
@@ -243,7 +245,8 @@ class ContractImportJobAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN 50000 contracts shared by 100 clients WHEN the job runs THEN all are active from now and each client has the right total")
+    @DisplayName(
+            "GIVEN 50000 contracts shared by 100 clients WHEN the job runs THEN all are active from now and each client has the right total")
     void shouldImportFiftyThousandContractsForAHundredClients() {
         final int lines = 50_000;
         final int clientCount = 100;
@@ -282,7 +285,8 @@ class ContractImportJobAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a line starting with a hash WHEN the job runs THEN it is rejected like any malformed line and the job completes")
+    @DisplayName(
+            "GIVEN a line starting with a hash WHEN the job runs THEN it is rejected like any malformed line and the job completes")
     void shouldRejectLineStartingWithHash() {
         final String jobId = submitAccepted(HEADER + clientId + ";;;100.00\n#garbage;;;1\n");
 
@@ -326,7 +330,8 @@ class ContractImportJobAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN exactly one full chunk followed by a blank line WHEN the job runs THEN the job and its batch execution both complete")
+    @DisplayName(
+            "GIVEN exactly one full chunk followed by a blank line WHEN the job runs THEN the job and its batch execution both complete")
     void shouldCompleteFullChunkFollowedByBlankLine() {
         final int lines = ContractImportBatchConfiguration.CHUNK_SIZE;
 
@@ -351,7 +356,8 @@ class ContractImportJobAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a batch already processed WHEN it is processed again THEN it is rejected and no contract is duplicated")
+    @DisplayName(
+            "GIVEN a batch already processed WHEN it is processed again THEN it is rejected and no contract is duplicated")
     void shouldRejectSameBatchTwice() {
         final LocalDateTime now = LocalDateTime.now(clock);
         final byte[] file = (HEADER + clientId + ";;;100.00\n" + clientId + ";;;100.00\n").getBytes(StandardCharsets.UTF_8);
@@ -360,7 +366,7 @@ class ContractImportJobAcceptanceTest {
             return jobRepository.save(inserted.start(clock.instant().plus(Duration.ofHours(1))));
         });
         final ProcessContractImportBatch.Command batch = new ProcessContractImportBatch.Command(
-                job.getId(), List.of(new RawLine(2, clientId + ";;;100.00")));
+                job.id(), List.of(new RawLine(2, clientId + ";;;100.00")));
 
         processBatch.execute(batch);
 

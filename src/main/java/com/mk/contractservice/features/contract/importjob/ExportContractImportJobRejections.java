@@ -1,7 +1,7 @@
 package com.mk.contractservice.features.contract.importjob;
 
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
+import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejectionReason;
 import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.ContractImportCsv;
@@ -43,23 +43,23 @@ public interface ExportContractImportJobRejections {
         @Override
         public List<RejectedLine> execute(final Query query) {
             jobRepository.getById(query.jobId());
-            final List<ContractImportJobLine> rejections = allRejections(query.jobId());
+            final List<ContractImportRejection> rejections = allRejections(query.jobId());
             final Set<Integer> lineNumbers = rejections.stream()
-                    .map(ContractImportJobLine::getLineNumber)
+                    .map(ContractImportRejection::lineNumber)
                     .collect(Collectors.toSet());
             final Map<Integer, String> originalLines = ContractImportCsv.linesAt(jobRepository.loadFile(query.jobId()), lineNumbers);
             return rejections.stream()
                     .map(rejection -> new RejectedLine(
-                            rejection.getLineNumber(),
-                            Objects.requireNonNull(rejection.getRejectionReason()),
-                            Objects.requireNonNull(rejection.getRejectionMessage()),
-                            originalLines.getOrDefault(rejection.getLineNumber(), "")))
+                            rejection.lineNumber(),
+                            rejection.reason(),
+                            rejection.message(),
+                            originalLines.getOrDefault(rejection.lineNumber(), "")))
                     .toList();
         }
 
-        private List<ContractImportJobLine> allRejections(final UUID jobId) {
-            Page<ContractImportJobLine> page = jobRepository.findRejections(jobId, PageRequest.of(0, PAGE_SIZE));
-            final List<ContractImportJobLine> rejections = new ArrayList<>(page.getContent());
+        private List<ContractImportRejection> allRejections(final UUID jobId) {
+            Page<ContractImportRejection> page = jobRepository.findRejections(jobId, PageRequest.of(0, PAGE_SIZE));
+            final List<ContractImportRejection> rejections = new ArrayList<>(page.getContent());
             while (page.hasNext()) {
                 page = jobRepository.findRejections(jobId, page.nextPageable());
                 rejections.addAll(page.getContent());

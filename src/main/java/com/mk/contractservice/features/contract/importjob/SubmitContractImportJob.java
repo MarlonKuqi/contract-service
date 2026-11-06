@@ -58,13 +58,13 @@ public interface SubmitContractImportJob {
                 final String fingerprint
         ) {
             final ContractImportSubmission submission = ContractImportSubmission.of(
-                    file.getName(),
+                    file.name(),
                     submittedBy,
                     key,
                     fingerprint,
                     LocalDateTime.now(clock)
             );
-            return jobRepository.insert(ContractImportJob.of(submission, file.getTotalLines()), file.getContent());
+            return jobRepository.insert(ContractImportJob.of(submission, file.totalLines()), file.content());
         }
 
         private static ContractImportJob replay(
@@ -73,7 +73,7 @@ public interface SubmitContractImportJob {
                 final String fingerprint
         ) {
             if (!previous.hasContent(fingerprint)) {
-                throw new IdempotencyKeyReusedException(key.getValue());
+                throw new IdempotencyKeyReusedException(key.value());
             }
             return previous;
         }

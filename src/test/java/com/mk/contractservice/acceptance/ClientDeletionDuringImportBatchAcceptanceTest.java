@@ -81,7 +81,7 @@ class ClientDeletionDuringImportBatchAcceptanceTest {
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate())
         ));
-        return client.getId();
+        return client.id();
     }
 
     private void awaitAnotherTransactionBlockedOnALock() {
@@ -92,7 +92,8 @@ class ClientDeletionDuringImportBatchAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a batch holding the lock on its client WHEN the client is deleted THEN the contract of the batch is closed too")
+    @DisplayName(
+            "GIVEN a batch holding the lock on its client WHEN the client is deleted THEN the contract of the batch is closed too")
     void shouldCloseContractInsertedByTheBatchHoldingTheLock() throws Exception {
         final UUID clientId = createClient();
 
@@ -112,11 +113,12 @@ class ClientDeletionDuringImportBatchAcceptanceTest {
 
         deletion.get().get(10, TimeUnit.SECONDS);
 
-        assertThat(contractJpaRepository.findById(inserted.getId()).orElseThrow().getEndDate()).isNotNull();
+        assertThat(contractJpaRepository.findById(inserted.id()).orElseThrow().getEndDate()).isNotNull();
     }
 
     @Test
-    @DisplayName("GIVEN a deletion not yet committed WHEN a batch locks the client THEN it waits and no longer sees the client")
+    @DisplayName(
+            "GIVEN a deletion not yet committed WHEN a batch locks the client THEN it waits and no longer sees the client")
     void shouldNotSeeClientDeletedWhileWaitingForTheLock() throws Exception {
         final UUID clientId = createClient();
         final LocalDateTime now = LocalDateTime.now(clock);

@@ -1,5 +1,6 @@
 package com.mk.contractservice.batch;
 
+import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.features.contract.importjob.ClaimContractImportJob;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,6 +17,8 @@ public class ContractImportJobWorker {
 
     @Scheduled(fixedDelayString = "${app.contract-import.poll-delay}")
     public void runNextJob() {
-        claimContractImportJob.execute().ifPresent(job -> contractImportJobRunner.run(job.getId()));
+        claimContractImportJob.execute()
+                .map(ContractImportJob::id)
+                .ifPresent(contractImportJobRunner::run);
     }
 }

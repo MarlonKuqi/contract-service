@@ -50,8 +50,8 @@ class FinishContractImportJobTest {
         new FinishContractImportJob.Handler(jobRepository, CLOCK).execute(new FinishContractImportJob.Command(JOB_ID));
 
         verify(jobRepository).save(jobCaptor.capture());
-        assertThat(jobCaptor.getValue().getStatus()).isEqualTo(ContractImportJobStatus.COMPLETED);
-        assertThat(jobCaptor.getValue().getTermination().getFinishedAt()).isEqualTo(NOW);
+        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobStatus.COMPLETED);
+        assertThat(jobCaptor.getValue().termination().finishedAt()).isEqualTo(NOW);
     }
 
     @Test
@@ -62,8 +62,8 @@ class FinishContractImportJobTest {
         new FinishContractImportJob.Handler(jobRepository, CLOCK).execute(new FinishContractImportJob.Command(JOB_ID));
 
         verify(jobRepository).save(jobCaptor.capture());
-        assertThat(jobCaptor.getValue().getStatus()).isEqualTo(ContractImportJobStatus.FAILED);
-        assertThat(jobCaptor.getValue().getTermination().getFailureReason()).isEqualTo(ContractImportFailureReason.INCOMPLETE_PROCESSING);
+        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobStatus.FAILED);
+        assertThat(jobCaptor.getValue().termination().failureReason()).isEqualTo(ContractImportFailureReason.INCOMPLETE_PROCESSING);
     }
 
     @Test

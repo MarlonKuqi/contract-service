@@ -1,6 +1,6 @@
 package com.mk.contractservice.features.contract.importjob;
 
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
+import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.PageBounds;
@@ -29,7 +29,7 @@ public interface ListContractImportJobRejections {
         }
     }
 
-    Page<ContractImportJobLine> execute(Query query);
+    Page<ContractImportRejection> execute(Query query);
 
     @UseCase
     @Transactional(readOnly = true)
@@ -39,7 +39,7 @@ public interface ListContractImportJobRejections {
         private final ContractImportJobRepository jobRepository;
 
         @Override
-        public Page<ContractImportJobLine> execute(final Query query) {
+        public Page<ContractImportRejection> execute(final Query query) {
             jobRepository.getById(query.jobId());
             return jobRepository.findRejections(query.jobId(), query.pageable());
         }

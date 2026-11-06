@@ -188,8 +188,8 @@ class ContractTest {
 
                 Contract contract = ContractFactory.createFromCommand(testClientId, first, last, new BigDecimal("100.00"), NOW);
 
-                assertThat(contract.getPeriod().getStartDate()).isEqualTo(first);
-                assertThat(contract.getPeriod().getEndDate()).isEqualTo(last);
+                assertThat(contract.period().startDate()).isEqualTo(first);
+                assertThat(contract.period().endDate()).isEqualTo(last);
             }
 
             @Test
