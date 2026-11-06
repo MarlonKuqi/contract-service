@@ -9,30 +9,38 @@ import java.time.LocalDateTime;
 
 import static com.mk.contractservice.domain.shared.Assert.notNull;
 
-@Value
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class ContractImportTermination {
+public sealed interface ContractImportTermination permits ContractImportTermination.Ended, ContractImportTermination.Failed {
 
-    LocalDateTime finishedAt;
+    LocalDateTime finishedAt();
 
-    @Nullable
-    ContractImportFailureReason failureReason;
-
-    public static ContractImportTermination ended(@Nullable final LocalDateTime now) {
-        return new ContractImportTermination(notNull(now), null);
+    static Ended ended(@Nullable final LocalDateTime now) {
+        return new Ended(notNull(now));
     }
 
-    public static ContractImportTermination failed(
-            @Nullable final ContractImportFailureReason reason,
-            @Nullable final LocalDateTime now
-    ) {
-        return new ContractImportTermination(notNull(now), notNull(reason));
+    static Failed failed(@Nullable final ContractImportFailureReason reason, @Nullable final LocalDateTime now) {
+        return new Failed(notNull(now), notNull(reason));
     }
 
-    public static ContractImportTermination reconstituteFromDatabase(
+    static ContractImportTermination reconstituteFromDatabase(
             @Nullable final LocalDateTime finishedAt,
             @Nullable final ContractImportFailureReason failureReason
     ) {
-        return new ContractImportTermination(notNull(finishedAt), failureReason);
+        return failureReason == null ? ended(finishedAt) : failed(failureReason, finishedAt);
+    }
+
+    @Value
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    class Ended implements ContractImportTermination {
+
+        LocalDateTime finishedAt;
+    }
+
+    @Value
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    class Failed implements ContractImportTermination {
+
+        LocalDateTime finishedAt;
+
+        ContractImportFailureReason reason;
     }
 }

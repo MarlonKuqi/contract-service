@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobCancelledException;
+import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,7 +14,7 @@ import java.util.UUID;
 import static com.mk.contractservice.domain.shared.Assert.notNull;
 
 @Getter
-public class ContractImportJob {
+public final class ContractImportJob {
 
     private final @Nullable UUID id;
     private final ContractImportSubmission submission;
@@ -40,6 +41,20 @@ public class ContractImportJob {
         this.leaseUntil = leaseUntil;
         this.termination = termination;
         this.cancellation = cancellation;
+        requireConsistentState();
+    }
+
+    private void requireConsistentState() {
+        final boolean consistent = switch (status) {
+            case PENDING, RUNNING -> cancellation == null && termination == null;
+            case COMPLETED -> cancellation == null && termination instanceof ContractImportTermination.Ended;
+            case FAILED -> cancellation == null && termination instanceof ContractImportTermination.Failed;
+            case CANCELLED -> cancellation != null && termination != null;
+        };
+        if (!consistent) {
+            throw new InvalidDomainObjectError(
+                    "Import job " + id + " cannot be " + status + " with termination " + termination + " and cancellation " + cancellation);
+        }
     }
 
     public static ContractImportJob of(@Nullable final ContractImportSubmission submission, final int totalLines) {

@@ -1,42 +1,61 @@
 package com.mk.contractservice.domain.contract.importjob;
 
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
 import static com.mk.contractservice.domain.shared.Assert.notNull;
 
-@Getter
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class ContractImportJobLine {
+public sealed interface ContractImportJobLine permits ContractImportJobLine.Imported, ContractImportJobLine.Rejected {
 
-    private final UUID jobId;
-    private final int lineNumber;
-    private final @Nullable UUID clientId;
-    private final @Nullable UUID contractId;
-    private final @Nullable ContractImportRejectionReason rejectionReason;
-    private final @Nullable String rejectionMessage;
+    UUID jobId();
 
-    public static ContractImportJobLine imported(
+    int lineNumber();
+
+    @Nullable
+    UUID clientId();
+
+    static Imported imported(
             @Nullable final UUID jobId,
             final int lineNumber,
             @Nullable final UUID clientId,
             @Nullable final UUID contractId
     ) {
-        return new ContractImportJobLine(notNull(jobId), lineNumber, notNull(clientId), notNull(contractId), null, null);
+        return new Imported(jobId, lineNumber, clientId, contractId);
     }
 
-    public static ContractImportJobLine rejected(
+    static Rejected rejected(
             @Nullable final UUID jobId,
             final int lineNumber,
             @Nullable final UUID clientId,
             @Nullable final ContractImportRejectionReason reason,
             @Nullable final String message
     ) {
-        return new ContractImportJobLine(notNull(jobId), lineNumber, clientId, null, notNull(reason), notNull(message));
+        return new Rejected(jobId, lineNumber, clientId, reason, message);
+    }
+
+    record Imported(UUID jobId, int lineNumber, UUID clientId, UUID contractId) implements ContractImportJobLine {
+
+        public Imported {
+            notNull(jobId);
+            notNull(clientId);
+            notNull(contractId);
+        }
+    }
+
+    record Rejected(
+            UUID jobId,
+            int lineNumber,
+            @Nullable UUID clientId,
+            ContractImportRejectionReason reason,
+            String message
+    ) implements ContractImportJobLine {
+
+        public Rejected {
+            notNull(jobId);
+            notNull(reason);
+            notNull(message);
+        }
     }
 }

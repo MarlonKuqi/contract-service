@@ -4,6 +4,8 @@ import com.mk.contractservice.domain.contract.importjob.exception.ContractImport
 import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -39,8 +41,11 @@ class ContractImportJobTest {
     }
 
     private static ContractImportFailureReason failureReasonOf(final ContractImportJob job) {
-        final ContractImportTermination termination = job.termination();
-        return termination == null ? null : termination.failureReason();
+        return switch (job.termination()) {
+            case ContractImportTermination.Failed failed -> failed.reason();
+            case ContractImportTermination.Ended _ -> null;
+            case null -> null;
+        };
     }
 
     private static ContractImportJob reconstitute(
@@ -123,20 +128,110 @@ class ContractImportJobTest {
         final ContractImportSubmission submission = ContractImportSubmission.reconstituteFromDatabase(FILE_NAME, SUBMITTER, IdempotencyKey.reconstituteFromDatabase("key-1"), CONTENT_SHA256, NOW);
 
         final ContractImportJob job = ContractImportJob.reconstituteFromDatabase(
-                id, submission, ContractImportJobStatus.FAILED, PROGRESS, LEASE,
+                id, submission, ContractImportJobStatus.CANCELLED, PROGRESS, null,
                 ContractImportTermination.reconstituteFromDatabase(NOW, REASON),
                 ContractImportCancellation.reconstituteFromDatabase(LATER, CANCELLER));
 
         assertThat(job.id()).isEqualTo(id);
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.FAILED);
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.CANCELLED);
         assertThat(job.progress().processedLines()).isEqualTo(1);
-        assertThat(job.leaseUntil()).isEqualTo(LEASE);
         assertThat(finishedAtOf(job)).isEqualTo(NOW);
         assertThat(failureReasonOf(job)).isEqualTo(REASON);
         assertThat(job.submission().submittedBy()).isEqualTo(SUBMITTER);
         assertThat(job.submission().idempotencyKey()).isEqualTo(IdempotencyKey.of("key-1"));
         assertThat(job.submission().contentSha256()).isEqualTo(CONTENT_SHA256);
         assertThat(job.cancellation()).isEqualTo(ContractImportCancellation.of(LATER, CANCELLER));
+    }
+
+    private static ContractImportJob reconstituteWith(
+            final ContractImportJobStatus status,
+            final ContractImportTermination termination,
+            final ContractImportCancellation cancellation
+    ) {
+        return ContractImportJob.reconstituteFromDatabase(UUID.randomUUID(), ContractImportJobFixtures.submission(NOW),
+                status, PROGRESS, null, termination, cancellation);
+    }
+
+    private static ContractImportTermination consistentTerminationOf(final ContractImportJobStatus status) {
+        return switch (status) {
+            case PENDING, RUNNING -> null;
+            case COMPLETED, CANCELLED -> ContractImportTermination.ended(NOW);
+            case FAILED -> ContractImportTermination.failed(REASON, NOW);
+        };
+    }
+
+    @Test
+    @DisplayName("GIVEN a failed status with a termination without failure WHEN reconstituteFromDatabase THEN it is rejected")
+    void shouldRejectFailedStatusWithEndedTermination() {
+        final ContractImportTermination ended = ContractImportTermination.ended(NOW);
+
+        assertThatThrownBy(() -> reconstituteWith(ContractImportJobStatus.FAILED, ended, null))
+                .isInstanceOf(InvalidDomainObjectError.class);
+    }
+
+    @Test
+    @DisplayName("GIVEN a completed status with a failed termination WHEN reconstituteFromDatabase THEN it is rejected")
+    void shouldRejectCompletedStatusWithFailedTermination() {
+        final ContractImportTermination failed = ContractImportTermination.failed(REASON, NOW);
+
+        assertThatThrownBy(() -> reconstituteWith(ContractImportJobStatus.COMPLETED, failed, null))
+                .isInstanceOf(InvalidDomainObjectError.class);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ContractImportJobStatus.class, names = {"COMPLETED", "FAILED"})
+    @DisplayName("GIVEN a finished status without termination WHEN reconstituteFromDatabase THEN it is rejected")
+    void shouldRejectFinishedStatusWithoutTermination(final ContractImportJobStatus status) {
+        assertThatThrownBy(() -> reconstituteWith(status, null, null))
+                .isInstanceOf(InvalidDomainObjectError.class);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ContractImportJobStatus.class, names = {"PENDING", "RUNNING"})
+    @DisplayName("GIVEN an unfinished status with a termination WHEN reconstituteFromDatabase THEN it is rejected")
+    void shouldRejectUnfinishedStatusWithTermination(final ContractImportJobStatus status) {
+        final ContractImportTermination ended = ContractImportTermination.ended(NOW);
+
+        assertThatThrownBy(() -> reconstituteWith(status, ended, null))
+                .isInstanceOf(InvalidDomainObjectError.class);
+    }
+
+    @Test
+    @DisplayName("GIVEN a cancelled status without cancellation WHEN reconstituteFromDatabase THEN it is rejected")
+    void shouldRejectCancelledStatusWithoutCancellation() {
+        final ContractImportTermination ended = ContractImportTermination.ended(NOW);
+
+        assertThatThrownBy(() -> reconstituteWith(ContractImportJobStatus.CANCELLED, ended, null))
+                .isInstanceOf(InvalidDomainObjectError.class);
+    }
+
+    @Test
+    @DisplayName("GIVEN a cancelled status without termination WHEN reconstituteFromDatabase THEN it is rejected")
+    void shouldRejectCancelledStatusWithoutTermination() {
+        final ContractImportCancellation cancellation = ContractImportCancellation.of(LATER, CANCELLER);
+
+        assertThatThrownBy(() -> reconstituteWith(ContractImportJobStatus.CANCELLED, null, cancellation))
+                .isInstanceOf(InvalidDomainObjectError.class);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ContractImportJobStatus.class, names = "CANCELLED", mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("GIVEN a status other than cancelled with a cancellation WHEN reconstituteFromDatabase THEN it is rejected")
+    void shouldRejectCancellationOfJobNotCancelled(final ContractImportJobStatus status) {
+        final ContractImportTermination termination = consistentTerminationOf(status);
+        final ContractImportCancellation cancellation = ContractImportCancellation.of(LATER, CANCELLER);
+
+        assertThatThrownBy(() -> reconstituteWith(status, termination, cancellation))
+                .isInstanceOf(InvalidDomainObjectError.class);
+    }
+
+    @Test
+    @DisplayName("GIVEN a job cancelled after its failure WHEN reconstituteFromDatabase THEN it keeps its failure")
+    void shouldReconstituteJobCancelledAfterFailure() {
+        final ContractImportJob job = reconstituteWith(ContractImportJobStatus.CANCELLED,
+                ContractImportTermination.failed(REASON, NOW), ContractImportCancellation.of(LATER, CANCELLER));
+
+        assertThat(failureReasonOf(job)).isEqualTo(REASON);
     }
 
     @Test
@@ -180,12 +275,15 @@ class ContractImportJobTest {
     }
 
     @Test
-    @DisplayName("GIVEN a termination without failure reason WHEN reconstituteFromDatabase THEN it has no reason")
-    void shouldReconstituteTerminationWithoutReason() {
-        final ContractImportTermination termination = ContractImportTermination.reconstituteFromDatabase(NOW, null);
+    @DisplayName("GIVEN a termination without failure reason WHEN reconstituteFromDatabase THEN the job ended without failure")
+    void shouldReconstituteEndedTermination() {
+        assertThat(ContractImportTermination.reconstituteFromDatabase(NOW, null)).isEqualTo(ContractImportTermination.ended(NOW));
+    }
 
-        assertThat(termination.finishedAt()).isEqualTo(NOW);
-        assertThat(termination.failureReason()).isNull();
+    @Test
+    @DisplayName("GIVEN a termination with a failure reason WHEN reconstituteFromDatabase THEN the job failed for this reason")
+    void shouldReconstituteFailedTermination() {
+        assertThat(ContractImportTermination.reconstituteFromDatabase(NOW, REASON)).isEqualTo(ContractImportTermination.failed(REASON, NOW));
     }
 
     @Test
