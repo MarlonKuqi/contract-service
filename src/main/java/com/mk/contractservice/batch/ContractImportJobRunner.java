@@ -45,8 +45,8 @@ public class ContractImportJobRunner {
         if (last != null && last.isRunning()) {
             jobOperator.recover(last);
         }
-        if (attemptsOf(parameters) >= MAX_ATTEMPTS) {
-            log.error("Import job {} gave up after {} attempts", jobId, MAX_ATTEMPTS);
+        if (failedAttemptsOf(parameters) >= MAX_ATTEMPTS) {
+            log.error("Import job {} gave up after {} failed attempts", jobId, MAX_ATTEMPTS);
             fail(jobId, ContractImportFailureReason.TOO_MANY_ATTEMPTS);
             return;
         }
@@ -58,9 +58,14 @@ public class ContractImportJobRunner {
         }
     }
 
-    private int attemptsOf(final JobParameters parameters) {
+    private int failedAttemptsOf(final JobParameters parameters) {
         final JobInstance instance = jobRepository.getJobInstance(ContractImportBatchConfiguration.JOB_NAME, parameters);
-        return instance == null ? 0 : jobRepository.getJobExecutions(instance).size();
+        if (instance == null) {
+            return 0;
+        }
+        return (int) jobRepository.getJobExecutions(instance).stream()
+                .filter(execution -> execution.getStatus().isUnsuccessful())
+                .count();
     }
 
     private void fail(final UUID jobId, final ContractImportFailureReason reason) {

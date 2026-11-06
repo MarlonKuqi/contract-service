@@ -1,4 +1,4 @@
-package com.mk.contractservice.domain.contract.importjob;
+package com.mk.contractservice.domain.contract;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

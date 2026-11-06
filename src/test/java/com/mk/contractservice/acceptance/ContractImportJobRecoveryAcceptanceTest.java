@@ -7,9 +7,13 @@ import com.mk.contractservice.batch.ContractImportBatchConfiguration;
 import com.mk.contractservice.batch.ContractImportJobRunner;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportSubmission;
 import com.mk.contractservice.features.contract.importjob.ClaimContractImportJob;
 import com.mk.contractservice.features.contract.importjob.ProcessContractImportBatch;
+import com.mk.contractservice.features.shared.ContractImportCsv.RawLine;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -21,14 +25,18 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -38,6 +46,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -80,12 +89,19 @@ class ContractImportJobRecoveryAcceptanceTest {
     @Autowired
     private ContractImportJobRunner contractImportJobRunner;
 
+    @Autowired
+    private ContractImportJobRepository jobRepository;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
     @MockitoSpyBean
     private ProcessContractImportBatch processBatch;
 
     private final AtomicReference<RuntimeException> secondChunkFailure = new AtomicReference<>(new IllegalStateException("Simulated failure"));
     private final AtomicReference<RuntimeException> everyChunkFailure = new AtomicReference<>();
     private final AtomicBoolean secondChunkInterrupted = new AtomicBoolean();
+    private final AtomicInteger interruptionsLeft = new AtomicInteger();
     private final AtomicBoolean firstWorkerStalls = new AtomicBoolean();
     private final CountDownLatch firstWorkerStalled = new CountDownLatch(1);
     private final CountDownLatch wakeFirstWorker = new CountDownLatch(1);
@@ -122,6 +138,10 @@ class ContractImportJobRecoveryAcceptanceTest {
                 } else {
                     stallOnSecondChunk(firstWorkerChunks, firstWorkerStalled, wakeFirstWorker);
                 }
+                return invocation.callRealMethod();
+            }
+            if (interruptionsLeft.getAndUpdate(left -> Math.max(0, left - 1)) > 0) {
+                Thread.currentThread().interrupt();
                 return invocation.callRealMethod();
             }
             final RuntimeException everyChunk = everyChunkFailure.get();
@@ -284,6 +304,24 @@ class ContractImportJobRecoveryAcceptanceTest {
     }
 
     @Test
+    @DisplayName("GIVEN a job stopped by more shutdowns than allowed attempts WHEN it runs again THEN it completes without duplicates")
+    void shouldNotCountShutdownsAsAttempts() {
+        secondChunkFailure.set(null);
+        interruptionsLeft.set(ContractImportJobRunner.MAX_ATTEMPTS);
+        final int lines = CHUNK_SIZE * (ContractImportJobRunner.MAX_ATTEMPTS + 1);
+
+        final String jobId = submitLines(lines);
+
+        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        given().when().get(JOB_PATH, jobId).then()
+                .statusCode(200)
+                .body("processedLines", equalTo(lines))
+                .body("importedCount", equalTo(lines));
+        assertThat(contractsOfClient()).isEqualTo(lines);
+        assertThat(executionsOf(jobId)).isEqualTo(ContractImportJobRunner.MAX_ATTEMPTS + 1);
+    }
+
+    @Test
     @DisplayName("GIVEN a stalled worker whose job was taken over WHEN it wakes up THEN it does not fail the job of the other worker")
     void shouldNotLetAStalledWorkerFailTheJobOfTheOtherWorker() throws Exception {
         firstWorkerStalls.set(true);
@@ -344,5 +382,46 @@ class ContractImportJobRecoveryAcceptanceTest {
 
         awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
         assertThat(executionsOf(jobId)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName(
+            "GIVEN exactly one full chunk followed by a blank line WHEN the job runs THEN the job and its batch execution both complete")
+    void shouldCompleteFullChunkFollowedByBlankLine() {
+        secondChunkFailure.set(null);
+        final String jobId = given()
+                .contentType("multipart/form-data")
+                .multiPart("file", "contracts.csv", (HEADER + (clientId + ";;;100.00\n").repeat(CHUNK_SIZE) + "\n").getBytes(StandardCharsets.UTF_8))
+                .when().post(ContractEndpoints.CONTRACT_IMPORT_JOBS)
+                .then().statusCode(202)
+                .extract().path("jobId");
+
+        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        given().when().get(JOB_PATH, jobId).then().statusCode(200).body("importedCount", equalTo(CHUNK_SIZE));
+        await().atMost(Duration.ofSeconds(10)).until(() -> "COMPLETED".equals(jdbcTemplate.queryForObject("""
+                select e.status from contracts.batch_job_execution e
+                join contracts.batch_job_execution_params p on p.job_execution_id = e.job_execution_id
+                where p.parameter_value = ?
+                """, String.class, jobId)));
+    }
+
+    @Test
+    @DisplayName(
+            "GIVEN a batch already processed WHEN it is processed again THEN it is rejected and no contract is duplicated")
+    void shouldRejectSameBatchTwice() {
+        secondChunkFailure.set(null);
+        final LocalDateTime now = LocalDateTime.now(clock);
+        final byte[] file = (HEADER + clientId + ";;;100.00\n" + clientId + ";;;100.00\n").getBytes(StandardCharsets.UTF_8);
+        final ContractImportJob job = new TransactionTemplate(transactionManager).execute(status -> {
+            final ContractImportJob inserted = jobRepository.insert(ContractImportJob.of(ContractImportSubmission.of("contracts.csv", "marie.counselor", null, "a".repeat(64), now), 2), file);
+            return jobRepository.save(inserted.start(clock.instant().plus(Duration.ofHours(1))));
+        });
+        final ProcessContractImportBatch.Command batch = new ProcessContractImportBatch.Command(
+                job.id(), List.of(new RawLine(2, clientId + ";;;100.00")));
+
+        processBatch.execute(batch);
+
+        assertThatThrownBy(() -> processBatch.execute(batch)).isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(contractsOfClient()).isEqualTo(1);
     }
 }

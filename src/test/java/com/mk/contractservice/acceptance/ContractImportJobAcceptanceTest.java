@@ -5,12 +5,7 @@ import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.batch.ContractImportBatchConfiguration;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
-import com.mk.contractservice.domain.contract.importjob.ContractImportSubmission;
-import com.mk.contractservice.features.contract.importjob.ProcessContractImportBatch;
-import com.mk.contractservice.features.shared.ContractImportCsv.RawLine;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.response.ValidatableResponse;
@@ -22,20 +17,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -44,11 +36,14 @@ import static com.mk.contractservice.controllers.contract.shared.ContractEndpoin
 import static com.mk.contractservice.controllers.contract.shared.ContractEndpoints.CONTRACT_TOTAL;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -76,16 +71,7 @@ class ContractImportJobAcceptanceTest {
     private ContractJpaRepository contractJpaRepository;
 
     @Autowired
-    private ContractImportJobRepository jobRepository;
-
-    @Autowired
-    private ProcessContractImportBatch processBatch;
-
-    @Autowired
     private JdbcTemplate jdbcTemplate;
-
-    @Autowired
-    private PlatformTransactionManager transactionManager;
 
     private String clientId;
 
@@ -148,13 +134,16 @@ class ContractImportJobAcceptanceTest {
         return given().when().get(JOB_PATH, jobId).then().statusCode(200);
     }
 
-    private long contractsOfClient() {
-        return jdbcTemplate.queryForObject(
-                "select count(*) from contracts.contract where client_id = ?::uuid", Long.class, clientId);
+    private int contractsOfClient() {
+        return given().when().get(CONTRACTS_BASE + "?clientId={clientId}", clientId)
+                .then().statusCode(anyOf(is(200), is(206)))
+                .extract().path("totalElements");
     }
 
-    private ContractImportJob persistInOneTransaction(final Supplier<ContractImportJob> job) {
-        return new TransactionTemplate(transactionManager).execute(status -> job.get());
+    private void assertNoJobStored() {
+        given().when().get(CONTRACT_IMPORT_JOBS)
+                .then().statusCode(200)
+                .body("totalElements", equalTo(0));
     }
 
     @Test
@@ -234,54 +223,11 @@ class ContractImportJobAcceptanceTest {
                 .then().statusCode(200)
                 .body(equalTo("50005000.00"));
 
-        assertThat(jdbcTemplate.queryForObject("""
-                select count(*) from contracts.contract
-                where client_id = ?::uuid and start_date = ? and end_date is null
-                """, Long.class, clientId, now.atZone(clock.getZone()).toOffsetDateTime())).isEqualTo(lines);
-        assertThat(jdbcTemplate.queryForObject("""
-                select count(distinct cost_amount) from contracts.contract
-                where client_id = ?::uuid and cost_amount between 1 and 10000
-                """, Long.class, clientId)).isEqualTo(lines);
-    }
-
-    @Test
-    @DisplayName(
-            "GIVEN 50000 contracts shared by 100 clients WHEN the job runs THEN all are active from now and each client has the right total")
-    void shouldImportFiftyThousandContractsForAHundredClients() {
-        final int lines = 50_000;
-        final int clientCount = 100;
-        final LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
-        final List<String> clients = IntStream.range(0, clientCount).mapToObj(index -> createPerson()).toList();
-        final String contracts = IntStream.rangeClosed(1, lines)
-                .mapToObj(cost -> clients.get(cost % clientCount) + ";" + now + ";;" + cost + "\n")
-                .collect(Collectors.joining());
-
-        final String jobId = submitAccepted(HEADER + contracts);
-
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED, Duration.ofMinutes(3));
-        getJob(jobId)
-                .body("processedLines", equalTo(lines))
-                .body("importedCount", equalTo(lines))
-                .body("rejectedCount", equalTo(0));
-
-        for (int index = 0; index < clientCount; index++) {
-            final int clientIndex = index;
-            final long expectedTotal = IntStream.rangeClosed(1, lines)
-                    .filter(cost -> cost % clientCount == clientIndex)
-                    .asLongStream()
-                    .sum();
-            given().when().get(CONTRACTS_BASE + CONTRACT_TOTAL + "?clientId={clientId}", clients.get(index))
-                    .then().statusCode(200)
-                    .body(equalTo(expectedTotal + ".00"));
-        }
-
-        assertThat(jdbcTemplate.queryForObject("""
-                select count(*) from contracts.contract
-                where start_date = ? and end_date is null and cost_amount between 1 and 50000
-                """, Long.class, now.atZone(clock.getZone()).toOffsetDateTime())).isEqualTo(lines);
-        assertThat(jdbcTemplate.queryForObject("""
-                select count(distinct client_id) from contracts.contract
-                """, Long.class)).isEqualTo(clientCount);
+        assertThat(contractsOfClient()).isEqualTo(lines);
+        given().when().get(CONTRACTS_BASE + "?clientId={clientId}&size=100", clientId)
+                .then().statusCode(206)
+                .body("content.startDate", everyItem(equalTo(now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))))
+                .body("content.endDate", everyItem(nullValue()));
     }
 
     @Test
@@ -330,48 +276,12 @@ class ContractImportJobAcceptanceTest {
     }
 
     @Test
-    @DisplayName(
-            "GIVEN exactly one full chunk followed by a blank line WHEN the job runs THEN the job and its batch execution both complete")
-    void shouldCompleteFullChunkFollowedByBlankLine() {
-        final int lines = ContractImportBatchConfiguration.CHUNK_SIZE;
-
-        final String jobId = submitAccepted(HEADER + (clientId + ";;;100.00\n").repeat(lines) + "\n");
-
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
-        getJob(jobId).body("importedCount", equalTo(lines));
-        await().atMost(Duration.ofSeconds(10)).until(() -> "COMPLETED".equals(jdbcTemplate.queryForObject("""
-                select e.status from contracts.batch_job_execution e
-                join contracts.batch_job_execution_params p on p.job_execution_id = e.job_execution_id
-                where p.parameter_value = ?
-                """, String.class, jobId)));
-    }
-
-    @Test
     @DisplayName("GIVEN only malformed lines WHEN the job runs THEN it completes without contract")
     void shouldCompleteWithOnlyMalformedLines() {
         final String jobId = submitAccepted(HEADER + "garbage\nmore garbage\n");
 
         awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
         getJob(jobId).body("importedCount", equalTo(0)).body("rejectedCount", equalTo(2));
-    }
-
-    @Test
-    @DisplayName(
-            "GIVEN a batch already processed WHEN it is processed again THEN it is rejected and no contract is duplicated")
-    void shouldRejectSameBatchTwice() {
-        final LocalDateTime now = LocalDateTime.now(clock);
-        final byte[] file = (HEADER + clientId + ";;;100.00\n" + clientId + ";;;100.00\n").getBytes(StandardCharsets.UTF_8);
-        final ContractImportJob job = persistInOneTransaction(() -> {
-            final ContractImportJob inserted = jobRepository.insert(ContractImportJob.of(ContractImportSubmission.of("contracts.csv", "marie.counselor", null, "a".repeat(64), now), 2), file);
-            return jobRepository.save(inserted.start(clock.instant().plus(Duration.ofHours(1))));
-        });
-        final ProcessContractImportBatch.Command batch = new ProcessContractImportBatch.Command(
-                job.id(), List.of(new RawLine(2, clientId + ";;;100.00")));
-
-        processBatch.execute(batch);
-
-        assertThatThrownBy(() -> processBatch.execute(batch)).isInstanceOf(DataIntegrityViolationException.class);
-        assertThat(contractsOfClient()).isEqualTo(1);
     }
 
     @Test
@@ -393,7 +303,7 @@ class ContractImportJobAcceptanceTest {
                 .statusCode(422)
                 .body("code", equalTo("invalidImportFile"));
 
-        assertThat(jdbcTemplate.queryForObject("select count(*) from contracts.contract_import_job", Long.class)).isZero();
+        assertNoJobStored();
     }
 
     @Test

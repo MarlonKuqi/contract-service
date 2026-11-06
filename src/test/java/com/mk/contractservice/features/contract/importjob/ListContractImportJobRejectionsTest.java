@@ -3,7 +3,7 @@ package com.mk.contractservice.features.contract.importjob;
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.importjob.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.features.shared.InvalidPageRequestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

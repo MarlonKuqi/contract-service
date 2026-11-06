@@ -1,6 +1,6 @@
 package com.mk.contractservice.infrastructure.persistence.contract.importjob;
 
-import com.mk.contractservice.domain.contract.importjob.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;

@@ -2,7 +2,7 @@ package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
-import com.mk.contractservice.domain.contract.importjob.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.ContractImportCsv;
 import lombok.RequiredArgsConstructor;

@@ -55,10 +55,11 @@ src/main/java/com/mk/contractservice
 ├── domain/          Aggregates, Value Objects, domain services, repository ports, domain exceptions
 ├── features/        One use case per file (vertical slice)
 ├── controllers/     Inbound adapters: REST endpoints, DTOs, DTO mappers, exception handlers
+├── batch/           Inbound adapter: Spring Batch jobs and their worker (ADR-022)
 └── infrastructure/  Outbound adapters: JPA entities/repositories/mappers, configuration
 ```
 
-Dependencies point inward: `controllers → features → domain ← infrastructure`. Enforced by `ArchitectureTest` (ArchUnit).
+Dependencies point inward: `controllers → features → domain ← infrastructure`, and `batch → features` like `controllers`. Enforced by `ArchitectureTest` (ArchUnit).
 
 ### Domain
 - No dependency on Spring, JPA or infrastructure. Tolerated: Lombok, JSpecify, and Spring Data `Page`/`Pageable`.
