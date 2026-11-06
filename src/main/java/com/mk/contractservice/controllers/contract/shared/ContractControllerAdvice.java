@@ -102,7 +102,7 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
                 .map(rejection -> Map.of(
                         "index", rejection.index(),
                         "clientId", rejection.clientId(),
-                        "code", codeOf(rejection.reason()),
+                        "code", rejection.reason().code(),
                         "message", rejection.message()))
                 .toList());
         return respond(problemDetail);
@@ -154,14 +154,6 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
 
         return respond(problem(HttpStatus.NOT_FOUND, "Contract Import Job Not Found",
                 ex.getMessage(), "contractImportJobNotFound"));
-    }
-
-    private static String codeOf(ContractImportRejectedException.Reason reason) {
-        return switch (reason) {
-            case INVALID_COST -> "invalidContractCost";
-            case INVALID_PERIOD -> "invalidContractPeriod";
-            case CLIENT_NOT_FOUND -> "clientNotFound";
-        };
     }
 
     @ExceptionHandler(ExpiredContractException.class)

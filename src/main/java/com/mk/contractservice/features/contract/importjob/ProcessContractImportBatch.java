@@ -2,20 +2,20 @@ package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
-import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.importjob.ContractImportRejectionReason;
 import com.mk.contractservice.domain.shared.UseCase;
-import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.features.shared.ContractImportCsv.MalformedLineException;
 import com.mk.contractservice.features.shared.ContractImportCsv.ParsedLine;
 import com.mk.contractservice.features.shared.ContractImportCsv.RawLine;
+import com.mk.contractservice.features.shared.ContractImportLineEvaluator;
+import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Accepted;
+import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Rejected;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
@@ -57,7 +57,13 @@ public interface ProcessContractImportBatch {
         private final ContractImportJobRepository jobRepository;
         private final Clock clock;
 
-        private record AcceptedLine(int lineNumber, Contract contract) {
+        private sealed interface LineOutcome permits ImportedLine, RejectedLine {
+        }
+
+        private record ImportedLine(int lineNumber, Contract contract) implements LineOutcome {
+        }
+
+        private record RejectedLine(ContractImportJobLine line) implements LineOutcome {
         }
 
         @Override
@@ -68,16 +74,19 @@ public interface ProcessContractImportBatch {
             final ContractImportJob job = jobRepository.getById(jobId);
             final Set<UUID> existingClientIds = clientRepository.lockExistingIds(command.clientIds());
 
-            final List<AcceptedLine> accepted = new ArrayList<>();
+            final List<ImportedLine> imported = new ArrayList<>();
             final List<ContractImportJobLine> lines = new ArrayList<>(command.lines().size());
             for (final RawLine line : command.lines()) {
-                processLine(jobId, line, existingClientIds, now, accepted, lines);
+                switch (evaluate(jobId, line, existingClientIds, now)) {
+                    case ImportedLine importedLine -> imported.add(importedLine);
+                    case RejectedLine(ContractImportJobLine rejectedLine) -> lines.add(rejectedLine);
+                }
             }
 
-            final List<Contract> contracts = contractRepository.insertAll(accepted.stream().map(AcceptedLine::contract).toList());
+            final List<Contract> contracts = contractRepository.insertAll(imported.stream().map(ImportedLine::contract).toList());
             for (int index = 0; index < contracts.size(); index++) {
                 final Contract contract = contracts.get(index);
-                lines.add(ContractImportJobLine.imported(jobId, accepted.get(index).lineNumber(), contract.clientId(), contract.id()));
+                lines.add(ContractImportJobLine.imported(jobId, imported.get(index).lineNumber(), contract.clientId(), contract.id()));
             }
             jobRepository.insertLines(lines);
 
@@ -85,36 +94,34 @@ public interface ProcessContractImportBatch {
             jobRepository.save(job.recordBatch(contracts.size(), rejected, instant.plus(ClaimContractImportJob.LEASE)));
         }
 
-        private void processLine(
+        private static LineOutcome evaluate(
                 final UUID jobId,
                 final RawLine line,
                 final Set<UUID> existingClientIds,
-                final LocalDateTime now,
-                final List<AcceptedLine> accepted,
-                final List<ContractImportJobLine> rejections
+                final LocalDateTime now
         ) {
             final int number = line.lineNumber();
             final ParsedLine parsed;
             try {
                 parsed = line.parse();
             } catch (final MalformedLineException ex) {
-                rejections.add(ContractImportJobLine.rejected(jobId, number, line.clientIdIfReadable().orElse(null),
-                        ContractImportRejectionReason.INVALID_LINE_FORMAT, ex.getMessage()));
-                return;
+                return rejected(jobId, number, line.clientIdIfReadable().orElse(null), ContractImportRejectionReason.INVALID_LINE_FORMAT, ex.getMessage());
             }
-            final UUID clientId = parsed.clientId();
-            if (!existingClientIds.contains(clientId)) {
-                rejections.add(ContractImportJobLine.rejected(jobId, number, clientId, ContractImportRejectionReason.CLIENT_NOT_FOUND, ClientNotFoundException.messageFor(clientId)));
-                return;
-            }
-            try {
-                accepted.add(new AcceptedLine(number, ContractFactory.createFromCommand(
-                        clientId, parsed.startDate(), parsed.endDate(), parsed.costAmount(), now)));
-            } catch (final InvalidContractCostException ex) {
-                rejections.add(ContractImportJobLine.rejected(jobId, number, clientId, ContractImportRejectionReason.INVALID_COST, ex.getMessage()));
-            } catch (final InvalidContractPeriodException ex) {
-                rejections.add(ContractImportJobLine.rejected(jobId, number, clientId, ContractImportRejectionReason.INVALID_PERIOD, ex.getMessage()));
-            }
+            return switch (ContractImportLineEvaluator.evaluate(
+                    parsed.clientId(), parsed.startDate(), parsed.endDate(), parsed.costAmount(), existingClientIds, now)) {
+                case Accepted(Contract contract) -> new ImportedLine(number, contract);
+                case Rejected(ContractImportRejectionReason reason, String message) -> rejected(jobId, number, parsed.clientId(), reason, message);
+            };
+        }
+
+        private static RejectedLine rejected(
+                final UUID jobId,
+                final int lineNumber,
+                @Nullable final UUID clientId,
+                final ContractImportRejectionReason reason,
+                final String message
+        ) {
+            return new RejectedLine(ContractImportJobLine.rejected(jobId, lineNumber, clientId, reason, message));
         }
     }
 }

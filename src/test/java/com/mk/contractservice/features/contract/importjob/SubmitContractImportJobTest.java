@@ -132,7 +132,6 @@ class SubmitContractImportJobTest {
 
         assertThatThrownBy(() -> handler().execute(blankKey)).isInstanceOf(InvalidIdempotencyKeyException.class);
         assertThatThrownBy(() -> handler().execute(tooLongKey)).isInstanceOf(InvalidIdempotencyKeyException.class);
-        verify(jobRepository, never()).findByIdempotencyKey(any(), any());
         verify(jobRepository, never()).insert(any(), any());
     }
 

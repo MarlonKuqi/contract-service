@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.contract.importjob;
 
+import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;

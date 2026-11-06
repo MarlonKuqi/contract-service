@@ -629,7 +629,7 @@ Un contrat n'a pas de clé naturelle : deux contrats identiques pour un même cl
 - **Syntaxe, puis règles.** Comme ailleurs (ADR-002), le DTO vérifie la syntaxe et s'arrête là : une erreur de syntaxe sur une ligne empêche d'évaluer les règles métier de toutes les autres. Une valeur mal typée interrompt le parsing JSON : seule la première est signalée.
 - **Un seul rejet par ligne, le client d'abord.** Une ligne dont le client est inconnu est rejetée sans construire le contrat : le conseiller sait qu'il doit d'abord créer ce client, et le contenu de la ligne sera évalué au renvoi. L'ordre diffère de `CreateContract`, qui valide le contrat avant de chercher le client : à l'échelle d'un import, signaler d'abord le client manquant donne la correction la plus utile. De même, `ContractFactory` s'arrête à la première règle violée : une ligne dont la période et le coût sont invalides ne signale que la période. Une correction peut donc faire apparaître un nouveau rejet sur la même ligne.
 - **L'import ne crée pas les clients manquants.** La ligne ne porte que `clientId`, alors que créer un client demande son type, son nom, son email, son téléphone et sa date de naissance ou son identifiant d'entreprise, que seul le conseiller peut fournir. De plus, l'identifiant est généré par le serveur : après `POST /v2/clients`, le conseiller remplace `clientId` dans la ligne par l'identifiant renvoyé. Enfin, `clientNotFound` couvre aussi un client supprimé (ADR-009), qu'il ne faut pas recréer sans décision du conseiller.
-- **« Always valid » conservé** : chaque contrat passe par `ContractFactory.createFromCommand`. Le handler traduit les exceptions du domaine en rejets ; il n'ajoute aucune règle.
+- **« Always valid » conservé** : chaque contrat passe par `ContractFactory.createFromCommand`. `ContractImportLineEvaluator` (`features/shared`), partagé avec l'import par fichier (ADR-022), vérifie le client puis traduit les exceptions du domaine en rejets (`ContractImportRejectionReason`) ; il n'ajoute aucune règle.
 - **Taille** : la limite est portée par `ImportContracts.Command` (ADR-002). 1000 lignes suffisent largement à cette échelle et gardent une transaction courte (environ 30 ms d'écriture, mesuré ci-dessous).
 - **Existence des clients sans N+1** : le port `ClientRepository.findExistingIds(Set<UUID>)` fait une seule requête `IN`. `@SQLRestriction` s'y applique : un client supprimé est absent du résultat, donc rejeté comme inconnu (ADR-009).
 - **Une seule `now`** pour tout l'import (ADR-003) : date de début par défaut et `lastModified`.
@@ -702,7 +702,7 @@ choisit explicitement l'un ou l'autre endpoint, sans bascule automatique selon l
   - `GET /v2/contracts/import-jobs?submittedBy&page&size` : jobs du plus récent au plus ancien, avec leur auteur ;
   - `POST /v2/contracts/import-jobs/{jobId}/cancellation` : annule le job et ferme ses contrats ;
   - `GET /v2/contracts/import-jobs/{jobId}/rejections/export` : rejets en CSV, avec leur ligne d'origine.
-- **Un seul contrôleur.** `ContractImportJobController` porte les trois endpoints, par exception à la règle « un
+- **Un seul contrôleur.** `ContractImportJobController` porte les six endpoints, par exception à la règle « un
   contrôleur par endpoint » : ils forment une seule ressource et partagent ses erreurs.
 - **Format CSV.** UTF-8, BOM toléré, séparateur `;` (celui d'Excel en Suisse et en France), en-tête obligatoire
   `clientId;startDate;endDate;costAmount`. Dates ISO, décimales avec un point, `startDate` et `endDate` vides autorisés.
@@ -727,9 +727,9 @@ choisit explicitement l'un ou l'autre endpoint, sans bascule automatique selon l
   tables `BATCH_*` sont créées par Flyway dans le schéma `contracts` (`initialize-schema: never`).
 - **Worker.** Spring Batch ne choisit pas les jobs à lancer et ne détecte pas les crashs. Un `@Scheduled` réserve donc
   un job avec `FOR UPDATE SKIP LOCKED` : `PENDING`, ou `RUNNING` dont le bail a expiré. Chaque chunk renouvelle le bail.
-- **Use cases.** Les neuf use cases de cet import sont dans `features/contract/importjob`, comme une seule tranche
-  verticale. `SubmitContractImportJob`, `GetContractImportJob` et `ListContractImportJobRejections` sont appelés par le
-  contrôleur ; `ClaimContractImportJob`, `ProcessContractImportBatch`, `FinishContractImportJob`, `ReleaseContractImportJob`,
+- **Use cases.** Les douze use cases de cet import sont dans `features/contract/importjob`, comme une seule tranche
+  verticale. `SubmitContractImportJob`, `GetContractImportJob`, `ListContractImportJobs`, `ListContractImportJobRejections`,
+  `ExportContractImportJobRejections` et `CancelContractImportJob` sont appelés par le contrôleur ; `ClaimContractImportJob`, `ProcessContractImportBatch`, `FinishContractImportJob`, `ReleaseContractImportJob`,
   `FailContractImportJob` et `LoadContractImportJobFile` sont appelés par le package `batch`. Aucune règle ne les lui réserve : rien n'empêche un
   autre adaptateur de les appeler, ce qui contournerait la position du reader et le bail. Ce sont tous des application
   services, appelés par des adaptateurs entrants différents. `ContractImportJob` n'accepte `recordBatch`, `finish`, `release` et
@@ -745,8 +745,9 @@ choisit explicitement l'un ou l'autre endpoint, sans bascule automatique selon l
   position du reader : un job repris continue exactement après le dernier chunk commité. Après un crash, l'exécution
   reste `STARTED` et Spring Batch refuse de la relancer (`JobExecutionAlreadyRunningException`) :
   `ContractImportJobRunner` appelle d'abord `JobOperator.recover`. Si la dernière exécution est déjà `COMPLETED` (crash
-  avant le listener), le runner applique directement `FinishContractImportJob`. Après `MAX_ATTEMPTS` (5) exécutions, le
-  job échoue en `tooManyAttempts`. Le `retry` de Spring Batch n'est pas utilisé : il rejoue l'écriture dans la même
+  avant le listener), le runner applique directement `FinishContractImportJob`. Après `MAX_ATTEMPTS` (5) exécutions en
+  échec, le job échoue en `tooManyAttempts`. Une exécution `STOPPED` ne compte pas : elle ne vient que d'un arrêt de
+  l'application, et un job doit survivre à plusieurs déploiements successifs. Le `retry` de Spring Batch n'est pas utilisé : il rejoue l'écriture dans la même
   transaction, inutilisable après une erreur PostgreSQL. La remise en file relance dans une transaction neuve.
 - **Arrêt de l'application.** `ChunkOrientedStep` (Spring Batch 6.0.6) sort de sa boucle sur une interruption du thread
   sans lever d'erreur : avec la politique par défaut, le step finit `COMPLETED` avec des lignes non lues, et une reprise
