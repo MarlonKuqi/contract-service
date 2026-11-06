@@ -87,16 +87,16 @@ class ActiveContractRuleAlignmentAcceptanceTest {
                 PersonBirthDate.of(LocalDate.of(1985, 3, 20), NOW.toLocalDate())
         ));
         final Contract contract = contractRepository.save(
-                ContractFactory.createFromCommand(client.getId(), startDate, endDate, COST, PAST.minusYears(1))
+                ContractFactory.createFromCommand(client.id(), startDate, endDate, COST, PAST.minusYears(1))
         );
 
         final boolean activeInDomain = contract.isActiveAt(NOW);
         final boolean listedAsActive = !contractRepository
-                .findByCriteria(ContractSearchCriteria.activeForClient(client.getId(), NOW), Pageable.unpaged())
+                .findByCriteria(ContractSearchCriteria.activeForClient(client.id(), NOW), Pageable.unpaged())
                 .isEmpty();
-        final BigDecimal activeTotal = contractQueryPort.calculateTotalCostAmountForClient(client.getId(), NOW);
+        final BigDecimal activeTotal = contractQueryPort.calculateTotalCostAmountForClient(client.id(), NOW);
         final Integer closedCount = new TransactionTemplate(transactionManager)
-                .execute(status -> contractRepository.closeAllActiveByClientId(client.getId(), NOW));
+                .execute(status -> contractRepository.closeAllActiveByClientId(client.id(), NOW));
 
         assertThat(activeInDomain).as("domain").isEqualTo(expectedActive);
         assertThat(listedAsActive).as("active contracts listing").isEqualTo(expectedActive);

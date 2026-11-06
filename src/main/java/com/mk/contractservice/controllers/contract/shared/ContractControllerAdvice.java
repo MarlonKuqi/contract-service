@@ -1,15 +1,17 @@
 package com.mk.contractservice.controllers.contract.shared;
 
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.mk.contractservice.controllers.contract.CreateContractController;
+import com.mk.contractservice.controllers.contract.ExportContractController;
+import com.mk.contractservice.controllers.contract.ImportContractsController;
 import com.mk.contractservice.controllers.contract.PatchContractCostController;
 import com.mk.contractservice.controllers.contract.SearchContractController;
 import com.mk.contractservice.controllers.shared.BaseControllerAdvice;
+import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
+import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.DomainValidationException;
 import org.slf4j.Logger;
@@ -21,6 +23,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import tools.jackson.databind.exc.InvalidFormatException;
+import tools.jackson.databind.exc.MismatchedInputException;
 
 import java.time.Clock;
 import java.util.List;
@@ -29,6 +33,8 @@ import java.util.Optional;
 
 @RestControllerAdvice(assignableTypes = {
         CreateContractController.class,
+        ExportContractController.class,
+        ImportContractsController.class,
         PatchContractCostController.class,
         SearchContractController.class
 })
@@ -59,6 +65,49 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
         return respond(problemDetail);
     }
 
+    @ExceptionHandler(InvalidExportCursorException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidExportCursor(InvalidExportCursorException ex) {
+        log.debug("Invalid export cursor");
+
+        ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Invalid Cursor",
+                ex.getMessage(), "invalidCursor");
+        return respond(problemDetail);
+    }
+
+    @ExceptionHandler(InvalidImportSizeException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidImportSize(InvalidImportSizeException ex) {
+        log.debug("Invalid import size: {}", ex.getMessage());
+
+        ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid Import Size",
+                ex.getMessage(), "invalidImportSize");
+        return respond(problemDetail);
+    }
+
+    @ExceptionHandler(ContractImportRejectedException.class)
+    public ResponseEntity<ProblemDetail> handleContractImportRejected(ContractImportRejectedException ex) {
+        log.debug("Contract import rejected: {}", ex.getMessage());
+
+        ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Contract Import Rejected",
+                "No contract was created. Fix the rejected lines and send the whole import again.",
+                "contractImportRejected");
+        problemDetail.setProperty("rejections", ex.rejections().stream()
+                .map(rejection -> Map.of(
+                        "index", rejection.index(),
+                        "clientId", rejection.clientId(),
+                        "code", codeOf(rejection.reason()),
+                        "message", rejection.message()))
+                .toList());
+        return respond(problemDetail);
+    }
+
+    private static String codeOf(ContractImportRejectedException.Reason reason) {
+        return switch (reason) {
+            case INVALID_COST -> "invalidContractCost";
+            case INVALID_PERIOD -> "invalidContractPeriod";
+            case CLIENT_NOT_FOUND -> "clientNotFound";
+        };
+    }
+
     @ExceptionHandler(ExpiredContractException.class)
     public ResponseEntity<ProblemDetail> handleExpiredContract(ExpiredContractException ex) {
         log.warn("Business rule violation: {}", ex.getMessage());
@@ -77,18 +126,30 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
             case InvalidFormatException ife -> String.format(
                     "Invalid value '%s' for field '%s'. Expected type: %s",
                     ife.getValue(),
-                    ife.getPath().getFirst().getFieldName(),
+                    fieldPathOf(ife),
                     ife.getTargetType().getSimpleName()
             );
             case MismatchedInputException mie when !mie.getPath().isEmpty() -> String.format(
                     "Missing or invalid field: '%s'",
-                    mie.getPath().getFirst().getFieldName()
+                    fieldPathOf(mie)
             );
-            default -> "Malformed JSON or invalid payload.";
+            case null, default -> "Malformed JSON or invalid payload.";
         };
 
         ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed", detail, "validationError");
         return respond(problemDetail);
+    }
+
+    private static String fieldPathOf(MismatchedInputException ex) {
+        StringBuilder path = new StringBuilder();
+        ex.getPath().forEach(reference -> {
+            if (reference.getPropertyName() == null) {
+                path.append('[').append(reference.getIndex()).append(']');
+            } else {
+                path.append(path.isEmpty() ? "" : ".").append(reference.getPropertyName());
+            }
+        });
+        return path.toString();
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -131,7 +192,7 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handleDomainValidation(DomainValidationException ex) {
         log.warn("Domain validation failed for contract: {}", ex.getMessage());
         ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Domain Validation Failed",
-                ex.getMessage(), ex.getCode() != null ? ex.getCode() : "domainValidationError");
+                ex.getMessage(), ex.code() != null ? ex.code() : "domainValidationError");
         problemDetail.setProperty(CONTEXT, "Contract domain validation failed");
         return respond(problemDetail);
     }

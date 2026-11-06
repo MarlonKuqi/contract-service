@@ -28,25 +28,25 @@ public final class ClientJpaMapper {
 
     public static PersonJpaEntity toNewPersonEntity(final Person person) {
         return new PersonJpaEntity(
-                person.getName().getValue(),
-                person.getEmail().getValue(),
-                person.getPhone().getValue(),
-                person.getBirthDate().getValue()
+                person.name().value(),
+                person.email().value(),
+                person.phone().value(),
+                person.birthDate().value()
         );
     }
 
     public static CompanyJpaEntity toNewCompanyEntity(final Company company) {
         return new CompanyJpaEntity(
-                company.getName().getValue(),
-                company.getEmail().getValue(),
-                company.getPhone().getValue(),
-                company.getCompanyIdentifier().getValue()
+                company.name().value(),
+                company.email().value(),
+                company.phone().value(),
+                company.companyIdentifier().value()
         );
     }
 
     public static void mergeIntoExisting(final Client domain, final ClientJpaEntity existing) {
-        existing.setName(domain.getName().getValue());
-        existing.setEmail(domain.getEmail().getValue());
-        existing.setPhone(domain.getPhone().getValue());
+        existing.setName(domain.name().value());
+        existing.setEmail(domain.email().value());
+        existing.setPhone(domain.phone().value());
     }
 }

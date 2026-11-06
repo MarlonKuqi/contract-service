@@ -43,6 +43,7 @@ The end date is exclusive. A contract whose `startDate` is in the future **is ac
 - Only active contracts can be modified (`ExpiredContractException`).
 - Updating the cost updates `lastModified`; the same amount (scale-insensitive) is a no-op. `lastModified` is never exposed by the API (ADR-005).
 - `birthDate` and `companyIdentifier` are immutable.
+- `PUT`/`PATCH` of a client and `PATCH` of a contract cost require `If-Match` with the strong ETag `"<version>"` (`428` if missing or `*`, `412` if stale). Only the single-resource `GET` returns the ETag, through read models (`ClientQueryPort`, `ContractQueryPort.getDetails`). The version stays out of the aggregates and of the write ports: commands carry `expectedVersion`, handlers call `repository.ensureVersion(id, expectedVersion)` right after loading (ADR-011). Only commands that apply a user decision taken on a previously read state carry `expectedVersion`; creations, state-independent operations (client deletion) and same-transaction processing (bulk closure, jobs) rely on `@Version` alone.
 - Email and phone are NOT unique. `companyIdentifier` is unique, even after the company is deleted (ADR-008).
 - Deleting a client is a soft delete: `deleted_at` is set, the client answers 404 everywhere, and its active contracts are closed with `endDate = deleted_at` (ADR-009).
 
@@ -67,6 +68,7 @@ Dependencies point inward: `controllers → features → domain ← infrastructu
 
 ### Use cases (`features/`)
 - One interface per use case containing its `Command`/`Query` record, its `execute` method and its `Handler`.
+- The `Command`/`Query` validates itself: its constructor checks the application rules no Value Object covers (e.g. pagination bounds through `PageBounds`, `InvalidPageRequestException` → 400). The use case never relies on a controller to protect it; controllers only convert (ADR-002, ADR-018).
 - The handler is annotated `@UseCase` and declares `@Transactional` or `@Transactional(readOnly = true)` explicitly.
 - Handlers orchestrate: they load aggregates and check existence through the ports (`getById`, `ensureExists`), delegate rules to domain objects and domain services, and call ports. No business rule in a handler.
 - A domain service holds a business rule that no single aggregate can check on its own (e.g. `CompanyIdentifierUniqueness`). Data access helpers ("find or throw", "exists or throw") belong to the port, not to a domain service.
@@ -87,6 +89,7 @@ Dependencies point inward: `controllers → features → domain ← infrastructu
 No domain object can exist in an invalid state.
 - Constructors are private and validate every mandatory field with `Assert.notNull` (throws `InvalidDomainObjectError`).
 - Value Objects are Lombok `@Value` classes with a private constructor. They validate and normalize through `ValueObjectUtils.validateAndCreate` (normalize, then validate, then construct). Records are not used for Value Objects because their canonical constructor cannot be hidden.
+- Lombok accessors are fluent (`lombok.config`): `contract.id()`, `email.value()`, like records. JPA entities keep JavaBean accessors (`infrastructure/persistence/lombok.config`) so Hibernate can read the id of a lazy proxy without initializing it.
 - Entry points:
     - `of(...)`: data coming from outside, validated and normalized;
     - `reconstituteFromDatabase(...)`: trusted data, only null-checked;
@@ -129,7 +132,7 @@ No domain object can exist in an invalid state.
 
 ## Git
 - Never perform git actions (commit, push, branch switch, stash) without being explicitly asked.
-- Branches start from `develop`: `feat/<topic>`, `bugfix/<topic>`. Releases: `release/x.y.z`. Main branch: `master`.
+- `feat/<topic>` starts from `develop`. `bugfix/<topic>` starts from the branch it fixes: `develop`, `release/x.y.z` or `master`, and goes back to that same branch (ADR-020). Releases: `release/x.y.z`. Main branch: `master`.
 - Before switching branches, check `git status`: uncommitted changes follow the switch.
 
 ### Commit rules

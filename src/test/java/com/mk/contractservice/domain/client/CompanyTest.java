@@ -63,7 +63,7 @@ class CompanyTest {
                         "acme-123"
                 );
 
-                assertThat(company.getEmail().getValue()).isEqualTo(email);
+                assertThat(company.email().value()).isEqualTo(email);
             }
 
             @ParameterizedTest
@@ -101,7 +101,7 @@ class CompanyTest {
                         "acme-123"
                 );
 
-                assertThat(company.getPhone().getValue()).isEqualTo(format.expectedE164());
+                assertThat(company.phone().value()).isEqualTo(format.expectedE164());
             }
 
             @ParameterizedTest
@@ -141,10 +141,10 @@ class CompanyTest {
                         data.companyIdentifier()
                 );
 
-                assertThat(company.getName().getValue()).isEqualTo(data.name());
-                assertThat(company.getEmail().getValue()).isEqualTo(data.email());
-                assertThat(company.getPhone().getValue()).isEqualTo(data.expectedPhone());
-                assertThat(company.getCompanyIdentifier().getValue()).isEqualTo(data.companyIdentifier().toUpperCase(Locale.ROOT));
+                assertThat(company.name().value()).isEqualTo(data.name());
+                assertThat(company.email().value()).isEqualTo(data.email());
+                assertThat(company.phone().value()).isEqualTo(data.expectedPhone());
+                assertThat(company.companyIdentifier().value()).isEqualTo(data.companyIdentifier().toUpperCase(Locale.ROOT));
             }
 
             @ParameterizedTest
@@ -162,7 +162,7 @@ class CompanyTest {
                         identifier
                 );
 
-                assertThat(company.getCompanyIdentifier().getValue()).isEqualTo(expected);
+                assertThat(company.companyIdentifier().value()).isEqualTo(expected);
             }
 
             @Test
@@ -177,7 +177,7 @@ class CompanyTest {
                         maxLengthIdentifier
                 );
 
-                assertThat(company.getCompanyIdentifier().getValue()).hasSize(CompanyIdentifier.MAX_LENGTH);
+                assertThat(company.companyIdentifier().value()).hasSize(CompanyIdentifier.MAX_LENGTH);
             }
 
             @Test
@@ -192,7 +192,7 @@ class CompanyTest {
                         "acme-123"
                 );
 
-                assertThat(company.getName().getValue()).hasSize(ClientName.MAX_LENGTH);
+                assertThat(company.name().value()).hasSize(ClientName.MAX_LENGTH);
             }
 
             @Test
@@ -207,7 +207,7 @@ class CompanyTest {
                         "acme-123"
                 );
 
-                assertThat(company.getEmail().getValue()).hasSize(ClientEmail.MAX_LENGTH);
+                assertThat(company.email().value()).hasSize(ClientEmail.MAX_LENGTH);
             }
         }
 
@@ -226,7 +226,7 @@ class CompanyTest {
                         "acme-123"
                 );
 
-                assertThat(company.getPhone().getValue()).isEqualTo("+41791234567");
+                assertThat(company.phone().value()).isEqualTo("+41791234567");
             }
 
             @Test
@@ -240,7 +240,7 @@ class CompanyTest {
                         "acme-123"
                 );
 
-                assertThat(company.getCompanyIdentifier().getValue()).isEqualTo("acme-123");
+                assertThat(company.companyIdentifier().value()).isEqualTo("acme-123");
             }
 
             @ParameterizedTest
@@ -279,13 +279,13 @@ class CompanyTest {
                     ClientPhoneNumber.of("+33987654321")
             );
 
-            assertThat(updated.getName().getValue()).isEqualTo("ACME Corporation");
-            assertThat(updated.getEmail().getValue()).isEqualTo("info@acme.com");
-            assertThat(updated.getPhone().getValue()).isEqualTo("+33987654321");
-            assertThat(updated.getCompanyIdentifier()).isEqualTo(originalIdentifier);
+            assertThat(updated.name().value()).isEqualTo("ACME Corporation");
+            assertThat(updated.email().value()).isEqualTo("info@acme.com");
+            assertThat(updated.phone().value()).isEqualTo("+33987654321");
+            assertThat(updated.companyIdentifier()).isEqualTo(originalIdentifier);
 
-            assertThat(company.getName().getValue()).isEqualTo("ACME Corp");
-            assertThat(company.getCompanyIdentifier()).isEqualTo(originalIdentifier);
+            assertThat(company.name().value()).isEqualTo("ACME Corp");
+            assertThat(company.companyIdentifier()).isEqualTo(originalIdentifier);
         }
 
         @Test
@@ -305,9 +305,9 @@ class CompanyTest {
             );
 
             assertThat(updated).isSameAs(company);
-            assertThat(updated.getName().getValue()).isEqualTo(company.getName().getValue());
-            assertThat(updated.getEmail().getValue()).isEqualTo(company.getEmail().getValue());
-            assertThat(updated.getPhone().getValue()).isEqualTo(company.getPhone().getValue());
+            assertThat(updated.name().value()).isEqualTo(company.name().value());
+            assertThat(updated.email().value()).isEqualTo(company.email().value());
+            assertThat(updated.phone().value()).isEqualTo(company.phone().value());
         }
 
         @Test
@@ -322,14 +322,14 @@ class CompanyTest {
 
             final Company updated = company.changeCoreFields(
                     ClientName.of("New ACME Name"),
-                    company.getEmail(),
-                    company.getPhone()
+                    company.email(),
+                    company.phone()
             );
 
-            assertThat(updated.getName().getValue()).isEqualTo("New ACME Name");
-            assertThat(updated.getEmail()).isEqualTo(company.getEmail());
-            assertThat(updated.getPhone()).isEqualTo(company.getPhone());
-            assertThat(updated.getCompanyIdentifier()).isEqualTo(company.getCompanyIdentifier());
+            assertThat(updated.name().value()).isEqualTo("New ACME Name");
+            assertThat(updated.email()).isEqualTo(company.email());
+            assertThat(updated.phone()).isEqualTo(company.phone());
+            assertThat(updated.companyIdentifier()).isEqualTo(company.companyIdentifier());
         }
 
         @Test
@@ -343,14 +343,14 @@ class CompanyTest {
             );
 
             final Company updated = company.changeCoreFields(
-                    company.getName(),
+                    company.name(),
                     ClientEmail.of("newemail@acme.com"),
-                    company.getPhone()
+                    company.phone()
             );
 
-            assertThat(updated.getName()).isEqualTo(company.getName());
-            assertThat(updated.getEmail().getValue()).isEqualTo("newemail@acme.com");
-            assertThat(updated.getPhone()).isEqualTo(company.getPhone());
+            assertThat(updated.name()).isEqualTo(company.name());
+            assertThat(updated.email().value()).isEqualTo("newemail@acme.com");
+            assertThat(updated.phone()).isEqualTo(company.phone());
         }
 
         @Test
@@ -364,14 +364,14 @@ class CompanyTest {
             );
 
             final Company updated = company.changeCoreFields(
-                    company.getName(),
-                    company.getEmail(),
+                    company.name(),
+                    company.email(),
                     ClientPhoneNumber.of("+33999999999")
             );
 
-            assertThat(updated.getName()).isEqualTo(company.getName());
-            assertThat(updated.getEmail()).isEqualTo(company.getEmail());
-            assertThat(updated.getPhone().getValue()).isEqualTo("+33999999999");
+            assertThat(updated.name()).isEqualTo(company.name());
+            assertThat(updated.email()).isEqualTo(company.email());
+            assertThat(updated.phone().value()).isEqualTo("+33999999999");
         }
     }
 }

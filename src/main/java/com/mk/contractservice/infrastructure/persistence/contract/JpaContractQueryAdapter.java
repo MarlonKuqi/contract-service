@@ -1,7 +1,10 @@
 package com.mk.contractservice.infrastructure.persistence.contract;
 
+import com.mk.contractservice.domain.contract.ContractDetails;
+import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractQueryPort;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
+import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -35,6 +38,25 @@ public class JpaContractQueryAdapter implements ContractQueryPort {
 
         final BigDecimal result = entityManager.createQuery(query).getSingleResult();
         return result == null ? BigDecimal.ZERO : result;
+    }
+
+    @Override
+    public ContractDetails getDetails(final UUID contractId, final LocalDateTime activeAt) {
+        final ContractJpaEntity entity = entityManager.find(ContractJpaEntity.class, contractId);
+        if (entity == null) {
+            throw new ContractNotFoundException(contractId);
+        }
+        final boolean active = ContractPeriod.reconstituteFromDatabase(entity.getStartDate(), entity.getEndDate())
+                .isEffectiveAt(activeAt);
+        return new ContractDetails(
+                entity.getId(),
+                entity.getClientId(),
+                entity.getStartDate(),
+                entity.getEndDate(),
+                active,
+                entity.getCostAmount(),
+                entity.getVersion()
+        );
     }
 }
 

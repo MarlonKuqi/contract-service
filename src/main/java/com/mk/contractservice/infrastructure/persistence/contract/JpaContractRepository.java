@@ -4,17 +4,22 @@ import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
+import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaUpdate;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -27,7 +32,7 @@ public class JpaContractRepository implements ContractRepository {
     @Override
     public Contract save(final Contract contract) {
         final ContractJpaEntity entity;
-        final UUID contractId = contract.getId();
+        final UUID contractId = contract.id();
         if (contractId == null) {
             entity = ContractJpaMapper.toNewEntity(contract);
         } else {
@@ -40,6 +45,16 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
+    public List<Contract> insertAll(final List<Contract> contracts) {
+        final List<ContractJpaEntity> entities = contracts.stream()
+                .map(ContractJpaMapper::toNewEntity)
+                .toList();
+        return contractJpaRepository.saveAll(entities).stream()
+                .map(ContractJpaMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public Contract getById(final UUID id) {
         return contractJpaRepository.findById(id)
                 .map(ContractJpaMapper::toDomain)
@@ -47,9 +62,33 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
+    public void ensureVersion(final UUID contractId, final long expectedVersion) {
+        final ContractJpaEntity entity = contractJpaRepository.findById(contractId)
+                .orElseThrow(() -> new ContractNotFoundException(contractId));
+        if (entity.getVersion() != expectedVersion) {
+            throw new VersionMismatchException(expectedVersion, entity.getVersion());
+        }
+    }
+
+    @Override
     public Page<Contract> findByCriteria(final ContractSearchCriteria criteria, final Pageable pageable) {
         return contractJpaRepository.findAll(ContractCriteriaAdapter.toSpecification(criteria), pageable)
                 .map(ContractJpaMapper::toDomain);
+    }
+
+    @Override
+    public List<Contract> findActiveAfter(final LocalDateTime activeAt, @Nullable final UUID afterId, final int limit) {
+        Specification<ContractJpaEntity> spec = ContractSpecifications.isActive(activeAt);
+        if (afterId != null) {
+            spec = spec.and(ContractSpecifications.idGreaterThan(afterId));
+        }
+        return contractJpaRepository.findBy(spec, query -> query
+                        .sortBy(Sort.by(ContractSpecifications.FIELD_ID))
+                        .limit(limit)
+                        .all())
+                .stream()
+                .map(ContractJpaMapper::toDomain)
+                .toList();
     }
 
     @Override

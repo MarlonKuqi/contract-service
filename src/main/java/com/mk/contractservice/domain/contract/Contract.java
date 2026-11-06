@@ -68,7 +68,7 @@ public class Contract {
     }
 
     public boolean isActiveAt(final LocalDateTime referenceDate) {
-        return getPeriod().isEffectiveAt(notNull(referenceDate));
+        return period().isEffectiveAt(notNull(referenceDate));
     }
 
     public boolean isInactiveAt(final LocalDateTime referenceDate) {
@@ -89,7 +89,7 @@ public class Contract {
 
     private void assertModifiableAt(final LocalDateTime now) {
         if (isInactiveAt(now)) {
-            throw new ExpiredContractException(getId());
+            throw new ExpiredContractException(id());
         }
     }
 }

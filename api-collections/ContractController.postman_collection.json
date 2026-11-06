@@ -15,8 +15,26 @@
       { "key": "addTokenTo", "value": "header", "type": "string" },
       { "key": "tokenName", "value": "contract-service", "type": "string" }
     ]
-  },
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.response.headers.has('ETag')) {",
+          "    pm.collectionVariables.set('contractETag', pm.response.headers.get('ETag'));",
+          "}"
+        ]
+      }
+    }
+  ],
   "variable": [
+    {
+      "key": "contractETag",
+      "value": "",
+      "type": "string"
+    },
     {
       "key": "keycloakUrl",
       "value": "http://localhost:8081",
@@ -45,6 +63,11 @@
     {
       "key": "contractId",
       "value": "REPLACE_WITH_CONTRACT_UUID",
+      "type": "string"
+    },
+    {
+      "key": "exportCursor",
+      "value": "",
       "type": "string"
     }
   ],
@@ -121,7 +144,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&page=0&size=20&sort=lastModified,desc",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&page=0&size=20",
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts"],
           "query": [
@@ -138,16 +161,11 @@
             {
               "key": "size",
               "value": "20",
-              "description": "Number of items per page (default: 20)"
-            },
-            {
-              "key": "sort",
-              "value": "lastModified,desc",
-              "description": "Sort order (field,direction)"
+              "description": "Number of items per page (default: 20, min: 1, max: 100)"
             }
           ]
         },
-        "description": "Get all active contracts for a client (paginated). Returns only contracts where current date < end date (or endDate is null). Default page size is 20. Response format: {content: [...], pageNumber, pageSize, totalElements, totalPages, first, last}"
+        "description": "Get all active contracts for a client (paginated). Returns only contracts where current date < end date (or endDate is null). Default page size is 20, max is 100. Results are always sorted by last modification, most recent first; a sort parameter is ignored. Response format: {content: [...], pageNumber, pageSize, totalElements, totalPages, first, last}"
       }
     },
     {
@@ -186,6 +204,80 @@
       }
     },
     {
+      "name": "Export Active Contracts",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('exportCursor')) {",
+              "    pm.request.url.query.remove('cursor');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const nextCursor = pm.response.json().nextCursor;",
+              "if (nextCursor) {",
+              "    pm.collectionVariables.set('exportCursor', nextCursor);",
+              "} else {",
+              "    pm.collectionVariables.unset('exportCursor');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/export?size=100&cursor={{exportCursor}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "export"],
+          "query": [
+            {
+              "key": "size",
+              "value": "100",
+              "description": "Number of contracts per page (default: 100, min: 1, max: 1000)"
+            },
+            {
+              "key": "cursor",
+              "value": "{{exportCursor}}",
+              "description": "Opaque cursor: the nextCursor of the previous page, unchanged. Removed automatically when exportCursor is empty (first page)."
+            }
+          ]
+        },
+        "description": "Export the contracts active at request time, of all clients, ordered by id (keyset pagination, ADR-019). Send the request repeatedly: the first call has no cursor, the test script stores each nextCursor in the exportCursor variable and clears it on the last page (nextCursor null), so the next call starts a new export. A contract whose cost changes during the export is neither skipped nor exported twice. An invalid cursor returns 400 with code invalidCursor; a size outside 1..1000 returns 400 with code invalidParameter. Response format: {items: [...], nextCursor}"
+      }
+    },
+    {
+      "name": "Import Contracts",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contracts\": [\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"costAmount\": 1500.50\n    },\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"startDate\": \"2027-01-01T00:00:00\",\n      \"endDate\": \"2028-01-01T00:00:00\",\n      \"costAmount\": 900.00\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/imports",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "imports"]
+        },
+        "description": "Import up to 1000 contracts, all or nothing (ADR-021). 201: {importedCount, contractIds} in the order of the lines; do not send it again, the contracts would be created twice. 422 contractImportRejected: nothing was created, the rejections property lists each problem with its zero-based index, clientId, code (invalidContractCost, invalidContractPeriod, clientNotFound) and message; fix the lines and send the whole import again. 422 invalidImportSize: no line or more than 1000. 422 validationError: missing or wrongly typed field, named contracts[n].field."
+      }
+    },
+    {
       "name": "Get Contract By ID",
       "request": {
         "method": "GET",
@@ -204,6 +296,10 @@
         "method": "PATCH",
         "header": [
           {
+            "key": "If-Match",
+            "value": "{{contractETag}}"
+          },
+          {
             "key": "Content-Type",
             "value": "application/json"
           }
@@ -217,7 +313,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts", "{{contractId}}", "cost"]
         },
-        "description": "Update the cost amount of a contract and its internal last modification date (used by the updatedSince filter). Only active (non-expired) contracts can be updated: an expired contract returns 409 with code contractExpired. A concurrent modification is retried by the server; if the conflict persists after several retries, it returns 409 with code optimisticLockFailure. An invalid amount returns 422. Sending the same amount (scale-insensitive, e.g. 100.0 = 100.00) is a no-op: the contract is not modified."
+        "description": "Update the cost amount of a contract and its internal last modification date (used by the updatedSince filter). Only active (non-expired) contracts can be updated: an expired contract returns 409 with code contractExpired. Requires If-Match with the ETag of the contract ({{contractETag}} is filled by Get Contract By ID); the response carries no ETag, run Get Contract By ID again before another change. Missing If-Match or If-Match: * returns 428 (preconditionRequired); an ETag that is no longer current, including after the contract was closed by a client deletion, returns 412 (preconditionFailed). An invalid amount returns 422. Sending the same amount (scale-insensitive, e.g. 100.0 = 100.00) is a no-op: the contract is not modified."
       }
     },
     {
