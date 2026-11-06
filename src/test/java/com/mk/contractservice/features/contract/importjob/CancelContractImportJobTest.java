@@ -52,8 +52,8 @@ class CancelContractImportJobTest {
         return new CancelContractImportJob.Handler(jobRepository, contractRepository, CLOCK);
     }
 
-    private static ContractImportJob jobWithStatus(final ContractImportJobStatus status) {
-        return ContractImportJob.reconstituteFromDatabase(JOB_ID, ContractImportJobFixtures.submission(NOW.minusHours(1)), status,
+    private static ContractImportJob completedJob() {
+        return ContractImportJob.reconstituteFromDatabase(JOB_ID, ContractImportJobFixtures.submission(NOW.minusHours(1)), ContractImportJobStatus.COMPLETED,
                 ContractImportProgress.reconstituteFromDatabase(3, 3, 2, 1), null,
                 ContractImportTermination.reconstituteFromDatabase(NOW.minusMinutes(30), null), null);
     }
@@ -61,7 +61,7 @@ class CancelContractImportJobTest {
     @Test
     @DisplayName("GIVEN a completed job WHEN cancelling THEN it is cancelled and its active contracts are closed now")
     void shouldCancelJobAndCloseItsContracts() {
-        when(jobRepository.getByIdForUpdate(JOB_ID)).thenReturn(jobWithStatus(ContractImportJobStatus.COMPLETED));
+        when(jobRepository.getByIdForUpdate(JOB_ID)).thenReturn(completedJob());
         when(jobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(contractRepository.closeAllActiveImportedBy(JOB_ID, NOW)).thenReturn(2);
 
@@ -77,7 +77,7 @@ class CancelContractImportJobTest {
     @Test
     @DisplayName("GIVEN an already cancelled job WHEN cancelling again THEN nothing is saved nor closed")
     void shouldIgnoreAlreadyCancelledJob() {
-        final ContractImportJob cancelled = jobWithStatus(ContractImportJobStatus.PENDING).cancel(NOW, COUNSELOR);
+        final ContractImportJob cancelled = ContractImportJobFixtures.cancelledJob(JOB_ID);
         when(jobRepository.getByIdForUpdate(JOB_ID)).thenReturn(cancelled);
 
         final CancelContractImportJob.Result result = handler().execute(new CancelContractImportJob.Command(JOB_ID, "other.counselor"));

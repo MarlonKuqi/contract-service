@@ -5,6 +5,7 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportTermination;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,7 +52,7 @@ class FinishContractImportJobTest {
 
         verify(jobRepository).save(jobCaptor.capture());
         assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobStatus.COMPLETED);
-        assertThat(jobCaptor.getValue().termination().finishedAt()).isEqualTo(NOW);
+        assertThat(jobCaptor.getValue().termination()).isEqualTo(ContractImportTermination.ended(NOW));
     }
 
     @Test
@@ -63,7 +64,7 @@ class FinishContractImportJobTest {
 
         verify(jobRepository).save(jobCaptor.capture());
         assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobStatus.FAILED);
-        assertThat(jobCaptor.getValue().termination().failureReason()).isEqualTo(ContractImportFailureReason.INCOMPLETE_PROCESSING);
+        assertThat(jobCaptor.getValue().termination()).isEqualTo(ContractImportTermination.failed(ContractImportFailureReason.INCOMPLETE_PROCESSING, NOW));
     }
 
     @Test

@@ -10,6 +10,7 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.features.shared.ContractImportCsv.RawLine;
+import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -72,6 +73,13 @@ class ProcessContractImportBatchTest {
         return ContractFactory.buildFromDatabase(id, CLIENT_ID, NOW, null, new BigDecimal("100.00"), NOW);
     }
 
+    private static Tuple outcomeOf(final ContractImportJobLine line) {
+        return switch (line) {
+            case ContractImportJobLine.Imported(UUID _, int lineNumber, UUID clientId, UUID contractId) -> tuple(lineNumber, clientId, contractId);
+            case ContractImportJobLine.Rejected(UUID _, int lineNumber, UUID clientId, ContractImportRejectionReason reason, String _) -> tuple(lineNumber, clientId, reason);
+        };
+    }
+
     @Test
     @DisplayName("GIVEN mixed lines WHEN processing THEN valid lines create contracts and the others are rejected")
     void shouldImportValidLinesAndRejectOthers() {
@@ -90,14 +98,13 @@ class ProcessContractImportBatchTest {
 
         verify(jobRepository).insertLines(linesCaptor.capture());
         assertThat(linesCaptor.getValue())
-                .extracting(ContractImportJobLine::lineNumber, ContractImportJobLine::contractId,
-                        ContractImportJobLine::clientId, ContractImportJobLine::rejectionReason)
+                .extracting(ProcessContractImportBatchTest::outcomeOf)
                 .containsExactlyInAnyOrder(
-                        tuple(2, contractId, CLIENT_ID, null),
-                        tuple(3, null, CLIENT_ID, ContractImportRejectionReason.INVALID_COST),
-                        tuple(4, null, UNKNOWN_CLIENT_ID, ContractImportRejectionReason.CLIENT_NOT_FOUND),
-                        tuple(5, null, null, ContractImportRejectionReason.INVALID_LINE_FORMAT),
-                        tuple(6, null, CLIENT_ID, ContractImportRejectionReason.INVALID_PERIOD)
+                        tuple(2, CLIENT_ID, contractId),
+                        tuple(3, CLIENT_ID, ContractImportRejectionReason.INVALID_COST),
+                        tuple(4, UNKNOWN_CLIENT_ID, ContractImportRejectionReason.CLIENT_NOT_FOUND),
+                        tuple(5, null, ContractImportRejectionReason.INVALID_LINE_FORMAT),
+                        tuple(6, CLIENT_ID, ContractImportRejectionReason.INVALID_PERIOD)
                 );
     }
 
@@ -119,11 +126,11 @@ class ProcessContractImportBatchTest {
 
         verify(jobRepository).insertLines(linesCaptor.capture());
         assertThat(linesCaptor.getValue())
-                .filteredOn(line -> line.contractId() != null)
-                .extracting(ContractImportJobLine::lineNumber, ContractImportJobLine::contractId)
+                .filteredOn(ContractImportJobLine.Imported.class::isInstance)
+                .extracting(ProcessContractImportBatchTest::outcomeOf)
                 .containsExactlyInAnyOrder(
-                        tuple(2, firstContractId),
-                        tuple(4, secondContractId)
+                        tuple(2, CLIENT_ID, firstContractId),
+                        tuple(4, CLIENT_ID, secondContractId)
                 );
     }
 

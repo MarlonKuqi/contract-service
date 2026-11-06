@@ -1,6 +1,8 @@
 package com.mk.contractservice.infrastructure.persistence.contract.importjob;
 
+import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportCancellation;
+import com.mk.contractservice.domain.contract.importjob.ContractImportFailureReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportProgress;
@@ -13,6 +15,7 @@ import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ContractImportJobJpaMapper {
@@ -54,19 +57,27 @@ public final class ContractImportJobJpaMapper {
         existing.setRejectedCount(progress.rejectedCount());
         existing.setLeaseUntil(domain.leaseUntil());
         existing.setFinishedAt(termination == null ? null : termination.finishedAt());
-        existing.setFailureReason(termination == null ? null : termination.failureReason());
+        existing.setFailureReason(failureReasonOf(termination));
         existing.setCancelledAt(cancellation == null ? null : cancellation.cancelledAt());
         existing.setCancelledBy(cancellation == null ? null : cancellation.cancelledBy());
     }
 
     public static ContractImportJobLineJpaEntity toLineEntity(final ContractImportJobLine line) {
-        return new ContractImportJobLineJpaEntity(
-                new ContractImportJobLineJpaEntity.LineId(line.jobId(), line.lineNumber()),
-                line.clientId(),
-                line.contractId(),
-                line.rejectionReason(),
-                line.rejectionMessage()
-        );
+        final ContractImportJobLineJpaEntity.LineId id = new ContractImportJobLineJpaEntity.LineId(line.jobId(), line.lineNumber());
+        return switch (line) {
+            case ContractImportJobLine.Imported(UUID _, int _, UUID clientId, UUID contractId) ->
+                    new ContractImportJobLineJpaEntity(id, clientId, contractId, null, null);
+            case ContractImportJobLine.Rejected(UUID _, int _, UUID clientId, ContractImportRejectionReason reason, String message) ->
+                    new ContractImportJobLineJpaEntity(id, clientId, null, reason, message);
+        };
+    }
+
+    private static @Nullable ContractImportFailureReason failureReasonOf(@Nullable final ContractImportTermination termination) {
+        return switch (termination) {
+            case ContractImportTermination.Failed failed -> failed.reason();
+            case ContractImportTermination.Ended _ -> null;
+            case null -> null;
+        };
     }
 
     public static ContractImportRejection toDomainRejection(final ContractImportJobLineJpaEntity line) {
