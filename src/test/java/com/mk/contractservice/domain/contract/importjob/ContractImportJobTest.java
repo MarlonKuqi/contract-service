@@ -42,7 +42,7 @@ class ContractImportJobTest {
 
     private static ContractImportFailureReason failureReasonOf(final ContractImportJob job) {
         return switch (job.termination()) {
-            case ContractImportTermination.Failed failed -> failed.reason();
+            case ContractImportTermination.Failed(LocalDateTime _, ContractImportFailureReason reason) -> reason;
             case ContractImportTermination.Ended _ -> null;
             case null -> null;
         };

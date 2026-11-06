@@ -1,5 +1,6 @@
 package com.mk.contractservice.features.contract.importjob;
 
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobQueryPort;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
@@ -39,10 +40,11 @@ public interface ExportContractImportJobRejections {
     class Handler implements ExportContractImportJobRejections {
 
         private final ContractImportJobRepository jobRepository;
+        private final ContractImportJobQueryPort queryPort;
 
         @Override
         public List<RejectedLine> execute(final Query query) {
-            jobRepository.getById(query.jobId());
+            jobRepository.ensureExists(query.jobId());
             final List<ContractImportRejection> rejections = allRejections(query.jobId());
             final Set<Integer> lineNumbers = rejections.stream()
                     .map(ContractImportRejection::lineNumber)
@@ -58,10 +60,10 @@ public interface ExportContractImportJobRejections {
         }
 
         private List<ContractImportRejection> allRejections(final UUID jobId) {
-            Page<ContractImportRejection> page = jobRepository.findRejections(jobId, PageRequest.of(0, PAGE_SIZE));
+            Page<ContractImportRejection> page = queryPort.findRejections(jobId, PageRequest.of(0, PAGE_SIZE));
             final List<ContractImportRejection> rejections = new ArrayList<>(page.getContent());
             while (page.hasNext()) {
-                page = jobRepository.findRejections(jobId, page.nextPageable());
+                page = queryPort.findRejections(jobId, page.nextPageable());
                 rejections.addAll(page.getContent());
             }
             return rejections;

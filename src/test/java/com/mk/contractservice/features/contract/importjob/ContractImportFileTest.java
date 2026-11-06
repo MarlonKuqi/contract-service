@@ -1,6 +1,6 @@
 package com.mk.contractservice.features.contract.importjob;
 
-import com.mk.contractservice.domain.contract.importjob.exception.InvalidImportFileException;
+import com.mk.contractservice.features.shared.InvalidImportFileException;
 import com.mk.contractservice.features.shared.ContractImportCsv;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

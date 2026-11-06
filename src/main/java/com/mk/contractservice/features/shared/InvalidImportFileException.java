@@ -1,4 +1,4 @@
-package com.mk.contractservice.domain.contract.importjob.exception;
+package com.mk.contractservice.features.shared;
 
 public class InvalidImportFileException extends RuntimeException {
 

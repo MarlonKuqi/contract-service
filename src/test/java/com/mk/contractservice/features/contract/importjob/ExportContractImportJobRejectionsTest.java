@@ -2,6 +2,7 @@ package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobQueryPort;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import org.junit.jupiter.api.DisplayName;
@@ -20,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,6 +37,9 @@ class ExportContractImportJobRejectionsTest {
     @Mock
     private ContractImportJobRepository jobRepository;
 
+    @Mock
+    private ContractImportJobQueryPort queryPort;
+
     private static ContractImportRejection rejected(final int lineNumber, final ContractImportRejectionReason reason) {
         return ContractImportRejection.reconstituteFromDatabase(lineNumber, CLIENT_ID, reason, "reason of line " + lineNumber);
     }
@@ -48,12 +53,12 @@ class ExportContractImportJobRejectionsTest {
                 + "\n"
                 + "garbage;\"quoted\"\n";
         when(jobRepository.loadFile(JOB_ID)).thenReturn(file.getBytes(StandardCharsets.UTF_8));
-        when(jobRepository.findRejections(JOB_ID, PageRequest.of(0, PAGE_SIZE)))
+        when(queryPort.findRejections(JOB_ID, PageRequest.of(0, PAGE_SIZE)))
                 .thenReturn(new PageImpl<>(List.of(rejected(3, ContractImportRejectionReason.INVALID_COST)), PageRequest.of(0, PAGE_SIZE), PAGE_SIZE + 1L));
-        when(jobRepository.findRejections(JOB_ID, PageRequest.of(1, PAGE_SIZE)))
+        when(queryPort.findRejections(JOB_ID, PageRequest.of(1, PAGE_SIZE)))
                 .thenReturn(new PageImpl<>(List.of(rejected(5, ContractImportRejectionReason.INVALID_LINE_FORMAT)), PageRequest.of(1, PAGE_SIZE), PAGE_SIZE + 1L));
 
-        final List<ExportContractImportJobRejections.RejectedLine> lines = new ExportContractImportJobRejections.Handler(jobRepository)
+        final List<ExportContractImportJobRejections.RejectedLine> lines = new ExportContractImportJobRejections.Handler(jobRepository, queryPort)
                 .execute(new ExportContractImportJobRejections.Query(JOB_ID));
 
         assertThat(lines)
@@ -70,9 +75,9 @@ class ExportContractImportJobRejectionsTest {
     @Test
     @DisplayName("GIVEN an unknown job WHEN exporting THEN it is not found and its file is never read")
     void shouldNotReadFileOfUnknownJob() {
-        when(jobRepository.getById(JOB_ID)).thenThrow(new ContractImportJobNotFoundException(JOB_ID));
+        doThrow(new ContractImportJobNotFoundException(JOB_ID)).when(jobRepository).ensureExists(JOB_ID);
 
-        assertThatThrownBy(() -> new ExportContractImportJobRejections.Handler(jobRepository)
+        assertThatThrownBy(() -> new ExportContractImportJobRejections.Handler(jobRepository, queryPort)
                 .execute(new ExportContractImportJobRejections.Query(JOB_ID)))
                 .isInstanceOf(ContractImportJobNotFoundException.class);
         verify(jobRepository, never()).loadFile(any());

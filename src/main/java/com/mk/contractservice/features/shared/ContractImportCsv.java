@@ -1,6 +1,5 @@
 package com.mk.contractservice.features.shared;
 
-import com.mk.contractservice.domain.contract.importjob.exception.InvalidImportFileException;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
