@@ -83,10 +83,10 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(command.name());
-            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
-            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
-            assertThat(((Person) result).getBirthDate()).isEqualTo(existingPerson.getBirthDate());
+            assertThat(result.name().value()).isEqualTo(command.name());
+            assertThat(result.email().value()).isEqualTo(command.email());
+            assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
+            assertThat(((Person) result).birthDate()).isEqualTo(existingPerson.birthDate());
         }
 
         @Test
@@ -107,10 +107,10 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(command.name());
-            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
-            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
-            assertThat(((Person) result).getBirthDate()).isEqualTo(existingPerson.getBirthDate());
+            assertThat(result.name().value()).isEqualTo(command.name());
+            assertThat(result.email().value()).isEqualTo(command.email());
+            assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
+            assertThat(((Person) result).birthDate()).isEqualTo(existingPerson.birthDate());
         }
 
         @Test
@@ -131,10 +131,10 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(command.name());
-            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
-            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
-            assertThat(((Person) result).getBirthDate()).isEqualTo(existingPerson.getBirthDate());
+            assertThat(result.name().value()).isEqualTo(command.name());
+            assertThat(result.email().value()).isEqualTo(command.email());
+            assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
+            assertThat(((Person) result).birthDate()).isEqualTo(existingPerson.birthDate());
         }
 
         @Test
@@ -155,10 +155,10 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(command.name());
-            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
-            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
-            assertThat(((Person) result).getBirthDate()).isEqualTo(existingPerson.getBirthDate());
+            assertThat(result.name().value()).isEqualTo(command.name());
+            assertThat(result.email().value()).isEqualTo(command.email());
+            assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
+            assertThat(((Person) result).birthDate()).isEqualTo(existingPerson.birthDate());
         }
 
         @Test
@@ -278,10 +278,10 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(command.name());
-            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
-            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
-            assertThat(((Company) result).getCompanyIdentifier()).isEqualTo(existingCompany.getCompanyIdentifier());
+            assertThat(result.name().value()).isEqualTo(command.name());
+            assertThat(result.email().value()).isEqualTo(command.email());
+            assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
+            assertThat(((Company) result).companyIdentifier()).isEqualTo(existingCompany.companyIdentifier());
         }
 
         @Test
@@ -302,10 +302,10 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(command.name());
-            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
-            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
-            assertThat(((Company) result).getCompanyIdentifier()).isEqualTo(existingCompany.getCompanyIdentifier());
+            assertThat(result.name().value()).isEqualTo(command.name());
+            assertThat(result.email().value()).isEqualTo(command.email());
+            assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
+            assertThat(((Company) result).companyIdentifier()).isEqualTo(existingCompany.companyIdentifier());
         }
     }
 

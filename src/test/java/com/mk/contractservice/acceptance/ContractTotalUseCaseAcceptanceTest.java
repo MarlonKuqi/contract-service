@@ -83,7 +83,7 @@ class ContractTotalUseCaseAcceptanceTest {
                         "endDate": null,
                         "costAmount": "1000.00"
                     }
-                    """, testClient.getId(), now.minusDays(10));
+                    """, testClient.id(), now.minusDays(10));
 
             // Active 2: endDate in the future
             String activeContract2 = String.format("""
@@ -93,7 +93,7 @@ class ContractTotalUseCaseAcceptanceTest {
                         "endDate": "%s",
                         "costAmount": "2000.00"
                     }
-                    """, testClient.getId(), now.minusDays(5), now.plusDays(30));
+                    """, testClient.id(), now.minusDays(5), now.plusDays(30));
 
             // Expired 1: endDate in the past (yesterday)
             String expiredContract1 = String.format("""
@@ -103,7 +103,7 @@ class ContractTotalUseCaseAcceptanceTest {
                         "endDate": "%s",
                         "costAmount": "500.00"
                     }
-                    """, testClient.getId(), now.minusDays(100), now.minusDays(1));
+                    """, testClient.id(), now.minusDays(100), now.minusDays(1));
 
             // Expired 2: endDate in the past (last month)
             String expiredContract2 = String.format("""
@@ -113,7 +113,7 @@ class ContractTotalUseCaseAcceptanceTest {
                         "endDate": "%s",
                         "costAmount": "700.00"
                     }
-                    """, testClient.getId(), now.minusDays(60), now.minusDays(30));
+                    """, testClient.id(), now.minusDays(60), now.minusDays(30));
 
             // Create all contracts
             given().body(activeContract1)
@@ -137,7 +137,7 @@ class ContractTotalUseCaseAcceptanceTest {
             // Expired contracts (500 + 700) are NOT included
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(200)
                     .body(equalTo("3000.00"));
@@ -157,7 +157,7 @@ class ContractTotalUseCaseAcceptanceTest {
                             "endDate": null,
                             "costAmount": "%d.00"
                         }
-                        """, testClient.getId(), now.minusDays(10), (i + 1) * 100);
+                        """, testClient.id(), now.minusDays(10), (i + 1) * 100);
 
                 given().body(contractPayload)
                         .post(ContractEndpoints.CONTRACTS_BASE)
@@ -168,7 +168,7 @@ class ContractTotalUseCaseAcceptanceTest {
             // 100 + 200 + 300 = 600
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(200)
                     .body(equalTo("600.00"));
@@ -187,7 +187,7 @@ class ContractTotalUseCaseAcceptanceTest {
                         "endDate": "%s",
                         "costAmount": "1000.00"
                     }
-                    """, testClient.getId(), now.minusMonths(6), now.minusMonths(3));
+                    """, testClient.id(), now.minusMonths(6), now.minusMonths(3));
 
             String expiredContract2 = String.format("""
                     {
@@ -196,7 +196,7 @@ class ContractTotalUseCaseAcceptanceTest {
                         "endDate": "%s",
                         "costAmount": "2000.00"
                     }
-                    """, testClient.getId(), now.minusMonths(12), now.minusDays(1));
+                    """, testClient.id(), now.minusMonths(12), now.minusDays(1));
 
             given().body(expiredContract1)
                     .post(ContractEndpoints.CONTRACTS_BASE)
@@ -209,7 +209,7 @@ class ContractTotalUseCaseAcceptanceTest {
             // WHEN & THEN
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(200)
                     .body(anyOf(equalTo("0"), equalTo("0.00"), equalTo("0.0")));
@@ -248,7 +248,7 @@ class ContractTotalUseCaseAcceptanceTest {
                             "endDate": null,
                             "costAmount": "999999.99"
                         }
-                        """, testClient.getId(), now.minusDays(10));
+                        """, testClient.id(), now.minusDays(10));
 
                 given().body(contractPayload)
                         .post(ContractEndpoints.CONTRACTS_BASE)
@@ -259,7 +259,7 @@ class ContractTotalUseCaseAcceptanceTest {
             // 5 × 999999.99 = 4999999.95
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(200)
                     .body(equalTo("4999999.95"));
@@ -278,7 +278,7 @@ class ContractTotalUseCaseAcceptanceTest {
                         "endDate": null,
                         "costAmount": "10.50"
                     }
-                    """, testClient.getId(), now.minusDays(10));
+                    """, testClient.id(), now.minusDays(10));
 
             String contract2 = String.format("""
                     {
@@ -287,7 +287,7 @@ class ContractTotalUseCaseAcceptanceTest {
                         "endDate": null,
                         "costAmount": "20.75"
                     }
-                    """, testClient.getId(), now.minusDays(10));
+                    """, testClient.id(), now.minusDays(10));
 
             String contract3 = String.format("""
                     {
@@ -296,7 +296,7 @@ class ContractTotalUseCaseAcceptanceTest {
                         "endDate": null,
                         "costAmount": "30.33"
                     }
-                    """, testClient.getId(), now.minusDays(10));
+                    """, testClient.id(), now.minusDays(10));
 
             given().body(contract1)
                     .post(ContractEndpoints.CONTRACTS_BASE)
@@ -313,7 +313,7 @@ class ContractTotalUseCaseAcceptanceTest {
             // WHEN & THEN: 10.50 + 20.75 + 30.33 = 61.58
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(200)
                     .body(equalTo("61.58"));
@@ -338,7 +338,7 @@ class ContractTotalUseCaseAcceptanceTest {
                             "endDate": null,
                             "costAmount": "100.00"
                         }
-                        """, testClient.getId(), now.minusDays(10));
+                        """, testClient.id(), now.minusDays(10));
 
                 given().body(contractPayload)
                         .post(ContractEndpoints.CONTRACTS_BASE)
@@ -349,7 +349,7 @@ class ContractTotalUseCaseAcceptanceTest {
 
             final String sum = given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(200)
                     .extract().asString();

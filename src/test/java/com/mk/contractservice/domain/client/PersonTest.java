@@ -93,7 +93,7 @@ class PersonTest {
                         TODAY
                 );
 
-                assertThat(person.getEmail().getValue()).isEqualTo(email);
+                assertThat(person.email().value()).isEqualTo(email);
             }
 
             @Test
@@ -176,7 +176,7 @@ class PersonTest {
                         TODAY
                 );
 
-                assertThat(person.getPhone().getValue()).isEqualTo(format.expectedE164());
+                assertThat(person.phone().value()).isEqualTo(format.expectedE164());
             }
 
             @Test
@@ -185,7 +185,7 @@ class PersonTest {
                 final Person first = PersonFactory.createFromCommand("John Doe", "john@example.com", "+41 79 123 45 67", LocalDate.of(1990, 5, 15), TODAY);
                 final Person second = PersonFactory.createFromCommand("Jane Doe", "jane@example.com", "+41791234567", LocalDate.of(1985, 1, 1), TODAY);
 
-                assertThat(first.getPhone()).isEqualTo(second.getPhone());
+                assertThat(first.phone()).isEqualTo(second.phone());
             }
 
             @Test
@@ -212,10 +212,10 @@ class PersonTest {
                         TODAY
                 );
 
-                assertThat(person.getName().getValue()).isEqualTo(data.name());
-                assertThat(person.getEmail().getValue()).isEqualTo(data.email());
-                assertThat(person.getPhone().getValue()).isEqualTo(data.expectedPhone());
-                assertThat(person.getBirthDate().getValue()).isEqualTo(data.birthDate());
+                assertThat(person.name().value()).isEqualTo(data.name());
+                assertThat(person.email().value()).isEqualTo(data.email());
+                assertThat(person.phone().value()).isEqualTo(data.expectedPhone());
+                assertThat(person.birthDate().value()).isEqualTo(data.birthDate());
             }
         }
 
@@ -235,7 +235,7 @@ class PersonTest {
                         TODAY
                 );
 
-                assertThat(person.getBirthDate().getValue()).isEqualTo(birthDate);
+                assertThat(person.birthDate().value()).isEqualTo(birthDate);
             }
 
             @ParameterizedTest
@@ -267,7 +267,7 @@ class PersonTest {
                         LocalDate.of(1990, 5, 15)
                 );
 
-                assertThat(person.getPhone().getValue()).isEqualTo("+41791234567");
+                assertThat(person.phone().value()).isEqualTo("+41791234567");
             }
 
             @ParameterizedTest
@@ -306,13 +306,13 @@ class PersonTest {
                     ClientPhoneNumber.of("+33987654321")
             );
 
-            assertThat(updated.getName().getValue()).isEqualTo("Jane Doe");
-            assertThat(updated.getEmail().getValue()).isEqualTo("jane.doe@example.com");
-            assertThat(updated.getPhone().getValue()).isEqualTo("+33987654321");
-            assertThat(updated.getBirthDate()).isEqualTo(originalBirthDate);
+            assertThat(updated.name().value()).isEqualTo("Jane Doe");
+            assertThat(updated.email().value()).isEqualTo("jane.doe@example.com");
+            assertThat(updated.phone().value()).isEqualTo("+33987654321");
+            assertThat(updated.birthDate()).isEqualTo(originalBirthDate);
 
-            assertThat(person.getName().getValue()).isEqualTo("John Doe");
-            assertThat(person.getBirthDate()).isEqualTo(originalBirthDate);
+            assertThat(person.name().value()).isEqualTo("John Doe");
+            assertThat(person.birthDate()).isEqualTo(originalBirthDate);
         }
 
         @Test
@@ -333,9 +333,9 @@ class PersonTest {
             );
 
             assertThat(updated).isSameAs(person);
-            assertThat(updated.getName().getValue()).isEqualTo(person.getName().getValue());
-            assertThat(updated.getEmail().getValue()).isEqualTo(person.getEmail().getValue());
-            assertThat(updated.getPhone().getValue()).isEqualTo(person.getPhone().getValue());
+            assertThat(updated.name().value()).isEqualTo(person.name().value());
+            assertThat(updated.email().value()).isEqualTo(person.email().value());
+            assertThat(updated.phone().value()).isEqualTo(person.phone().value());
         }
 
         @Test
@@ -351,14 +351,14 @@ class PersonTest {
 
             Person updated = person.changeCoreFields(
                     ClientName.of("Jane Doe"),
-                    person.getEmail(),
-                    person.getPhone()
+                    person.email(),
+                    person.phone()
             );
 
-            assertThat(updated.getName().getValue()).isEqualTo("Jane Doe");
-            assertThat(updated.getEmail()).isEqualTo(person.getEmail());
-            assertThat(updated.getPhone()).isEqualTo(person.getPhone());
-            assertThat(updated.getBirthDate()).isEqualTo(person.getBirthDate());
+            assertThat(updated.name().value()).isEqualTo("Jane Doe");
+            assertThat(updated.email()).isEqualTo(person.email());
+            assertThat(updated.phone()).isEqualTo(person.phone());
+            assertThat(updated.birthDate()).isEqualTo(person.birthDate());
         }
 
         @Test
@@ -373,14 +373,14 @@ class PersonTest {
             );
 
             Person updated = person.changeCoreFields(
-                    person.getName(),
+                    person.name(),
                     ClientEmail.of("newemail@example.com"),
-                    person.getPhone()
+                    person.phone()
             );
 
-            assertThat(updated.getName()).isEqualTo(person.getName());
-            assertThat(updated.getEmail().getValue()).isEqualTo("newemail@example.com");
-            assertThat(updated.getPhone()).isEqualTo(person.getPhone());
+            assertThat(updated.name()).isEqualTo(person.name());
+            assertThat(updated.email().value()).isEqualTo("newemail@example.com");
+            assertThat(updated.phone()).isEqualTo(person.phone());
         }
 
         @Test
@@ -395,14 +395,14 @@ class PersonTest {
             );
 
             Person updated = person.changeCoreFields(
-                    person.getName(),
-                    person.getEmail(),
+                    person.name(),
+                    person.email(),
                     ClientPhoneNumber.of("+33999999999")
             );
 
-            assertThat(updated.getName()).isEqualTo(person.getName());
-            assertThat(updated.getEmail()).isEqualTo(person.getEmail());
-            assertThat(updated.getPhone().getValue()).isEqualTo("+33999999999");
+            assertThat(updated.name()).isEqualTo(person.name());
+            assertThat(updated.email()).isEqualTo(person.email());
+            assertThat(updated.phone().value()).isEqualTo("+33999999999");
         }
     }
 }

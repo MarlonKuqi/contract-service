@@ -82,9 +82,9 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo("Jane Smith");
-            assertThat(result.getEmail().getValue()).isEqualTo("jane@example.com");
-            assertThat(result.getPhone().getValue()).isEqualTo("+33222222222");
+            assertThat(result.name().value()).isEqualTo("Jane Smith");
+            assertThat(result.email().value()).isEqualTo("jane@example.com");
+            assertThat(result.phone().value()).isEqualTo("+33222222222");
         }
 
         @Test
@@ -105,9 +105,9 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo("Jane Smith");
-            assertThat(result.getEmail().getValue()).isEqualTo(existingPerson.getEmail().getValue());
-            assertThat(result.getPhone().getValue()).isEqualTo(existingPerson.getPhone().getValue());
+            assertThat(result.name().value()).isEqualTo("Jane Smith");
+            assertThat(result.email().value()).isEqualTo(existingPerson.email().value());
+            assertThat(result.phone().value()).isEqualTo(existingPerson.phone().value());
         }
 
         @Test
@@ -128,9 +128,9 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(existingPerson.getName().getValue());
-            assertThat(result.getEmail().getValue()).isEqualTo("jane@example.com");
-            assertThat(result.getPhone().getValue()).isEqualTo(existingPerson.getPhone().getValue());
+            assertThat(result.name().value()).isEqualTo(existingPerson.name().value());
+            assertThat(result.email().value()).isEqualTo("jane@example.com");
+            assertThat(result.phone().value()).isEqualTo(existingPerson.phone().value());
         }
 
         @Test
@@ -151,9 +151,9 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(existingPerson.getName().getValue());
-            assertThat(result.getEmail().getValue()).isEqualTo(existingPerson.getEmail().getValue());
-            assertThat(result.getPhone().getValue()).isEqualTo("+33999999999");
+            assertThat(result.name().value()).isEqualTo(existingPerson.name().value());
+            assertThat(result.email().value()).isEqualTo(existingPerson.email().value());
+            assertThat(result.phone().value()).isEqualTo("+33999999999");
         }
     }
 
@@ -187,12 +187,12 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(existingPerson.getName().getValue());
-            assertThat(result.getEmail().getValue()).isEqualTo(existingPerson.getEmail().getValue());
-            assertThat(result.getPhone().getValue()).isEqualTo(existingPerson.getPhone().getValue());
+            assertThat(result.name().value()).isEqualTo(existingPerson.name().value());
+            assertThat(result.email().value()).isEqualTo(existingPerson.email().value());
+            assertThat(result.phone().value()).isEqualTo(existingPerson.phone().value());
             verify(clientRepository, never()).save(any(Client.class));
             assertThat(result).isSameAs(existingPerson);
-            assertThat(((Person) result).getBirthDate()).isEqualTo(existingPerson.getBirthDate());
+            assertThat(((Person) result).birthDate()).isEqualTo(existingPerson.birthDate());
         }
 
         @Test
@@ -221,12 +221,12 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(existingCompany.getName().getValue());
-            assertThat(result.getEmail().getValue()).isEqualTo(existingCompany.getEmail().getValue());
-            assertThat(result.getPhone().getValue()).isEqualTo(existingCompany.getPhone().getValue());
+            assertThat(result.name().value()).isEqualTo(existingCompany.name().value());
+            assertThat(result.email().value()).isEqualTo(existingCompany.email().value());
+            assertThat(result.phone().value()).isEqualTo(existingCompany.phone().value());
             verify(clientRepository, never()).save(any(Client.class));
             assertThat(result).isSameAs(existingCompany);
-            assertThat(((Company) result).getCompanyIdentifier()).isEqualTo(existingCompany.getCompanyIdentifier());
+            assertThat(((Company) result).companyIdentifier()).isEqualTo(existingCompany.companyIdentifier());
         }
     }
 
@@ -269,10 +269,10 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo("Acme Corporation");
-            assertThat(result.getEmail().getValue()).isEqualTo("info@acme.com");
-            assertThat(result.getPhone().getValue()).isEqualTo("+33222222222");
-            assertThat(((Company) result).getCompanyIdentifier()).isEqualTo(existingCompany.getCompanyIdentifier());
+            assertThat(result.name().value()).isEqualTo("Acme Corporation");
+            assertThat(result.email().value()).isEqualTo("info@acme.com");
+            assertThat(result.phone().value()).isEqualTo("+33222222222");
+            assertThat(((Company) result).companyIdentifier()).isEqualTo(existingCompany.companyIdentifier());
         }
 
         @Test
@@ -293,9 +293,9 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo("Acme Corporation");
-            assertThat(result.getEmail().getValue()).isEqualTo(existingCompany.getEmail().getValue());
-            assertThat(result.getPhone().getValue()).isEqualTo(existingCompany.getPhone().getValue());
+            assertThat(result.name().value()).isEqualTo("Acme Corporation");
+            assertThat(result.email().value()).isEqualTo(existingCompany.email().value());
+            assertThat(result.phone().value()).isEqualTo(existingCompany.phone().value());
         }
     }
 
@@ -342,7 +342,7 @@ class PatchClientHandlerTest {
         @DisplayName("GIVEN même email que l'existant WHEN execute THEN conserve l'email")
         void shouldNotThrowWhenEmailIsIdenticalToExisting() {
             // Given
-            String existingEmail = existingPerson.getEmail().getValue();
+            String existingEmail = existingPerson.email().value();
             PatchClient.Command command = new PatchClient.Command(clientId, VERSION, null, existingEmail, null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
@@ -351,14 +351,14 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getEmail().getValue()).isEqualTo(existingEmail);
+            assertThat(result.email().value()).isEqualTo(existingEmail);
         }
 
         @Test
         @DisplayName("GIVEN même téléphone que l'existant WHEN execute THEN conserve le téléphone")
         void shouldNotThrowWhenPhoneIsIdenticalToExisting() {
             // Given
-            String existingPhone = existingPerson.getPhone().getValue();
+            String existingPhone = existingPerson.phone().value();
             PatchClient.Command command = new PatchClient.Command(clientId, VERSION, null, null, existingPhone);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
@@ -367,7 +367,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
-            assertThat(result.getPhone().getValue()).isEqualTo(existingPhone);
+            assertThat(result.phone().value()).isEqualTo(existingPhone);
         }
 
         @Test
@@ -380,7 +380,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             verify(clientRepository, never()).save(any(Client.class));
-            assertThat(result.getPhone()).isEqualTo(existingPerson.getPhone());
+            assertThat(result.phone()).isEqualTo(existingPerson.phone());
         }
 
         @Test
@@ -393,7 +393,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             verify(clientRepository, never()).save(any(Client.class));
-            assertThat(result.getEmail()).isEqualTo(existingPerson.getEmail());
+            assertThat(result.email()).isEqualTo(existingPerson.email());
         }
 
         @Test
@@ -433,8 +433,8 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             verify(clientRepository).save(result);
-            assertThat(result.getName().getValue()).isEqualTo("Jane Doe");
-            assertThat(result.getEmail()).isEqualTo(existingPerson.getEmail());
+            assertThat(result.name().value()).isEqualTo("Jane Doe");
+            assertThat(result.email()).isEqualTo(existingPerson.email());
         }
     }
 

@@ -149,7 +149,7 @@ class ImportContractsTest {
             assertThat(result).isSameAs(saved);
             verify(contractRepository).insertAll(insertedContracts.capture());
             assertThat(insertedContracts.getValue())
-                    .extracting(Contract::getClientId)
+                    .extracting(Contract::clientId)
                     .containsExactly(clientId, otherClientId);
         }
 
@@ -162,8 +162,8 @@ class ImportContractsTest {
 
             verify(contractRepository).insertAll(insertedContracts.capture());
             assertThat(insertedContracts.getValue()).hasSize(2).allSatisfy(contract -> {
-                assertThat(contract.getPeriod().getStartDate()).isEqualTo(now);
-                assertThat(contract.getLastModified()).isEqualTo(now);
+                assertThat(contract.period().startDate()).isEqualTo(now);
+                assertThat(contract.lastModified()).isEqualTo(now);
             });
         }
     }
@@ -202,7 +202,7 @@ class ImportContractsTest {
             final ContractImportRejectedException rejection =
                     catchThrowableOfType(ContractImportRejectedException.class, () -> handler.execute(command));
 
-            assertThat(rejection.getRejections())
+            assertThat(rejection.rejections())
                     .extracting(ContractImportRejectedException.LineRejection::index,
                             ContractImportRejectedException.LineRejection::clientId,
                             ContractImportRejectedException.LineRejection::reason)
@@ -211,8 +211,8 @@ class ImportContractsTest {
                             tuple(2, clientId, ContractImportRejectedException.Reason.INVALID_PERIOD),
                             tuple(3, unknownClientId, ContractImportRejectedException.Reason.CLIENT_NOT_FOUND)
                     );
-            assertThat(rejection.getRejections()).allSatisfy(line -> assertThat(line.message()).isNotBlank());
-            assertThat(rejection.getRejections().getLast().message()).contains(unknownClientId.toString());
+            assertThat(rejection.rejections()).allSatisfy(line -> assertThat(line.message()).isNotBlank());
+            assertThat(rejection.rejections().getLast().message()).contains(unknownClientId.toString());
         }
 
         @Test
@@ -227,7 +227,7 @@ class ImportContractsTest {
             final ContractImportRejectedException rejection =
                     catchThrowableOfType(ContractImportRejectedException.class, () -> handler.execute(command));
 
-            assertThat(rejection.getRejections())
+            assertThat(rejection.rejections())
                     .extracting(ContractImportRejectedException.LineRejection::reason)
                     .containsExactly(ContractImportRejectedException.Reason.CLIENT_NOT_FOUND);
         }

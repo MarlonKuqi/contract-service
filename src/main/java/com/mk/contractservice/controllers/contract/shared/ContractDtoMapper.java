@@ -11,12 +11,12 @@ public interface ContractDtoMapper {
 
     default ContractResponse toResponse(Contract contract, LocalDateTime referenceDate) {
         return new ContractResponse(
-                contract.getId(),
-                contract.getClientId(),
-                contract.getPeriod().getStartDate(),
-                contract.getPeriod().getEndDate(),
+                contract.id(),
+                contract.clientId(),
+                contract.period().startDate(),
+                contract.period().endDate(),
                 contract.isActiveAt(referenceDate),
-                contract.getCostAmount().getValue()
+                contract.costAmount().value()
         );
     }
 

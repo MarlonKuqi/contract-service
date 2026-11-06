@@ -89,6 +89,7 @@ Dependencies point inward: `controllers → features → domain ← infrastructu
 No domain object can exist in an invalid state.
 - Constructors are private and validate every mandatory field with `Assert.notNull` (throws `InvalidDomainObjectError`).
 - Value Objects are Lombok `@Value` classes with a private constructor. They validate and normalize through `ValueObjectUtils.validateAndCreate` (normalize, then validate, then construct). Records are not used for Value Objects because their canonical constructor cannot be hidden.
+- Lombok accessors are fluent (`lombok.config`): `contract.id()`, `email.value()`, like records. JPA entities keep JavaBean accessors (`infrastructure/persistence/lombok.config`) so Hibernate can read the id of a lazy proxy without initializing it.
 - Entry points:
     - `of(...)`: data coming from outside, validated and normalized;
     - `reconstituteFromDatabase(...)`: trusted data, only null-checked;

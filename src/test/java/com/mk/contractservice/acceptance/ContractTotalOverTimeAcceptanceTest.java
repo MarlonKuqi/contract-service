@@ -114,7 +114,7 @@ class ContractTotalOverTimeAcceptanceTest {
                     "endDate": %s,
                     "costAmount": "%s"
                 }
-                """, testClient.getId(), startDate, endDate == null ? "null" : "\"" + endDate + "\"", costAmount);
+                """, testClient.id(), startDate, endDate == null ? "null" : "\"" + endDate + "\"", costAmount);
 
         given().body(payload)
                 .when().post(ContractEndpoints.CONTRACTS_BASE)
@@ -124,7 +124,7 @@ class ContractTotalOverTimeAcceptanceTest {
     private void assertTotal(final String expectedTotal) {
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
                 .then()
                 .statusCode(200)
                 .body(equalTo(expectedTotal));

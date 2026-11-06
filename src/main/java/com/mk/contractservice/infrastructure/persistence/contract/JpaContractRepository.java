@@ -32,7 +32,7 @@ public class JpaContractRepository implements ContractRepository {
     @Override
     public Contract save(final Contract contract) {
         final ContractJpaEntity entity;
-        final UUID contractId = contract.getId();
+        final UUID contractId = contract.id();
         if (contractId == null) {
             entity = ContractJpaMapper.toNewEntity(contract);
         } else {

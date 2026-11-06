@@ -83,7 +83,7 @@ class CreateContractAcceptanceTest {
                     "endDate": "%s",
                     "costAmount": "5000.00"
                 }
-                """, testClient.getId(), now, now.plusMonths(12));
+                """, testClient.id(), now, now.plusMonths(12));
 
         String contractId = given()
                 .body(createPayload)
@@ -120,7 +120,7 @@ class CreateContractAcceptanceTest {
                     "endDate": null,
                     "costAmount": "1000.00"
                 }
-                """, testClient.getId(), now);
+                """, testClient.id(), now);
 
         String contractId = given()
                 .body(createPayload)
@@ -155,7 +155,7 @@ class CreateContractAcceptanceTest {
                     "endDate": "%s",
                     "costAmount": "999999.99"
                 }
-                """, testClient.getId(), now, now.plusYears(5));
+                """, testClient.id(), now, now.plusYears(5));
 
         given()
                 .body(createPayload)
@@ -177,7 +177,7 @@ class CreateContractAcceptanceTest {
                     "endDate": "%s",
                     "costAmount": "10000000000.00"
                 }
-                """, testClient.getId(), now, now.plusMonths(6));
+                """, testClient.id(), now, now.plusMonths(6));
 
         given()
                 .body(createPayload)
@@ -198,7 +198,7 @@ class CreateContractAcceptanceTest {
                     "endDate": "%s",
                     "costAmount": "0.00"
                 }
-                """, testClient.getId(), now, now.plusMonths(6));
+                """, testClient.id(), now, now.plusMonths(6));
 
         given()
                 .body(createPayload)
@@ -253,7 +253,7 @@ class CreateContractAcceptanceTest {
                     "endDate": "%s",
                     "costAmount": "-100.00"
                 }
-                """, testClient.getId(), now, now.plusMonths(12));
+                """, testClient.id(), now, now.plusMonths(12));
 
         given()
                 .body(createPayload)
@@ -275,7 +275,7 @@ class CreateContractAcceptanceTest {
                     "endDate": "%s",
                     "costAmount": "1000.00"
                 }
-                """, testClient.getId(), now, now.minusDays(10));
+                """, testClient.id(), now, now.minusDays(10));
 
         given()
                 .body(createPayload)
@@ -313,7 +313,7 @@ class CreateContractAcceptanceTest {
                     "startDate": "%s",
                     "endDate": "%s"
                 }
-                """, testClient.getId(), now, now.plusMonths(12));
+                """, testClient.id(), now, now.plusMonths(12));
 
         given()
                 .body(payloadWithoutCost)
@@ -335,7 +335,7 @@ class CreateContractAcceptanceTest {
                     "endDate": null,
                     "costAmount": "1000.00"
                 }
-                """, testClient.getId(), now.minusDays(10));
+                """, testClient.id(), now.minusDays(10));
 
         String contract2 = String.format("""
                 {
@@ -344,7 +344,7 @@ class CreateContractAcceptanceTest {
                     "endDate": "%s",
                     "costAmount": "2500.00"
                 }
-                """, testClient.getId(), now.minusDays(5), now.plusMonths(6));
+                """, testClient.id(), now.minusDays(5), now.plusMonths(6));
 
         String contract3 = String.format("""
                 {
@@ -353,7 +353,7 @@ class CreateContractAcceptanceTest {
                     "endDate": "%s",
                     "costAmount": "750.50"
                 }
-                """, testClient.getId(), now.minusDays(3), now.plusMonths(3));
+                """, testClient.id(), now.minusDays(3), now.plusMonths(3));
 
         given().body(contract1).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
         given().body(contract2).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
@@ -362,7 +362,7 @@ class CreateContractAcceptanceTest {
         // Verify all contracts are created
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(3));

@@ -109,12 +109,12 @@ class ClientConflictAcceptanceTest {
                             "name": "Patched Name"
                         }
                         """)
-                .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
+                .patch(ClientEndpoints.CLIENT_BY_ID, client.id())
                 .then()
                 .statusCode(412)
                 .body("code", equalTo("preconditionFailed"));
 
-        ClientJpaEntity persisted = clientJpaRepository.findById(client.getId()).orElseThrow();
+        ClientJpaEntity persisted = clientJpaRepository.findById(client.id()).orElseThrow();
         assertThat(persisted.getName()).isEqualTo("Client Conflict");
         assertThat(persisted.getPhone()).isEqualTo(concurrentPhone);
     }
@@ -132,13 +132,13 @@ class ClientConflictAcceptanceTest {
                             "email": "%s",
                             "phone": "%s"
                         }
-                        """.formatted(client.getEmail().getValue(), client.getPhone().getValue()))
-                .put(ClientEndpoints.CLIENT_BY_ID, client.getId())
+                        """.formatted(client.email().value(), client.phone().value()))
+                .put(ClientEndpoints.CLIENT_BY_ID, client.id())
                 .then()
                 .statusCode(412)
                 .body("code", equalTo("preconditionFailed"));
 
-        ClientJpaEntity persisted = clientJpaRepository.findById(client.getId()).orElseThrow();
+        ClientJpaEntity persisted = clientJpaRepository.findById(client.id()).orElseThrow();
         assertThat(persisted.getName()).isEqualTo("Client Conflict");
         assertThat(persisted.getPhone()).isEqualTo(concurrentPhone);
     }
@@ -155,19 +155,19 @@ class ClientConflictAcceptanceTest {
                             "name": "Patched Name"
                         }
                         """)
-                .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
+                .patch(ClientEndpoints.CLIENT_BY_ID, client.id())
                 .then()
                 .statusCode(412)
                 .body("code", equalTo("preconditionFailed"));
 
-        assertThat(clientJpaRepository.findById(client.getId())).isEmpty();
+        assertThat(clientJpaRepository.findById(client.id())).isEmpty();
     }
 
     @Test
     @DisplayName("GIVEN another counselor changes the client between the read and the write WHEN the client is deleted THEN the deletion is retried and its contracts are closed")
     void shouldRetryDeletionWhenClientWasModifiedConcurrently() {
         Contract contract = contractRepository.save(ContractFactory.createFromCommand(
-                client.getId(), now.minusDays(1), null, new BigDecimal("1000.00"), now));
+                client.id(), now.minusDays(1), null, new BigDecimal("1000.00"), now));
         AtomicBoolean concurrentWriteDone = new AtomicBoolean(false);
         doAnswer(invocation -> {
             Object result = invocation.callRealMethod();
@@ -178,12 +178,12 @@ class ClientConflictAcceptanceTest {
         }).when(clientRepository).delete(any(), any());
 
         given()
-                .delete(ClientEndpoints.CLIENT_BY_ID, client.getId())
+                .delete(ClientEndpoints.CLIENT_BY_ID, client.id())
                 .then()
                 .statusCode(204);
 
-        assertThat(clientJpaRepository.findById(client.getId())).isEmpty();
-        assertThat(contractJpaRepository.findById(contract.getId()).orElseThrow().getEndDate()).isNotNull();
+        assertThat(clientJpaRepository.findById(client.id())).isEmpty();
+        assertThat(contractJpaRepository.findById(contract.id()).orElseThrow().getEndDate()).isNotNull();
         verify(clientRepository, times(2)).delete(any(), any());
     }
 

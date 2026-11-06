@@ -94,8 +94,8 @@ class PatchContractCostTest {
                 new PatchContractCost.Command(contractId, VERSION, new BigDecimal("1000.00")));
 
         verify(contractRepository).save(result);
-        assertThat(result.getCostAmount().getValue()).isEqualByComparingTo("1000.00");
-        assertThat(result.getLastModified()).isEqualTo(LocalDateTime.now(FIXED_CLOCK));
+        assertThat(result.costAmount().value()).isEqualByComparingTo("1000.00");
+        assertThat(result.lastModified()).isEqualTo(LocalDateTime.now(FIXED_CLOCK));
     }
 
     @Test

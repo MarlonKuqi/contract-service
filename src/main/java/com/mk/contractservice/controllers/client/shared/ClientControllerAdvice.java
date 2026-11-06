@@ -87,7 +87,7 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
         log.debug("Domain validation error for client: {}", ex.getMessage());
 
         final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Domain Validation Error",
-                ex.getMessage(), ex.getCode() != null ? ex.getCode() : "domainValidationError");
+                ex.getMessage(), ex.code() != null ? ex.code() : "domainValidationError");
         return respond(problemDetail);
     }
 
@@ -97,7 +97,7 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
 
         final ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Company Identifier Already Exists",
                 ex.getMessage(), "companyIdentifierAlreadyExists");
-        problemDetail.setProperty("companyIdentifier", ex.getCompanyIdentifier());
+        problemDetail.setProperty("companyIdentifier", ex.companyIdentifier());
         return respond(problemDetail);
     }
 

@@ -96,7 +96,7 @@ public class CreateContractController {
 
         final var location = uriBuilder
                 .path(ContractEndpoints.CONTRACT_BY_ID)
-                .buildAndExpand(contract.getId())
+                .buildAndExpand(contract.id())
                 .toUri();
 
         final ContractResponse response = contractMapper.toResponse(contract, LocalDateTime.now(clock));

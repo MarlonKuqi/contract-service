@@ -54,7 +54,7 @@ public interface ExportActiveContracts {
                 return new Result(fetched, Optional.empty());
             }
             final List<Contract> page = fetched.subList(0, query.size());
-            return new Result(page, Optional.ofNullable(page.getLast().getId()));
+            return new Result(page, Optional.ofNullable(page.getLast().id()));
         }
     }
 }

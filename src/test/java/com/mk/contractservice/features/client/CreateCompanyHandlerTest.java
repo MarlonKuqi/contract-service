@@ -53,7 +53,7 @@ class CreateCompanyHandlerTest {
         // When & Then
         assertThatThrownBy(() -> createCompanyHandler.execute(command))
                 .isInstanceOf(CompanyIdentifierAlreadyExistsException.class)
-                .extracting(ex -> ((CompanyIdentifierAlreadyExistsException) ex).getCompanyIdentifier())
+                .extracting(ex -> ((CompanyIdentifierAlreadyExistsException) ex).companyIdentifier())
                 .isEqualTo(duplicateIdentifier);
     }
 

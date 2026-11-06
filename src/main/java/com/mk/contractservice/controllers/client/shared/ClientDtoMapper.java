@@ -14,18 +14,18 @@ public interface ClientDtoMapper {
     default ClientResponse toResponse(final Client client) {
         return switch (client) {
             case Person p -> new PersonResponse(
-                    p.getId(),
-                    p.getName().getValue(),
-                    p.getEmail().getValue(),
-                    p.getPhone().getValue(),
-                    p.getBirthDate().getValue()
+                    p.id(),
+                    p.name().value(),
+                    p.email().value(),
+                    p.phone().value(),
+                    p.birthDate().value()
             );
             case Company c -> new CompanyResponse(
-                    c.getId(),
-                    c.getName().getValue(),
-                    c.getEmail().getValue(),
-                    c.getPhone().getValue(),
-                    c.getCompanyIdentifier().getValue()
+                    c.id(),
+                    c.name().value(),
+                    c.email().value(),
+                    c.phone().value(),
+                    c.companyIdentifier().value()
             );
         };
     }

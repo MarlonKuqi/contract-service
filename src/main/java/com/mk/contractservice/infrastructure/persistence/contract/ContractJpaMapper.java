@@ -21,20 +21,20 @@ public final class ContractJpaMapper {
 
     public static ContractJpaEntity toNewEntity(final Contract domain) {
         return new ContractJpaEntity(
-                domain.getClientId(),
-                domain.getPeriod().getStartDate(),
-                domain.getPeriod().getEndDate(),
-                domain.getCostAmount().getValue(),
-                domain.getLastModified()
+                domain.clientId(),
+                domain.period().startDate(),
+                domain.period().endDate(),
+                domain.costAmount().value(),
+                domain.lastModified()
         );
     }
 
     public static void mergeIntoExisting(final Contract domain, final ContractJpaEntity existing) {
-        existing.setClientId(domain.getClientId());
-        existing.setStartDate(domain.getPeriod().getStartDate());
-        existing.setEndDate(domain.getPeriod().getEndDate());
-        existing.setCostAmount(domain.getCostAmount().getValue());
-        existing.setLastModified(domain.getLastModified());
+        existing.setClientId(domain.clientId());
+        existing.setStartDate(domain.period().startDate());
+        existing.setEndDate(domain.period().endDate());
+        existing.setCostAmount(domain.costAmount().value());
+        existing.setLastModified(domain.lastModified());
     }
 }
 

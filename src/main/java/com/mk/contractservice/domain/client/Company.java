@@ -109,11 +109,11 @@ public final class Company extends Client {
 
     private CompanyBuilder toBuilder() {
         return builder()
-                .id(getId())
-                .name(getName())
-                .email(getEmail())
-                .phone(getPhone())
-                .companyIdentifier(getCompanyIdentifier());
+                .id(id())
+                .name(name())
+                .email(email())
+                .phone(phone())
+                .companyIdentifier(companyIdentifier());
     }
 
     @NoArgsConstructor

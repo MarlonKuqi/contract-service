@@ -93,7 +93,7 @@ class ContractCostConflictAcceptanceTest {
                 PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate())
         ));
         contract = contractRepository.save(ContractFactory.createFromCommand(
-                client.getId(), now.minusDays(1), null, new BigDecimal("1000.00"), now));
+                client.id(), now.minusDays(1), null, new BigDecimal("1000.00"), now));
     }
 
     @Test
@@ -111,7 +111,7 @@ class ContractCostConflictAcceptanceTest {
                             "amount": "1500.00"
                         }
                         """)
-                .patch(ContractEndpoints.CONTRACT_COST, contract.getId())
+                .patch(ContractEndpoints.CONTRACT_COST, contract.id())
                 .then()
                 .statusCode(412)
                 .body("code", equalTo("preconditionFailed"));
@@ -122,7 +122,7 @@ class ContractCostConflictAcceptanceTest {
     @Test
     @DisplayName("GIVEN the contract is closed between the read and the write WHEN the cost is patched THEN 412 and the contract stays closed")
     void shouldRejectUpdateWhenContractWasClosedConcurrently() {
-        injectConcurrentWriteAfterFirstRead(id -> contractRepository.closeAllActiveByClientId(client.getId(), now));
+        injectConcurrentWriteAfterFirstRead(id -> contractRepository.closeAllActiveByClientId(client.id(), now));
 
         given()
                 .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
@@ -131,7 +131,7 @@ class ContractCostConflictAcceptanceTest {
                             "amount": "1500.00"
                         }
                         """)
-                .patch(ContractEndpoints.CONTRACT_COST, contract.getId())
+                .patch(ContractEndpoints.CONTRACT_COST, contract.id())
                 .then()
                 .statusCode(412)
                 .body("code", equalTo("preconditionFailed"));
@@ -156,6 +156,6 @@ class ContractCostConflictAcceptanceTest {
     }
 
     private ContractJpaEntity persistedContract() {
-        return contractJpaRepository.findById(contract.getId()).orElseThrow();
+        return contractJpaRepository.findById(contract.id()).orElseThrow();
     }
 }

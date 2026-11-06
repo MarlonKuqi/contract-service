@@ -106,10 +106,10 @@ class ContractTest {
 
                 Contract contract = ContractFactory.createFromCommand(testClientId, startDate, endDate, costAmount, NOW);
 
-                assertThat(contract.getClientId()).isEqualTo(testClientId);
-                assertThat(contract.getPeriod().getStartDate()).isEqualTo(startDate);
-                assertThat(contract.getPeriod().getEndDate()).isEqualTo(endDate);
-                assertThat(contract.getCostAmount().getValue()).isEqualByComparingTo(costAmount);
+                assertThat(contract.clientId()).isEqualTo(testClientId);
+                assertThat(contract.period().startDate()).isEqualTo(startDate);
+                assertThat(contract.period().endDate()).isEqualTo(endDate);
+                assertThat(contract.costAmount().value()).isEqualByComparingTo(costAmount);
             }
 
             @ParameterizedTest
@@ -120,15 +120,15 @@ class ContractTest {
 
                 Contract contract = ContractFactory.createFromCommand(testClientId, startDate, endDate, costAmount, NOW);
 
-                assertThat(contract.getPeriod().getStartDate()).isNotNull();
+                assertThat(contract.period().startDate()).isNotNull();
                 if (startDate == null) {
-                    assertThat(contract.getPeriod().getStartDate()).isBeforeOrEqualTo(NOW);
+                    assertThat(contract.period().startDate()).isBeforeOrEqualTo(NOW);
                 } else {
-                    assertThat(contract.getPeriod().getStartDate()).isEqualTo(startDate);
+                    assertThat(contract.period().startDate()).isEqualTo(startDate);
                 }
-                assertThat(contract.getPeriod().getEndDate()).isEqualTo(endDate);
-                assertThat(contract.getClientId()).isEqualTo(testClientId);
-                assertThat(contract.getCostAmount().getValue()).isEqualByComparingTo(costAmount);
+                assertThat(contract.period().endDate()).isEqualTo(endDate);
+                assertThat(contract.clientId()).isEqualTo(testClientId);
+                assertThat(contract.costAmount().value()).isEqualByComparingTo(costAmount);
             }
 
             @ParameterizedTest
@@ -183,7 +183,7 @@ class ContractTest {
 
                 Contract contract = ContractFactory.createFromCommand(testClientId, now.minusDays(1), null, new BigDecimal("100.00"), now);
 
-                assertThat(contract.getLastModified()).isEqualTo(now);
+                assertThat(contract.lastModified()).isEqualTo(now);
             }
 
             @Test
@@ -208,7 +208,7 @@ class ContractTest {
                 Contract contract = ContractFactory.buildFromDatabase(
                         UUID.randomUUID(), testClientId, lastModified.minusMonths(1), null, new BigDecimal("100.00"), lastModified);
 
-                assertThat(contract.getLastModified()).isEqualTo(lastModified);
+                assertThat(contract.lastModified()).isEqualTo(lastModified);
             }
 
             @Test
@@ -243,8 +243,8 @@ class ContractTest {
                 Contract contract = ContractFactory.createFromCommand(testClientId, startDate, endDate, initialCost, NOW);
                 Contract updatedContract = contract.changeCost(ContractCost.of(newCost), NOW);
 
-                assertThat(updatedContract.getCostAmount().getValue()).isEqualByComparingTo(newCost);
-                assertThat(contract.getCostAmount().getValue()).isEqualByComparingTo(initialCost);
+                assertThat(updatedContract.costAmount().value()).isEqualByComparingTo(newCost);
+                assertThat(contract.costAmount().value()).isEqualByComparingTo(initialCost);
                 assertThat(updatedContract).isNotSameAs(contract);
             }
 
@@ -306,8 +306,8 @@ class ContractTest {
 
                 Contract updatedContract = contract.changeCost(ContractCost.of(new BigDecimal("200.00")), changedAt);
 
-                assertThat(updatedContract.getLastModified()).isEqualTo(changedAt);
-                assertThat(contract.getLastModified()).isEqualTo(createdAt);
+                assertThat(updatedContract.lastModified()).isEqualTo(changedAt);
+                assertThat(contract.lastModified()).isEqualTo(createdAt);
             }
 
             @Test
@@ -319,7 +319,7 @@ class ContractTest {
                 Contract result = contract.changeCost(ContractCost.of(new BigDecimal("100.0")), LocalDateTime.of(2026, 6, 1, 10, 0));
 
                 assertThat(result).isSameAs(contract);
-                assertThat(result.getLastModified()).isEqualTo(createdAt);
+                assertThat(result.lastModified()).isEqualTo(createdAt);
             }
         }
     }
@@ -389,7 +389,7 @@ class ContractTest {
 
             Contract contract = ContractFactory.createFromCommand(testClientId, null, null, new BigDecimal("500.00"), now);
 
-            assertThat(contract.getPeriod().getStartDate()).isEqualTo(now);
+            assertThat(contract.period().startDate()).isEqualTo(now);
         }
     }
 }

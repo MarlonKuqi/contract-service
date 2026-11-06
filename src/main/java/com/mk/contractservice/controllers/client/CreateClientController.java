@@ -106,7 +106,7 @@ public class CreateClientController {
 
         final var location = uriBuilder
                 .path(ClientEndpoints.CLIENT_BY_ID)
-                .buildAndExpand(person.getId())
+                .buildAndExpand(person.id())
                 .toUri();
         return ResponseEntity.created(location)
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
@@ -130,7 +130,7 @@ public class CreateClientController {
 
         final var location = uriBuilder
                 .path(ClientEndpoints.CLIENT_BY_ID)
-                .buildAndExpand(company.getId())
+                .buildAndExpand(company.id())
                 .toUri();
         return ResponseEntity.created(location)
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())

@@ -108,11 +108,11 @@ public final class Person extends Client {
 
     private PersonBuilder toBuilder() {
         return builder()
-                .id(getId())
-                .name(getName())
-                .email(getEmail())
-                .phone(getPhone())
-                .birthDate(getBirthDate());
+                .id(id())
+                .name(name())
+                .email(email())
+                .phone(phone())
+                .birthDate(birthDate());
     }
 
     @NoArgsConstructor

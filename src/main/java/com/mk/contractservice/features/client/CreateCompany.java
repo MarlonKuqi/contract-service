@@ -45,7 +45,7 @@ public interface CreateCompany {
                     command.companyIdentifier()
             );
 
-            companyIdentifierUniqueness.ensureIsUnique(company.getCompanyIdentifier());
+            companyIdentifierUniqueness.ensureIsUnique(company.companyIdentifier());
 
             return (Company) clientRepository.save(company);
         }

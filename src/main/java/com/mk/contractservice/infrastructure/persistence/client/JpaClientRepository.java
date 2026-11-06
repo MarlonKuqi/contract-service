@@ -31,7 +31,7 @@ public class JpaClientRepository implements ClientRepository {
     @Override
     public Client save(final Client client) {
         final ClientJpaEntity entity;
-        final UUID clientId = client.getId();
+        final UUID clientId = client.id();
         if (clientId == null) {
             entity = switch (client) {
                 case Person person -> ClientJpaMapper.toNewPersonEntity(person);

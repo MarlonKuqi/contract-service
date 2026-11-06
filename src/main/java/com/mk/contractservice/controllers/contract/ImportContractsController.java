@@ -85,7 +85,7 @@ public class ImportContractsController {
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
                 .body(new ContractImportResponse(
                         contracts.size(),
-                        contracts.stream().map(Contract::getId).toList()
+                        contracts.stream().map(Contract::id).toList()
                 ));
     }
 

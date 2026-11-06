@@ -70,8 +70,8 @@ class CreateContractTest {
         assertThat(result).isSameAs(saved);
         ArgumentCaptor<Contract> captor = ArgumentCaptor.forClass(Contract.class);
         verify(contractRepository).save(captor.capture());
-        assertThat(captor.getValue().getClientId()).isEqualTo(clientId);
-        assertThat(captor.getValue().getLastModified()).isEqualTo(now);
+        assertThat(captor.getValue().clientId()).isEqualTo(clientId);
+        assertThat(captor.getValue().lastModified()).isEqualTo(now);
     }
 
     @Test

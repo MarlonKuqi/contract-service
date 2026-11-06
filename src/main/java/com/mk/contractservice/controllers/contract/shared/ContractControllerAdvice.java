@@ -90,7 +90,7 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
         ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Contract Import Rejected",
                 "No contract was created. Fix the rejected lines and send the whole import again.",
                 "contractImportRejected");
-        problemDetail.setProperty("rejections", ex.getRejections().stream()
+        problemDetail.setProperty("rejections", ex.rejections().stream()
                 .map(rejection -> Map.of(
                         "index", rejection.index(),
                         "clientId", rejection.clientId(),
@@ -192,7 +192,7 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handleDomainValidation(DomainValidationException ex) {
         log.warn("Domain validation failed for contract: {}", ex.getMessage());
         ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Domain Validation Failed",
-                ex.getMessage(), ex.getCode() != null ? ex.getCode() : "domainValidationError");
+                ex.getMessage(), ex.code() != null ? ex.code() : "domainValidationError");
         problemDetail.setProperty(CONTEXT, "Contract domain validation failed");
         return respond(problemDetail);
     }

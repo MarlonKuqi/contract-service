@@ -91,6 +91,7 @@ com.mk.contractservice
 **Décision.**
 - **Agrégats** : `Client` (hiérarchie scellée `sealed Client permits Person, Company`) et `Contract`. Un contrat référence son client par identifiant, pas par objet.
 - **Value Objects immuables et auto-validants** : `ClientName`, `ClientEmail`, `ClientPhoneNumber` (normalisé en E.164 via libphonenumber), `PersonBirthDate`, `CompanyIdentifier`, `ContractCost`, `ContractPeriod`. Implémentés en classes Lombok `@Value` à constructeur privé (un record ne permet pas de masquer son constructeur canonique).
+- **Accesseurs fluent** (`lombok.accessors.fluent = true` dans `lombok.config` à la racine) : `contract.id()`, `email.value()`, comme les records des DTO et des read models. Une seule convention de lecture dans le code applicatif. Les entités JPA gardent les accesseurs JavaBean (`lombok.config` de `infrastructure/persistence` : `fluent = false`) : Hibernate reconnaît `getId()` comme accesseur d'identifiant et le sert sur un proxy lazy sans l'initialiser, ce qu'il ne fait pas avec `id()`.
 - **Entrées contrôlées** :
   - `of(...)` valide et normalise une donnée venant de l'extérieur ;
   - `reconstituteFromDatabase(...)` reconstruit sans re-valider une donnée déjà fiable ;

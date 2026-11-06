@@ -87,14 +87,14 @@ class PatchClientAcceptanceTest {
         given()
                 .body(patchPayload)
                 .when()
-                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
-                .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.id()))
+                .patch(ClientEndpoints.CLIENT_BY_ID, person.id())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ClientEndpoints.CLIENT_BY_ID, person.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, person.id())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Patched Name"))
@@ -124,14 +124,14 @@ class PatchClientAcceptanceTest {
         given()
                 .body(patchPayload)
                 .when()
-                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
-                .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.id()))
+                .patch(ClientEndpoints.CLIENT_BY_ID, person.id())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ClientEndpoints.CLIENT_BY_ID, person.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, person.id())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Test Person"))
@@ -160,14 +160,14 @@ class PatchClientAcceptanceTest {
         given()
                 .body(patchPayload)
                 .when()
-                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
-                .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.id()))
+                .patch(ClientEndpoints.CLIENT_BY_ID, person.id())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ClientEndpoints.CLIENT_BY_ID, person.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, person.id())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Test Person"))
@@ -201,14 +201,14 @@ class PatchClientAcceptanceTest {
         given()
                 .body(patchPayload)
                 .when()
-                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, company.getId()))
-                .patch(ClientEndpoints.CLIENT_BY_ID, company.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, company.id()))
+                .patch(ClientEndpoints.CLIENT_BY_ID, company.id())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ClientEndpoints.CLIENT_BY_ID, company.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, company.id())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Patched Corp"))
@@ -236,8 +236,8 @@ class PatchClientAcceptanceTest {
         given()
                 .body(invalidPatchPayload)
                 .when()
-                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId()))
-                .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.id()))
+                .patch(ClientEndpoints.CLIENT_BY_ID, client.id())
                 .then()
                 .statusCode(422)
                 .body("code", equalTo(InvalidClientEmailException.DEFAULT_CODE));
@@ -262,8 +262,8 @@ class PatchClientAcceptanceTest {
         given()
                 .body(invalidPatchPayload)
                 .when()
-                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId()))
-                .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.id()))
+                .patch(ClientEndpoints.CLIENT_BY_ID, client.id())
                 .then()
                 .statusCode(422)
                 .body("code", equalTo("PHONE_INVALID"));
@@ -284,8 +284,8 @@ class PatchClientAcceptanceTest {
                         { "name": "%s" }
                         """.formatted("x".repeat(ClientName.MAX_LENGTH + 1)))
                 .when()
-                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId()))
-                .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, client.id()))
+                .patch(ClientEndpoints.CLIENT_BY_ID, client.id())
                 .then()
                 .statusCode(422)
                 .body("code", equalTo("validationError"));
@@ -301,7 +301,7 @@ class PatchClientAcceptanceTest {
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
         ));
-        String eTagBeforePatch = ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId());
+        String eTagBeforePatch = ETags.current(ClientEndpoints.CLIENT_BY_ID, client.id());
 
         given()
                 .body("""
@@ -309,13 +309,13 @@ class PatchClientAcceptanceTest {
                         """.formatted(field))
                 .when()
                 .header(HttpHeaders.IF_MATCH, eTagBeforePatch)
-                .patch(ClientEndpoints.CLIENT_BY_ID, client.getId())
+                .patch(ClientEndpoints.CLIENT_BY_ID, client.id())
                 .then()
                 .statusCode(422)
                 .body("code", equalTo("validationError"))
                 .body("detail", equalTo("Missing or invalid field: '%s'".formatted(field)));
 
-        assertThat(ETags.current(ClientEndpoints.CLIENT_BY_ID, client.getId())).isEqualTo(eTagBeforePatch);
+        assertThat(ETags.current(ClientEndpoints.CLIENT_BY_ID, client.id())).isEqualTo(eTagBeforePatch);
     }
 
     @Test
@@ -355,14 +355,14 @@ class PatchClientAcceptanceTest {
         given()
                 .body(emptyPatchPayload)
                 .when()
-                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
-                .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.id()))
+                .patch(ClientEndpoints.CLIENT_BY_ID, person.id())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ClientEndpoints.CLIENT_BY_ID, person.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, person.id())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Test Person"))
@@ -394,14 +394,14 @@ class PatchClientAcceptanceTest {
         given()
                 .body(patchPayload)
                 .when()
-                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.getId()))
-                .patch(ClientEndpoints.CLIENT_BY_ID, person.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, person.id()))
+                .patch(ClientEndpoints.CLIENT_BY_ID, person.id())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ClientEndpoints.CLIENT_BY_ID, person.getId())
+                .get(ClientEndpoints.CLIENT_BY_ID, person.id())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("Same Name"))

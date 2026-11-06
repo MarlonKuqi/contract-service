@@ -73,7 +73,7 @@ class ExportActiveContractsTest {
         final ExportActiveContracts.Result result = handler.execute(new ExportActiveContracts.Query(null, 2));
 
         assertThat(result.contracts()).containsExactly(fetched.get(0), fetched.get(1));
-        assertThat(result.nextAfter()).contains(fetched.get(1).getId());
+        assertThat(result.nextAfter()).contains(fetched.get(1).id());
     }
 
     @Test

@@ -239,7 +239,7 @@ class ExportContractsAcceptanceTest {
                     "endDate": %s,
                     "costAmount": "100.00"
                 }
-                """, client.getId(), now.minusMonths(1), endDate == null ? "null" : "\"" + endDate + "\"");
+                """, client.id(), now.minusMonths(1), endDate == null ? "null" : "\"" + endDate + "\"");
 
         return given().body(payload)
                 .when().post(ContractEndpoints.CONTRACTS_BASE)
