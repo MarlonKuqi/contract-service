@@ -1,5 +1,6 @@
 package com.mk.contractservice.features.contract.importjob;
 
+import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,11 @@ public interface FinishContractImportJob {
         @Override
         public void execute(final Command command) {
             final LocalDateTime now = LocalDateTime.now(clock);
-            jobRepository.save(jobRepository.getById(command.jobId()).finish(now));
+            final ContractImportJob loaded = jobRepository.getById(command.jobId());
+            final ContractImportJob finished = loaded.finish(now);
+            if (finished != loaded) {
+                jobRepository.save(finished);
+            }
         }
     }
 }

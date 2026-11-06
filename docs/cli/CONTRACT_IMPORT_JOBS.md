@@ -1,6 +1,6 @@
 # Import asynchrone de contrats (CSV) — notes de version (non publiées)
 
-Décision : ADR-022. Traitement par Spring Batch. Migrations `V2.0.0.6` (trois tables du domaine), `V2.0.0.7` (tables de Spring Batch) et `V2.0.0.8` (raison de l'échec), aucun changement cassant. L'import synchrone `POST /v2/contracts/imports` (ADR-021) ne change pas.
+Décision : ADR-022. Traitement par Spring Batch. Migrations `V2.0.0.6` (trois tables du domaine), `V2.0.0.7` (tables de Spring Batch) et `V2.0.0.8` (raison de l'échec) et `V2.0.0.9` (auteur, idempotence, annulation), aucun changement cassant. L'import synchrone `POST /v2/contracts/imports` (ADR-021) ne change pas.
 
 ## Nouveaux endpoints
 
@@ -11,6 +11,9 @@ Rôle `COUNSELOR`.
 | `POST /v2/contracts/import-jobs` (`multipart/form-data`, partie `file`) | Soumet un fichier | `202`, en-tête `Location`, état du job |
 | `GET /v2/contracts/import-jobs/{jobId}` | Suit un job | Statut et compteurs |
 | `GET /v2/contracts/import-jobs/{jobId}/rejections?page&size` | Liste les rejets, par ligne | Page de 100 lignes au plus |
+| `GET /v2/contracts/import-jobs?submittedBy&page&size` | Liste les jobs, du plus récent au plus ancien | Page de 100 jobs au plus, avec leur auteur |
+| `POST /v2/contracts/import-jobs/{jobId}/cancellation` | Annule le job et ferme ses contrats | `200`, `{ job, closedContracts }` |
+| `GET /v2/contracts/import-jobs/{jobId}/rejections/export` | Télécharge les rejets en CSV | `text/csv`, en pièce jointe |
 
 ## Format du fichier
 
@@ -27,9 +30,13 @@ clientId;startDate;endDate;costAmount
 | Réponse | Signification | Base de données |
 |---|---|---|
 | `202` | Le fichier est enregistré et sera traité | Job `PENDING` et fichier |
+| `202` (même `Idempotency-Key`, même fichier) | Le job déjà créé est renvoyé | Rien de plus |
+| `400 invalidIdempotencyKey` | `Idempotency-Key` vide ou de plus de 255 caractères | Rien |
+| `409 dataIntegrityViolation` | Même `Idempotency-Key` envoyée deux fois au même instant | Rien de plus : renvoyer la requête |
 | `400 missingParameter` | Pas de partie `file` | Rien |
 | `413 importFileTooLarge` | Plus de 50 Mo | Rien |
 | `422 invalidImportFile` | Aucune ligne, en-tête incorrect, encodage invalide ou plus de 500 000 lignes | Rien |
+| `422 idempotencyKeyReused` | `Idempotency-Key` déjà utilisée par ce conseiller pour un autre fichier | Rien |
 
 ## Import partiel
 
@@ -41,6 +48,7 @@ Les lignes valides créent leur contrat, les autres sont rapportées. Un job `CO
 | `RUNNING` | En cours de traitement |
 | `COMPLETED` | Toutes les lignes sont traitées |
 | `FAILED` | Le job s'est arrêté, voir `failureCode` : les lots déjà traités restent importés |
+| `CANCELLED` | Le job a été annulé, voir `cancelledAt` et `cancelledBy` : ses contrats encore actifs ont été fermés |
 
 | `failureCode` | Signification |
 |---|---|
@@ -67,8 +75,10 @@ Codes d'une ligne rejetée : `invalidLineFormat`, `invalidContractCost`, `invali
 
 ## À savoir
 
-- **Ne renvoyer que les lignes rejetées**, dans un nouveau fichier. Renvoyer le fichier complet créerait une seconde fois les contrats déjà importés.
-- Après un `FAILED`, consulter `importedCount` et `processedLines` avant de soumettre la suite : le fichier ne se rejoue pas automatiquement.
+- **Ne renvoyer que les lignes rejetées**, dans un nouveau fichier : l'export CSV donne chaque ligne d'origine avec la raison de son rejet. Renvoyer le fichier complet créerait une seconde fois les contrats déjà importés.
+- **Envoyer une `Idempotency-Key`** pour pouvoir soumettre de nouveau sans risque après un timeout : la même clé avec le même fichier renvoie le premier job. Utiliser une nouvelle clé pour un nouveau fichier.
+- **Après un `FAILED`, ou pour revenir sur un mauvais fichier, annuler le job** : ses contrats encore actifs sont fermés à l'instant de l'annulation, comme ceux d'un client supprimé, et un fichier corrigé peut être soumis sans doublon actif. Un job en cours s'arrête au lot en cours, un job en attente ne démarre jamais. Annuler de nouveau ne change rien.
+- Un contrat fermé par l'annulation n'est pas supprimé : il reste lisible par `GET /v2/contracts/{contractId}`.
 - Si l'application s'arrête proprement, le job revient en `PENDING` à la fin du lot en cours et reprend sans doublon. Après un crash, il reprend à l'expiration du bail (5 minutes).
 - Une erreur transitoire de la base (deadlock par exemple) remet le job en attente, sans passer par `FAILED`.
 - Une ligne commençant par `#` n'est pas un commentaire : elle est rejetée avec `invalidLineFormat`, comme une ligne contenant un caractère NUL.

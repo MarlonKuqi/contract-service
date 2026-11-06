@@ -6,6 +6,7 @@ import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.batch.ContractImportBatchConfiguration;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
+import com.mk.contractservice.domain.contract.importjob.ContractImportSubmission;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
 import com.mk.contractservice.features.contract.importjob.ProcessContractImportBatch;
@@ -355,7 +356,7 @@ class ContractImportJobAcceptanceTest {
         final LocalDateTime now = LocalDateTime.now(clock);
         final byte[] file = (HEADER + clientId + ";;;100.00\n" + clientId + ";;;100.00\n").getBytes(StandardCharsets.UTF_8);
         final ContractImportJob job = persistInOneTransaction(() -> {
-            final ContractImportJob inserted = jobRepository.insert(ContractImportJob.of("contracts.csv", 2, now), file);
+            final ContractImportJob inserted = jobRepository.insert(ContractImportJob.of(ContractImportSubmission.of("contracts.csv", "marie.counselor", null, "a".repeat(64), now), 2), file);
             return jobRepository.save(inserted.start(clock.instant().plus(Duration.ofHours(1))));
         });
         final ProcessContractImportBatch.Command batch = new ProcessContractImportBatch.Command(
@@ -365,6 +366,18 @@ class ContractImportJobAcceptanceTest {
 
         assertThatThrownBy(() -> processBatch.execute(batch)).isInstanceOf(DataIntegrityViolationException.class);
         assertThat(contractsOfClient()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("GIVEN a file sent with an empty name WHEN submitting THEN the job is stored under the default name")
+    void shouldUseDefaultNameForUnnamedFile() {
+        given()
+                .contentType(MULTIPART)
+                .multiPart("file", "", (HEADER + clientId + ";;;100.00\n").getBytes(StandardCharsets.UTF_8))
+                .when().post(CONTRACT_IMPORT_JOBS)
+                .then()
+                .statusCode(202)
+                .body("fileName", equalTo("import.csv"));
     }
 
     @Test

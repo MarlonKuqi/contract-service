@@ -39,6 +39,9 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 - `POST /v2/contracts/import-jobs` - Submit a CSV file for asynchronous, partial import (ADR-022)
 - `GET /v2/contracts/import-jobs/{jobId}` - Follow an import job (ADR-022)
 - `GET /v2/contracts/import-jobs/{jobId}/rejections` - List the lines rejected by a job (ADR-022)
+- `GET /v2/contracts/import-jobs/{jobId}/rejections/export` - Download the rejected lines as CSV, with their original line (ADR-022)
+- `GET /v2/contracts/import-jobs` - List the import jobs, newest first, with their author (ADR-022)
+- `POST /v2/contracts/import-jobs/{jobId}/cancellation` - Cancel a job and close the contracts it created (ADR-022)
 - `GET /v2/contracts/{contractId}` - Get specific contract
 - `PATCH /v2/contracts/{contractId}/cost` - Update cost
 - `GET /v2/contracts/total?clientId={clientId}` - Sum of active contracts
@@ -229,11 +232,11 @@ Les variables `clientId` et `contractId` doivent être **manuellement copiées**
 ```
 api-collections/
 ├── ClientController.postman_collection.json        (9 requêtes)
-├── ContractController.postman_collection.json      (10 requêtes)
+├── ContractController.postman_collection.json      (16 requêtes)
 └── README.md
 ```
 
-**Total : 19 requêtes réparties dans 2 fichiers**
+**Total : 25 requêtes réparties dans 2 fichiers**
 
 ---
 

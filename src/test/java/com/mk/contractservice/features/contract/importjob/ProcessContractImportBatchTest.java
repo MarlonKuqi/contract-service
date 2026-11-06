@@ -5,6 +5,7 @@ import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFactory;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
@@ -65,8 +66,7 @@ class ProcessContractImportBatchTest {
     }
 
     private ContractImportJob runningJob(final int totalLines) {
-        return ContractImportJob.reconstituteFromDatabase(JOB_ID, "contracts.csv", ContractImportJobStatus.RUNNING,
-                totalLines, 0, 0, 0, CLOCK.instant().plusSeconds(60), NOW, null, null);
+        return ContractImportJobFixtures.runningJob(JOB_ID, totalLines, 0, 0, CLOCK.instant().plusSeconds(60), NOW);
     }
 
     private Contract persisted(final UUID id) {
@@ -140,9 +140,9 @@ class ProcessContractImportBatchTest {
         )));
 
         verify(jobRepository).save(jobCaptor.capture());
-        assertThat(jobCaptor.getValue().getProcessedLines()).isEqualTo(2);
-        assertThat(jobCaptor.getValue().getImportedCount()).isEqualTo(1);
-        assertThat(jobCaptor.getValue().getRejectedCount()).isEqualTo(1);
+        assertThat(jobCaptor.getValue().getProgress().getProcessedLines()).isEqualTo(2);
+        assertThat(jobCaptor.getValue().getProgress().getImportedCount()).isEqualTo(1);
+        assertThat(jobCaptor.getValue().getProgress().getRejectedCount()).isEqualTo(1);
         assertThat(jobCaptor.getValue().getLeaseUntil()).isEqualTo(CLOCK.instant().plus(ClaimContractImportJob.LEASE));
     }
 }

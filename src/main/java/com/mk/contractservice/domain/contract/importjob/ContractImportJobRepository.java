@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.contract.importjob;
 
 import com.mk.contractservice.domain.shared.RepositoryPort;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -17,6 +18,12 @@ public interface ContractImportJobRepository {
     ContractImportJob save(ContractImportJob job);
 
     ContractImportJob getById(UUID jobId);
+
+    ContractImportJob getByIdForUpdate(UUID jobId);
+
+    Optional<ContractImportJob> findByIdempotencyKey(String submittedBy, IdempotencyKey idempotencyKey);
+
+    Page<ContractImportJob> findAll(@Nullable String submittedBy, Pageable pageable);
 
     Optional<ContractImportJob> findNextToRun(Instant now);
 

@@ -2,8 +2,10 @@ package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.ContractImportFailureReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportProgress;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,7 +43,8 @@ class FailContractImportJobTest {
     private ArgumentCaptor<ContractImportJob> jobCaptor;
 
     private ContractImportJob jobWithStatus(final ContractImportJobStatus status) {
-        return ContractImportJob.reconstituteFromDatabase(JOB_ID, "contracts.csv", status, 2, 1, 1, 0, null, NOW, null, null);
+        return ContractImportJob.reconstituteFromDatabase(JOB_ID, ContractImportJobFixtures.submission(NOW), status,
+                ContractImportProgress.reconstituteFromDatabase(2, 1, 1, 0), null, null, null);
     }
 
     @Test
@@ -53,8 +56,8 @@ class FailContractImportJobTest {
 
         verify(jobRepository).save(jobCaptor.capture());
         assertThat(jobCaptor.getValue().getStatus()).isEqualTo(ContractImportJobStatus.FAILED);
-        assertThat(jobCaptor.getValue().getFinishedAt()).isEqualTo(NOW);
-        assertThat(jobCaptor.getValue().getFailureReason()).isEqualTo(ContractImportFailureReason.TOO_MANY_ATTEMPTS);
+        assertThat(jobCaptor.getValue().getTermination().getFinishedAt()).isEqualTo(NOW);
+        assertThat(jobCaptor.getValue().getTermination().getFailureReason()).isEqualTo(ContractImportFailureReason.TOO_MANY_ATTEMPTS);
     }
 
     @Test
@@ -64,6 +67,16 @@ class FailContractImportJobTest {
         final FailContractImportJob handler = new FailContractImportJob.Handler(jobRepository, CLOCK);
 
         assertThatThrownBy(() -> handler.execute(COMMAND)).isInstanceOf(IllegalStateException.class);
+
+        verify(jobRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("GIVEN a job cancelled while it ran WHEN failing it THEN it stays cancelled and nothing is saved")
+    void shouldKeepCancelledJob() {
+        when(jobRepository.getById(JOB_ID)).thenReturn(ContractImportJobFixtures.cancelledJob(JOB_ID));
+
+        new FailContractImportJob.Handler(jobRepository, CLOCK).execute(COMMAND);
 
         verify(jobRepository, never()).save(any());
     }

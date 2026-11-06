@@ -1,6 +1,6 @@
 package com.mk.contractservice.features.contract.importjob;
 
-import com.mk.contractservice.domain.contract.exception.ContractImportJobNotFoundException;
+import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejectionReason;

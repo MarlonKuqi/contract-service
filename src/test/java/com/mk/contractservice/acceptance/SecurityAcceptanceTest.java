@@ -230,6 +230,8 @@ class SecurityAcceptanceTest {
                 .when().post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then().statusCode(201);
 
+        given().when().get(ContractEndpoints.CONTRACT_IMPORT_JOBS).then().statusCode(200);
+
         given()
                 .body("""
                         { "amount": "1200.00" }

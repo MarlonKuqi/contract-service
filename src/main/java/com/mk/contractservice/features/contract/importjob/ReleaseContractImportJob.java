@@ -1,5 +1,6 @@
 package com.mk.contractservice.features.contract.importjob;
 
+import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,11 @@ public interface ReleaseContractImportJob {
 
         @Override
         public void execute(final Command command) {
-            jobRepository.save(jobRepository.getById(command.jobId()).release());
+            final ContractImportJob loaded = jobRepository.getById(command.jobId());
+            final ContractImportJob released = loaded.release();
+            if (released != loaded) {
+                jobRepository.save(released);
+            }
         }
     }
 }

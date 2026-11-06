@@ -1,36 +1,32 @@
 package com.mk.contractservice.features.contract.importjob;
 
-import com.mk.contractservice.domain.contract.exception.InvalidImportFileException;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
+import com.mk.contractservice.domain.contract.importjob.ContractImportSubmission;
+import com.mk.contractservice.domain.contract.importjob.IdempotencyKey;
+import com.mk.contractservice.domain.contract.importjob.exception.IdempotencyKeyReusedException;
 import com.mk.contractservice.domain.shared.UseCase;
-import com.mk.contractservice.features.shared.ContractImportCsv;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Optional;
 
 public interface SubmitContractImportJob {
 
-    int MAX_LINES = 500_000;
-    int MAX_FILE_NAME_LENGTH = 255;
-
-    record Command(String fileName, byte[] content, int totalLines) {
-
-        public Command(final String fileName, final byte[] content) {
-            this(fileName, content, ContractImportCsv.requireValidAndCountLines(Objects.requireNonNull(content, "Content cannot be null")));
-        }
+    record Command(
+            @Nullable String fileName,
+            byte[] content,
+            String submittedBy,
+            @Nullable String idempotencyKey
+    ) {
 
         public Command {
-            Objects.requireNonNull(fileName, "File name cannot be null");
-            if (fileName.length() > MAX_FILE_NAME_LENGTH) {
-                throw new InvalidImportFileException("The file name must not exceed " + MAX_FILE_NAME_LENGTH + " characters");
-            }
-            if (totalLines > MAX_LINES) {
-                throw new InvalidImportFileException("The file must not exceed " + MAX_LINES + " contracts, but had: " + totalLines);
-            }
+            Objects.requireNonNull(content, "Content cannot be null");
+            Objects.requireNonNull(submittedBy, "Submitter cannot be null");
         }
     }
 
@@ -46,8 +42,40 @@ public interface SubmitContractImportJob {
 
         @Override
         public ContractImportJob execute(final Command command) {
-            final LocalDateTime now = LocalDateTime.now(clock);
-            return jobRepository.insert(ContractImportJob.of(command.fileName(), command.totalLines(), now), command.content());
+            final ContractImportFile file = ContractImportFile.of(command.fileName(), command.content());
+            final String fingerprint = file.fingerprint();
+            final Optional<IdempotencyKey> key = Optional.ofNullable(command.idempotencyKey()).map(IdempotencyKey::of);
+            return key
+                    .flatMap(requested -> jobRepository.findByIdempotencyKey(command.submittedBy(), requested)
+                            .map(previous -> replay(previous, requested, fingerprint)))
+                    .orElseGet(() -> insertNewJob(file, command.submittedBy(), key.orElse(null), fingerprint));
+        }
+
+        private ContractImportJob insertNewJob(
+                final ContractImportFile file,
+                final String submittedBy,
+                @Nullable final IdempotencyKey key,
+                final String fingerprint
+        ) {
+            final ContractImportSubmission submission = ContractImportSubmission.of(
+                    file.getName(),
+                    submittedBy,
+                    key,
+                    fingerprint,
+                    LocalDateTime.now(clock)
+            );
+            return jobRepository.insert(ContractImportJob.of(submission, file.getTotalLines()), file.getContent());
+        }
+
+        private static ContractImportJob replay(
+                final ContractImportJob previous,
+                final IdempotencyKey key,
+                final String fingerprint
+        ) {
+            if (!previous.hasContent(fingerprint)) {
+                throw new IdempotencyKeyReusedException(key.getValue());
+            }
+            return previous;
         }
     }
 }

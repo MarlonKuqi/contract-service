@@ -5,11 +5,13 @@ import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
+import com.mk.contractservice.infrastructure.persistence.contract.importjob.ContractImportJobLineJpaEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaUpdate;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
@@ -99,6 +101,35 @@ public class JpaContractRepository implements ContractRepository {
 
         final Predicate wherePredicate = ContractSpecifications.isActiveWithClientIdPredicate(root, cb, clientId, closureDate);
 
+        return closeAt(update, root, cb, closureDate, wherePredicate);
+    }
+
+    @Override
+    public int closeAllActiveImportedBy(final UUID importJobId, final LocalDateTime closureDate) {
+        final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        final CriteriaUpdate<ContractJpaEntity> update = cb.createCriteriaUpdate(ContractJpaEntity.class);
+        final Root<ContractJpaEntity> root = update.from(ContractJpaEntity.class);
+
+        final Subquery<UUID> importedContractIds = update.subquery(UUID.class);
+        final Root<ContractImportJobLineJpaEntity> line = importedContractIds.from(ContractImportJobLineJpaEntity.class);
+        importedContractIds
+                .select(line.get("contractId"))
+                .where(cb.equal(line.get("id").get("jobId"), importJobId));
+
+        final Predicate wherePredicate = cb.and(
+                ContractSpecifications.isActivePredicate(root, cb, closureDate),
+                root.get(ContractSpecifications.FIELD_ID).in(importedContractIds)
+        );
+        return closeAt(update, root, cb, closureDate, wherePredicate);
+    }
+
+    private int closeAt(
+            final CriteriaUpdate<ContractJpaEntity> update,
+            final Root<ContractJpaEntity> root,
+            final CriteriaBuilder cb,
+            final LocalDateTime closureDate,
+            final Predicate wherePredicate
+    ) {
         update.set("endDate", closureDate);
         update.set("lastModified", closureDate);
         update.set(root.<Long>get("version"), cb.sum(root.<Long>get("version"), 1L));

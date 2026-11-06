@@ -52,8 +52,8 @@ class ContractImportJobShutdownAcceptanceTest {
 
     private static ConfigurableApplicationContext startInstance() {
         return new SpringApplicationBuilder(ContractServiceApplication.class)
-                .profiles("test")
                 .run(
+                        "--spring.profiles.active=test",
                         "--server.port=0",
                         "--spring.datasource.url=" + POSTGRES.getJdbcUrl(),
                         "--spring.datasource.username=" + POSTGRES.getUsername(),
@@ -83,7 +83,7 @@ class ContractImportJobShutdownAcceptanceTest {
             clientId = createClient(firstInstance);
             final String file = "clientId;startDate;endDate;costAmount\n" + (clientId + ";;;100.00\n").repeat(LINES);
             jobId = firstInstance.getBean(SubmitContractImportJob.class)
-                    .execute(new SubmitContractImportJob.Command("contracts.csv", file.getBytes(StandardCharsets.UTF_8)))
+                    .execute(new SubmitContractImportJob.Command("contracts.csv", file.getBytes(StandardCharsets.UTF_8), "counselor.test", null))
                     .getId();
             await().atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(20))
                     .until(() -> jobValue(jobId, "processed_lines", Integer.class) > 0);
