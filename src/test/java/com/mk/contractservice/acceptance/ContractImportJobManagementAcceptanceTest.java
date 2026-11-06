@@ -8,9 +8,9 @@ import com.mk.contractservice.batch.ContractImportBatchConfiguration;
 import com.mk.contractservice.batch.ContractImportJobRunner;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractImportRejectionCsv;
+import com.mk.contractservice.domain.contract.importjob.IdempotencyKey;
 import com.mk.contractservice.features.contract.importjob.ClaimContractImportJob;
 import com.mk.contractservice.features.contract.importjob.ProcessContractImportBatch;
-import com.mk.contractservice.domain.contract.importjob.IdempotencyKey;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.response.ValidatableResponse;
@@ -149,7 +149,7 @@ class ContractImportJobManagementAcceptanceTest {
     }
 
     private void runNextJob() {
-        claimContractImportJob.execute().ifPresent(job -> contractImportJobRunner.run(job.getId()));
+        claimContractImportJob.execute().ifPresent(job -> contractImportJobRunner.run(job.id()));
     }
 
     private ValidatableResponse getJob(final String jobId) {
@@ -169,7 +169,8 @@ class ContractImportJobManagementAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a file submitted again with the same key after a timeout WHEN it runs THEN one job imports each contract once")
+    @DisplayName(
+            "GIVEN a file submitted again with the same key after a timeout WHEN it runs THEN one job imports each contract once")
     void shouldImportOnceWhenSubmittedTwiceWithSameKey() {
         final String file = fileOf("100.00", "200.00");
 
@@ -225,7 +226,8 @@ class ContractImportJobManagementAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN jobs of two counselors WHEN listing THEN they come newest first, and can be narrowed to one counselor")
+    @DisplayName(
+            "GIVEN jobs of two counselors WHEN listing THEN they come newest first, and can be narrowed to one counselor")
     void shouldListJobsNewestFirst() {
         final String oldest = submitAccepted(fileOf("100.00"));
         final String theirs = uploadAsOtherCounselor(fileOf("200.00"))
@@ -245,7 +247,8 @@ class ContractImportJobManagementAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN an imported file WHEN the counselor cancels the job THEN its contracts are closed and leave the client total")
+    @DisplayName(
+            "GIVEN an imported file WHEN the counselor cancels the job THEN its contracts are closed and leave the client total")
     void shouldCloseContractsOfCancelledJob() {
         final String jobId = submitAccepted(fileOf("100.00", "200.00"));
         runNextJob();
@@ -294,7 +297,8 @@ class ContractImportJobManagementAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a job running its second chunk WHEN the counselor cancels it THEN the chunk is dropped and the first one is closed")
+    @DisplayName(
+            "GIVEN a job running its second chunk WHEN the counselor cancels it THEN the chunk is dropped and the first one is closed")
     void shouldStopRunningJobOnCancellation() throws Exception {
         final int chunkSize = ContractImportBatchConfiguration.CHUNK_SIZE;
         final String jobId = submitAccepted(fileOf(Collections.nCopies(chunkSize + 10, "10.00")));
@@ -324,7 +328,8 @@ class ContractImportJobManagementAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN rejected lines WHEN the counselor downloads them THEN each comes with its code, its reason and its original line")
+    @DisplayName(
+            "GIVEN rejected lines WHEN the counselor downloads them THEN each comes with its code, its reason and its original line")
     void shouldExportRejectedLinesAsCsv() {
         final String jobId = submitAccepted(HEADER
                 + clientId + ";;;100.00\n"

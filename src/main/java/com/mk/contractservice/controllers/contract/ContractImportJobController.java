@@ -10,11 +10,11 @@ import com.mk.contractservice.controllers.contract.shared.PagedContractImportRej
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.IdempotencyKey;
 import com.mk.contractservice.features.contract.importjob.CancelContractImportJob;
+import com.mk.contractservice.features.contract.importjob.ContractImportFile;
 import com.mk.contractservice.features.contract.importjob.ExportContractImportJobRejections;
 import com.mk.contractservice.features.contract.importjob.GetContractImportJob;
 import com.mk.contractservice.features.contract.importjob.ListContractImportJobRejections;
 import com.mk.contractservice.features.contract.importjob.ListContractImportJobs;
-import com.mk.contractservice.features.contract.importjob.ContractImportFile;
 import com.mk.contractservice.features.contract.importjob.SubmitContractImportJob;
 import com.mk.contractservice.features.shared.ContractImportCsv;
 import io.swagger.v3.oas.annotations.Operation;
@@ -123,7 +123,7 @@ public class ContractImportJobController {
         ));
         final URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{jobId}")
-                .buildAndExpand(job.getId())
+                .buildAndExpand(job.id())
                 .toUri();
         return ResponseEntity.accepted().location(location).body(ContractImportJobResponse.from(job));
     }

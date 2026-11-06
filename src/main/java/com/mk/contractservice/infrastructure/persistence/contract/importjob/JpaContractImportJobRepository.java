@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
 import com.mk.contractservice.domain.contract.importjob.IdempotencyKey;
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import jakarta.persistence.EntityManager;
@@ -38,7 +39,7 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
 
     @Override
     public ContractImportJob save(final ContractImportJob job) {
-        final UUID jobId = job.getId();
+        final UUID jobId = job.id();
         if (jobId == null) {
             throw new IllegalStateException("Import job must be inserted before it is saved");
         }
@@ -65,7 +66,7 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
 
     @Override
     public Optional<ContractImportJob> findByIdempotencyKey(final String submittedBy, final IdempotencyKey idempotencyKey) {
-        return jobJpaRepository.findBySubmittedByAndIdempotencyKey(submittedBy, idempotencyKey.getValue())
+        return jobJpaRepository.findBySubmittedByAndIdempotencyKey(submittedBy, idempotencyKey.value())
                 .map(ContractImportJobJpaMapper::toDomain);
     }
 
@@ -98,7 +99,7 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
     }
 
     @Override
-    public Page<ContractImportJobLine> findRejections(final UUID jobId, final Pageable pageable) {
+    public Page<ContractImportRejection> findRejections(final UUID jobId, final Pageable pageable) {
         return lineJpaRepository.findRejections(jobId, pageable)
                 .map(ContractImportJobJpaMapper::toDomainRejection);
     }

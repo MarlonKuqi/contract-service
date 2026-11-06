@@ -27,9 +27,9 @@ class ContractImportFileTest {
 
         final ContractImportFile file = ContractImportFile.of("contracts.csv", content);
 
-        assertThat(file.getName()).isEqualTo("contracts.csv");
-        assertThat(file.getContent()).isSameAs(content);
-        assertThat(file.getTotalLines()).isEqualTo(2);
+        assertThat(file.name()).isEqualTo("contracts.csv");
+        assertThat(file.content()).isSameAs(content);
+        assertThat(file.totalLines()).isEqualTo(2);
         assertThat(file.fingerprint()).isEqualTo(ContractImportCsv.fingerprintOf(content));
     }
 
@@ -44,8 +44,8 @@ class ContractImportFileTest {
     void shouldUseDefaultNameWhenMissing() {
         final byte[] content = fileOf(1);
 
-        assertThat(ContractImportFile.of(null, content).getName()).isEqualTo(ContractImportFile.DEFAULT_NAME);
-        assertThat(ContractImportFile.of(" ", content).getName()).isEqualTo(ContractImportFile.DEFAULT_NAME);
+        assertThat(ContractImportFile.of(null, content).name()).isEqualTo(ContractImportFile.DEFAULT_NAME);
+        assertThat(ContractImportFile.of(" ", content).name()).isEqualTo(ContractImportFile.DEFAULT_NAME);
         assertThat(ContractImportFile.DEFAULT_NAME).isEqualTo("import.csv");
     }
 

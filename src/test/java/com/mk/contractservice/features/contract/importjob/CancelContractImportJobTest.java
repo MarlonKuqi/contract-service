@@ -73,8 +73,8 @@ class CancelContractImportJobTest {
         order.verify(jobRepository).getByIdForUpdate(JOB_ID);
         order.verify(jobRepository).save(jobCaptor.capture());
         order.verify(contractRepository).closeAllActiveImportedBy(JOB_ID, NOW);
-        assertThat(jobCaptor.getValue().getStatus()).isEqualTo(ContractImportJobStatus.CANCELLED);
-        assertThat(jobCaptor.getValue().getCancellation()).isEqualTo(ContractImportCancellation.of(NOW, COUNSELOR));
+        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobStatus.CANCELLED);
+        assertThat(jobCaptor.getValue().cancellation()).isEqualTo(ContractImportCancellation.of(NOW, COUNSELOR));
         assertThat(result.job()).isSameAs(jobCaptor.getValue());
         assertThat(result.closedContracts()).isEqualTo(2);
     }

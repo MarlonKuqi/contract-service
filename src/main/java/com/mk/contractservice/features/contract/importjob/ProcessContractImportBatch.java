@@ -77,7 +77,7 @@ public interface ProcessContractImportBatch {
             final List<Contract> contracts = contractRepository.insertAll(accepted.stream().map(AcceptedLine::contract).toList());
             for (int index = 0; index < contracts.size(); index++) {
                 final Contract contract = contracts.get(index);
-                lines.add(ContractImportJobLine.imported(jobId, accepted.get(index).lineNumber(), contract.getClientId(), contract.getId()));
+                lines.add(ContractImportJobLine.imported(jobId, accepted.get(index).lineNumber(), contract.clientId(), contract.id()));
             }
             jobRepository.insertLines(lines);
 

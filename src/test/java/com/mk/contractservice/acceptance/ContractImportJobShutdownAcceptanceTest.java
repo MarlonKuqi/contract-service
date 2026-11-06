@@ -67,7 +67,7 @@ class ContractImportJobShutdownAcceptanceTest {
                 ClientName.of("Shutdown Test"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("shutdown.test")),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15), today))).getId();
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15), today))).id();
     }
 
     private static <T> T jobValue(final UUID jobId, final String column, final Class<T> type) {
@@ -75,7 +75,8 @@ class ContractImportJobShutdownAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a job running on an instance WHEN the instance closes THEN the job goes back to pending and the next instance completes it")
+    @DisplayName(
+            "GIVEN a job running on an instance WHEN the instance closes THEN the job goes back to pending and the next instance completes it")
     void shouldHandOverJobOnShutdown() {
         final UUID jobId;
         final UUID clientId;
@@ -84,7 +85,7 @@ class ContractImportJobShutdownAcceptanceTest {
             final String file = "clientId;startDate;endDate;costAmount\n" + (clientId + ";;;100.00\n").repeat(LINES);
             jobId = firstInstance.getBean(SubmitContractImportJob.class)
                     .execute(new SubmitContractImportJob.Command("contracts.csv", file.getBytes(StandardCharsets.UTF_8), "counselor.test", null))
-                    .getId();
+                    .id();
             await().atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(20))
                     .until(() -> jobValue(jobId, "processed_lines", Integer.class) > 0);
         }

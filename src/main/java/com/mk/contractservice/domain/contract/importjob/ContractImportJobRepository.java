@@ -31,5 +31,5 @@ public interface ContractImportJobRepository {
 
     void insertLines(List<ContractImportJobLine> lines);
 
-    Page<ContractImportJobLine> findRejections(UUID jobId, Pageable pageable);
+    Page<ContractImportRejection> findRejections(UUID jobId, Pageable pageable);
 }

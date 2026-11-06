@@ -34,13 +34,13 @@ class ContractImportJobTest {
     }
 
     private static LocalDateTime finishedAtOf(final ContractImportJob job) {
-        final ContractImportTermination termination = job.getTermination();
-        return termination == null ? null : termination.getFinishedAt();
+        final ContractImportTermination termination = job.termination();
+        return termination == null ? null : termination.finishedAt();
     }
 
     private static ContractImportFailureReason failureReasonOf(final ContractImportJob job) {
-        final ContractImportTermination termination = job.getTermination();
-        return termination == null ? null : termination.getFailureReason();
+        final ContractImportTermination termination = job.termination();
+        return termination == null ? null : termination.failureReason();
     }
 
     private static ContractImportJob reconstitute(
@@ -57,19 +57,19 @@ class ContractImportJobTest {
     void shouldCreatePendingJob() {
         final ContractImportJob job = pendingJob(3);
 
-        assertThat(job.getId()).isNull();
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.PENDING);
-        assertThat(job.getSubmission().getFileName()).isEqualTo(FILE_NAME);
-        assertThat(job.getSubmission().getSubmittedAt()).isEqualTo(NOW);
-        assertThat(job.getSubmission().getSubmittedBy()).isEqualTo(SUBMITTER);
-        assertThat(job.getSubmission().getIdempotencyKey()).isNull();
-        assertThat(job.getSubmission().getContentSha256()).isEqualTo(CONTENT_SHA256);
-        assertThat(job.getProgress().getTotalLines()).isEqualTo(3);
-        assertThat(job.getProgress().getProcessedLines()).isZero();
-        assertThat(job.getProgress().getImportedCount()).isZero();
-        assertThat(job.getProgress().getRejectedCount()).isZero();
-        assertThat(job.getTermination()).isNull();
-        assertThat(job.getCancellation()).isNull();
+        assertThat(job.id()).isNull();
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.PENDING);
+        assertThat(job.submission().fileName()).isEqualTo(FILE_NAME);
+        assertThat(job.submission().submittedAt()).isEqualTo(NOW);
+        assertThat(job.submission().submittedBy()).isEqualTo(SUBMITTER);
+        assertThat(job.submission().idempotencyKey()).isNull();
+        assertThat(job.submission().contentSha256()).isEqualTo(CONTENT_SHA256);
+        assertThat(job.progress().totalLines()).isEqualTo(3);
+        assertThat(job.progress().processedLines()).isZero();
+        assertThat(job.progress().importedCount()).isZero();
+        assertThat(job.progress().rejectedCount()).isZero();
+        assertThat(job.termination()).isNull();
+        assertThat(job.cancellation()).isNull();
     }
 
     @Test
@@ -78,7 +78,7 @@ class ContractImportJobTest {
         final ContractImportJob job = ContractImportJob.of(
                 ContractImportSubmission.of(FILE_NAME, SUBMITTER, IdempotencyKey.of("key-1"), CONTENT_SHA256, NOW), 3);
 
-        assertThat(job.getSubmission().getIdempotencyKey()).isEqualTo(IdempotencyKey.of("key-1"));
+        assertThat(job.submission().idempotencyKey()).isEqualTo(IdempotencyKey.of("key-1"));
     }
 
     @Test
@@ -127,16 +127,16 @@ class ContractImportJobTest {
                 ContractImportTermination.reconstituteFromDatabase(NOW, REASON),
                 ContractImportCancellation.reconstituteFromDatabase(LATER, CANCELLER));
 
-        assertThat(job.getId()).isEqualTo(id);
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.FAILED);
-        assertThat(job.getProgress().getProcessedLines()).isEqualTo(1);
-        assertThat(job.getLeaseUntil()).isEqualTo(LEASE);
+        assertThat(job.id()).isEqualTo(id);
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.FAILED);
+        assertThat(job.progress().processedLines()).isEqualTo(1);
+        assertThat(job.leaseUntil()).isEqualTo(LEASE);
         assertThat(finishedAtOf(job)).isEqualTo(NOW);
         assertThat(failureReasonOf(job)).isEqualTo(REASON);
-        assertThat(job.getSubmission().getSubmittedBy()).isEqualTo(SUBMITTER);
-        assertThat(job.getSubmission().getIdempotencyKey()).isEqualTo(IdempotencyKey.of("key-1"));
-        assertThat(job.getSubmission().getContentSha256()).isEqualTo(CONTENT_SHA256);
-        assertThat(job.getCancellation()).isEqualTo(ContractImportCancellation.of(LATER, CANCELLER));
+        assertThat(job.submission().submittedBy()).isEqualTo(SUBMITTER);
+        assertThat(job.submission().idempotencyKey()).isEqualTo(IdempotencyKey.of("key-1"));
+        assertThat(job.submission().contentSha256()).isEqualTo(CONTENT_SHA256);
+        assertThat(job.cancellation()).isEqualTo(ContractImportCancellation.of(LATER, CANCELLER));
     }
 
     @Test
@@ -146,7 +146,7 @@ class ContractImportJobTest {
 
         final ContractImportJob job = reconstitute(UUID.randomUUID(), submission, ContractImportJobStatus.RUNNING, PROGRESS);
 
-        assertThat(job.getSubmission().getSubmittedBy()).isNull();
+        assertThat(job.submission().submittedBy()).isNull();
     }
 
     @Test
@@ -184,8 +184,8 @@ class ContractImportJobTest {
     void shouldReconstituteTerminationWithoutReason() {
         final ContractImportTermination termination = ContractImportTermination.reconstituteFromDatabase(NOW, null);
 
-        assertThat(termination.getFinishedAt()).isEqualTo(NOW);
-        assertThat(termination.getFailureReason()).isNull();
+        assertThat(termination.finishedAt()).isEqualTo(NOW);
+        assertThat(termination.failureReason()).isNull();
     }
 
     @Test
@@ -193,8 +193,8 @@ class ContractImportJobTest {
     void shouldStart() {
         final ContractImportJob job = pendingJob(3).start(LEASE);
 
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.RUNNING);
-        assertThat(job.getLeaseUntil()).isEqualTo(LEASE);
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.RUNNING);
+        assertThat(job.leaseUntil()).isEqualTo(LEASE);
     }
 
     @Test
@@ -205,9 +205,9 @@ class ContractImportJobTest {
 
         final ContractImportJob job = pendingJob(3).start(LEASE).recordBatch(1, 0, LEASE).start(newLease);
 
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.RUNNING);
-        assertThat(job.getLeaseUntil()).isEqualTo(newLease);
-        assertThat(job.getProgress().getProcessedLines()).isEqualTo(1);
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.RUNNING);
+        assertThat(job.leaseUntil()).isEqualTo(newLease);
+        assertThat(job.progress().processedLines()).isEqualTo(1);
     }
 
     @Test
@@ -238,12 +238,12 @@ class ContractImportJobTest {
 
         final ContractImportJob job = pendingJob(3).start(LEASE).recordBatch(1, 1, renewedLease);
 
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.RUNNING);
-        assertThat(job.getProgress().getProcessedLines()).isEqualTo(2);
-        assertThat(job.getProgress().getImportedCount()).isEqualTo(1);
-        assertThat(job.getProgress().getRejectedCount()).isEqualTo(1);
-        assertThat(job.getLeaseUntil()).isEqualTo(renewedLease);
-        assertThat(job.getTermination()).isNull();
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.RUNNING);
+        assertThat(job.progress().processedLines()).isEqualTo(2);
+        assertThat(job.progress().importedCount()).isEqualTo(1);
+        assertThat(job.progress().rejectedCount()).isEqualTo(1);
+        assertThat(job.leaseUntil()).isEqualTo(renewedLease);
+        assertThat(job.termination()).isNull();
     }
 
     @Test
@@ -251,8 +251,8 @@ class ContractImportJobTest {
     void shouldKeepRunningAfterLastBatch() {
         final ContractImportJob job = pendingJob(2).start(LEASE).recordBatch(1, 1, LEASE);
 
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.RUNNING);
-        assertThat(job.getTermination()).isNull();
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.RUNNING);
+        assertThat(job.termination()).isNull();
     }
 
     @Test
@@ -262,8 +262,8 @@ class ContractImportJobTest {
 
         final ContractImportJob job = pendingJob(2).start(LEASE).recordBatch(0, 0, renewedLease);
 
-        assertThat(job.getProgress().getProcessedLines()).isZero();
-        assertThat(job.getLeaseUntil()).isEqualTo(renewedLease);
+        assertThat(job.progress().processedLines()).isZero();
+        assertThat(job.leaseUntil()).isEqualTo(renewedLease);
     }
 
     @Test
@@ -279,9 +279,9 @@ class ContractImportJobTest {
     void shouldCompleteOnFinish() {
         final ContractImportJob job = pendingJob(2).start(LEASE).recordBatch(1, 1, LEASE).finish(NOW);
 
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.COMPLETED);
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.COMPLETED);
         assertThat(finishedAtOf(job)).isEqualTo(NOW);
-        assertThat(job.getLeaseUntil()).isNull();
+        assertThat(job.leaseUntil()).isNull();
         assertThat(failureReasonOf(job)).isNull();
     }
 
@@ -290,7 +290,7 @@ class ContractImportJobTest {
     void shouldFailOnFinishWithMissingLines() {
         final ContractImportJob job = pendingJob(2).start(LEASE).recordBatch(1, 0, LEASE).finish(NOW);
 
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.FAILED);
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.FAILED);
         assertThat(failureReasonOf(job)).isEqualTo(ContractImportFailureReason.INCOMPLETE_PROCESSING);
         assertThat(finishedAtOf(job)).isEqualTo(NOW);
     }
@@ -300,10 +300,10 @@ class ContractImportJobTest {
     void shouldRelease() {
         final ContractImportJob job = pendingJob(3).start(LEASE).recordBatch(1, 0, LEASE).release();
 
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.PENDING);
-        assertThat(job.getProgress().getProcessedLines()).isEqualTo(1);
-        assertThat(job.getLeaseUntil()).isNull();
-        assertThat(job.getTermination()).isNull();
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.PENDING);
+        assertThat(job.progress().processedLines()).isEqualTo(1);
+        assertThat(job.leaseUntil()).isNull();
+        assertThat(job.termination()).isNull();
     }
 
     @Test
@@ -312,10 +312,10 @@ class ContractImportJobTest {
     void shouldFail() {
         final ContractImportJob job = pendingJob(3).start(LEASE).recordBatch(1, 0, LEASE).fail(REASON, NOW);
 
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.FAILED);
-        assertThat(job.getProgress().getImportedCount()).isEqualTo(1);
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.FAILED);
+        assertThat(job.progress().importedCount()).isEqualTo(1);
         assertThat(finishedAtOf(job)).isEqualTo(NOW);
-        assertThat(job.getLeaseUntil()).isNull();
+        assertThat(job.leaseUntil()).isNull();
         assertThat(failureReasonOf(job)).isEqualTo(REASON);
     }
 
@@ -358,10 +358,10 @@ class ContractImportJobTest {
     void shouldCancelPendingJob() {
         final ContractImportJob job = pendingJob(3).cancel(LATER, CANCELLER);
 
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.CANCELLED);
-        assertThat(job.getCancellation()).isEqualTo(ContractImportCancellation.of(LATER, CANCELLER));
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.CANCELLED);
+        assertThat(job.cancellation()).isEqualTo(ContractImportCancellation.of(LATER, CANCELLER));
         assertThat(finishedAtOf(job)).isEqualTo(LATER);
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.CANCELLED);
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.CANCELLED);
     }
 
     @Test
@@ -369,10 +369,10 @@ class ContractImportJobTest {
     void shouldCancelRunningJob() {
         final ContractImportJob job = pendingJob(3).start(LEASE).recordBatch(1, 1, LEASE).cancel(LATER, CANCELLER);
 
-        assertThat(job.getStatus()).isEqualTo(ContractImportJobStatus.CANCELLED);
-        assertThat(job.getProgress().getImportedCount()).isEqualTo(1);
-        assertThat(job.getProgress().getRejectedCount()).isEqualTo(1);
-        assertThat(job.getLeaseUntil()).isNull();
+        assertThat(job.status()).isEqualTo(ContractImportJobStatus.CANCELLED);
+        assertThat(job.progress().importedCount()).isEqualTo(1);
+        assertThat(job.progress().rejectedCount()).isEqualTo(1);
+        assertThat(job.leaseUntil()).isNull();
     }
 
     @Test
@@ -381,9 +381,9 @@ class ContractImportJobTest {
         final ContractImportJob completed = completedJob().cancel(LATER, CANCELLER);
         final ContractImportJob failed = pendingJob(3).start(LEASE).fail(REASON, NOW).cancel(LATER, CANCELLER);
 
-        assertThat(completed.getStatus()).isEqualTo(ContractImportJobStatus.CANCELLED);
+        assertThat(completed.status()).isEqualTo(ContractImportJobStatus.CANCELLED);
         assertThat(finishedAtOf(completed)).isEqualTo(NOW);
-        assertThat(failed.getStatus()).isEqualTo(ContractImportJobStatus.CANCELLED);
+        assertThat(failed.status()).isEqualTo(ContractImportJobStatus.CANCELLED);
         assertThat(finishedAtOf(failed)).isEqualTo(NOW);
         assertThat(failureReasonOf(failed)).isEqualTo(REASON);
     }
