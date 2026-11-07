@@ -320,6 +320,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 - Breaking change de l'API : un client qui modifie sans `If-Match` reçoit `428`. Les collections (`api-collections/`) capturent l'ETag et l'envoient automatiquement.
 - Une modification basée sur une lecture périmée, entre deux requêtes HTTP ou entre deux transactions qui se chevauchent, donne `412`. Un contrat fermé par la suppression de son client depuis la lecture donne aussi `412` (sa version a été incrémentée par l'étape 1), et il reste fermé.
 - `409 optimisticLockFailure` ne subsiste que pour la suppression d'un client, après épuisement des essais.
+- **Verrou pessimiste ponctuel (ADR-022).** L'import asynchrone verrouille les clients de chaque chunk (`FOR SHARE`) jusqu'à son commit, pour qu'un client supprimé ne reçoive pas de contrat actif. Un `PUT`, `PATCH` ou `DELETE` sur l'un de ces clients attend ce commit, quelques centaines de millisecondes ; au-delà de `lock_timeout` (5 s), il reçoit `409 resourceBusy` sans rien modifier. Le verrou optimiste reste la règle : ce verrou pessimiste ne couvre que ce cas. Test : `ClientBusyDuringImportBatchAcceptanceTest`.
 - Tests : `OptimisticLockingAcceptanceTest` (contrat HTTP), `ClientConflictAcceptanceTest` et `ContractCostConflictAcceptanceTest` (conflits entre transactions), et les tests des handlers.
 
 **Statut.** Étapes 1 et 3 acceptées. Étape 2 acceptée (branche `feat/etag-if-match`).
