@@ -59,6 +59,10 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 - `428 preconditionRequired` : `If-Match` absent ou `*`. `412 preconditionFailed` : la ressource a changé depuis la lecture, il faut la relire.
 - Un `GET` avec `If-None-Match` égal à l'ETag courant renvoie `304 Not Modified`.
 
+## ⏳ Client occupé par un import
+
+Un lot d'import (`POST /v2/contracts/import-jobs`) verrouille ses clients jusqu'à son commit, en général moins d'une seconde. Un `PUT`, `PATCH` ou `DELETE` sur l'un de ces clients attend ce commit. S'il attend plus que le `lock_timeout` (5 s), il répond `409 resourceBusy` sans rien modifier : renvoyer la requête quelques secondes plus tard.
+
 ---
 
 ## 🚀 Import Rapide

@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobCancelledException;
+import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobTransitionNotAllowedException;
 import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -163,7 +164,7 @@ public final class ContractImportJob {
         };
     }
 
-    private IllegalStateException notAllowed(final String transition) {
-        return new IllegalStateException("Job " + id + " cannot " + transition + " while " + status);
+    private ContractImportJobTransitionNotAllowedException notAllowed(final String transition) {
+        return new ContractImportJobTransitionNotAllowedException(id, transition, status);
     }
 }

@@ -13,7 +13,7 @@ import java.util.UUID;
 @RepositoryPort
 public interface ContractImportJobRepository {
 
-    ContractImportJob insert(ContractImportJob job, byte[] fileContent);
+    ContractImportJob save(ContractImportJob job, byte[] fileContent);
 
     ContractImportJob save(ContractImportJob job);
 
@@ -21,7 +21,7 @@ public interface ContractImportJobRepository {
 
     void ensureExists(UUID jobId);
 
-    ContractImportJob getByIdForUpdate(UUID jobId);
+    ContractImportJob lockById(UUID jobId);
 
     Optional<ContractImportJob> findByIdempotencyKey(String submittedBy, IdempotencyKey idempotencyKey);
 
@@ -31,5 +31,5 @@ public interface ContractImportJobRepository {
 
     byte[] loadFile(UUID jobId);
 
-    void insertLines(List<ContractImportJobLine> lines);
+    void saveLines(List<ContractImportJobLine> lines);
 }

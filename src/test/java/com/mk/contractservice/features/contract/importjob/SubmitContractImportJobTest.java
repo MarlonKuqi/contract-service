@@ -70,11 +70,11 @@ class SubmitContractImportJobTest {
             "GIVEN a valid file WHEN submitting THEN a pending job is stored with the file, its author and its fingerprint")
     void shouldStorePendingJob() {
         final byte[] content = fileOf(2);
-        when(jobRepository.insert(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jobRepository.save(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         final ContractImportJob result = handler().execute(new SubmitContractImportJob.Command("contracts.csv", content, SUBMITTER, null));
 
-        verify(jobRepository).insert(jobCaptor.capture(), same(content));
+        verify(jobRepository).save(jobCaptor.capture(), same(content));
         final ContractImportJob job = jobCaptor.getValue();
         assertThat(result).isSameAs(job);
         assertThat(job.status()).isEqualTo(ContractImportJobStatus.PENDING);
@@ -90,11 +90,11 @@ class SubmitContractImportJobTest {
     @DisplayName("GIVEN a new idempotency key WHEN submitting THEN the job is stored with its key")
     void shouldStoreNewKey() {
         when(jobRepository.findByIdempotencyKey(SUBMITTER, IdempotencyKey.of(KEY))).thenReturn(Optional.empty());
-        when(jobRepository.insert(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jobRepository.save(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         handler().execute(new SubmitContractImportJob.Command("contracts.csv", fileOf(2), SUBMITTER, KEY));
 
-        verify(jobRepository).insert(jobCaptor.capture(), any());
+        verify(jobRepository).save(jobCaptor.capture(), any());
         assertThat(jobCaptor.getValue().submission().idempotencyKey()).isEqualTo(IdempotencyKey.of(KEY));
     }
 
@@ -109,7 +109,7 @@ class SubmitContractImportJobTest {
         final ContractImportJob result = handler().execute(new SubmitContractImportJob.Command("contracts.csv", content, SUBMITTER, KEY));
 
         assertThat(result).isSameAs(existing);
-        verify(jobRepository, never()).insert(any(), any());
+        verify(jobRepository, never()).save(any(), any());
     }
 
     @Test
@@ -119,7 +119,7 @@ class SubmitContractImportJobTest {
         final SubmitContractImportJob.Command command = new SubmitContractImportJob.Command("contracts.csv", fileOf(3), SUBMITTER, KEY);
 
         assertThatThrownBy(() -> handler().execute(command)).isInstanceOf(IdempotencyKeyReusedException.class);
-        verify(jobRepository, never()).insert(any(), any());
+        verify(jobRepository, never()).save(any(), any());
     }
 
     @Test
@@ -132,7 +132,7 @@ class SubmitContractImportJobTest {
 
         assertThatThrownBy(() -> handler().execute(blankKey)).isInstanceOf(InvalidIdempotencyKeyException.class);
         assertThatThrownBy(() -> handler().execute(tooLongKey)).isInstanceOf(InvalidIdempotencyKeyException.class);
-        verify(jobRepository, never()).insert(any(), any());
+        verify(jobRepository, never()).save(any(), any());
     }
 
     @Test
@@ -140,11 +140,11 @@ class SubmitContractImportJobTest {
     void shouldAcceptKeyOfMaximumLength() {
         final String longestKey = "k".repeat(IdempotencyKey.MAX_LENGTH);
         when(jobRepository.findByIdempotencyKey(SUBMITTER, IdempotencyKey.of(longestKey))).thenReturn(Optional.empty());
-        when(jobRepository.insert(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jobRepository.save(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         handler().execute(new SubmitContractImportJob.Command("contracts.csv", fileOf(1), SUBMITTER, longestKey));
 
-        verify(jobRepository).insert(jobCaptor.capture(), any());
+        verify(jobRepository).save(jobCaptor.capture(), any());
         assertThat(jobCaptor.getValue().submission().idempotencyKey()).isEqualTo(IdempotencyKey.of(longestKey));
     }
 
@@ -160,12 +160,11 @@ class SubmitContractImportJobTest {
     }
 
     @Test
-    @DisplayName("GIVEN an invalid file WHEN submitting THEN it is refused and nothing is stored")
+    @DisplayName("GIVEN an invalid file WHEN building Command THEN it is refused before reaching the handler")
     void shouldRefuseInvalidFile() {
-        final SubmitContractImportJob.Command command = new SubmitContractImportJob.Command(
-                "contracts.csv", "wrong;header\nline\n".getBytes(StandardCharsets.UTF_8), SUBMITTER, null);
+        final byte[] invalidContent = "wrong;header\nline\n".getBytes(StandardCharsets.UTF_8);
 
-        assertThatThrownBy(() -> handler().execute(command)).isInstanceOf(InvalidImportFileException.class);
-        verify(jobRepository, never()).insert(any(), any());
+        assertThatThrownBy(() -> new SubmitContractImportJob.Command("contracts.csv", invalidContent, SUBMITTER, null))
+                .isInstanceOf(InvalidImportFileException.class);
     }
 }

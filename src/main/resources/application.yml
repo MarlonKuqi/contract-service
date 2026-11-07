@@ -14,6 +14,7 @@ spring:
           batch_size: 1000
   datasource:
     hikari:
+      connection-init-sql: SET lock_timeout = '${app.database.lock-timeout}'
       data-source-properties:
         reWriteBatchedInserts: true
   flyway:
@@ -72,6 +73,8 @@ springdoc:
     tagsSorter: alpha
 app:
   time-zone: Europe/Zurich
+  database:
+    lock-timeout: 5s
   contract-import:
     worker-enabled: true
     poll-delay: PT2S

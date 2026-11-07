@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -77,6 +78,18 @@ public abstract class BaseControllerAdvice {
         );
         problemDetail.setProperty("entityId", ex.getIdentifier());
         return respond(problemDetail);
+    }
+
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    public ResponseEntity<ProblemDetail> handleResourceBusy(final PessimisticLockingFailureException ex) {
+        log.warn("Lock not acquired in time: {}", ex.getMessage());
+
+        return respond(problem(
+                HttpStatus.CONFLICT,
+                "Resource Busy",
+                "The resource is being processed, for example by a contract import. Please try again in a few seconds.",
+                "resourceBusy"
+        ));
     }
 
     @ExceptionHandler(PreconditionRequiredException.class)

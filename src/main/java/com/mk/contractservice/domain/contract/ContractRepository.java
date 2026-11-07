@@ -23,7 +23,7 @@ import java.util.UUID;
 public interface ContractRepository {
     Contract save(Contract contract);
 
-    List<Contract> insertAll(List<Contract> contracts);
+    List<Contract> saveAll(List<Contract> contracts);
 
     Contract getById(UUID contractId);
 

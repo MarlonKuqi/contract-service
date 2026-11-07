@@ -39,10 +39,6 @@ public interface ImportContracts {
             Objects.requireNonNull(clientId, "Client ID cannot be null");
             Objects.requireNonNull(costAmount, "Cost amount cannot be null");
         }
-
-        LineRejection toRejection(final int index, final ContractImportRejectionReason reason, final String message) {
-            return new LineRejection(index, clientId, reason, message);
-        }
     }
 
     record Command(List<Line> lines) {
@@ -64,7 +60,6 @@ public interface ImportContracts {
     }
 
     List<Contract> execute(Command command);
-
 
     @UseCase
     @Transactional
@@ -90,7 +85,7 @@ public interface ImportContracts {
             if (processResult.hasRejections()) {
                 throw new ContractImportRejectedException(processResult.rejections());
             }
-            return contractRepository.insertAll(processResult.contracts());
+            return contractRepository.saveAll(processResult.contracts());
         }
 
         private LineProcessResult processLines(final Command command, final LocalDateTime now) {
@@ -103,7 +98,7 @@ public interface ImportContracts {
                 final Line line = command.lines().get(index);
                 switch (ContractImportLineEvaluator.evaluate(line.clientId(), line.startDate(), line.endDate(), line.costAmount(), existingClientIds, now)) {
                     case Accepted(Contract contract) -> contracts.add(contract);
-                    case Rejected(ContractImportRejectionReason reason, String message) -> rejections.add(line.toRejection(index, reason, message));
+                    case Rejected(ContractImportRejectionReason reason, String message) -> rejections.add(new LineRejection(index, line.clientId(), reason, message));
                 }
             }
             return new LineProcessResult(contracts, rejections);

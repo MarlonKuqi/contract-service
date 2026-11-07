@@ -38,7 +38,7 @@ public interface CancelContractImportJob {
         @Override
         public Result execute(final Command command) {
             final LocalDateTime now = LocalDateTime.now(clock);
-            final ContractImportJob loaded = jobRepository.getByIdForUpdate(command.jobId());
+            final ContractImportJob loaded = jobRepository.lockById(command.jobId());
             final ContractImportJob cancelled = loaded.cancel(now, command.cancelledBy());
             if (cancelled == loaded) {
                 return new Result(loaded, 0);

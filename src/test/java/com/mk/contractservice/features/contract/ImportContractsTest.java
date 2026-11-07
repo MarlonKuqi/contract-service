@@ -132,7 +132,7 @@ class ImportContractsTest {
             );
             when(clientRepository.findExistingIds(Set.of(clientId, otherClientId)))
                     .thenReturn(Set.of(clientId, otherClientId));
-            when(contractRepository.insertAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(contractRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
             final List<Contract> created = handler.execute(command);
 
@@ -150,7 +150,7 @@ class ImportContractsTest {
 
             handler.execute(commandOf(validLine(), validLine()));
 
-            verify(contractRepository).insertAll(insertedContracts.capture());
+            verify(contractRepository).saveAll(insertedContracts.capture());
             assertThat(insertedContracts.getValue()).hasSize(2).allSatisfy(contract -> {
                 assertThat(contract.period().startDate()).isEqualTo(now);
                 assertThat(contract.lastModified()).isEqualTo(now);
@@ -174,7 +174,7 @@ class ImportContractsTest {
             assertThatThrownBy(() -> handler.execute(command))
                     .isInstanceOf(ContractImportRejectedException.class);
 
-            verify(contractRepository, never()).insertAll(anyList());
+            verify(contractRepository, never()).saveAll(anyList());
         }
 
         @Test

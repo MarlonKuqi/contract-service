@@ -47,12 +47,9 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
-    public List<Contract> insertAll(final List<Contract> contracts) {
-        final List<ContractJpaEntity> entities = contracts.stream()
-                .map(ContractJpaMapper::toNewEntity)
-                .toList();
-        return contractJpaRepository.saveAll(entities).stream()
-                .map(ContractJpaMapper::toDomain)
+    public List<Contract> saveAll(final List<Contract> contracts) {
+        return contracts.stream()
+                .map(this::save)
                 .toList();
     }
 
