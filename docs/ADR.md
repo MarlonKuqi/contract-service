@@ -765,6 +765,12 @@ choisit explicitement l'un ou l'autre endpoint, sans bascule automatique selon l
   PostgreSQL le refuse dans un `TEXT`. `ContractPeriod` borne les années de 1 à 9999, car `TIMESTAMPTZ` a ses propres
   limites : la règle vaut pour toutes les créations, qui répondent `invalidContractPeriod`. Le reader désactive les
   commentaires (`.comments()`) : par défaut, il ignore les lignes commençant par `#`.
+  Une règle du contrat ne fait pas non plus échouer un chunk : `InvalidContractCostException` et
+  `InvalidContractPeriodException` héritent de `ContractValidationException`, scellée. `ContractImportLineEvaluator`
+  n'intercepte qu'elle et la traduit en motif de rejet par un `switch` exhaustif : une nouvelle règle doit être
+  ajoutée à `permits`, puis le `switch` ne compile plus tant qu'elle n'a pas de motif, ni `ContractImportCodes` tant
+  qu'elle n'a pas de code. Un filet `DomainValidationException` générique a été écarté : il cacherait la règle oubliée
+  derrière un code vague.
 - **Client supprimé pendant le traitement.** Chaque lot relit ses clients avec `FOR SHARE`
   (`ClientRepository.lockExistingIds`, `findExistingIds` restant sans verrou). Pour que le verrou serve à quelque chose,
   `DeleteClient` doit écrire `deleted_at` **avant** de fermer les contrats : sans `flush`, Hibernate exécute la
