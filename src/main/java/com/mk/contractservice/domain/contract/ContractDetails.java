@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public record ContractDetails(
         UUID id,
-        UUID clientId,
+        @Nullable UUID clientId,
         LocalDateTime startDate,
         @Nullable LocalDateTime endDate,
         boolean active,

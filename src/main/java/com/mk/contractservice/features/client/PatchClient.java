@@ -40,10 +40,10 @@ public interface PatchClient {
         public Client execute(final Command command) {
             final Client client = clientRepository.getById(command.clientId());
             clientRepository.ensureVersion(command.clientId(), command.expectedVersion());
-
             final ClientName name = command.name() == null ? null : ClientName.of(command.name());
             final ClientEmail email = command.email() == null ? null : ClientEmail.of(command.email());
-            final ClientPhoneNumber phone = command.phoneNumber() == null ? null : ClientPhoneNumber.of(command.phoneNumber());
+            final ClientPhoneNumber phone = command.phoneNumber() == null ? null : ClientPhoneNumber.of(command
+                    .phoneNumber());
 
             Client updatedClient = client;
             if (name != null) {
@@ -55,10 +55,7 @@ public interface PatchClient {
             if (phone != null) {
                 updatedClient = updatedClient.changePhone(phone);
             }
-
-            return updatedClient == client ? client : clientRepository.save(updatedClient);
+            return updatedClient.equals(client) ? client : clientRepository.save(updatedClient);
         }
     }
 }
-
-

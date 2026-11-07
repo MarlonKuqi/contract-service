@@ -2,6 +2,7 @@ package com.mk.contractservice.controllers.shared;
 
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import com.mk.contractservice.features.shared.InvalidPageRequestException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -31,12 +32,15 @@ public abstract class BaseControllerAdvice {
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ProblemDetail> handleMissingRequestParameter(final MissingServletRequestParameterException ex) {
+    public ResponseEntity<ProblemDetail> handleMissingRequestParameter(
+            final MissingServletRequestParameterException ex) {
         log.debug("Missing required request parameter: {}", ex.getParameterName());
 
         final String message = String.format("Required request parameter '%s' is missing", ex.getParameterName());
-        final ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Missing Required Parameter",
-                message, "missingParameter");
+        final ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST,
+                "Missing Required Parameter",
+                message,
+                "missingParameter");
         problemDetail.setProperty("parameterName", ex.getParameterName());
         problemDetail.setProperty("parameterType", ex.getParameterType());
         return respond(problemDetail);
@@ -46,15 +50,20 @@ public abstract class BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handleInvalidPageRequest(final InvalidPageRequestException ex) {
         log.debug("Invalid page request: {}", ex.getMessage());
 
-        final ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Invalid Parameter",
-                ex.getMessage(), "invalidParameter");
+        final ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST,
+                "Invalid Parameter",
+                ex.getMessage(),
+                "invalidParameter");
         return respond(problemDetail);
     }
 
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
-    public ResponseEntity<ProblemDetail> handleOptimisticLockingFailure(final ObjectOptimisticLockingFailureException ex, final WebRequest request) {
+    public ResponseEntity<ProblemDetail> handleOptimisticLockingFailure(
+            final ObjectOptimisticLockingFailureException ex,
+            final WebRequest request) {
         log.warn("Optimistic locking failure: The resource was modified by another user. Entity: {}, ID: {}",
-                ex.getPersistentClassName(), ex.getIdentifier());
+                ex.getPersistentClassName(),
+                ex.getIdentifier());
 
         if (request.getHeader(HttpHeaders.IF_MATCH) != null) {
             return respond(preconditionFailed());
@@ -74,8 +83,10 @@ public abstract class BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handlePreconditionRequired(final PreconditionRequiredException ex) {
         log.debug("Precondition required: {}", ex.getMessage());
 
-        return respond(problem(HttpStatus.PRECONDITION_REQUIRED, "Precondition Required",
-                ex.getMessage(), "preconditionRequired"));
+        return respond(problem(HttpStatus.PRECONDITION_REQUIRED,
+                "Precondition Required",
+                ex.getMessage(),
+                "preconditionRequired"));
     }
 
     @ExceptionHandler({VersionMismatchException.class, UnmatchableIfMatchException.class})
@@ -108,17 +119,22 @@ public abstract class BaseControllerAdvice {
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ProblemDetail> handleMethodArgumentTypeMismatch(final MethodArgumentTypeMismatchException ex) {
+    public ResponseEntity<ProblemDetail> handleMethodArgumentTypeMismatch(
+            final MethodArgumentTypeMismatchException ex) {
         final Class<?> expectedType = ex.getRequiredType();
         log.debug("Invalid parameter type: parameter '{}' with value '{}' cannot be converted to type '{}'",
-                ex.getName(), ex.getValue(), expectedType == null ? UNKNOWN : expectedType.getSimpleName());
+                ex.getName(),
+                ex.getValue(),
+                expectedType == null ? UNKNOWN : expectedType.getSimpleName());
         final String message = String.format("Invalid value '%s' for parameter '%s'. Expected type: %s",
                 ex.getValue(),
                 ex.getName(),
                 expectedType == null ? UNKNOWN : expectedType.getSimpleName());
 
-        final ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Invalid Parameter Type",
-                message, "invalidParameterType");
+        final ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST,
+                "Invalid Parameter Type",
+                message,
+                "invalidParameterType");
         problemDetail.setProperty("parameterName", ex.getName());
         problemDetail.setProperty("invalidValue", ex.getValue());
         problemDetail.setProperty("expectedType", expectedType == null ? UNKNOWN : expectedType.getSimpleName());
@@ -130,20 +146,30 @@ public abstract class BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handleGenericException(final Exception ex) {
         log.error("Unexpected error occurred", ex);
 
-        final ProblemDetail problemDetail = isProductionEnvironment()
-                ? problem(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
-                "An unexpected error occurred.", "internalError")
-                : problemWithStackTrace(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
-                ex.getMessage(), "internalError", ex);
+        final ProblemDetail problemDetail = isProductionEnvironment() ? problem(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Internal Server Error",
+                "An unexpected error occurred.",
+                "internalError") : problemWithStackTrace(HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Internal Server Error",
+                        ex.getMessage(),
+                        "internalError",
+                        ex);
 
         return respond(problemDetail);
     }
 
-    protected ProblemDetail problem(final HttpStatus status, final String title, final String detail, final String code) {
+    protected ProblemDetail problem(final HttpStatus status,
+            final String title,
+            @Nullable final String detail,
+            final String code) {
         return ProblemDetails.problem(clock, status, title, detail, code);
     }
 
-    protected ProblemDetail problemWithStackTrace(final HttpStatus status, final String title, final String detail, final String code, final Exception ex) {
+    protected ProblemDetail problemWithStackTrace(final HttpStatus status,
+            final String title,
+            @Nullable final String detail,
+            final String code,
+            final Exception ex) {
         final ProblemDetail problemDetail = problem(status, title, detail, code);
         problemDetail.setProperty("exception", ex.getClass().getSimpleName());
         problemDetail.setProperty("stackTrace", getStackTrace(ex));

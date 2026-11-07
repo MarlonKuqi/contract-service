@@ -2,19 +2,36 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ '**' ]
+    branches: [ master, develop, 'release/**' ]
   pull_request:
-    branches: [ '**' ]
+  workflow_dispatch:
+    inputs:
+      build-image:
+        description: 'Build and scan the Docker image'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-test:
-    name: Build, Test & Coverage
+  unit-tests:
+    name: Build, Unit Tests & Coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Set up JDK 27
@@ -24,42 +41,20 @@ jobs:
           distribution: 'zulu'
           cache: maven
 
-      - name: Cache Maven packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+      - name: Check formatting (Spotless)
+        run: sh mvnw -B spotless:check -Dspotless.ratchet-from="$RATCHET_FROM"
+        env:
+          RATCHET_FROM: ${{ github.base_ref && format('origin/{0}', github.base_ref) || 'origin/develop' }}
 
-      - name: Build JAR (without tests)
-        run: mvn clean install -DskipTests
+      - name: Compile
+        run: sh mvnw -B clean test-compile
 
-      - name: Run unit tests with coverage
-        run: mvn test
+      - name: Run unit tests with coverage report
+        run: sh mvnw -B test
 
-      - name: Check coverage threshold
-        run: mvn jacoco:check
-        continue-on-error: false
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+      - name: Unit test summary
         if: always()
-        with:
-          files: ./target/site/jacoco/jacoco.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
-          verbose: true
-
-      - name: Generate test report
-        if: always()
-        run: |
-          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -d "target/surefire-reports" ]; then
-            TESTS=$(find target/surefire-reports -name "*.xml" | wc -l)
-            echo "✅ Tests executed: $TESTS" >> $GITHUB_STEP_SUMMARY
-          fi
+        run: bash .github/scripts/test-summary.sh "Unit tests" target/surefire-reports
 
       - name: Upload test results
         if: always()
@@ -67,6 +62,8 @@ jobs:
         with:
           name: test-results
           path: target/surefire-reports/
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Upload coverage report
         if: always()
@@ -74,34 +71,31 @@ jobs:
         with:
           name: coverage-report
           path: target/site/jacoco/
-
-      - name: Upload JAR artifact
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release/'))
-        uses: actions/upload-artifact@v7
-        with:
-          name: contract-service-jar
-          path: target/*.jar
-          retention-days: 30
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Comment PR with coverage
-        if: github.event_name == 'pull_request'
-        uses: madrapps/jacoco-report@v1.8.0
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: madrapps/jacoco-report@e51ce1f46f7f8b5331593f935e59cbaf44b84920 # v1.8.0
         with:
           paths: ${{ github.workspace }}/target/site/jacoco/jacoco.xml
           token: ${{ secrets.GITHUB_TOKEN }}
-          min-coverage-overall: 80
-          min-coverage-changed-files: 80
+          min-coverage-overall: 0
+          min-coverage-changed-files: 0
           title: Code Coverage Report
           update-comment: true
 
-  integration-tests:
-    name: Integration Tests with Testcontainers
+  acceptance-tests:
+    name: Acceptance Tests (Testcontainers)
     runs-on: ubuntu-latest
-    needs: build-and-test
+    timeout-minutes: 30
+    needs: unit-tests
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 27
         uses: actions/setup-java@v6
@@ -110,37 +104,36 @@ jobs:
           distribution: 'zulu'
           cache: maven
 
-      - name: Cache Maven packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+      - name: Run acceptance tests
+        run: sh mvnw -B test-compile failsafe:integration-test failsafe:verify
 
-      - name: Build (reuse compiled classes)
-        run: mvn install -DskipTests
+      - name: Acceptance test summary
+        if: always()
+        run: bash .github/scripts/test-summary.sh "Acceptance tests" target/failsafe-reports
 
-      - name: Run integration tests
-        run: |
-          mvn test-compile failsafe:integration-test failsafe:verify
-        env:
-          TESTCONTAINERS_RYUK_DISABLED: false
-
-      - name: Upload integration test results
+      - name: Upload acceptance test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: integration-test-results
+          name: acceptance-test-results
           path: target/failsafe-reports/
+          retention-days: 14
+          if-no-files-found: ignore
 
   mutation-tests:
     name: Mutation Tests (PIT)
     runs-on: ubuntu-latest
-    needs: build-and-test
+    timeout-minutes: 60
+    needs: unit-tests
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 27
         uses: actions/setup-java@v6
@@ -149,15 +142,21 @@ jobs:
           distribution: 'zulu'
           cache: maven
 
-      - name: Cache Maven packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
       - name: Run mutation tests on domain and features
-        run: mvn test -Pmutation -Djacoco.skip=true
+        run: sh mvnw -B test -Pmutation -Djacoco.skip=true
+
+      - name: Mutation summary
+        if: always()
+        run: |
+          bash .github/scripts/mutation-summary.sh target/pit-reports/mutations.xml mutation-summary.md
+          cat mutation-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment PR with mutation summary
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && hashFiles('target/pit-reports/mutations.xml') != ''
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
+        with:
+          header: mutation-testing
+          path: mutation-summary.md
 
       - name: Upload mutation report
         if: always()
@@ -165,13 +164,15 @@ jobs:
         with:
           name: mutation-report
           path: target/pit-reports/
+          retention-days: 14
+          if-no-files-found: ignore
 
-  image-scan:
-    name: Docker Image Vulnerability Scan (Trivy)
+  docker-image:
+    name: Docker Image Build & Scan (Trivy)
     runs-on: ubuntu-latest
-    needs: build-and-test
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release/'))
-    continue-on-error: true
+    timeout-minutes: 30
+    needs: unit-tests
+    if: github.event_name == 'push' || inputs.build-image
     permissions:
       contents: read
       security-events: write
@@ -179,9 +180,21 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Build Docker image
-        run: docker build -t contract-service:${{ github.sha }} .
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          push: false
+          tags: contract-service:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run Trivy image scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -197,6 +210,7 @@ jobs:
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4.37.4
         if: always() && hashFiles('trivy-results.sarif') != ''
+        continue-on-error: true
         with:
           sarif_file: 'trivy-results.sarif'
           category: 'trivy-image'

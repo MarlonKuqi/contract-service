@@ -12,7 +12,6 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
-import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +24,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -32,6 +32,7 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -54,9 +55,6 @@ class ContractLifecycleAcceptanceTest {
 
     @Autowired
     private ClientRepository clientRepository;
-
-    @Autowired
-    private ContractRepository contractRepository;
 
     @Autowired
     private ContractJpaRepository contractJpaRepository;
@@ -107,7 +105,8 @@ class ContractLifecycleAcceptanceTest {
                 .body("costAmount", equalTo(5000.00f))
                 .body("startDate", notNullValue())
                 .body("endDate", notNullValue())
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         given()
                 .when()
@@ -180,7 +179,8 @@ class ContractLifecycleAcceptanceTest {
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        testClient.id())
                 .then()
                 .statusCode(200)
                 .body(equalTo("4250.50"));
@@ -219,7 +219,8 @@ class ContractLifecycleAcceptanceTest {
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        testClient.id())
                 .then()
                 .statusCode(200)
                 .body(equalTo("5000.00"));
@@ -310,7 +311,8 @@ class ContractLifecycleAcceptanceTest {
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().header("Location");
+                .extract()
+                .header("Location");
 
         String contractId = location.substring(location.lastIndexOf('/') + 1);
 
@@ -368,7 +370,8 @@ class ContractLifecycleAcceptanceTest {
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        testClient.id())
                 .then()
                 .statusCode(200)
                 .body(equalTo("1500.00"));
@@ -418,19 +421,23 @@ class ContractLifecycleAcceptanceTest {
 
         given().body(activeNoEndDatePayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given().body(activeFutureEndPayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given().body(expiredYesterdayPayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given().body(expiredLastMonthPayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given()
                 .when()
@@ -488,23 +495,28 @@ class ContractLifecycleAcceptanceTest {
 
         given().body(active1Payload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given().body(active2Payload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given().body(expired1Payload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given().body(expired2Payload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        testClient.id())
                 .then()
                 .statusCode(200)
                 .body(equalTo("3000.00"));
@@ -562,7 +574,8 @@ class ContractLifecycleAcceptanceTest {
         given()
                 .header("Accept-Language", "de-CH")
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        testClient.id())
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("de-CH"));
@@ -604,12 +617,13 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.id(), now.minusDays(5));
 
         given()
+                .config(AcceptanceRestAssured.exactNumbers())
                 .body(contractPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .body("costAmount", equalTo(999999999.99f));
+                .body("costAmount", comparesEqualTo(new BigDecimal("999999999.99")));
     }
 
     @Test
@@ -641,8 +655,11 @@ class ContractLifecycleAcceptanceTest {
                 .statusCode(201);
 
         given()
-                .when().get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
-                .then().statusCode(200).body("content.size()", greaterThanOrEqualTo(1));
+                .when()
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
+                .then()
+                .statusCode(200)
+                .body("content.size()", greaterThanOrEqualTo(1));
     }
 
     @Test
@@ -660,13 +677,18 @@ class ContractLifecycleAcceptanceTest {
 
         for (int i = 0; i < 5; i++) {
             given().body(contractPayload)
-                    .when().post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .when()
+                    .post(ContractEndpoints.CONTRACTS_BASE)
+                    .then()
+                    .statusCode(201);
         }
 
         given()
-                .when().get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
-                .then().statusCode(200).body("content.size()", equalTo(5));
+                .when()
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
+                .then()
+                .statusCode(200)
+                .body("content.size()", equalTo(5));
     }
 
     @Test
@@ -682,7 +704,9 @@ class ContractLifecycleAcceptanceTest {
                 }
                 """, testClient.id(), now.minusDays(1));
         given().body(zeroAmountPayload)
-                .when().post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(anyOf(is(400), is(422), is(500)));
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(anyOf(is(400), is(422), is(500)));
     }
 }
