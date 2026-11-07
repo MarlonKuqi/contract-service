@@ -42,7 +42,8 @@ public interface PatchClient {
             clientRepository.ensureVersion(command.clientId(), command.expectedVersion());
             final ClientName name = command.name() == null ? null : ClientName.of(command.name());
             final ClientEmail email = command.email() == null ? null : ClientEmail.of(command.email());
-            final ClientPhoneNumber phone = command.phoneNumber() == null ? null : ClientPhoneNumber.of(command.phoneNumber());
+            final ClientPhoneNumber phone = command.phoneNumber() == null ? null : ClientPhoneNumber.of(command
+                    .phoneNumber());
 
             Client updatedClient = client;
             if (name != null) {
@@ -58,5 +59,3 @@ public interface PatchClient {
         }
     }
 }
-
-

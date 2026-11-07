@@ -99,7 +99,8 @@ class CreateContractAcceptanceTest {
                 .body("costAmount", equalTo(5000.00f))
                 .body("startDate", notNullValue())
                 .body("endDate", notNullValue())
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // Verify persistence
         given()
@@ -134,7 +135,8 @@ class CreateContractAcceptanceTest {
                 .body("id", notNullValue())
                 .body("costAmount", equalTo(1000.00f))
                 .body("startDate", notNullValue())
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // Verify persistence
         given()

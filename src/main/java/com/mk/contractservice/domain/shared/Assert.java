@@ -14,4 +14,3 @@ public final class Assert {
         return something;
     }
 }
-

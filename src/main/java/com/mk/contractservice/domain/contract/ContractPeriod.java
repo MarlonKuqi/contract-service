@@ -19,6 +19,7 @@ public class ContractPeriod {
 
     @Nullable
     LocalDateTime endDate;
+
     public boolean isEffectiveAt(final LocalDateTime referenceDate) {
         return endDate == null || referenceDate.isBefore(endDate);
     }
@@ -29,24 +30,25 @@ public class ContractPeriod {
             final LocalDateTime now
     ) {
         notNull(now);
-        return ValueObjectUtils.<ContractPeriod, @Nullable LocalDateTime, @Nullable LocalDateTime, LocalDateTime>validateAndCreate(
-                startDate,
-                endDate,
-                start -> start == null ? now : start,
-                ContractPeriod::validate,
-                ContractPeriod::new
-        );
+        return ValueObjectUtils
+                .<ContractPeriod, @Nullable LocalDateTime, @Nullable LocalDateTime, LocalDateTime>validateAndCreate(
+                        startDate,
+                        endDate,
+                        start -> start == null ? now : start,
+                        ContractPeriod::validate,
+                        ContractPeriod::new
+                );
     }
 
-    public static ContractPeriod reconstituteFromDatabase(final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
+    public static ContractPeriod reconstituteFromDatabase(final LocalDateTime startDate,
+            @Nullable final LocalDateTime endDate) {
         return new ContractPeriod(notNull(startDate), endDate);
     }
 
     private static void validate(final LocalDateTime normalizedStart, @Nullable final LocalDateTime endDate) {
         if (endDate != null && !endDate.isAfter(normalizedStart)) {
             throw new InvalidContractPeriodException(
-                    "Contract end date must be after start date. " +
-                            "Start: " + normalizedStart + ", End: " + endDate
+                    "Contract end date must be after start date. " + "Start: " + normalizedStart + ", End: " + endDate
             );
         }
     }

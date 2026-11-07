@@ -168,6 +168,15 @@ Also run by the build:
 - **Unit tests** of domain objects and use case handlers (mocked ports, fixed clock);
 - **`ArchitectureTest`** (ArchUnit): dependency rules between layers;
 - **JaCoCo**: coverage report on domain and features, without threshold (report: `target/site/jacoco/index.html`).
+- **Error Prone + NullAway** at compile time (ADR-023).
+
+Formatting (Spotless, profile `config/formatter/eclipse-java-formatter.xml`), on the files changed since `origin/develop`:
+
+```bash
+./mvnw spotless:apply
+```
+
+The CI runs `spotless:check` against the pull request's target branch.
 
 Mutation testing (separate profile and CI job, ADR-016):
 - **PIT** mutates the bytecode of domain and features and checks that the unit tests detect each mutant: `./mvnw test -Pmutation` (report: `target/pit-reports/index.html`). Current score: 97% test strength (killed among mutants covered by unit tests, minimum enforced: 95%) and 96% of all mutants killed (minimum enforced: 90%). The remaining mutants are equivalent mutants or plumbing covered by acceptance tests, documented in ADR-016.

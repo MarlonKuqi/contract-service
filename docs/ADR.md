@@ -686,6 +686,7 @@ Mesures : base PostgreSQL 18 en conteneur local (Docker, poste Windows), un seul
 - Les absences légitimes sont déclarées `@Nullable` plutôt que contournées : `detail` d'un `ProblemDetail` (facultatif en RFC 9457), `code` et `cause` de `DomainValidationException`, `clientId` d'un contrat tant que la colonne accepte `NULL`. Une `DomainValidationException` porte toujours un message (`getMessage()` non nul).
 - Les réponses REST exigent un id : `Objects.requireNonNull(aggregate.id())` dans les mappers, un agrégat non persisté n'a rien à faire dans une réponse.
 - **Un `package-info.java` annoté `@NullMarked` dans chaque package de `src/main`**, pour que l'IDE applique la même règle que NullAway pendant l'écriture : sans lui, IntelliJ ne signale pas un `null` passé à un paramètre non annoté. `ArchitectureTest.every_package_should_be_null_marked` fait échouer le build si un nouveau package l'oublie.
+- **Formatage par Spotless** avec le profil Eclipse exporté d'IntelliJ (`config/formatter/eclipse-java-formatter.xml`), en `ratchetFrom` : seuls les fichiers modifiés par rapport à la branche cible sont vérifiés, pour ne pas reformater tout le projet d'un coup. Hors `verify` : `./mvnw spotless:apply` en local, `spotless:check` en première étape de la CI.
 
 **Alternatives écartées.**
 - **Checker Framework (Nullness Checker)** : plus complet, mais beaucoup plus lent et plus exigeant (annotations de généricité partout). NullAway est conçu pour tourner à chaque compilation.

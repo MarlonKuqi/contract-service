@@ -18,7 +18,11 @@ import java.util.UUID;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProblemDetails {
 
-    public static ProblemDetail problem(final Clock clock, final HttpStatus status, final String title, @Nullable final String detail, final String code) {
+    public static ProblemDetail problem(final Clock clock,
+            final HttpStatus status,
+            final String title,
+            @Nullable final String detail,
+            final String code) {
         final ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
         problemDetail.setTitle(title);
         problemDetail.setType(URI.create("about:blank"));

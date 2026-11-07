@@ -366,7 +366,11 @@ class UpdateClientHandlerTest {
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            updateClientHandler.execute(new UpdateClient.Command(clientId, VERSION, "Jane Doe", "john@example.com", "+33111111111"));
+            updateClientHandler.execute(new UpdateClient.Command(clientId,
+                    VERSION,
+                    "Jane Doe",
+                    "john@example.com",
+                    "+33111111111"));
 
             verify(clientRepository).ensureVersion(clientId, VERSION);
         }
@@ -375,7 +379,8 @@ class UpdateClientHandlerTest {
         @DisplayName("GIVEN une version périmée WHEN execute THEN lève VersionMismatchException sans sauvegarder")
         void shouldRejectStaleVersion() {
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
-            doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(clientRepository).ensureVersion(clientId, VERSION);
+            doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(clientRepository)
+                    .ensureVersion(clientId, VERSION);
 
             assertThatThrownBy(() -> updateClientHandler.execute(
                     new UpdateClient.Command(clientId, VERSION, "Jane Doe", "john@example.com", "+33111111111")))
@@ -384,4 +389,3 @@ class UpdateClientHandlerTest {
         }
     }
 }
-

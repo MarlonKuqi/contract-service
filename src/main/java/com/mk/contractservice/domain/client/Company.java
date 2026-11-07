@@ -155,4 +155,3 @@ public final class Company extends Client {
         }
     }
 }
-

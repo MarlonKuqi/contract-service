@@ -47,8 +47,10 @@ class ArchitectureTest {
 
     private final DescribedPredicate<JavaClass> areFeatures = resideInAnyPackage("com.mk.contractservice.features..");
 
-    private final DescribedPredicate<JavaClass> areInfrastructure = resideInAnyPackage("com.mk.contractservice.infrastructure..");
-    private final DescribedPredicate<JavaClass> areControllers = resideInAnyPackage("com.mk.contractservice.controllers..");
+    private final DescribedPredicate<JavaClass> areInfrastructure = resideInAnyPackage(
+            "com.mk.contractservice.infrastructure..");
+    private final DescribedPredicate<JavaClass> areControllers = resideInAnyPackage(
+            "com.mk.contractservice.controllers..");
 
     @Test
     void domain_should_not_depend_on_infrastructure() {
@@ -86,16 +88,19 @@ class ArchitectureTest {
                 .that(areCore)
                 .should()
                 .onlyDependOnClassesThat(areCore.or(areStandard).or(areAllowedSpringInDomain))
-                .because("Domain must be framework-agnostic. Only standard Java/Jakarta APIs and " +
-                        "Spring Data pagination types (Page, Pageable) are tolerated as a documented compromise.")
+                .because(
+                        "Domain must be framework-agnostic. Only standard Java/Jakarta APIs and " + "Spring Data pagination types (Page, Pageable) are tolerated as a documented compromise.")
                 .check(classes);
     }
 
     @Test
     void client_aggregate_should_not_depend_on_contract_aggregate() {
         noClasses()
-                .that().resideInAPackage("com.mk.contractservice.domain.client..")
-                .should().dependOnClassesThat().resideInAPackage("com.mk.contractservice.domain.contract..")
+                .that()
+                .resideInAPackage("com.mk.contractservice.domain.client..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("com.mk.contractservice.domain.contract..")
                 .because("Aggregates stay independent in the domain; use cases coordinate them")
                 .check(classes);
     }
@@ -103,8 +108,11 @@ class ArchitectureTest {
     @Test
     void contract_aggregate_should_not_depend_on_client_aggregate() {
         noClasses()
-                .that().resideInAPackage("com.mk.contractservice.domain.contract..")
-                .should().dependOnClassesThat().resideInAPackage("com.mk.contractservice.domain.client..")
+                .that()
+                .resideInAPackage("com.mk.contractservice.domain.contract..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("com.mk.contractservice.domain.client..")
                 .because("A contract references its client by id only; use cases coordinate the aggregates")
                 .check(classes);
     }
@@ -123,7 +131,8 @@ class ArchitectureTest {
     void every_package_should_be_null_marked() {
         classes()
                 .should(beInANullMarkedPackage())
-                .because("JSpecify @NullMarked does not apply to subpackages: each package declares it so the IDE and NullAway agree (ADR-023)")
+                .because(
+                        "JSpecify @NullMarked does not apply to subpackages: each package declares it so the IDE and NullAway agree (ADR-023)")
                 .check(classes);
     }
 

@@ -128,6 +128,7 @@ No domain object can exist in an invalid state.
     - each `change*` method, including the no-op case for an identical value;
     - immutability of `birthDate` and `companyIdentifier`.
 - Test cleanup deletes contracts before clients (FK `ON DELETE RESTRICT`).
+- Run `./mvnw spotless:apply` before committing: the CI fails on files that differ from `config/formatter/eclipse-java-formatter.xml` (only files changed since the target branch are checked).
 - Always run `./mvnw clean verify` before declaring a change done. `clean` matters: stale resources in `target/` (renamed migrations) are not removed otherwise.
 - The Testcontainers PostgreSQL container is reused (`withReuse(true)`). After switching branches, its database may contain migrations the branch does not know (Flyway silently ignores "future" migrations). If tests fail on schema-related errors, remove the reused container and rerun.
 

@@ -45,10 +45,7 @@ class ExportActiveContractsTest {
     }
 
     @ParameterizedTest
-    @CsvSource({
-            "0, 'Page size must not be less than one'",
-            "-1, 'Page size must not be less than one'",
-            "1001, 'Page size must not exceed 1000'"
+    @CsvSource({"0, 'Page size must not be less than one'", "-1, 'Page size must not be less than one'", "1001, 'Page size must not exceed 1000'"
     })
     @DisplayName("GIVEN a size out of bounds WHEN building Query THEN throw InvalidPageRequestException")
     void shouldRejectSizeOutOfBounds(int size, String expectedMessage) {

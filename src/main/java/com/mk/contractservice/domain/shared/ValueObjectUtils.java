@@ -3,6 +3,7 @@ package com.mk.contractservice.domain.shared;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
+
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -35,4 +36,3 @@ public final class ValueObjectUtils {
         return factory.apply(normalized, optionalValue);
     }
 }
-

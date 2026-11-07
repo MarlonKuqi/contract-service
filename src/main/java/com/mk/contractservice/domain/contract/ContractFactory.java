@@ -36,4 +36,3 @@ public final class ContractFactory {
         return Contract.reconstituteFromDatabase(id, clientId, period, cost, lastModified);
     }
 }
-

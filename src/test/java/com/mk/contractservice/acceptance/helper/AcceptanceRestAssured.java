@@ -23,6 +23,7 @@ public final class AcceptanceRestAssured {
     }
 
     public static RestAssuredConfig exactNumbers() {
-        return RestAssured.config().jsonConfig(JsonConfig.jsonConfig().numberReturnType(JsonPathConfig.NumberReturnType.BIG_DECIMAL));
+        return RestAssured.config()
+                .jsonConfig(JsonConfig.jsonConfig().numberReturnType(JsonPathConfig.NumberReturnType.BIG_DECIMAL));
     }
 }

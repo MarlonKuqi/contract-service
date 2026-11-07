@@ -14,4 +14,3 @@ public class ExpiredContractException extends RuntimeException {
         super(message);
     }
 }
-
