@@ -18,7 +18,9 @@ public class DomainValidationException extends RuntimeException {
         this(message, code, null);
     }
 
-    public DomainValidationException(final String message, @Nullable final String code, @Nullable final Throwable cause) {
+    public DomainValidationException(final String message,
+            @Nullable final String code,
+            @Nullable final Throwable cause) {
         super(Objects.requireNonNull(message), cause);
         this.code = code;
     }
