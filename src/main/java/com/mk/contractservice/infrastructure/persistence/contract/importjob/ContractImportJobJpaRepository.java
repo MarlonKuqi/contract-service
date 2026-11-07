@@ -1,6 +1,6 @@
 package com.mk.contractservice.infrastructure.persistence.contract.importjob;
 
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
 import org.springframework.data.domain.Limit;
@@ -29,8 +29,8 @@ public interface ContractImportJobJpaRepository extends JpaRepository<ContractIm
             order by job.createdAt
             """)
     List<ContractImportJobJpaEntity> findToRun(
-            @Param("pending") ContractImportJobStatus pending,
-            @Param("running") ContractImportJobStatus running,
+            @Param("pending") ContractImportJobState.Status pending,
+            @Param("running") ContractImportJobState.Status running,
             @Param("now") Instant now,
             Limit limit
     );

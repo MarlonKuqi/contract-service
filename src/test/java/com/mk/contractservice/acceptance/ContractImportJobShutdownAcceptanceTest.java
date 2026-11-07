@@ -8,7 +8,7 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.features.contract.importjob.SubmitContractImportJob;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -90,13 +90,13 @@ class ContractImportJobShutdownAcceptanceTest {
                     .until(() -> jobValue(jobId, "processed_lines", Integer.class) > 0);
         }
 
-        assertThat(jobValue(jobId, "status", String.class)).isEqualTo(ContractImportJobStatus.PENDING.name());
+        assertThat(jobValue(jobId, "status", String.class)).isEqualTo(ContractImportJobState.Status.PENDING.name());
         assertThat(jobValue(jobId, "processed_lines", Integer.class)).isLessThan(LINES);
         assertThat(jobValue(jobId, "lease_until", java.time.OffsetDateTime.class)).isNull();
 
         try (ConfigurableApplicationContext ignored = startInstance()) {
             await().atMost(Duration.ofMinutes(2)).pollInterval(Duration.ofMillis(200))
-                    .until(() -> ContractImportJobStatus.COMPLETED.name().equals(jobValue(jobId, "status", String.class)));
+                    .until(() -> ContractImportJobState.Status.COMPLETED.name().equals(jobValue(jobId, "status", String.class)));
         }
 
         assertThat(jobValue(jobId, "imported_count", Integer.class)).isEqualTo(LINES);

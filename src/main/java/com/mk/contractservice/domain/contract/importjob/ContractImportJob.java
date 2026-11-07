@@ -1,8 +1,12 @@
 package com.mk.contractservice.domain.contract.importjob;
 
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState.Cancelled;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState.Completed;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState.Failed;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState.Pending;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState.Running;
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobCancelledException;
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobTransitionNotAllowedException;
-import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,49 +23,26 @@ public final class ContractImportJob {
 
     private final @Nullable UUID id;
     private final ContractImportSubmission submission;
-    private final ContractImportJobStatus status;
+    private final ContractImportJobState state;
     private final ContractImportProgress progress;
-    private final @Nullable Instant leaseUntil;
-    private final @Nullable ContractImportTermination termination;
-    private final @Nullable ContractImportCancellation cancellation;
 
     @Builder(toBuilder = true, access = AccessLevel.PRIVATE)
     private ContractImportJob(
             @Nullable final UUID id,
             @Nullable final ContractImportSubmission submission,
-            @Nullable final ContractImportJobStatus status,
-            @Nullable final ContractImportProgress progress,
-            @Nullable final Instant leaseUntil,
-            @Nullable final ContractImportTermination termination,
-            @Nullable final ContractImportCancellation cancellation
+            @Nullable final ContractImportJobState state,
+            @Nullable final ContractImportProgress progress
     ) {
         this.id = id;
         this.submission = notNull(submission);
-        this.status = notNull(status);
+        this.state = notNull(state);
         this.progress = notNull(progress);
-        this.leaseUntil = leaseUntil;
-        this.termination = termination;
-        this.cancellation = cancellation;
-        requireConsistentState();
-    }
-
-    private void requireConsistentState() {
-        final boolean consistent = switch (status) {
-            case PENDING, RUNNING -> cancellation == null && termination == null;
-            case COMPLETED -> cancellation == null && termination instanceof ContractImportTermination.Ended;
-            case FAILED -> cancellation == null && termination instanceof ContractImportTermination.Failed;
-            case CANCELLED -> cancellation != null && termination != null;
-        };
-        if (!consistent) {
-            throw new InvalidDomainObjectError(
-                    "Import job " + id + " cannot be " + status + " with termination " + termination + " and cancellation " + cancellation);
-        }
     }
 
     public static ContractImportJob of(@Nullable final ContractImportSubmission submission, final int totalLines) {
         return builder()
                 .submission(submission)
-                .status(ContractImportJobStatus.PENDING)
+                .state(ContractImportJobState.pending())
                 .progress(ContractImportProgress.notStarted(totalLines))
                 .build();
     }
@@ -69,7 +50,7 @@ public final class ContractImportJob {
     public static ContractImportJob reconstituteFromDatabase(
             @Nullable final UUID id,
             @Nullable final ContractImportSubmission submission,
-            @Nullable final ContractImportJobStatus status,
+            final ContractImportJobState.@Nullable Status status,
             @Nullable final ContractImportProgress progress,
             @Nullable final Instant leaseUntil,
             @Nullable final ContractImportTermination termination,
@@ -78,12 +59,13 @@ public final class ContractImportJob {
         return builder()
                 .id(notNull(id))
                 .submission(submission)
-                .status(status)
+                .state(ContractImportJobState.reconstituteFromDatabase(status, leaseUntil, termination, cancellation))
                 .progress(progress)
-                .leaseUntil(leaseUntil)
-                .termination(termination)
-                .cancellation(cancellation)
                 .build();
+    }
+
+    public ContractImportJobState.Status status() {
+        return state.status();
     }
 
     public boolean hasContent(final String sha256) {
@@ -91,80 +73,66 @@ public final class ContractImportJob {
     }
 
     public ContractImportJob start(final Instant lease) {
-        return switch (status) {
-            case PENDING, RUNNING -> toBuilder()
-                    .status(ContractImportJobStatus.RUNNING)
-                    .leaseUntil(notNull(lease))
-                    .build();
-            case COMPLETED, FAILED, CANCELLED -> throw notAllowed("start");
+        return switch (state) {
+            case Pending _, Running _ -> withState(ContractImportJobState.running(lease));
+            case Completed _, Failed _, Cancelled _ -> throw notAllowed("start");
         };
     }
 
     public ContractImportJob recordBatch(final int imported, final int rejected, final Instant renewedLease) {
-        return switch (status) {
-            case RUNNING -> toBuilder()
+        return switch (state) {
+            case Running _ -> toBuilder()
                     .progress(progress.advance(imported, rejected))
-                    .leaseUntil(notNull(renewedLease))
+                    .state(ContractImportJobState.running(renewedLease))
                     .build();
-            case CANCELLED -> throw new ContractImportJobCancelledException(id);
-            case PENDING, COMPLETED, FAILED -> throw notAllowed("record a batch");
+            case Cancelled _ -> throw new ContractImportJobCancelledException(id);
+            case Pending _, Completed _, Failed _ -> throw notAllowed("record a batch");
         };
     }
 
     public ContractImportJob finish(final LocalDateTime now) {
-        return switch (status) {
-            case RUNNING -> progress.isComplete()
-                    ? complete(now)
+        return switch (state) {
+            case Running _ -> progress.isComplete()
+                    ? withState(ContractImportJobState.completed(ContractImportTermination.ended(now)))
                     : fail(ContractImportFailureReason.INCOMPLETE_PROCESSING, now);
-            case CANCELLED -> this;
-            case PENDING, COMPLETED, FAILED -> throw notAllowed("finish");
+            case Cancelled _ -> this;
+            case Pending _, Completed _, Failed _ -> throw notAllowed("finish");
         };
     }
 
-    private ContractImportJob complete(final LocalDateTime now) {
-        return toBuilder()
-                .status(ContractImportJobStatus.COMPLETED)
-                .leaseUntil(null)
-                .termination(ContractImportTermination.ended(now))
-                .build();
-    }
-
     public ContractImportJob release() {
-        return switch (status) {
-            case RUNNING -> toBuilder()
-                    .status(ContractImportJobStatus.PENDING)
-                    .leaseUntil(null)
-                    .build();
-            case CANCELLED -> this;
-            case PENDING, COMPLETED, FAILED -> throw notAllowed("release");
+        return switch (state) {
+            case Running _ -> withState(ContractImportJobState.pending());
+            case Cancelled _ -> this;
+            case Pending _, Completed _, Failed _ -> throw notAllowed("release");
         };
     }
 
     public ContractImportJob fail(final ContractImportFailureReason reason, final LocalDateTime now) {
-        return switch (status) {
-            case RUNNING -> toBuilder()
-                    .status(ContractImportJobStatus.FAILED)
-                    .leaseUntil(null)
-                    .termination(ContractImportTermination.failed(reason, now))
-                    .build();
-            case CANCELLED -> this;
-            case PENDING, COMPLETED, FAILED -> throw notAllowed("fail");
+        return switch (state) {
+            case Running _ -> withState(ContractImportJobState.failed(ContractImportTermination.failed(reason, now)));
+            case Cancelled _ -> this;
+            case Pending _, Completed _, Failed _ -> throw notAllowed("fail");
         };
     }
 
     public ContractImportJob cancel(final LocalDateTime now, final String counselor) {
-        return switch (status) {
-            case PENDING, RUNNING, COMPLETED, FAILED -> toBuilder()
-                    .status(ContractImportJobStatus.CANCELLED)
-                    .leaseUntil(null)
-                    .termination(termination == null ? ContractImportTermination.ended(now) : termination)
-                    .cancellation(ContractImportCancellation.of(now, counselor))
-                    .build();
-            case CANCELLED -> this;
+        return switch (state) {
+            case Pending _, Running _ ->
+                    withState(ContractImportJobState.cancelled(ContractImportCancellation.of(now, counselor), ContractImportTermination.ended(now)));
+            case Completed(ContractImportTermination.Ended ended) ->
+                    withState(ContractImportJobState.cancelled(ContractImportCancellation.of(now, counselor), ended));
+            case Failed(ContractImportTermination.Failed failed) ->
+                    withState(ContractImportJobState.cancelled(ContractImportCancellation.of(now, counselor), failed));
+            case Cancelled _ -> this;
         };
     }
 
+    private ContractImportJob withState(final ContractImportJobState newState) {
+        return toBuilder().state(newState).build();
+    }
+
     private ContractImportJobTransitionNotAllowedException notAllowed(final String transition) {
-        return new ContractImportJobTransitionNotAllowedException(id, transition, status);
+        return new ContractImportJobTransitionNotAllowedException(id, transition, status());
     }
 }

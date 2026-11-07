@@ -3,7 +3,7 @@ package com.mk.contractservice.controllers.contract.shared;
 import com.mk.contractservice.domain.contract.importjob.ContractImportCancellation;
 import com.mk.contractservice.domain.contract.importjob.ContractImportFailureReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.domain.contract.importjob.ContractImportProgress;
 import com.mk.contractservice.domain.contract.importjob.ContractImportSubmission;
 import com.mk.contractservice.domain.contract.importjob.ContractImportTermination;
@@ -20,7 +20,7 @@ public record ContractImportJobResponse(
 
         @Schema(description = "PENDING, RUNNING, COMPLETED, FAILED or CANCELLED. Lines processed before a failure stay imported, until the job is cancelled",
                 example = "RUNNING")
-        ContractImportJobStatus status,
+        ContractImportJobState.Status status,
 
         @Schema(description = "Name of the submitted file", example = "contracts.csv")
         String fileName,
@@ -62,8 +62,9 @@ public record ContractImportJobResponse(
     public static ContractImportJobResponse from(final ContractImportJob job) {
         final ContractImportSubmission submission = job.submission();
         final ContractImportProgress progress = job.progress();
-        final ContractImportTermination termination = job.termination();
-        final ContractImportCancellation cancellation = job.cancellation();
+        final ContractImportJobState state = job.state();
+        final ContractImportTermination termination = state.termination();
+        final ContractImportCancellation cancellation = state.cancellation();
         return new ContractImportJobResponse(
                 job.id(),
                 job.status(),

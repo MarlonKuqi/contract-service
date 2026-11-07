@@ -36,7 +36,7 @@ public final class ContractImportJobFixtures {
         return ContractImportJob.reconstituteFromDatabase(
                 id,
                 submission(submittedAt),
-                ContractImportJobStatus.RUNNING,
+                ContractImportJobState.Status.RUNNING,
                 ContractImportProgress.reconstituteFromDatabase(totalLines, importedCount + rejectedCount, importedCount, rejectedCount),
                 leaseUntil,
                 null,
@@ -48,7 +48,7 @@ public final class ContractImportJobFixtures {
         return ContractImportJob.reconstituteFromDatabase(
                 id,
                 submission(CANCELLED_JOB_CREATED_AT),
-                ContractImportJobStatus.CANCELLED,
+                ContractImportJobState.Status.CANCELLED,
                 ContractImportProgress.reconstituteFromDatabase(2, 1, 1, 0),
                 null,
                 ContractImportTermination.reconstituteFromDatabase(CANCELLED_JOB_CANCELLED_AT, null),

@@ -9,7 +9,7 @@ import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.domain.contract.importjob.ContractImportSubmission;
 import com.mk.contractservice.features.contract.importjob.ClaimContractImportJob;
 import com.mk.contractservice.features.contract.importjob.ProcessContractImportBatch;
@@ -188,7 +188,7 @@ class ContractImportJobRecoveryAcceptanceTest {
                 .extract().path("jobId");
     }
 
-    private void awaitStatus(final String jobId, final ContractImportJobStatus status) {
+    private void awaitStatus(final String jobId, final ContractImportJobState.Status status) {
         await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofMillis(100)).until(() -> status.name().equals(
                 given().when().get(JOB_PATH, jobId).then().statusCode(200).extract().path("status")));
     }
@@ -219,7 +219,7 @@ class ContractImportJobRecoveryAcceptanceTest {
         jdbcTemplate.update("update contracts.batch_job_execution set status = 'STARTED', exit_code = 'UNKNOWN', end_time = null"
                 + " where job_execution_id in " + executions, jobId);
         jdbcTemplate.update("update contracts.contract_import_job set status = ?, finished_at = null, failure_reason = null where id = ?::uuid",
-                ContractImportJobStatus.RUNNING.name(), jobId);
+                ContractImportJobState.Status.RUNNING.name(), jobId);
         expireLeaseOf(jobId);
     }
 
@@ -228,7 +228,7 @@ class ContractImportJobRecoveryAcceptanceTest {
     void shouldFailAndKeepEarlierChunks() {
         final String jobId = submitLines(CHUNK_SIZE + 1);
 
-        awaitStatus(jobId, ContractImportJobStatus.FAILED);
+        awaitStatus(jobId, ContractImportJobState.Status.FAILED);
 
         given().when().get(JOB_PATH, jobId).then()
                 .statusCode(200)
@@ -244,12 +244,12 @@ class ContractImportJobRecoveryAcceptanceTest {
     void shouldResumeAfterCrashWithoutDuplicates() {
         final int lines = CHUNK_SIZE + 1;
         final String jobId = submitLines(lines);
-        awaitStatus(jobId, ContractImportJobStatus.FAILED);
+        awaitStatus(jobId, ContractImportJobState.Status.FAILED);
 
         secondChunkFailure.set(null);
         simulateCrashOf(jobId);
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
         given().when().get(JOB_PATH, jobId).then()
                 .statusCode(200)
@@ -270,7 +270,7 @@ class ContractImportJobRecoveryAcceptanceTest {
 
         final String jobId = submitLines(lines);
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
         given().when().get(JOB_PATH, jobId).then().statusCode(200).body("importedCount", equalTo(lines));
         assertThat(contractsOfClient()).isEqualTo(lines);
     }
@@ -282,7 +282,7 @@ class ContractImportJobRecoveryAcceptanceTest {
 
         final String jobId = submitLines(1);
 
-        awaitStatus(jobId, ContractImportJobStatus.FAILED);
+        awaitStatus(jobId, ContractImportJobState.Status.FAILED);
         given().when().get(JOB_PATH, jobId).then().statusCode(200).body("failureCode", equalTo("tooManyAttempts"));
         assertThat(executionsOf(jobId)).isEqualTo(ContractImportJobRunner.MAX_ATTEMPTS);
     }
@@ -295,7 +295,7 @@ class ContractImportJobRecoveryAcceptanceTest {
 
         final String jobId = submitLines(lines);
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
         given().when().get(JOB_PATH, jobId).then()
                 .statusCode(200)
                 .body("processedLines", equalTo(lines))
@@ -312,7 +312,7 @@ class ContractImportJobRecoveryAcceptanceTest {
 
         final String jobId = submitLines(lines);
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
         given().when().get(JOB_PATH, jobId).then()
                 .statusCode(200)
                 .body("processedLines", equalTo(lines))
@@ -342,12 +342,12 @@ class ContractImportJobRecoveryAcceptanceTest {
                 join contracts.batch_job_execution_params p on p.job_execution_id = e.job_execution_id
                 where p.parameter_value = ? and e.end_time is not null
                 """, Long.class, jobId) == 1);
-        given().when().get(JOB_PATH, jobId).then().statusCode(200).body("status", equalTo(ContractImportJobStatus.RUNNING.name()));
+        given().when().get(JOB_PATH, jobId).then().statusCode(200).body("status", equalTo(ContractImportJobState.Status.RUNNING.name()));
 
         wakeTakeoverWorker.countDown();
         takeoverWorker.join(Duration.ofSeconds(30));
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
         assertThat(contractsOfClient()).isEqualTo(lines);
     }
 
@@ -356,16 +356,16 @@ class ContractImportJobRecoveryAcceptanceTest {
     void shouldFailJobWhoseExecutionEndedWithMissingLines() {
         secondChunkFailure.set(null);
         final String jobId = submitLines(2);
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
         jdbcTemplate.update("""
                 update contracts.contract_import_job
                 set status = ?, finished_at = null, processed_lines = 1, imported_count = 1
                 where id = ?::uuid
-                """, ContractImportJobStatus.RUNNING.name(), jobId);
+                """, ContractImportJobState.Status.RUNNING.name(), jobId);
         expireLeaseOf(jobId);
 
-        awaitStatus(jobId, ContractImportJobStatus.FAILED);
+        awaitStatus(jobId, ContractImportJobState.Status.FAILED);
         given().when().get(JOB_PATH, jobId).then().statusCode(200).body("failureCode", equalTo("incompleteProcessing"));
     }
 
@@ -374,13 +374,13 @@ class ContractImportJobRecoveryAcceptanceTest {
     void shouldCompleteJobWhoseListenerNeverRan() {
         secondChunkFailure.set(null);
         final String jobId = submitLines(2);
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
         jdbcTemplate.update("update contracts.contract_import_job set status = ?, finished_at = null where id = ?::uuid",
-                ContractImportJobStatus.RUNNING.name(), jobId);
+                ContractImportJobState.Status.RUNNING.name(), jobId);
         expireLeaseOf(jobId);
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
         assertThat(executionsOf(jobId)).isEqualTo(1);
     }
 
@@ -396,7 +396,7 @@ class ContractImportJobRecoveryAcceptanceTest {
                 .then().statusCode(202)
                 .extract().path("jobId");
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
         given().when().get(JOB_PATH, jobId).then().statusCode(200).body("importedCount", equalTo(CHUNK_SIZE));
         await().atMost(Duration.ofSeconds(10)).until(() -> "COMPLETED".equals(jdbcTemplate.queryForObject("""
                 select e.status from contracts.batch_job_execution e

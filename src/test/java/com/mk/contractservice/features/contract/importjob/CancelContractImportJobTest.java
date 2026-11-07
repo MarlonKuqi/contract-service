@@ -6,7 +6,7 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportCancellati
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.domain.contract.importjob.ContractImportProgress;
 import com.mk.contractservice.domain.contract.importjob.ContractImportTermination;
 import org.junit.jupiter.api.DisplayName;
@@ -53,7 +53,7 @@ class CancelContractImportJobTest {
     }
 
     private static ContractImportJob completedJob() {
-        return ContractImportJob.reconstituteFromDatabase(JOB_ID, ContractImportJobFixtures.submission(NOW.minusHours(1)), ContractImportJobStatus.COMPLETED,
+        return ContractImportJob.reconstituteFromDatabase(JOB_ID, ContractImportJobFixtures.submission(NOW.minusHours(1)), ContractImportJobState.Status.COMPLETED,
                 ContractImportProgress.reconstituteFromDatabase(3, 3, 2, 1), null,
                 ContractImportTermination.reconstituteFromDatabase(NOW.minusMinutes(30), null), null);
     }
@@ -68,8 +68,8 @@ class CancelContractImportJobTest {
         final CancelContractImportJob.Result result = handler().execute(new CancelContractImportJob.Command(JOB_ID, COUNSELOR));
 
         verify(jobRepository).save(jobCaptor.capture());
-        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobStatus.CANCELLED);
-        assertThat(jobCaptor.getValue().cancellation()).isEqualTo(ContractImportCancellation.of(NOW, COUNSELOR));
+        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobState.Status.CANCELLED);
+        assertThat(jobCaptor.getValue().state().cancellation()).isEqualTo(ContractImportCancellation.of(NOW, COUNSELOR));
         assertThat(result.job()).isSameAs(jobCaptor.getValue());
         assertThat(result.closedContracts()).isEqualTo(2);
     }

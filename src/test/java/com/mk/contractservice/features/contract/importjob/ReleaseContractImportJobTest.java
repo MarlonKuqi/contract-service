@@ -3,7 +3,7 @@ package com.mk.contractservice.features.contract.importjob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,8 +42,8 @@ class ReleaseContractImportJobTest {
         new ReleaseContractImportJob.Handler(jobRepository).execute(new ReleaseContractImportJob.Command(JOB_ID));
 
         verify(jobRepository).save(jobCaptor.capture());
-        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobStatus.PENDING);
-        assertThat(jobCaptor.getValue().leaseUntil()).isNull();
+        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobState.Status.PENDING);
+        assertThat(jobCaptor.getValue().state().leaseUntil()).isNull();
     }
 
     @Test
