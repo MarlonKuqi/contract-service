@@ -12,7 +12,6 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
-import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +24,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -32,6 +32,7 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -54,9 +55,6 @@ class ContractLifecycleAcceptanceTest {
 
     @Autowired
     private ClientRepository clientRepository;
-
-    @Autowired
-    private ContractRepository contractRepository;
 
     @Autowired
     private ContractJpaRepository contractJpaRepository;
@@ -604,12 +602,13 @@ class ContractLifecycleAcceptanceTest {
                 """, testClient.id(), now.minusDays(5));
 
         given()
+                .config(AcceptanceRestAssured.exactNumbers())
                 .body(contractPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .body("costAmount", equalTo(999999999.99f));
+                .body("costAmount", comparesEqualTo(new BigDecimal("999999999.99")));
     }
 
     @Test

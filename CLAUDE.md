@@ -26,7 +26,8 @@ Stack:
 - PostgreSQL 18, schema `contracts`
 - Flyway (SQL migrations)
 - Docker / docker-compose for the local runtime
-- Testcontainers, RestAssured, ArchUnit, JaCoCo
+- Testcontainers, RestAssured, ArchUnit, JaCoCo, PIT
+- Error Prone + NullAway at compile time (ADR-023)
 
 Architecture decisions are recorded in `docs/ADR.md`. Read the relevant ADR before changing an area it covers.
 
@@ -95,9 +96,9 @@ No domain object can exist in an invalid state.
     - `reconstituteFromDatabase(...)`: trusted data, only null-checked;
     - factories (`PersonFactory`, `CompanyFactory`, `ContractFactory`): `createFromCommand(...)` and `buildFromDatabase(...)`.
 - Mutations go through intention-revealing methods that return a new instance (`changeName`, `changeEmail`, `changePhone`, `changeCoreFields`, `changeCost`).
-- Comparison methods express business equality (`hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs`). An update with an identical value must not change the object nor trigger a save: the `change*` method returns `this`, and the handler saves only when `updated != loaded`.
+- Comparison methods express business equality (`hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs`). An update with an identical value must not change the object nor trigger a save: the `change*` method returns `this`, and the handler saves only when `!updated.equals(loaded)` (value equality through Lombok `@EqualsAndHashCode`; Error Prone rejects `!=` on objects that define `equals`).
 - Builders must be private, so that factory methods are the only way in. Production and tests go through `of`/factories.
-- Avoid `null`; mark optional values with `@Nullable` (JSpecify) and use `Optional` where absence is meaningful.
+- Avoid `null`; mark optional values with `@Nullable` (JSpecify) and use `Optional` where absence is meaningful. NullAway fails the build when a value not declared `@Nullable` may be `null` (`src/main` only). Every package of `src/main` has a `package-info.java` annotated `@NullMarked` (checked by `ArchitectureTest`).
 
 ### Time
 - The domain NEVER calls `now()`. It receives the time as a parameter (`isActiveAt(now)`, `changeCost(cost, now)`, `PersonBirthDate.of(date, today)`…) (ADR-003).

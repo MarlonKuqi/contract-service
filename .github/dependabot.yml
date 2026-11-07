@@ -4,9 +4,10 @@ updates:
   # Maven dependencies
   - package-ecosystem: "maven"
     directory: "/"
+    target-branch: "master"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 50
     reviewers:
       - "marlon"
     labels:
@@ -25,12 +26,48 @@ updates:
       - dependency-name: "org.assertj.*"
         update-types: ["version-update:semver-patch"]
 
+  - package-ecosystem: "maven"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 50
+    reviewers:
+      - "marlon"
+    labels:
+      - "dependencies"
+      - "java"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    ignore:
+      - dependency-name: "org.junit.*"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "org.mockito.*"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "org.assertj.*"
+        update-types: ["version-update:semver-patch"]
+
   # GitHub Actions dependencies
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "master"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 50
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 50
     labels:
       - "dependencies"
       - "github-actions"
@@ -41,9 +78,10 @@ updates:
   # Docker base images
   - package-ecosystem: "docker"
     directory: "/"
+    target-branch: "master"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 50
     labels:
       - "dependencies"
       - "docker"
@@ -51,3 +89,63 @@ updates:
       prefix: "chore"
       include: "scope"
 
+  - package-ecosystem: "docker"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 50
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  - package-ecosystem: "maven"
+    directory: "/"
+    target-branch: "release/2.0.0"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 50
+    reviewers:
+      - "marlon"
+    labels:
+      - "dependencies"
+      - "java"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    ignore:
+      - dependency-name: "org.junit.*"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "org.mockito.*"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "org.assertj.*"
+        update-types: ["version-update:semver-patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "release/2.0.0"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 50
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    target-branch: "release/2.0.0"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 50
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore"
+      include: "scope"

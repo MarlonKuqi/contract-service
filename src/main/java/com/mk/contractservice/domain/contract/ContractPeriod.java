@@ -8,7 +8,6 @@ import lombok.Value;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
-import java.util.function.BiPredicate;
 
 import static com.mk.contractservice.domain.shared.Assert.notNull;
 
@@ -20,10 +19,6 @@ public class ContractPeriod {
 
     @Nullable
     LocalDateTime endDate;
-
-    private static final BiPredicate<LocalDateTime, @Nullable LocalDateTime> START_IS_AFTER_END =
-            (start, end) -> end != null && !end.isAfter(start);
-
     public boolean isEffectiveAt(final LocalDateTime referenceDate) {
         return endDate == null || referenceDate.isBefore(endDate);
     }
@@ -34,7 +29,7 @@ public class ContractPeriod {
             final LocalDateTime now
     ) {
         notNull(now);
-        return ValueObjectUtils.validateAndCreate(
+        return ValueObjectUtils.<ContractPeriod, @Nullable LocalDateTime, @Nullable LocalDateTime, LocalDateTime>validateAndCreate(
                 startDate,
                 endDate,
                 start -> start == null ? now : start,
@@ -48,7 +43,7 @@ public class ContractPeriod {
     }
 
     private static void validate(final LocalDateTime normalizedStart, @Nullable final LocalDateTime endDate) {
-        if (START_IS_AFTER_END.test(normalizedStart, endDate)) {
+        if (endDate != null && !endDate.isAfter(normalizedStart)) {
             throw new InvalidContractPeriodException(
                     "Contract end date must be after start date. " +
                             "Start: " + normalizedStart + ", End: " + endDate

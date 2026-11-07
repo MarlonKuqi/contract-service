@@ -2,7 +2,10 @@ package com.mk.contractservice.acceptance.helper;
 
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.config.JsonConfig;
+import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
+import io.restassured.path.json.config.JsonPathConfig;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -17,5 +20,9 @@ public final class AcceptanceRestAssured {
         RestAssured.requestSpecification = new RequestSpecBuilder()
                 .setContentType(ContentType.JSON)
                 .build();
+    }
+
+    public static RestAssuredConfig exactNumbers() {
+        return RestAssured.config().jsonConfig(JsonConfig.jsonConfig().numberReturnType(JsonPathConfig.NumberReturnType.BIG_DECIMAL));
     }
 }

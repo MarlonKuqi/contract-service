@@ -46,7 +46,7 @@ public interface PatchContractCost {
                     LocalDateTime.now(clock)
             );
 
-            return updatedContract == contract ? contract : contractRepository.save(updatedContract);
+            return updatedContract.equals(contract) ? contract : contractRepository.save(updatedContract);
         }
     }
 }

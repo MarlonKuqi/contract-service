@@ -17,7 +17,7 @@ public record ContractResponse(
         @JsonProperty("clientId")
         @Schema(description = "Client identifier owning this contract",
                 example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
-        UUID clientId,
+        @Nullable UUID clientId,
 
         @JsonProperty("startDate")
         @Schema(description = "Contract start date", example = "2024-01-01T00:00:00")

@@ -3,8 +3,13 @@ package com.mk.contractservice;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaPackage;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.lang.ArchCondition;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
+import org.jspecify.annotations.NullMarked;
 import org.junit.jupiter.api.Test;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
@@ -112,5 +117,26 @@ class ArchitectureTest {
                 .dependOnClassesThat(areControllers)
                 .because("Features (application layer) must not depend on presentation layer (controllers)")
                 .check(classes);
+    }
+
+    @Test
+    void every_package_should_be_null_marked() {
+        classes()
+                .should(beInANullMarkedPackage())
+                .because("JSpecify @NullMarked does not apply to subpackages: each package declares it so the IDE and NullAway agree (ADR-023)")
+                .check(classes);
+    }
+
+    private static ArchCondition<JavaClass> beInANullMarkedPackage() {
+        return new ArchCondition<>("be in a package annotated with @NullMarked") {
+            @Override
+            public void check(final JavaClass javaClass, final ConditionEvents events) {
+                final JavaPackage javaPackage = javaClass.getPackage();
+                if (!javaPackage.isAnnotatedWith(NullMarked.class)) {
+                    events.add(SimpleConditionEvent.violated(javaClass,
+                            javaPackage.getName() + " has no package-info.java annotated with @NullMarked"));
+                }
+            }
+        };
     }
 }

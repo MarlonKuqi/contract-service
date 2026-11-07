@@ -22,12 +22,14 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -158,12 +160,13 @@ class CreateContractAcceptanceTest {
                 """, testClient.id(), now, now.plusYears(5));
 
         given()
+                .config(AcceptanceRestAssured.exactNumbers())
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .body("costAmount", equalTo(999999.99f));
+                .body("costAmount", comparesEqualTo(new BigDecimal("999999.99")));
     }
 
     @Test

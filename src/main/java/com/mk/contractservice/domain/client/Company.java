@@ -125,32 +125,32 @@ public final class Company extends Client {
         private ClientPhoneNumber phone;
         private CompanyIdentifier companyIdentifier;
 
-        public CompanyBuilder id(final UUID id) {
+        CompanyBuilder id(final UUID id) {
             this.id = id;
             return this;
         }
 
-        public CompanyBuilder name(final ClientName name) {
+        CompanyBuilder name(final ClientName name) {
             this.name = name;
             return this;
         }
 
-        public CompanyBuilder email(final ClientEmail email) {
+        CompanyBuilder email(final ClientEmail email) {
             this.email = email;
             return this;
         }
 
-        public CompanyBuilder phone(final ClientPhoneNumber phone) {
+        CompanyBuilder phone(final ClientPhoneNumber phone) {
             this.phone = phone;
             return this;
         }
 
-        public CompanyBuilder companyIdentifier(final CompanyIdentifier companyIdentifier) {
+        CompanyBuilder companyIdentifier(final CompanyIdentifier companyIdentifier) {
             this.companyIdentifier = companyIdentifier;
             return this;
         }
 
-        public Company build() {
+        Company build() {
             return new Company(id, name, email, phone, companyIdentifier);
         }
     }

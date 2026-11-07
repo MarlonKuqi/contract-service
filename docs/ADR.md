@@ -43,6 +43,7 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 - [ADR-019 — Export des contrats actifs : pagination par curseur sur l'identifiant](#adr-019--export-des-contrats-actifs--pagination-par-curseur-sur-lidentifiant)
 - [ADR-020 — Stratégie de merge entre branches majeures et mineures](#adr-020--stratégie-de-merge-entre-branches-majeures-et-mineures)
 - [ADR-021 — Import en masse de contrats : synchrone, tout ou rien](#adr-021--import-en-masse-de-contrats--synchrone-tout-ou-rien)
+- [ADR-023 — Analyse statique : Error Prone et NullAway](#adr-023--analyse-statique--error-prone-et-nullaway)
 
 ---
 
@@ -97,7 +98,7 @@ com.mk.contractservice
   - `reconstituteFromDatabase(...)` reconstruit sans re-valider une donnée déjà fiable ;
   - les factories (`PersonFactory`, `CompanyFactory`, `ContractFactory`) exposent `createFromCommand(...)` et `buildFromDatabase(...)`.
 - **Mutations par méthodes d'intention** qui renvoient une nouvelle instance : `changeName`, `changeEmail`, `changePhone`, `changeCoreFields`, `changeCost`. `birthDate` et `companyIdentifier` n'ont pas de méthode de modification.
-- **Méthodes de comparaison métier** : `hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs` (insensible à l'échelle : `100.0` = `100.00`). Une modification à valeur identique est un no-op : la règle vit dans l'agrégat, la méthode `change*` renvoie `this`. Les handlers ne sauvegardent que si l'objet renvoyé n'est pas l'instance chargée (`updated != loaded`).
+- **Méthodes de comparaison métier** : `hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs` (insensible à l'échelle : `100.0` = `100.00`). Une modification à valeur identique est un no-op : la règle vit dans l'agrégat, la méthode `change*` renvoie `this`. Les handlers ne sauvegardent que si l'objet renvoyé diffère de l'objet chargé (`!updated.equals(loaded)`, égalité de valeur via `@EqualsAndHashCode`). Pas de comparaison de références : Error Prone (`ReferenceEquality`) la signale sur un type qui définit `equals`.
 - **Domain services réservés aux vraies règles métier** : un domain service porte une règle qu'aucun agrégat ne peut vérifier seul (`CompanyIdentifierUniqueness` : l'unicité demande de connaître les autres sociétés). « Charger ou lever 404 » et « vérifier l'existence » sont de l'accès aux données : ce sont des méthodes `default` du port (`ClientRepository.getById`, `ensureExists`), qui gardent la règle « introuvable → `ClientNotFoundException` » dans le domaine sans la dupliquer dans chaque adapter. `ClientService`, `ClientValidationService` et `ContractService`, qui ne portaient aucune règle, ont été supprimés.
 - Les entités JPA ne sortent jamais de l'infrastructure ; l'API n'expose que des DTO.
 - **Une seule définition d'une valeur valide : le Value Object.** Les DTO ne valident que la syntaxe du contrat HTTP (présence, type, longueur maximale, nombre de chiffres) et ne redéfinissent ni les règles de format ni les règles métier. `@Email` a été retiré : ses règles différaient de `ClientEmail` (`a@b` passait le DTO puis échouait dans le domaine, `.a@x.ch` échouait dans le DTO avec un autre code d'erreur). Toute adresse au format invalide renvoie maintenant `EMAIL_INVALID`. Même raisonnement pour le `@Pattern` du téléphone (`PHONE_INVALID`), `@Positive` sur le coût (`invalidContractCost`) et `@PastOrPresent` sur la date de naissance (`BIRTH_DATE_INVALID`) ; ce dernier lisait de plus l'horloge système au lieu de la `Clock` (ADR-003). Un `PATCH` applique les mêmes contraintes de syntaxe qu'un `PUT`, et un champ obligatoire envoyé à `null` y est refusé (`422 validationError`) au lieu d'être ignoré.
@@ -372,7 +373,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 - **Tests d'acceptance** (Failsafe, `*AcceptanceTest`, `mvn verify`) : API REST de bout en bout avec RestAssured, sur un vrai PostgreSQL via **Testcontainers**. Réservés aux fonctionnalités vues par un utilisateur de l'API. La JVM tourne en UTC (`-Duser.timezone=UTC`), comme un hôte sans fuseau configuré ; le temps se contrôle en remplaçant uniquement l'`InstantSource` par une `MutableInstantSource`, jamais le `Clock`.
 - **Tests de concurrence** : deux transactions réelles (`TransactionTemplate` + `REQUIRES_NEW`) pour reproduire les courses.
 - **ArchUnit** pour les règles de dépendance (ADR-001).
-- **JaCoCo** avec seuil de couverture vérifié en CI.
+- **JaCoCo** en rapport de couverture, sans seuil : une ligne couverte n'est pas une ligne vérifiée. Le critère bloquant sur la qualité des tests est le score de mutation PIT (ADR-016).
 - Un test de non-régression sur un bug doit **échouer sans le correctif** ; on le vérifie avant de livrer.
 
 **Conséquences.**
@@ -668,3 +669,33 @@ Mesures : base PostgreSQL 18 en conteneur local (Docker, poste Windows), un seul
 - `ContractControllerAdvice` nomme désormais le chemin complet d'un champ mal typé (`contracts[1].costAmount`). Pour les corps à un seul niveau, le message ne change pas.
 
 **Statut.** Acceptée (exercice).
+
+---
+
+## ADR-023 — Analyse statique : Error Prone et NullAway
+
+**Contexte.** Le code annote ses valeurs optionnelles avec JSpecify (`@Nullable`), mais rien ne le vérifiait à la compilation : l'IDE signale le déréférencement d'une valeur `@Nullable`, pas le passage de `null` à un paramètre non annoté. Le `@NullMarked` de `com/mk/contractservice/package-info.java` ne couvre que ce package : en JSpecify, il ne s'applique pas aux sous-packages. Le numéro ADR-022 est pris par l'import asynchrone (`feat/import-contract-jobs`).
+
+**Décision.**
+- **Error Prone** (`maven-compiler-plugin`, `.mvn/jvm.config` pour les `--add-exports` du compilateur) avec ses contrôles par défaut : les contrôles de niveau erreur cassent le build, les avertissements restent des avertissements (pas de `-Werror`). Le code généré (MapStruct, `generated-sources`) est exclu.
+- **NullAway** en erreur sur `src/main`, désactivé sur `src/test` :
+  - `AnnotatedPackages=com.mk.contractservice` : tout le code du projet est considéré non nul par défaut, même dans un package qui aurait oublié son `@NullMarked` ;
+  - `JSpecifyMode=true` ;
+  - entités JPA exclues (`@Entity`, `@MappedSuperclass`, `@Embeddable`) : Hibernate les remplit par réflexion.
+- **Pas de comparaison de références sur les agrégats** (`ReferenceEquality`) : le no-op des mises à jour compare l'état (`updated.equals(loaded)`, `@EqualsAndHashCode` de Lombok, ADR-002).
+- Les absences légitimes sont déclarées `@Nullable` plutôt que contournées : `detail` d'un `ProblemDetail` (facultatif en RFC 9457), `code` et `cause` de `DomainValidationException`, `clientId` d'un contrat tant que la colonne accepte `NULL`. Une `DomainValidationException` porte toujours un message (`getMessage()` non nul).
+- Les réponses REST exigent un id : `Objects.requireNonNull(aggregate.id())` dans les mappers, un agrégat non persisté n'a rien à faire dans une réponse.
+- **Un `package-info.java` annoté `@NullMarked` dans chaque package de `src/main`**, pour que l'IDE applique la même règle que NullAway pendant l'écriture : sans lui, IntelliJ ne signale pas un `null` passé à un paramètre non annoté. `ArchitectureTest.every_package_should_be_null_marked` fait échouer le build si un nouveau package l'oublie.
+
+**Alternatives écartées.**
+- **Checker Framework (Nullness Checker)** : plus complet, mais beaucoup plus lent et plus exigeant (annotations de généricité partout). NullAway est conçu pour tourner à chaque compilation.
+- **Seulement l'IDE** : il ne vérifie ni la CI ni les contributions faites sans IntelliJ.
+- **NullAway en `OnlyNullMarked` (sans `AnnotatedPackages`)** : il ne vérifierait que les packages annotés. Garder `AnnotatedPackages` protège le build même avant que le test ArchUnit ne signale un oubli.
+
+**Conséquences.**
+- Un `null` passé là où il n'est pas déclaré casse la compilation.
+- Les inférences de génériques de NullAway restent limitées : `ContractPeriod.of` donne ses arguments de type explicitement à `ValueObjectUtils.validateAndCreate`.
+- Error Prone se met à jour avec le JDK ; une nouvelle version de Java peut demander une nouvelle version d'Error Prone avant de compiler.
+- IntelliJ compile avec les arguments du `pom.xml` : si sa compilation échoue sur `-Xplugin:ErrorProne`, déléguer le build à Maven (*Build Tools → Maven → Runner → Delegate IDE build/run actions to Maven*).
+
+**Statut.** Acceptée.

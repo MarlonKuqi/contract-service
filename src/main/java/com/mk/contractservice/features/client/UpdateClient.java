@@ -46,7 +46,7 @@ public interface UpdateClient {
             final ClientPhoneNumber phone = ClientPhoneNumber.of(command.phoneNumber());
             final ClientName name = ClientName.of(command.name());
             final Client updatedClient = client.changeCoreFields(name, email, phone);
-            return updatedClient == client ? client : clientRepository.save(updatedClient);
+            return updatedClient.equals(client) ? client : clientRepository.save(updatedClient);
         }
     }
 }

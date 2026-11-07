@@ -81,7 +81,7 @@ public interface ImportContracts {
         private final Clock clock;
 
         private record LineProcessResult(List<Contract> contracts, List<LineRejection> rejections) {
-            public boolean hasRejections() {
+            boolean hasRejections() {
                 return !rejections.isEmpty();
             }
         }

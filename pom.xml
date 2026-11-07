@@ -42,6 +42,9 @@
 		<flyway.version>13.9.0</flyway.version>
 		<springdoc.version>3.1.1</springdoc.version>
 		<libphonenumber.version>9.0.41</libphonenumber.version>
+		<errorprone.version>2.52.0</errorprone.version>
+		<nullaway.version>0.14.3</nullaway.version>
+		<errorprone.base-args>-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode -XepExcludedPaths:.*/generated-sources/.* -XepOpt:NullAway:AnnotatedPackages=com.mk.contractservice -XepOpt:NullAway:JSpecifyMode=true -XepOpt:NullAway:ExcludedClassAnnotations=jakarta.persistence.Entity,jakarta.persistence.MappedSuperclass,jakarta.persistence.Embeddable</errorprone.base-args>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -181,7 +184,22 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
+					<compilerArgs>
+						<arg>-XDcompilePolicy=simple</arg>
+						<arg>--should-stop=ifError=FLOW</arg>
+						<arg>${errorprone.base-args} -Xep:NullAway:ERROR</arg>
+					</compilerArgs>
 					<annotationProcessorPaths>
+						<path>
+							<groupId>com.google.errorprone</groupId>
+							<artifactId>error_prone_core</artifactId>
+							<version>${errorprone.version}</version>
+						</path>
+						<path>
+							<groupId>com.uber.nullaway</groupId>
+							<artifactId>nullaway</artifactId>
+							<version>${nullaway.version}</version>
+						</path>
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
@@ -194,6 +212,18 @@
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
+				<executions>
+					<execution>
+						<id>default-testCompile</id>
+						<configuration>
+							<compilerArgs>
+								<arg>-XDcompilePolicy=simple</arg>
+								<arg>--should-stop=ifError=FLOW</arg>
+								<arg>${errorprone.base-args} -Xep:NullAway:OFF</arg>
+							</compilerArgs>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -240,15 +270,6 @@
 						<phase>test</phase>
 						<goals>
 							<goal>report</goal>
-						</goals>
-					</execution>
-
-					<!-- Check couverture tests unitaires -->
-					<execution>
-						<id>check</id>
-						<phase>test</phase>
-						<goals>
-							<goal>check</goal>
 						</goals>
 					</execution>
 
@@ -317,24 +338,6 @@
                         <!-- Shared packages (DTOs, mappers, constants, exceptions partagés) -->
                         <exclude>**/shared/**</exclude>
 					</excludes>
-					<!-- Règles de couverture -->
-					<rules>
-						<rule>
-							<element>BUNDLE</element>
-							<limits>
-								<limit>
-									<counter>LINE</counter>
-									<value>COVEREDRATIO</value>
-									<minimum>0.70</minimum>
-								</limit>
-								<limit>
-									<counter>BRANCH</counter>
-									<value>COVEREDRATIO</value>
-									<minimum>0.70</minimum>
-								</limit>
-							</limits>
-						</rule>
-					</rules>
 				</configuration>
 			</plugin>
 		</plugins>

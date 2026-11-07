@@ -5,13 +5,14 @@ import com.mk.contractservice.domain.contract.ContractDetails;
 import org.mapstruct.Mapper;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Mapper(componentModel = "spring")
 public interface ContractDtoMapper {
 
     default ContractResponse toResponse(Contract contract, LocalDateTime referenceDate) {
         return new ContractResponse(
-                contract.id(),
+                Objects.requireNonNull(contract.id()),
                 contract.clientId(),
                 contract.period().startDate(),
                 contract.period().endDate(),

@@ -21,6 +21,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -359,7 +360,7 @@ class ClientDeletionAcceptanceTest {
                 }
                 """.formatted(
                 uniqueId,
-                UUID.randomUUID().toString().substring(0, 9).toUpperCase()
+                UUID.randomUUID().toString().substring(0, 9).toUpperCase(Locale.ROOT)
         );
 
         String clientId = given()

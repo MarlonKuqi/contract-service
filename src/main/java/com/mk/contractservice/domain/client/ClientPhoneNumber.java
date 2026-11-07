@@ -12,7 +12,6 @@ import lombok.Value;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -24,7 +23,6 @@ import static com.mk.contractservice.domain.shared.Assert.notNull;
 public class ClientPhoneNumber {
 
     private static final PhoneNumberUtil PHONE_UTIL = PhoneNumberUtil.getInstance();
-    private static final EnumSet<SupportedFormat> SUPPORTED_REGIONS = EnumSet.allOf(SupportedFormat.class);
 
     String value;
 

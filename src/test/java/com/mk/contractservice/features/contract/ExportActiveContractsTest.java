@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 class ExportActiveContractsTest {
 
     private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-06-01T10:00:00Z"), ZoneOffset.UTC);
-    private static final LocalDateTime NOW = LocalDateTime.now(FIXED_CLOCK);
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 6, 1, 10, 0);
 
     @Mock
     private ContractRepository contractRepository;

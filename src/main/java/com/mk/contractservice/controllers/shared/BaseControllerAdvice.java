@@ -2,6 +2,7 @@ package com.mk.contractservice.controllers.shared;
 
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import com.mk.contractservice.features.shared.InvalidPageRequestException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -139,11 +140,11 @@ public abstract class BaseControllerAdvice {
         return respond(problemDetail);
     }
 
-    protected ProblemDetail problem(final HttpStatus status, final String title, final String detail, final String code) {
+    protected ProblemDetail problem(final HttpStatus status, final String title, @Nullable final String detail, final String code) {
         return ProblemDetails.problem(clock, status, title, detail, code);
     }
 
-    protected ProblemDetail problemWithStackTrace(final HttpStatus status, final String title, final String detail, final String code, final Exception ex) {
+    protected ProblemDetail problemWithStackTrace(final HttpStatus status, final String title, @Nullable final String detail, final String code, final Exception ex) {
         final ProblemDetail problemDetail = problem(status, title, detail, code);
         problemDetail.setProperty("exception", ex.getClass().getSimpleName());
         problemDetail.setProperty("stackTrace", getStackTrace(ex));

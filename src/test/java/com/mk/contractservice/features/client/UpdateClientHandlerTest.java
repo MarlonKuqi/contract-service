@@ -314,18 +314,10 @@ class UpdateClientHandlerTest {
     class ValidationErrors {
 
         private UUID clientId;
-        private Person existingPerson;
 
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = PersonFactory.buildFromDatabase(
-                    clientId,
-                    "John Doe",
-                    "john@example.com",
-                    "+33111111111",
-                    LocalDate.of(1990, 1, 1)
-            );
         }
 
         @Test
