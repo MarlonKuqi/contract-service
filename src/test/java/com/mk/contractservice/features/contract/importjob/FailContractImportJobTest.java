@@ -4,7 +4,7 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportFailureRea
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.domain.contract.importjob.ContractImportProgress;
 import com.mk.contractservice.domain.contract.importjob.ContractImportTermination;
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobTransitionNotAllowedException;
@@ -45,8 +45,8 @@ class FailContractImportJobTest {
     private ArgumentCaptor<ContractImportJob> jobCaptor;
 
     private ContractImportJob runningJob() {
-        return ContractImportJob.reconstituteFromDatabase(JOB_ID, ContractImportJobFixtures.submission(NOW), ContractImportJobStatus.RUNNING,
-                ContractImportProgress.reconstituteFromDatabase(2, 1, 1, 0), null, null, null);
+        return ContractImportJob.reconstituteFromDatabase(JOB_ID, ContractImportJobFixtures.submission(NOW), ContractImportJobState.Status.RUNNING,
+                ContractImportProgress.reconstituteFromDatabase(2, 1, 1, 0), CLOCK.instant(), null, null);
     }
 
     @Test
@@ -57,8 +57,8 @@ class FailContractImportJobTest {
         new FailContractImportJob.Handler(jobRepository, CLOCK).execute(COMMAND);
 
         verify(jobRepository).save(jobCaptor.capture());
-        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobStatus.FAILED);
-        assertThat(jobCaptor.getValue().termination()).isEqualTo(ContractImportTermination.failed(ContractImportFailureReason.TOO_MANY_ATTEMPTS, NOW));
+        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobState.Status.FAILED);
+        assertThat(jobCaptor.getValue().state().termination()).isEqualTo(ContractImportTermination.failed(ContractImportFailureReason.TOO_MANY_ATTEMPTS, NOW));
     }
 
     @Test

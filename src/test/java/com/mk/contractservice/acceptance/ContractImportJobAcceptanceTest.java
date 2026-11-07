@@ -5,7 +5,7 @@ import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.batch.ContractImportBatchConfiguration;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.response.ValidatableResponse;
@@ -121,11 +121,11 @@ class ContractImportJobAcceptanceTest {
         return submit(content).statusCode(202).extract().path("jobId");
     }
 
-    private void awaitStatus(final String jobId, final ContractImportJobStatus status) {
+    private void awaitStatus(final String jobId, final ContractImportJobState.Status status) {
         awaitStatus(jobId, status, Duration.ofSeconds(30));
     }
 
-    private void awaitStatus(final String jobId, final ContractImportJobStatus status, final Duration timeout) {
+    private void awaitStatus(final String jobId, final ContractImportJobState.Status status, final Duration timeout) {
         await().atMost(timeout).pollInterval(Duration.ofMillis(100)).until(() -> status.name().equals(
                 given().when().get(JOB_PATH, jobId).then().statusCode(200).extract().path("status")));
     }
@@ -165,11 +165,11 @@ class ContractImportJobAcceptanceTest {
                 .statusCode(202)
                 .header("Location", containsString(CONTRACT_IMPORT_JOBS + "/"))
                 .body("jobId", notNullValue())
-                .body("status", equalTo(ContractImportJobStatus.PENDING.name()))
+                .body("status", equalTo(ContractImportJobState.Status.PENDING.name()))
                 .body("totalLines", equalTo(5))
                 .extract().path("jobId");
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
         getJob(jobId)
                 .body("fileName", equalTo("contracts.csv"))
@@ -196,7 +196,7 @@ class ContractImportJobAcceptanceTest {
 
         final String jobId = submitAccepted(HEADER + (clientId + ";;;100.00\n").repeat(lines));
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
         getJob(jobId).body("importedCount", equalTo(lines));
         assertThat(contractsOfClient()).isEqualTo(lines);
     }
@@ -213,7 +213,7 @@ class ContractImportJobAcceptanceTest {
 
         final String jobId = submitAccepted(HEADER + contracts);
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
         getJob(jobId)
                 .body("processedLines", equalTo(lines))
                 .body("importedCount", equalTo(lines))
@@ -236,7 +236,7 @@ class ContractImportJobAcceptanceTest {
     void shouldRejectLineStartingWithHash() {
         final String jobId = submitAccepted(HEADER + clientId + ";;;100.00\n#garbage;;;1\n");
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
         getJob(jobId).body("processedLines", equalTo(2)).body("importedCount", equalTo(1)).body("rejectedCount", equalTo(1));
         given().when().get(JOB_PATH + "/rejections", jobId)
@@ -254,7 +254,7 @@ class ContractImportJobAcceptanceTest {
                 + clientId + ";;-000001-01-01T00:00:00;100.00\n"
                 + clientId + ";;;100.00\n");
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
         getJob(jobId).body("importedCount", equalTo(2)).body("rejectedCount", equalTo(2));
         given().when().get(JOB_PATH + "/rejections", jobId)
@@ -267,7 +267,7 @@ class ContractImportJobAcceptanceTest {
     void shouldRejectOnlyTheLineWithANulCharacter() {
         final String jobId = submitAccepted(HEADER + clientId + ";;;100.00\nab\u0000c;;;100.00\n" + clientId + ";;;100.00\n");
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
         getJob(jobId).body("importedCount", equalTo(2)).body("rejectedCount", equalTo(1));
         given().when().get(JOB_PATH + "/rejections", jobId)
@@ -280,7 +280,7 @@ class ContractImportJobAcceptanceTest {
     void shouldCompleteWithOnlyMalformedLines() {
         final String jobId = submitAccepted(HEADER + "garbage\nmore garbage\n");
 
-        awaitStatus(jobId, ContractImportJobStatus.COMPLETED);
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
         getJob(jobId).body("importedCount", equalTo(0)).body("rejectedCount", equalTo(2));
     }
 

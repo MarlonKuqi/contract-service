@@ -2,7 +2,7 @@ package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.domain.contract.importjob.ContractImportProgress;
 import com.mk.contractservice.domain.contract.importjob.ContractImportSubmission;
 import com.mk.contractservice.domain.contract.importjob.ContractImportTermination;
@@ -61,7 +61,7 @@ class SubmitContractImportJobTest {
     private static ContractImportJob storedJob(final byte[] content) {
         return ContractImportJob.reconstituteFromDatabase(UUID.randomUUID(),
                 ContractImportSubmission.reconstituteFromDatabase("contracts.csv", SUBMITTER, IdempotencyKey.reconstituteFromDatabase(KEY), ContractImportCsv.fingerprintOf(content), LocalDateTime.now(CLOCK)),
-                ContractImportJobStatus.COMPLETED, ContractImportProgress.reconstituteFromDatabase(2, 2, 2, 0), null,
+                ContractImportJobState.Status.COMPLETED, ContractImportProgress.reconstituteFromDatabase(2, 2, 2, 0), null,
                 ContractImportTermination.reconstituteFromDatabase(LocalDateTime.now(CLOCK), null), null);
     }
 
@@ -77,7 +77,7 @@ class SubmitContractImportJobTest {
         verify(jobRepository).save(jobCaptor.capture(), same(content));
         final ContractImportJob job = jobCaptor.getValue();
         assertThat(result).isSameAs(job);
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.PENDING);
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.PENDING);
         ;
         assertThat(job.progress().totalLines()).isEqualTo(2);
         assertThat(job.submission().submittedAt()).isEqualTo(LocalDateTime.now(CLOCK));

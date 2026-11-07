@@ -1,7 +1,7 @@
 package com.mk.contractservice.infrastructure.persistence.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.ContractImportFailureReason;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -41,7 +41,7 @@ public class ContractImportJobJpaEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private ContractImportJobStatus status;
+    private ContractImportJobState.Status status;
 
     @Column(name = "total_lines", nullable = false, updatable = false)
     private int totalLines;

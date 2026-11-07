@@ -3,7 +3,7 @@ package com.mk.contractservice.features.contract.importjob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,8 +41,8 @@ class ClaimContractImportJobTest {
         final Optional<ContractImportJob> claimed = new ClaimContractImportJob.Handler(jobRepository, CLOCK).execute();
 
         assertThat(claimed).isPresent();
-        assertThat(claimed.get().status()).isEqualTo(ContractImportJobStatus.RUNNING);
-        assertThat(claimed.get().leaseUntil()).isEqualTo(NOW.plus(ClaimContractImportJob.LEASE));
+        assertThat(claimed.get().status()).isEqualTo(ContractImportJobState.Status.RUNNING);
+        assertThat(claimed.get().state().leaseUntil()).isEqualTo(NOW.plus(ClaimContractImportJob.LEASE));
     }
 
     @Test
@@ -55,7 +55,7 @@ class ClaimContractImportJobTest {
 
         final Optional<ContractImportJob> claimed = new ClaimContractImportJob.Handler(jobRepository, clock).execute();
 
-        assertThat(claimed.orElseThrow().leaseUntil()).isEqualTo(Instant.parse("2026-10-25T01:03:00Z"));
+        assertThat(claimed.orElseThrow().state().leaseUntil()).isEqualTo(Instant.parse("2026-10-25T01:03:00Z"));
     }
 
     @Test

@@ -37,12 +37,12 @@ class ContractImportJobTest {
     }
 
     private static LocalDateTime finishedAtOf(final ContractImportJob job) {
-        final ContractImportTermination termination = job.termination();
+        final ContractImportTermination termination = job.state().termination();
         return termination == null ? null : termination.finishedAt();
     }
 
     private static ContractImportFailureReason failureReasonOf(final ContractImportJob job) {
-        return switch (job.termination()) {
+        return switch (job.state().termination()) {
             case ContractImportTermination.Failed(LocalDateTime _, ContractImportFailureReason reason) -> reason;
             case ContractImportTermination.Ended _ -> null;
             case null -> null;
@@ -52,7 +52,7 @@ class ContractImportJobTest {
     private static ContractImportJob reconstitute(
             final UUID id,
             final ContractImportSubmission submission,
-            final ContractImportJobStatus status,
+            final ContractImportJobState.Status status,
             final ContractImportProgress progress
     ) {
         return ContractImportJob.reconstituteFromDatabase(id, submission, status, progress, LEASE, null, null);
@@ -64,7 +64,7 @@ class ContractImportJobTest {
         final ContractImportJob job = pendingJob(3);
 
         assertThat(job.id()).isNull();
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.PENDING);
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.PENDING);
         assertThat(job.submission().fileName()).isEqualTo(FILE_NAME);
         assertThat(job.submission().submittedAt()).isEqualTo(NOW);
         assertThat(job.submission().submittedBy()).isEqualTo(SUBMITTER);
@@ -74,8 +74,8 @@ class ContractImportJobTest {
         assertThat(job.progress().processedLines()).isZero();
         assertThat(job.progress().importedCount()).isZero();
         assertThat(job.progress().rejectedCount()).isZero();
-        assertThat(job.termination()).isNull();
-        assertThat(job.cancellation()).isNull();
+        assertThat(job.state().termination()).isNull();
+        assertThat(job.state().cancellation()).isNull();
     }
 
     @Test
@@ -129,31 +129,31 @@ class ContractImportJobTest {
         final ContractImportSubmission submission = ContractImportSubmission.reconstituteFromDatabase(FILE_NAME, SUBMITTER, IdempotencyKey.reconstituteFromDatabase("key-1"), CONTENT_SHA256, NOW);
 
         final ContractImportJob job = ContractImportJob.reconstituteFromDatabase(
-                id, submission, ContractImportJobStatus.CANCELLED, PROGRESS, null,
+                id, submission, ContractImportJobState.Status.CANCELLED, PROGRESS, null,
                 ContractImportTermination.reconstituteFromDatabase(NOW, REASON),
                 ContractImportCancellation.reconstituteFromDatabase(LATER, CANCELLER));
 
         assertThat(job.id()).isEqualTo(id);
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.CANCELLED);
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.CANCELLED);
         assertThat(job.progress().processedLines()).isEqualTo(1);
         assertThat(finishedAtOf(job)).isEqualTo(NOW);
         assertThat(failureReasonOf(job)).isEqualTo(REASON);
         assertThat(job.submission().submittedBy()).isEqualTo(SUBMITTER);
         assertThat(job.submission().idempotencyKey()).isEqualTo(IdempotencyKey.of("key-1"));
         assertThat(job.submission().contentSha256()).isEqualTo(CONTENT_SHA256);
-        assertThat(job.cancellation()).isEqualTo(ContractImportCancellation.of(LATER, CANCELLER));
+        assertThat(job.state().cancellation()).isEqualTo(ContractImportCancellation.of(LATER, CANCELLER));
     }
 
     private static ContractImportJob reconstituteWith(
-            final ContractImportJobStatus status,
+            final ContractImportJobState.Status status,
             final ContractImportTermination termination,
             final ContractImportCancellation cancellation
     ) {
         return ContractImportJob.reconstituteFromDatabase(UUID.randomUUID(), ContractImportJobFixtures.submission(NOW),
-                status, PROGRESS, null, termination, cancellation);
+                status, PROGRESS, status == ContractImportJobState.Status.RUNNING ? LEASE : null, termination, cancellation);
     }
 
-    private static ContractImportTermination consistentTerminationOf(final ContractImportJobStatus status) {
+    private static ContractImportTermination consistentTerminationOf(final ContractImportJobState.Status status) {
         return switch (status) {
             case PENDING, RUNNING -> null;
             case COMPLETED, CANCELLED -> ContractImportTermination.ended(NOW);
@@ -166,7 +166,7 @@ class ContractImportJobTest {
     void shouldRejectFailedStatusWithEndedTermination() {
         final ContractImportTermination ended = ContractImportTermination.ended(NOW);
 
-        assertThatThrownBy(() -> reconstituteWith(ContractImportJobStatus.FAILED, ended, null))
+        assertThatThrownBy(() -> reconstituteWith(ContractImportJobState.Status.FAILED, ended, null))
                 .isInstanceOf(InvalidDomainObjectError.class);
     }
 
@@ -175,22 +175,22 @@ class ContractImportJobTest {
     void shouldRejectCompletedStatusWithFailedTermination() {
         final ContractImportTermination failed = ContractImportTermination.failed(REASON, NOW);
 
-        assertThatThrownBy(() -> reconstituteWith(ContractImportJobStatus.COMPLETED, failed, null))
+        assertThatThrownBy(() -> reconstituteWith(ContractImportJobState.Status.COMPLETED, failed, null))
                 .isInstanceOf(InvalidDomainObjectError.class);
     }
 
     @ParameterizedTest
-    @EnumSource(value = ContractImportJobStatus.class, names = {"COMPLETED", "FAILED"})
+    @EnumSource(value = ContractImportJobState.Status.class, names = {"COMPLETED", "FAILED"})
     @DisplayName("GIVEN a finished status without termination WHEN reconstituteFromDatabase THEN it is rejected")
-    void shouldRejectFinishedStatusWithoutTermination(final ContractImportJobStatus status) {
+    void shouldRejectFinishedStatusWithoutTermination(final ContractImportJobState.Status status) {
         assertThatThrownBy(() -> reconstituteWith(status, null, null))
                 .isInstanceOf(InvalidDomainObjectError.class);
     }
 
     @ParameterizedTest
-    @EnumSource(value = ContractImportJobStatus.class, names = {"PENDING", "RUNNING"})
+    @EnumSource(value = ContractImportJobState.Status.class, names = {"PENDING", "RUNNING"})
     @DisplayName("GIVEN an unfinished status with a termination WHEN reconstituteFromDatabase THEN it is rejected")
-    void shouldRejectUnfinishedStatusWithTermination(final ContractImportJobStatus status) {
+    void shouldRejectUnfinishedStatusWithTermination(final ContractImportJobState.Status status) {
         final ContractImportTermination ended = ContractImportTermination.ended(NOW);
 
         assertThatThrownBy(() -> reconstituteWith(status, ended, null))
@@ -202,7 +202,7 @@ class ContractImportJobTest {
     void shouldRejectCancelledStatusWithoutCancellation() {
         final ContractImportTermination ended = ContractImportTermination.ended(NOW);
 
-        assertThatThrownBy(() -> reconstituteWith(ContractImportJobStatus.CANCELLED, ended, null))
+        assertThatThrownBy(() -> reconstituteWith(ContractImportJobState.Status.CANCELLED, ended, null))
                 .isInstanceOf(InvalidDomainObjectError.class);
     }
 
@@ -211,14 +211,14 @@ class ContractImportJobTest {
     void shouldRejectCancelledStatusWithoutTermination() {
         final ContractImportCancellation cancellation = ContractImportCancellation.of(LATER, CANCELLER);
 
-        assertThatThrownBy(() -> reconstituteWith(ContractImportJobStatus.CANCELLED, null, cancellation))
+        assertThatThrownBy(() -> reconstituteWith(ContractImportJobState.Status.CANCELLED, null, cancellation))
                 .isInstanceOf(InvalidDomainObjectError.class);
     }
 
     @ParameterizedTest
-    @EnumSource(value = ContractImportJobStatus.class, names = "CANCELLED", mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = ContractImportJobState.Status.class, names = "CANCELLED", mode = EnumSource.Mode.EXCLUDE)
     @DisplayName("GIVEN a status other than cancelled with a cancellation WHEN reconstituteFromDatabase THEN it is rejected")
-    void shouldRejectCancellationOfJobNotCancelled(final ContractImportJobStatus status) {
+    void shouldRejectCancellationOfJobNotCancelled(final ContractImportJobState.Status status) {
         final ContractImportTermination termination = consistentTerminationOf(status);
         final ContractImportCancellation cancellation = ContractImportCancellation.of(LATER, CANCELLER);
 
@@ -227,9 +227,31 @@ class ContractImportJobTest {
     }
 
     @Test
+    @DisplayName("GIVEN a running status without lease WHEN reconstituteFromDatabase THEN it is rejected")
+    void shouldRejectRunningStatusWithoutLease() {
+        assertThatThrownBy(() -> ContractImportJob.reconstituteFromDatabase(UUID.randomUUID(), ContractImportJobFixtures.submission(NOW),
+                ContractImportJobState.Status.RUNNING, PROGRESS, null, null, null))
+                .isInstanceOf(InvalidDomainObjectError.class);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ContractImportJobState.Status.class, names = "RUNNING", mode = EnumSource.Mode.EXCLUDE)
+    @DisplayName("GIVEN a status other than running with a lease WHEN reconstituteFromDatabase THEN it is rejected")
+    void shouldRejectLeaseOfJobNotRunning(final ContractImportJobState.Status status) {
+        final ContractImportTermination termination = consistentTerminationOf(status);
+        final ContractImportCancellation cancellation = status == ContractImportJobState.Status.CANCELLED
+                ? ContractImportCancellation.of(LATER, CANCELLER)
+                : null;
+
+        assertThatThrownBy(() -> ContractImportJob.reconstituteFromDatabase(UUID.randomUUID(), ContractImportJobFixtures.submission(NOW),
+                status, PROGRESS, LEASE, termination, cancellation))
+                .isInstanceOf(InvalidDomainObjectError.class);
+    }
+
+    @Test
     @DisplayName("GIVEN a job cancelled after its failure WHEN reconstituteFromDatabase THEN it keeps its failure")
     void shouldReconstituteJobCancelledAfterFailure() {
-        final ContractImportJob job = reconstituteWith(ContractImportJobStatus.CANCELLED,
+        final ContractImportJob job = reconstituteWith(ContractImportJobState.Status.CANCELLED,
                 ContractImportTermination.failed(REASON, NOW), ContractImportCancellation.of(LATER, CANCELLER));
 
         assertThat(failureReasonOf(job)).isEqualTo(REASON);
@@ -240,7 +262,7 @@ class ContractImportJobTest {
     void shouldReconstituteLegacyJobWithoutSubmitter() {
         final ContractImportSubmission submission = ContractImportSubmission.reconstituteFromDatabase(FILE_NAME, null, null, CONTENT_SHA256, NOW);
 
-        final ContractImportJob job = reconstitute(UUID.randomUUID(), submission, ContractImportJobStatus.RUNNING, PROGRESS);
+        final ContractImportJob job = reconstitute(UUID.randomUUID(), submission, ContractImportJobState.Status.RUNNING, PROGRESS);
 
         assertThat(job.submission().submittedBy()).isNull();
     }
@@ -251,10 +273,10 @@ class ContractImportJobTest {
         final ContractImportSubmission submission = ContractImportJobFixtures.submission(NOW);
         final UUID id = UUID.randomUUID();
 
-        assertThatThrownBy(() -> reconstitute(null, submission, ContractImportJobStatus.RUNNING, PROGRESS)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> reconstitute(id, null, ContractImportJobStatus.RUNNING, PROGRESS)).isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> reconstitute(null, submission, ContractImportJobState.Status.RUNNING, PROGRESS)).isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> reconstitute(id, null, ContractImportJobState.Status.RUNNING, PROGRESS)).isInstanceOf(InvalidDomainObjectError.class);
         assertThatThrownBy(() -> reconstitute(id, submission, null, PROGRESS)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> reconstitute(id, submission, ContractImportJobStatus.RUNNING, null)).isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> reconstitute(id, submission, ContractImportJobState.Status.RUNNING, null)).isInstanceOf(InvalidDomainObjectError.class);
     }
 
     @Test
@@ -292,8 +314,8 @@ class ContractImportJobTest {
     void shouldStart() {
         final ContractImportJob job = pendingJob(3).start(LEASE);
 
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.RUNNING);
-        assertThat(job.leaseUntil()).isEqualTo(LEASE);
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.RUNNING);
+        assertThat(job.state().leaseUntil()).isEqualTo(LEASE);
     }
 
     @Test
@@ -304,8 +326,8 @@ class ContractImportJobTest {
 
         final ContractImportJob job = pendingJob(3).start(LEASE).recordBatch(1, 0, LEASE).start(newLease);
 
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.RUNNING);
-        assertThat(job.leaseUntil()).isEqualTo(newLease);
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.RUNNING);
+        assertThat(job.state().leaseUntil()).isEqualTo(newLease);
         assertThat(job.progress().processedLines()).isEqualTo(1);
     }
 
@@ -337,12 +359,12 @@ class ContractImportJobTest {
 
         final ContractImportJob job = pendingJob(3).start(LEASE).recordBatch(1, 1, renewedLease);
 
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.RUNNING);
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.RUNNING);
         assertThat(job.progress().processedLines()).isEqualTo(2);
         assertThat(job.progress().importedCount()).isEqualTo(1);
         assertThat(job.progress().rejectedCount()).isEqualTo(1);
-        assertThat(job.leaseUntil()).isEqualTo(renewedLease);
-        assertThat(job.termination()).isNull();
+        assertThat(job.state().leaseUntil()).isEqualTo(renewedLease);
+        assertThat(job.state().termination()).isNull();
     }
 
     @Test
@@ -350,8 +372,8 @@ class ContractImportJobTest {
     void shouldKeepRunningAfterLastBatch() {
         final ContractImportJob job = pendingJob(2).start(LEASE).recordBatch(1, 1, LEASE);
 
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.RUNNING);
-        assertThat(job.termination()).isNull();
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.RUNNING);
+        assertThat(job.state().termination()).isNull();
     }
 
     @Test
@@ -362,7 +384,7 @@ class ContractImportJobTest {
         final ContractImportJob job = pendingJob(2).start(LEASE).recordBatch(0, 0, renewedLease);
 
         assertThat(job.progress().processedLines()).isZero();
-        assertThat(job.leaseUntil()).isEqualTo(renewedLease);
+        assertThat(job.state().leaseUntil()).isEqualTo(renewedLease);
     }
 
     @Test
@@ -378,9 +400,9 @@ class ContractImportJobTest {
     void shouldCompleteOnFinish() {
         final ContractImportJob job = pendingJob(2).start(LEASE).recordBatch(1, 1, LEASE).finish(NOW);
 
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.COMPLETED);
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.COMPLETED);
         assertThat(finishedAtOf(job)).isEqualTo(NOW);
-        assertThat(job.leaseUntil()).isNull();
+        assertThat(job.state().leaseUntil()).isNull();
         assertThat(failureReasonOf(job)).isNull();
     }
 
@@ -389,7 +411,7 @@ class ContractImportJobTest {
     void shouldFailOnFinishWithMissingLines() {
         final ContractImportJob job = pendingJob(2).start(LEASE).recordBatch(1, 0, LEASE).finish(NOW);
 
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.FAILED);
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.FAILED);
         assertThat(failureReasonOf(job)).isEqualTo(ContractImportFailureReason.INCOMPLETE_PROCESSING);
         assertThat(finishedAtOf(job)).isEqualTo(NOW);
     }
@@ -399,10 +421,10 @@ class ContractImportJobTest {
     void shouldRelease() {
         final ContractImportJob job = pendingJob(3).start(LEASE).recordBatch(1, 0, LEASE).release();
 
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.PENDING);
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.PENDING);
         assertThat(job.progress().processedLines()).isEqualTo(1);
-        assertThat(job.leaseUntil()).isNull();
-        assertThat(job.termination()).isNull();
+        assertThat(job.state().leaseUntil()).isNull();
+        assertThat(job.state().termination()).isNull();
     }
 
     @Test
@@ -411,10 +433,10 @@ class ContractImportJobTest {
     void shouldFail() {
         final ContractImportJob job = pendingJob(3).start(LEASE).recordBatch(1, 0, LEASE).fail(REASON, NOW);
 
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.FAILED);
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.FAILED);
         assertThat(job.progress().importedCount()).isEqualTo(1);
         assertThat(finishedAtOf(job)).isEqualTo(NOW);
-        assertThat(job.leaseUntil()).isNull();
+        assertThat(job.state().leaseUntil()).isNull();
         assertThat(failureReasonOf(job)).isEqualTo(REASON);
     }
 
@@ -457,10 +479,10 @@ class ContractImportJobTest {
     void shouldCancelPendingJob() {
         final ContractImportJob job = pendingJob(3).cancel(LATER, CANCELLER);
 
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.CANCELLED);
-        assertThat(job.cancellation()).isEqualTo(ContractImportCancellation.of(LATER, CANCELLER));
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.CANCELLED);
+        assertThat(job.state().cancellation()).isEqualTo(ContractImportCancellation.of(LATER, CANCELLER));
         assertThat(finishedAtOf(job)).isEqualTo(LATER);
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.CANCELLED);
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.CANCELLED);
     }
 
     @Test
@@ -468,10 +490,10 @@ class ContractImportJobTest {
     void shouldCancelRunningJob() {
         final ContractImportJob job = pendingJob(3).start(LEASE).recordBatch(1, 1, LEASE).cancel(LATER, CANCELLER);
 
-        assertThat(job.status()).isEqualTo(ContractImportJobStatus.CANCELLED);
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.CANCELLED);
         assertThat(job.progress().importedCount()).isEqualTo(1);
         assertThat(job.progress().rejectedCount()).isEqualTo(1);
-        assertThat(job.leaseUntil()).isNull();
+        assertThat(job.state().leaseUntil()).isNull();
     }
 
     @Test
@@ -480,9 +502,9 @@ class ContractImportJobTest {
         final ContractImportJob completed = completedJob().cancel(LATER, CANCELLER);
         final ContractImportJob failed = pendingJob(3).start(LEASE).fail(REASON, NOW).cancel(LATER, CANCELLER);
 
-        assertThat(completed.status()).isEqualTo(ContractImportJobStatus.CANCELLED);
+        assertThat(completed.status()).isEqualTo(ContractImportJobState.Status.CANCELLED);
         assertThat(finishedAtOf(completed)).isEqualTo(NOW);
-        assertThat(failed.status()).isEqualTo(ContractImportJobStatus.CANCELLED);
+        assertThat(failed.status()).isEqualTo(ContractImportJobState.Status.CANCELLED);
         assertThat(finishedAtOf(failed)).isEqualTo(NOW);
         assertThat(failureReasonOf(failed)).isEqualTo(REASON);
     }

@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportCancellation;
 import com.mk.contractservice.domain.contract.importjob.ContractImportFailureReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportProgress;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
@@ -49,13 +50,14 @@ public final class ContractImportJobJpaMapper {
 
     public static void mergeIntoExisting(final ContractImportJob domain, final ContractImportJobJpaEntity existing) {
         final ContractImportProgress progress = domain.progress();
-        final ContractImportTermination termination = domain.termination();
-        final ContractImportCancellation cancellation = domain.cancellation();
-        existing.setStatus(domain.status());
+        final ContractImportJobState state = domain.state();
+        final ContractImportTermination termination = state.termination();
+        final ContractImportCancellation cancellation = state.cancellation();
+        existing.setStatus(state.status());
         existing.setProcessedLines(progress.processedLines());
         existing.setImportedCount(progress.importedCount());
         existing.setRejectedCount(progress.rejectedCount());
-        existing.setLeaseUntil(domain.leaseUntil());
+        existing.setLeaseUntil(state.leaseUntil());
         existing.setFinishedAt(termination == null ? null : termination.finishedAt());
         existing.setFailureReason(failureReasonOf(termination));
         existing.setCancelledAt(cancellation == null ? null : cancellation.cancelledAt());

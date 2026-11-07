@@ -150,6 +150,6 @@ class ProcessContractImportBatchTest {
         assertThat(jobCaptor.getValue().progress().processedLines()).isEqualTo(2);
         assertThat(jobCaptor.getValue().progress().importedCount()).isEqualTo(1);
         assertThat(jobCaptor.getValue().progress().rejectedCount()).isEqualTo(1);
-        assertThat(jobCaptor.getValue().leaseUntil()).isEqualTo(CLOCK.instant().plus(ClaimContractImportJob.LEASE));
+        assertThat(jobCaptor.getValue().state().leaseUntil()).isEqualTo(CLOCK.instant().plus(ClaimContractImportJob.LEASE));
     }
 }

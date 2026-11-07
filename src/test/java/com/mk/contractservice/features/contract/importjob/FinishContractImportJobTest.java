@@ -4,7 +4,7 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportFailureRea
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.domain.contract.importjob.ContractImportTermination;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,8 +51,8 @@ class FinishContractImportJobTest {
         new FinishContractImportJob.Handler(jobRepository, CLOCK).execute(new FinishContractImportJob.Command(JOB_ID));
 
         verify(jobRepository).save(jobCaptor.capture());
-        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobStatus.COMPLETED);
-        assertThat(jobCaptor.getValue().termination()).isEqualTo(ContractImportTermination.ended(NOW));
+        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobState.Status.COMPLETED);
+        assertThat(jobCaptor.getValue().state().termination()).isEqualTo(ContractImportTermination.ended(NOW));
     }
 
     @Test
@@ -63,8 +63,8 @@ class FinishContractImportJobTest {
         new FinishContractImportJob.Handler(jobRepository, CLOCK).execute(new FinishContractImportJob.Command(JOB_ID));
 
         verify(jobRepository).save(jobCaptor.capture());
-        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobStatus.FAILED);
-        assertThat(jobCaptor.getValue().termination()).isEqualTo(ContractImportTermination.failed(ContractImportFailureReason.INCOMPLETE_PROCESSING, NOW));
+        assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobState.Status.FAILED);
+        assertThat(jobCaptor.getValue().state().termination()).isEqualTo(ContractImportTermination.failed(ContractImportFailureReason.INCOMPLETE_PROCESSING, NOW));
     }
 
     @Test
