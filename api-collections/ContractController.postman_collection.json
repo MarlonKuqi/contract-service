@@ -69,6 +69,10 @@
       "key": "exportCursor",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "importJobId",
+      "value": ""
     }
   ],
   "item": [
@@ -275,6 +279,122 @@
           "path": ["v2", "contracts", "imports"]
         },
         "description": "Import up to 1000 contracts, all or nothing (ADR-021). 201: {importedCount, contractIds} in the order of the lines; do not send it again, the contracts would be created twice. 422 contractImportRejected: nothing was created, the rejections property lists each problem with its zero-based index, clientId, code (invalidContractCost, invalidContractPeriod, clientNotFound) and message; fix the lines and send the whole import again. 422 invalidImportSize: no line or more than 1000. 422 validationError: missing or wrongly typed field, named contracts[n].field."
+      }
+    },
+    {
+      "name": "Submit Contract Import Job",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Idempotency-Key",
+            "value": "contracts-2026-11-001",
+            "description": "Optional. Send the same value again with the same file after a timeout: the first job is returned instead of importing twice. Use a new value for a new file."
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "contracts.csv"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs"]
+        },
+        "description": "Submit a CSV file for asynchronous, partial import (ADR-022). UTF-8, separator ';', first line clientId;startDate;endDate;costAmount, at most 500000 contracts and 50 MB. 202: Location header and job state; valid lines create their contract, the others are reported, so send only the rejected lines again. Idempotency-Key (optional, at most 255 characters, unique per counselor): the same key with the same file returns the first job; with another file, 422 idempotencyKeyReused; blank or too long, 400 invalidIdempotencyKey. 400 missingParameter: no file part. 413 importFileTooLarge: over 50 MB. 422 invalidImportFile: no data, wrong header, encoding other than UTF-8 or too many lines; nothing is stored."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 202) {",
+              "    pm.collectionVariables.set('importJobId', pm.response.json().jobId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Contract Import Job",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs/{{importJobId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs", "{{importJobId}}"]
+        },
+        "description": "Follow an import job (ADR-022): status (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED), totalLines, processedLines, importedCount, rejectedCount, createdAt, finishedAt, failureCode (unexpectedError, incompleteProcessing, tooManyAttempts, null unless FAILED), submittedBy, cancelledAt and cancelledBy. A COMPLETED job can contain rejected lines. After FAILED, lines already processed stay imported. 404 contractImportJobNotFound: unknown job."
+      }
+    },
+    {
+      "name": "List Contract Import Job Rejections",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs/{{importJobId}}/rejections?page=0&size=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs", "{{importJobId}}", "rejections"],
+          "query": [
+            { "key": "page", "value": "0" },
+            { "key": "size", "value": "20" }
+          ]
+        },
+        "description": "List the lines rejected so far, ordered by line number (ADR-022). lineNumber is the line in the file, the header being line 1. Codes: invalidLineFormat, invalidContractCost, invalidContractPeriod, clientNotFound. size: at most 100, otherwise 400 invalidParameter. 404 contractImportJobNotFound: unknown job."
+      }
+    },
+    {
+      "name": "Export Contract Import Job Rejections",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs/{{importJobId}}/rejections/export",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs", "{{importJobId}}", "rejections", "export"]
+        },
+        "description": "Download the rejected lines as CSV (text/csv, attachment): lineNumber;rejectionCode;rejectionMessage;line, ordered by line number. The line column is the original line of the file: fix it and copy it into a new file to submit. Text columns are quoted, inner quotes doubled. 404 contractImportJobNotFound: unknown job."
+      }
+    },
+    {
+      "name": "List Contract Import Jobs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs?page=0&size=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs"],
+          "query": [
+            { "key": "submittedBy", "value": "counselor.demo", "disabled": true, "description": "Only the jobs of this counselor (username)" },
+            { "key": "page", "value": "0" },
+            { "key": "size", "value": "20" }
+          ]
+        },
+        "description": "List the import jobs of every counselor, newest first, with the username of the counselor who submitted each one. submittedBy narrows the list to one counselor. size: at most 100, otherwise 400 invalidParameter."
+      }
+    },
+    {
+      "name": "Cancel Contract Import Job",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs/{{importJobId}}/cancellation",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs", "{{importJobId}}", "cancellation"]
+        },
+        "description": "Cancel a job in any state and close the contracts it created that are still active (end date = cancellation date). A running job stops at its current chunk, a pending job never runs. 200: {job, closedContracts}. Cancelling again changes nothing (closedContracts 0). A fixed file can then be submitted without active duplicates. 404 contractImportJobNotFound: unknown job."
       }
     },
     {

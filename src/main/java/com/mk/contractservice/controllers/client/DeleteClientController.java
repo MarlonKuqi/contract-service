@@ -43,7 +43,7 @@ public class DeleteClientController {
     )
     @ApiResponse(
             responseCode = "409",
-            description = "Client was still modified concurrently by another user after several retries (code optimisticLockFailure)",
+            description = "Client was still modified concurrently by another user after several retries (code optimisticLockFailure), or is held by a contract import batch for longer than the lock timeout (code resourceBusy, retry in a few seconds)",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )

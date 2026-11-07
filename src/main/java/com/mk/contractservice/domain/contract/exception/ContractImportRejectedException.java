@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.contract.exception;
 
+import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import lombok.Getter;
 
 import java.util.List;
@@ -8,13 +9,7 @@ import java.util.UUID;
 @Getter
 public class ContractImportRejectedException extends RuntimeException {
 
-    public enum Reason {
-        INVALID_COST,
-        INVALID_PERIOD,
-        CLIENT_NOT_FOUND
-    }
-
-    public record LineRejection(int index, UUID clientId, Reason reason, String message) {
+    public record LineRejection(int index, UUID clientId, ContractImportRejectionReason reason, String message) {
     }
 
     private final transient List<LineRejection> rejections;

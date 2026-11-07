@@ -166,6 +166,33 @@ class ContractTest {
 
 
             @Test
+            @DisplayName("GIVEN a year PostgreSQL may not store WHEN creating Contract THEN throw InvalidContractPeriodException")
+            void shouldRejectYearOutOfRange() {
+                BigDecimal costAmount = new BigDecimal("100.00");
+                LocalDateTime tooLate = LocalDateTime.of(10000, 1, 1, 0, 0);
+                LocalDateTime tooEarly = LocalDateTime.of(0, 12, 31, 0, 0);
+
+                assertThatThrownBy(() -> ContractFactory.createFromCommand(testClientId, tooLate, null, costAmount, NOW))
+                        .isInstanceOf(InvalidContractPeriodException.class);
+                assertThatThrownBy(() -> ContractFactory.createFromCommand(testClientId, tooEarly, NOW, costAmount, NOW))
+                        .isInstanceOf(InvalidContractPeriodException.class);
+                assertThatThrownBy(() -> ContractFactory.createFromCommand(testClientId, NOW, tooLate, costAmount, NOW))
+                        .isInstanceOf(InvalidContractPeriodException.class);
+            }
+
+            @Test
+            @DisplayName("GIVEN the first and last accepted years WHEN creating Contract THEN it is created")
+            void shouldAcceptBoundaryYears() {
+                LocalDateTime first = LocalDateTime.of(1, 1, 1, 0, 0);
+                LocalDateTime last = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
+
+                Contract contract = ContractFactory.createFromCommand(testClientId, first, last, new BigDecimal("100.00"), NOW);
+
+                assertThat(contract.period().startDate()).isEqualTo(first);
+                assertThat(contract.period().endDate()).isEqualTo(last);
+            }
+
+            @Test
             @DisplayName("GIVEN null client ID WHEN creating Contract THEN throw InvalidDomainObjectError")
             void shouldRejectNullClientId() {
                 LocalDateTime startDate = NOW;
