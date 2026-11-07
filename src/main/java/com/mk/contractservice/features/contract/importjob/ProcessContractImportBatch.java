@@ -83,12 +83,12 @@ public interface ProcessContractImportBatch {
                 }
             }
 
-            final List<Contract> contracts = contractRepository.insertAll(imported.stream().map(ImportedLine::contract).toList());
+            final List<Contract> contracts = contractRepository.saveAll(imported.stream().map(ImportedLine::contract).toList());
             for (int index = 0; index < contracts.size(); index++) {
                 final Contract contract = contracts.get(index);
                 lines.add(ContractImportJobLine.imported(jobId, imported.get(index).lineNumber(), contract.clientId(), contract.id()));
             }
-            jobRepository.insertLines(lines);
+            jobRepository.saveLines(lines);
 
             final int rejected = lines.size() - contracts.size();
             jobRepository.save(job.recordBatch(contracts.size(), rejected, instant.plus(ClaimContractImportJob.LEASE)));

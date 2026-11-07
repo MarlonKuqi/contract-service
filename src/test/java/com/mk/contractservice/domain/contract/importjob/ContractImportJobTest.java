@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobCancelledException;
+import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobTransitionNotAllowedException;
 import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -316,7 +317,7 @@ class ContractImportJobTest {
         final ContractImportJob cancelled = pendingJob(3).cancel(LATER, CANCELLER);
 
         for (final ContractImportJob job : new ContractImportJob[]{completed, failed, cancelled}) {
-            assertThatThrownBy(() -> job.start(LEASE)).isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> job.start(LEASE)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
         }
     }
 
@@ -325,8 +326,8 @@ class ContractImportJobTest {
     void shouldRejectNegativeBatch() {
         final ContractImportJob job = pendingJob(3).start(LEASE).recordBatch(1, 1, LEASE);
 
-        assertThatThrownBy(() -> job.recordBatch(-1, 0, LEASE)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> job.recordBatch(0, -1, LEASE)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> job.recordBatch(-1, 0, LEASE)).isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> job.recordBatch(0, -1, LEASE)).isInstanceOf(InvalidDomainObjectError.class);
     }
 
     @Test
@@ -369,7 +370,7 @@ class ContractImportJobTest {
     void shouldRejectBatchBeyondTotal() {
         final ContractImportJob job = pendingJob(1).start(LEASE);
 
-        assertThatThrownBy(() -> job.recordBatch(2, 0, LEASE)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> job.recordBatch(2, 0, LEASE)).isInstanceOf(InvalidDomainObjectError.class);
     }
 
     @Test
@@ -424,9 +425,9 @@ class ContractImportJobTest {
         final ContractImportJob failed = pendingJob(3).start(LEASE).fail(REASON, NOW);
         final ContractImportJob completed = completedJob();
 
-        assertThatThrownBy(() -> pending.recordBatch(1, 0, LEASE)).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> failed.recordBatch(1, 0, LEASE)).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> completed.recordBatch(1, 0, LEASE)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> pending.recordBatch(1, 0, LEASE)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
+        assertThatThrownBy(() -> failed.recordBatch(1, 0, LEASE)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
+        assertThatThrownBy(() -> completed.recordBatch(1, 0, LEASE)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
     }
 
     @Test
@@ -437,9 +438,9 @@ class ContractImportJobTest {
         final ContractImportJob completed = completedJob();
 
         for (final ContractImportJob job : new ContractImportJob[]{pending, failed, completed}) {
-            assertThatThrownBy(() -> job.fail(REASON, NOW)).isInstanceOf(IllegalStateException.class);
-            assertThatThrownBy(() -> job.finish(NOW)).isInstanceOf(IllegalStateException.class);
-            assertThatThrownBy(job::release).isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> job.fail(REASON, NOW)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
+            assertThatThrownBy(() -> job.finish(NOW)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
+            assertThatThrownBy(job::release).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
         }
     }
 

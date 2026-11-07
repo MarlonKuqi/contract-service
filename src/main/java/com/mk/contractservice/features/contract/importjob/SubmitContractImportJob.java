@@ -18,15 +18,23 @@ import java.util.Optional;
 public interface SubmitContractImportJob {
 
     record Command(
-            @Nullable String fileName,
-            byte[] content,
+            ContractImportFile file,
             String submittedBy,
             @Nullable String idempotencyKey
     ) {
 
         public Command {
-            Objects.requireNonNull(content, "Content cannot be null");
+            Objects.requireNonNull(file, "File cannot be null");
             Objects.requireNonNull(submittedBy, "Submitter cannot be null");
+        }
+
+        public Command(
+                @Nullable final String fileName,
+                final byte[] content,
+                final String submittedBy,
+                @Nullable final String idempotencyKey
+        ) {
+            this(ContractImportFile.of(fileName, content), submittedBy, idempotencyKey);
         }
     }
 
@@ -42,16 +50,16 @@ public interface SubmitContractImportJob {
 
         @Override
         public ContractImportJob execute(final Command command) {
-            final ContractImportFile file = ContractImportFile.of(command.fileName(), command.content());
+            final ContractImportFile file = command.file();
             final String fingerprint = file.fingerprint();
             final Optional<IdempotencyKey> key = Optional.ofNullable(command.idempotencyKey()).map(IdempotencyKey::of);
             return key
                     .flatMap(requested -> jobRepository.findByIdempotencyKey(command.submittedBy(), requested)
                             .map(previous -> replay(previous, requested, fingerprint)))
-                    .orElseGet(() -> insertNewJob(file, command.submittedBy(), key.orElse(null), fingerprint));
+                    .orElseGet(() -> saveNewJob(file, command.submittedBy(), key.orElse(null), fingerprint));
         }
 
-        private ContractImportJob insertNewJob(
+        private ContractImportJob saveNewJob(
                 final ContractImportFile file,
                 final String submittedBy,
                 @Nullable final IdempotencyKey key,
@@ -64,7 +72,7 @@ public interface SubmitContractImportJob {
                     fingerprint,
                     LocalDateTime.now(clock)
             );
-            return jobRepository.insert(ContractImportJob.of(submission, file.totalLines()), file.content());
+            return jobRepository.save(ContractImportJob.of(submission, file.totalLines()), file.content());
         }
 
         private static ContractImportJob replay(

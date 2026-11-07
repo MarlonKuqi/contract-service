@@ -29,7 +29,7 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
     private final EntityManager entityManager;
 
     @Override
-    public ContractImportJob insert(final ContractImportJob job, final byte[] fileContent) {
+    public ContractImportJob save(final ContractImportJob job, final byte[] fileContent) {
         final ContractImportJobJpaEntity entity = ContractImportJobJpaMapper.toNewEntity(job);
         entityManager.persist(entity);
         entityManager.persist(new ContractImportJobFileJpaEntity(entity.getId(), fileContent));
@@ -40,7 +40,7 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
     public ContractImportJob save(final ContractImportJob job) {
         final UUID jobId = job.id();
         if (jobId == null) {
-            throw new IllegalStateException("Import job must be inserted before it is saved");
+            throw new IllegalStateException("Import job must be saved with its file before it is saved alone");
         }
         final ContractImportJobJpaEntity entity = jobJpaRepository.findById(jobId).orElseThrow(
                 () -> new IllegalStateException("Import job with id " + jobId + " not found in database")
@@ -64,7 +64,7 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
     }
 
     @Override
-    public ContractImportJob getByIdForUpdate(final UUID jobId) {
+    public ContractImportJob lockById(final UUID jobId) {
         return jobJpaRepository.findForUpdate(jobId)
                 .map(ContractImportJobJpaMapper::toDomain)
                 .orElseThrow(() -> new ContractImportJobNotFoundException(jobId));
@@ -100,7 +100,7 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
     }
 
     @Override
-    public void insertLines(final List<ContractImportJobLine> lines) {
+    public void saveLines(final List<ContractImportJobLine> lines) {
         lines.forEach(line -> entityManager.persist(ContractImportJobJpaMapper.toLineEntity(line)));
     }
 }

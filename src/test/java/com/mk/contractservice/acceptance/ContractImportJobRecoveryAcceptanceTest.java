@@ -413,7 +413,7 @@ class ContractImportJobRecoveryAcceptanceTest {
         final LocalDateTime now = LocalDateTime.now(clock);
         final byte[] file = (HEADER + clientId + ";;;100.00\n" + clientId + ";;;100.00\n").getBytes(StandardCharsets.UTF_8);
         final ContractImportJob job = new TransactionTemplate(transactionManager).execute(status -> {
-            final ContractImportJob inserted = jobRepository.insert(ContractImportJob.of(ContractImportSubmission.of("contracts.csv", "marie.counselor", null, "a".repeat(64), now), 2), file);
+            final ContractImportJob inserted = jobRepository.save(ContractImportJob.of(ContractImportSubmission.of("contracts.csv", "marie.counselor", null, "a".repeat(64), now), 2), file);
             return jobRepository.save(inserted.start(clock.instant().plus(Duration.ofHours(1))));
         });
         final ProcessContractImportBatch.Command batch = new ProcessContractImportBatch.Command(

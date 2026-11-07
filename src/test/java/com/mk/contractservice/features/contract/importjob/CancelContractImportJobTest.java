@@ -61,7 +61,7 @@ class CancelContractImportJobTest {
     @Test
     @DisplayName("GIVEN a completed job WHEN cancelling THEN it is cancelled and its active contracts are closed now")
     void shouldCancelJobAndCloseItsContracts() {
-        when(jobRepository.getByIdForUpdate(JOB_ID)).thenReturn(completedJob());
+        when(jobRepository.lockById(JOB_ID)).thenReturn(completedJob());
         when(jobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(contractRepository.closeAllActiveImportedBy(JOB_ID, NOW)).thenReturn(2);
 
@@ -78,7 +78,7 @@ class CancelContractImportJobTest {
     @DisplayName("GIVEN an already cancelled job WHEN cancelling again THEN nothing is saved nor closed")
     void shouldIgnoreAlreadyCancelledJob() {
         final ContractImportJob cancelled = ContractImportJobFixtures.cancelledJob(JOB_ID);
-        when(jobRepository.getByIdForUpdate(JOB_ID)).thenReturn(cancelled);
+        when(jobRepository.lockById(JOB_ID)).thenReturn(cancelled);
 
         final CancelContractImportJob.Result result = handler().execute(new CancelContractImportJob.Command(JOB_ID, "other.counselor"));
 
@@ -91,7 +91,7 @@ class CancelContractImportJobTest {
     @Test
     @DisplayName("GIVEN an unknown job WHEN cancelling THEN it is not found and nothing is closed")
     void shouldNotCloseContractsOfUnknownJob() {
-        when(jobRepository.getByIdForUpdate(JOB_ID)).thenThrow(new ContractImportJobNotFoundException(JOB_ID));
+        when(jobRepository.lockById(JOB_ID)).thenThrow(new ContractImportJobNotFoundException(JOB_ID));
 
         assertThatThrownBy(() -> handler().execute(new CancelContractImportJob.Command(JOB_ID, COUNSELOR)))
                 .isInstanceOf(ContractImportJobNotFoundException.class);

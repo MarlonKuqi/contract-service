@@ -7,6 +7,7 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportJobReposit
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobStatus;
 import com.mk.contractservice.domain.contract.importjob.ContractImportProgress;
 import com.mk.contractservice.domain.contract.importjob.ContractImportTermination;
+import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobTransitionNotAllowedException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -66,7 +67,7 @@ class FailContractImportJobTest {
         when(jobRepository.getById(JOB_ID)).thenReturn(ContractImportJobFixtures.runningJob(JOB_ID, 2, 2, 0, CLOCK.instant(), NOW).finish(NOW));
         final FailContractImportJob handler = new FailContractImportJob.Handler(jobRepository, CLOCK);
 
-        assertThatThrownBy(() -> handler.execute(COMMAND)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> handler.execute(COMMAND)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
 
         verify(jobRepository, never()).save(any());
     }

@@ -67,6 +67,12 @@ public class PatchClientController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @ApiResponse(
+            responseCode = "409",
+            description = "The client is held by a contract import batch for longer than the lock timeout (code resourceBusy). Retry in a few seconds",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
             responseCode = "412",
             description = "The client was modified since the ETag sent in If-Match was read (code preconditionFailed)",
             content = @Content(mediaType = "application/problem+json",

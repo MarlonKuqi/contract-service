@@ -107,7 +107,7 @@ class ClientDeletionDuringImportBatchAcceptanceTest {
             awaitAnotherTransactionBlockedOnALock();
 
             final LocalDateTime now = LocalDateTime.now(clock);
-            return contractRepository.insertAll(List.of(ContractFactory.createFromCommand(
+            return contractRepository.saveAll(List.of(ContractFactory.createFromCommand(
                     clientId, now, null, new BigDecimal("100.00"), now))).getFirst();
         });
 

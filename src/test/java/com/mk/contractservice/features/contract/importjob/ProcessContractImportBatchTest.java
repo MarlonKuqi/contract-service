@@ -86,7 +86,7 @@ class ProcessContractImportBatchTest {
         final UUID contractId = UUID.randomUUID();
         when(jobRepository.getById(JOB_ID)).thenReturn(runningJob(5));
         when(clientRepository.lockExistingIds(Set.of(CLIENT_ID, UNKNOWN_CLIENT_ID))).thenReturn(Set.of(CLIENT_ID));
-        when(contractRepository.insertAll(anyList())).thenReturn(List.of(persisted(contractId)));
+        when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(contractId)));
 
         handler.execute(new ProcessContractImportBatch.Command(JOB_ID, List.of(
                 new RawLine(2, CLIENT_ID + ";;;100.00"),
@@ -96,7 +96,7 @@ class ProcessContractImportBatchTest {
                 new RawLine(6, CLIENT_ID + ";2026-01-01T00:00:00;2025-01-01T00:00:00;100.00")
         )));
 
-        verify(jobRepository).insertLines(linesCaptor.capture());
+        verify(jobRepository).saveLines(linesCaptor.capture());
         assertThat(linesCaptor.getValue())
                 .extracting(ProcessContractImportBatchTest::outcomeOf)
                 .containsExactlyInAnyOrder(
@@ -116,7 +116,7 @@ class ProcessContractImportBatchTest {
         final UUID secondContractId = UUID.randomUUID();
         when(jobRepository.getById(JOB_ID)).thenReturn(runningJob(3));
         when(clientRepository.lockExistingIds(Set.of(CLIENT_ID))).thenReturn(Set.of(CLIENT_ID));
-        when(contractRepository.insertAll(anyList())).thenReturn(List.of(persisted(firstContractId), persisted(secondContractId)));
+        when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(firstContractId), persisted(secondContractId)));
 
         handler.execute(new ProcessContractImportBatch.Command(JOB_ID, List.of(
                 new RawLine(2, CLIENT_ID + ";;;100.00"),
@@ -124,7 +124,7 @@ class ProcessContractImportBatchTest {
                 new RawLine(4, CLIENT_ID + ";;;200.00")
         )));
 
-        verify(jobRepository).insertLines(linesCaptor.capture());
+        verify(jobRepository).saveLines(linesCaptor.capture());
         assertThat(linesCaptor.getValue())
                 .filteredOn(ContractImportJobLine.Imported.class::isInstance)
                 .extracting(ProcessContractImportBatchTest::outcomeOf)
@@ -139,7 +139,7 @@ class ProcessContractImportBatchTest {
     void shouldRecordProgress() {
         when(jobRepository.getById(JOB_ID)).thenReturn(runningJob(5));
         when(clientRepository.lockExistingIds(any())).thenReturn(Set.of(CLIENT_ID));
-        when(contractRepository.insertAll(anyList())).thenReturn(List.of(persisted(UUID.randomUUID())));
+        when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(UUID.randomUUID())));
 
         handler.execute(new ProcessContractImportBatch.Command(JOB_ID, List.of(
                 new RawLine(2, CLIENT_ID + ";;;100.00"),
