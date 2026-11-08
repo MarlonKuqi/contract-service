@@ -146,6 +146,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 2
 
       - name: Set up JDK 27
         uses: actions/setup-java@v6
@@ -162,6 +163,8 @@ jobs:
         run: |
           bash .github/scripts/mutation-summary.sh target/pit-reports/mutations.xml mutation-summary.md
           cat mutation-summary.md >> "$GITHUB_STEP_SUMMARY"
+        env:
+          DIFF_RANGE: ${{ github.event_name == 'pull_request' && 'HEAD^1..HEAD' || '' }}
 
       - name: Comment PR with mutation summary
         if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && hashFiles('target/pit-reports/mutations.xml') != ''
