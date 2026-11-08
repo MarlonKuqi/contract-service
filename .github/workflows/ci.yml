@@ -26,6 +26,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    outputs:
+      docker-changed: ${{ steps.docker-changes.outputs.changed }}
 
     steps:
       - name: Checkout code
@@ -33,6 +35,16 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+
+      - name: Detect Docker-related changes
+        id: docker-changes
+        if: github.event_name == 'pull_request'
+        run: |
+          if git diff --name-only HEAD^1 HEAD | grep -qE '^(Dockerfile|\.dockerignore|pom\.xml|\.mvn/)'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up JDK 27
         uses: actions/setup-java@v6
@@ -172,7 +184,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: unit-tests
-    if: github.event_name == 'push' || inputs.build-image
+    if: github.event_name == 'push' || inputs.build-image || needs.unit-tests.outputs.docker-changed == 'true'
     permissions:
       contents: read
       security-events: write

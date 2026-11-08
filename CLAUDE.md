@@ -143,6 +143,7 @@ Conventional Commits:
 - `fix`: bug fix
 - `refactor`: code restructuring with no behavior change
 - `chore`: non-functional work (dependencies, build, formatting)
+- `ci`: CI pipeline and its configuration (GitHub workflows, Dependabot, CODEOWNERS)
 - `test`: adding or improving tests
 - `docs`: documentation (including this file)
 

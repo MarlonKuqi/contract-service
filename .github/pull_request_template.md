@@ -1,5 +1,5 @@
 <!--
-PR title = squash commit message (Conventional Commits): feat | fix | refactor | chore | test | docs, e.g. feat(contract): add import jobs
+PR title = squash commit message (Conventional Commits): feat | fix | refactor | chore | ci | test | docs, e.g. feat(contract): add import jobs
 Base branch (ADR-020): feat/* -> develop ; bugfix/* -> the branch it fixes (develop, release/x.y.z or master)
 -->
 
