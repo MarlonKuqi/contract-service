@@ -8,6 +8,7 @@ import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.features.contract.ImportContracts;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
+import io.restassured.response.ValidatableResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,12 +20,14 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -70,10 +73,14 @@ class ImportContractsAcceptanceTest {
                             "phone": "%s",
                             "birthDate": "1985-03-20"
                         }
-                        """.formatted(TestDataHelper.uniqueEmail("marie.durand"), TestDataHelper.randomSwissPhoneNumber()))
-                .when().post(ClientEndpoints.CLIENTS_BASE)
-                .then().statusCode(201)
-                .extract().path("id");
+                        """.formatted(TestDataHelper.uniqueEmail("marie.durand"),
+                        TestDataHelper.randomSwissPhoneNumber()))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
     private String line(final String ownerId, final String costAmount) {
@@ -90,16 +97,24 @@ class ImportContractsAcceptanceTest {
         return importOf(List.of(lines));
     }
 
-    private void assertNothingWasImported() {
-        assertThat(contractJpaRepository.count()).isZero();
+    private String isoDateTime(final LocalDateTime dateTime) {
+        return dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+    }
+
+    private ValidatableResponse contractsOfClient() {
+        return given().when().get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", clientId).then();
+    }
+
+    private void assertClientHasNoContract() {
+        contractsOfClient().statusCode(200).body("totalElements", equalTo(0));
     }
 
     @Test
     @DisplayName("GIVEN valid lines for several clients WHEN importing THEN every contract exists and the ids follow the lines order")
     void shouldImportContractsForSeveralClients() {
         final String otherClientId = createPerson();
-        final LocalDateTime start = LocalDateTime.now(clock).plusDays(1).withSecond(30).withNano(0);
-        final LocalDateTime end = start.plusYears(1);
+        final String start = isoDateTime(LocalDateTime.now(clock).plusDays(1).truncatedTo(ChronoUnit.SECONDS));
+        final String end = isoDateTime(LocalDateTime.now(clock).plusYears(1).truncatedTo(ChronoUnit.SECONDS));
 
         final List<String> contractIds = given()
                 .body(importOf(
@@ -108,22 +123,28 @@ class ImportContractsAcceptanceTest {
                                 .formatted(clientId, start, end),
                         line(otherClientId, "2500.50")
                 ))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()
                 .statusCode(201)
                 .body("importedCount", equalTo(2))
                 .body("contractIds", hasSize(2))
-                .extract().path("contractIds");
+                .extract()
+                .path("contractIds");
 
-        given().when().get(ContractEndpoints.CONTRACT_BY_ID, contractIds.getFirst())
-                .then().statusCode(200)
+        given().when()
+                .get(ContractEndpoints.CONTRACT_BY_ID, contractIds.getFirst())
+                .then()
+                .statusCode(200)
                 .body("clientId", equalTo(clientId))
                 .body("costAmount", equalTo(1000.00f))
-                .body("startDate", equalTo(start.toString()))
-                .body("endDate", equalTo(end.toString()));
+                .body("startDate", equalTo(start))
+                .body("endDate", equalTo(end));
 
-        given().when().get(ContractEndpoints.CONTRACT_BY_ID, contractIds.getLast())
-                .then().statusCode(200)
+        given().when()
+                .get(ContractEndpoints.CONTRACT_BY_ID, contractIds.getLast())
+                .then()
+                .statusCode(200)
                 .body("clientId", equalTo(otherClientId))
                 .body("costAmount", equalTo(2500.50f));
     }
@@ -133,16 +154,19 @@ class ImportContractsAcceptanceTest {
     void shouldCountImportedContractsInClientTotal() {
         given()
                 .body(importOf(line(clientId, "1000.00"), line(clientId, "500.00")))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
-                .then().statusCode(201);
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
+                .then()
+                .statusCode(201);
 
-        given().when().get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", clientId)
-                .then().statusCode(200)
-                .body("content", hasSize(2));
+        contractsOfClient().statusCode(200).body("totalElements", equalTo(2));
 
-        given().when().get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", clientId)
-                .then().statusCode(200)
-                .body(containsString("1500"));
+        given().when()
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        clientId)
+                .then()
+                .statusCode(200)
+                .body(equalTo("1500.00"));
     }
 
     @Test
@@ -150,7 +174,8 @@ class ImportContractsAcceptanceTest {
     void shouldImportNothingWhenOneLineIsInvalid() {
         given()
                 .body(importOf(line(clientId, "1000.00"), line(clientId, "-5.00"), line(clientId, "2000.00")))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()
                 .statusCode(422)
                 .contentType("application/problem+json")
@@ -159,7 +184,7 @@ class ImportContractsAcceptanceTest {
                 .body("rejections[0].index", equalTo(1))
                 .body("rejections[0].code", equalTo("invalidContractCost"));
 
-        assertNothingWasImported();
+        assertClientHasNoContract();
     }
 
     @Test
@@ -177,7 +202,8 @@ class ImportContractsAcceptanceTest {
                                 .formatted(clientId, start, start.minusDays(1)),
                         line(unknownClientId, "1000.00")
                 ))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()
                 .statusCode(422)
                 .body("rejections", hasSize(3))
@@ -192,7 +218,7 @@ class ImportContractsAcceptanceTest {
                 .body("rejections[2].code", equalTo("clientNotFound"))
                 .body("rejections[2].message", containsString(unknownClientId));
 
-        assertNothingWasImported();
+        assertClientHasNoContract();
     }
 
     @Test
@@ -202,13 +228,12 @@ class ImportContractsAcceptanceTest {
 
         given()
                 .body(importOf(line(clientId, "1000.00")))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()
                 .statusCode(422)
                 .body("rejections[0].index", equalTo(0))
                 .body("rejections[0].code", equalTo("clientNotFound"));
-
-        assertNothingWasImported();
     }
 
     @Test
@@ -216,12 +241,13 @@ class ImportContractsAcceptanceTest {
     void shouldImportMaximumNumberOfLines() {
         given()
                 .body(importOf(Collections.nCopies(ImportContracts.MAX_LINES, line(clientId, "10.00"))))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()
                 .statusCode(201)
                 .body("importedCount", equalTo(ImportContracts.MAX_LINES));
 
-        assertThat(contractJpaRepository.count()).isEqualTo(ImportContracts.MAX_LINES);
+        contractsOfClient().statusCode(206).body("totalElements", equalTo(ImportContracts.MAX_LINES));
     }
 
     @Test
@@ -229,12 +255,13 @@ class ImportContractsAcceptanceTest {
     void shouldRefuseImportAboveMaximum() {
         given()
                 .body(importOf(Collections.nCopies(ImportContracts.MAX_LINES + 1, line(clientId, "10.00"))))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()
                 .statusCode(422)
                 .body("code", equalTo("invalidImportSize"));
 
-        assertNothingWasImported();
+        assertClientHasNoContract();
     }
 
     @Test
@@ -242,7 +269,8 @@ class ImportContractsAcceptanceTest {
     void shouldRefuseEmptyImport() {
         given()
                 .body(importOf())
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()
                 .statusCode(422)
                 .body("code", equalTo("invalidImportSize"));
@@ -254,13 +282,12 @@ class ImportContractsAcceptanceTest {
         given()
                 .body(importOf(line(clientId, "1000.00"), """
                         { "clientId": "%s" }""".formatted(clientId)))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()
                 .statusCode(422)
                 .body("code", equalTo("validationError"))
                 .body("validations[0].field", equalTo("contracts[1].costAmount"));
-
-        assertNothingWasImported();
     }
 
     @Test
@@ -268,13 +295,12 @@ class ImportContractsAcceptanceTest {
     void shouldNameEmptyLine() {
         given()
                 .body(importOf(line(clientId, "1000.00"), "null"))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()
                 .statusCode(422)
                 .body("code", equalTo("validationError"))
                 .body("validations[0].field", equalTo("contracts[1]"));
-
-        assertNothingWasImported();
     }
 
     @Test
@@ -282,13 +308,12 @@ class ImportContractsAcceptanceTest {
     void shouldNameLineAndFieldOfWrongType() {
         given()
                 .body(importOf(line(clientId, "1000.00"), line(clientId, "not-a-number")))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()
                 .statusCode(422)
                 .body("code", equalTo("validationError"))
                 .body("detail", containsString("contracts[1].costAmount"));
-
-        assertNothingWasImported();
     }
 
     @Test
@@ -296,7 +321,8 @@ class ImportContractsAcceptanceTest {
     void shouldRefuseMissingContractsField() {
         given()
                 .body("{}")
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()
                 .statusCode(422)
                 .body("code", equalTo("validationError"))
@@ -308,17 +334,18 @@ class ImportContractsAcceptanceTest {
     void shouldNotDuplicateContractsWhenRetryingRejectedImport() {
         given()
                 .body(importOf(line(clientId, "1000.00"), line(clientId, "-1.00")))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
-                .then().statusCode(422);
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
+                .then()
+                .statusCode(422);
 
         given()
                 .body(importOf(line(clientId, "1000.00"), line(clientId, "1.00")))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
-                .then().statusCode(201);
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
+                .then()
+                .statusCode(201);
 
-        assertThat(contractJpaRepository.findAll().stream()
-                .map(contract -> contract.getCostAmount().stripTrailingZeros().toPlainString())
-                .toList())
-                .containsExactlyInAnyOrder("1000", "1");
+        contractsOfClient().statusCode(200).body("content.costAmount", containsInAnyOrder(1000.00f, 1.00f));
     }
 }

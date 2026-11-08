@@ -2,16 +2,15 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException.LineRejection;
-import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException.Reason;
-import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
-import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
 import com.mk.contractservice.domain.shared.UseCase;
-import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
+import com.mk.contractservice.features.shared.ContractImportLineEvaluator;
+import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Accepted;
+import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Rejected;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,14 +39,6 @@ public interface ImportContracts {
             Objects.requireNonNull(clientId, "Client ID cannot be null");
             Objects.requireNonNull(costAmount, "Cost amount cannot be null");
         }
-
-        Contract toContract(final LocalDateTime now) {
-            return ContractFactory.createFromCommand(clientId, startDate, endDate, costAmount, now);
-        }
-
-        LineRejection toRejection(final int index, final Reason reason, final String message) {
-            return new LineRejection(index, clientId, reason, message);
-        }
     }
 
     record Command(List<Line> lines) {
@@ -69,7 +60,6 @@ public interface ImportContracts {
     }
 
     List<Contract> execute(Command command);
-
 
     @UseCase
     @Transactional
@@ -95,7 +85,7 @@ public interface ImportContracts {
             if (processResult.hasRejections()) {
                 throw new ContractImportRejectedException(processResult.rejections());
             }
-            return contractRepository.insertAll(processResult.contracts());
+            return contractRepository.saveAll(processResult.contracts());
         }
 
         private LineProcessResult processLines(final Command command, final LocalDateTime now) {
@@ -106,18 +96,15 @@ public interface ImportContracts {
 
             for (int index = 0; index < command.lines().size(); index++) {
                 final Line line = command.lines().get(index);
-                if (!existingClientIds.contains(line.clientId())) {
-                    rejections.add(line.toRejection(index,
-                            Reason.CLIENT_NOT_FOUND,
-                            ClientNotFoundException.messageFor(line.clientId())));
-                    continue;
-                }
-                try {
-                    contracts.add(line.toContract(now));
-                } catch (final InvalidContractCostException ex) {
-                    rejections.add(line.toRejection(index, Reason.INVALID_COST, ex.getMessage()));
-                } catch (final InvalidContractPeriodException ex) {
-                    rejections.add(line.toRejection(index, Reason.INVALID_PERIOD, ex.getMessage()));
+                switch (ContractImportLineEvaluator.evaluate(line.clientId(),
+                        line.startDate(),
+                        line.endDate(),
+                        line.costAmount(),
+                        existingClientIds,
+                        now)) {
+                    case Accepted(Contract contract) -> contracts.add(contract);
+                    case Rejected(ContractImportRejectionReason reason, String message) -> rejections.add(
+                            new LineRejection(index, line.clientId(), reason, message));
                 }
             }
             return new LineProcessResult(contracts, rejections);

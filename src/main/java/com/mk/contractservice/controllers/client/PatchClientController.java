@@ -42,13 +42,7 @@ public class PatchClientController {
 
     @Operation(
             summary = "Partially update a client (PATCH)",
-            description = "Updates only the provided fields of a client. "
-                    + "All fields are optional. If no fields are provided, the operation is idempotent (no change). "
-                    + "A field sent with an explicit null is rejected (422): these fields are mandatory and cannot be cleared. "
-                    + "Values identical to the current ones after normalization (email case, surrounding spaces, phone format) are ignored. "
-                    + "birthDate and companyIdentifier cannot be updated as per business rules. "
-                    + "Works for both Person and Company clients. "
-                    + "Requires If-Match with the ETag of the client as read (GET). The response carries no ETag: read the client again before another modification."
+            description = "Updates only the provided fields of a client. " + "All fields are optional. If no fields are provided, the operation is idempotent (no change). " + "A field sent with an explicit null is rejected (422): these fields are mandatory and cannot be cleared. " + "Values identical to the current ones after normalization (email case, surrounding spaces, phone format) are ignored. " + "birthDate and companyIdentifier cannot be updated as per business rules. " + "Works for both Person and Company clients. " + "Requires If-Match with the ETag of the client as read (GET). The response carries no ETag: read the client again before another modification."
     )
     @ApiResponse(
             responseCode = "204",
@@ -63,6 +57,12 @@ public class PatchClientController {
     @ApiResponse(
             responseCode = "404",
             description = "Client not found",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "409",
+            description = "The client is held by a contract import batch for longer than the lock timeout (code resourceBusy). Retry in a few seconds",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
@@ -94,8 +94,8 @@ public class PatchClientController {
     public ResponseEntity<Void> patchClient(
             @PathVariable("id") final UUID clientId,
             @Parameter(in = ParameterIn.HEADER, required = true,
-                    description = "ETag of the client as read (GET). Wildcard * is not accepted.")
-            @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) @Nullable final String ifMatch,
+                    description = "ETag of the client as read (GET). Wildcard * is not accepted.") @RequestHeader(
+                            name = HttpHeaders.IF_MATCH, required = false) @Nullable final String ifMatch,
             @Valid @RequestBody final Request request
     ) {
         patchClient.execute(new PatchClient.Command(
@@ -109,20 +109,19 @@ public class PatchClientController {
     }
 
     public record Request(
-            @JsonDeserialize(using = OptionalNonNullStringDeserializer.class)
-            @Schema(description = "Client name (optional)", example = "John Doe", maxLength = ClientName.MAX_LENGTH)
-            Optional<@Size(max = ClientName.MAX_LENGTH, message = "Name must not exceed " + ClientName.MAX_LENGTH + " characters") String> name,
+            @JsonDeserialize(using = OptionalNonNullStringDeserializer.class) @Schema(
+                    description = "Client name (optional)", example = "John Doe",
+                    maxLength = ClientName.MAX_LENGTH) Optional<@Size(max = ClientName.MAX_LENGTH,
+                            message = "Name must not exceed " + ClientName.MAX_LENGTH + " characters") String> name,
 
-            @JsonDeserialize(using = OptionalNonNullStringDeserializer.class)
-            @Schema(description = "Client email address (optional)", example = "john.doe@example.com",
-                    format = "email", maxLength = ClientEmail.MAX_LENGTH)
-            Optional<@Size(max = ClientEmail.MAX_LENGTH, message = "Email must not exceed " + ClientEmail.MAX_LENGTH + " characters") String> email,
+            @JsonDeserialize(using = OptionalNonNullStringDeserializer.class) @Schema(
+                    description = "Client email address (optional)", example = "john.doe@example.com",
+                    format = "email", maxLength = ClientEmail.MAX_LENGTH) Optional<@Size(max = ClientEmail.MAX_LENGTH,
+                            message = "Email must not exceed " + ClientEmail.MAX_LENGTH + " characters") String> email,
 
-            @JsonDeserialize(using = OptionalNonNullStringDeserializer.class)
-            @Schema(description = "Client phone number in international format (optional, +41, +33, +39 or +49). Normalized to E.164 in the response.",
-                    example = "+41791234567")
-            Optional<String> phone
+            @JsonDeserialize(using = OptionalNonNullStringDeserializer.class) @Schema(
+                    description = "Client phone number in international format (optional, +41, +33, +39 or +49). Normalized to E.164 in the response.",
+                    example = "+41791234567") Optional<String> phone
     ) {
     }
 }
-

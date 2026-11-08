@@ -13,4 +13,12 @@ public final class Assert {
         }
         return something;
     }
+
+    public static String notBlank(@Nullable final String something) {
+        final String value = notNull(something);
+        if (value.isBlank()) {
+            throw new InvalidDomainObjectError("Blank found for a non-blank model attribute");
+        }
+        return value;
+    }
 }

@@ -36,6 +36,12 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 - `GET /v2/contracts?clientId={clientId}&updatedSince=...` - Filter by update date
 - `GET /v2/contracts/export` - Export active contracts of all clients (cursor)
 - `POST /v2/contracts/imports` - Import up to 1000 contracts, all or nothing (ADR-021)
+- `POST /v2/contracts/import-jobs` - Submit a CSV file for asynchronous, partial import (ADR-022)
+- `GET /v2/contracts/import-jobs/{jobId}` - Follow an import job (ADR-022)
+- `GET /v2/contracts/import-jobs/{jobId}/rejections` - List the lines rejected by a job (ADR-022)
+- `GET /v2/contracts/import-jobs/{jobId}/rejections/export` - Download the rejected lines as CSV, with their original line (ADR-022)
+- `GET /v2/contracts/import-jobs` - List the import jobs, newest first, with their author (ADR-022)
+- `POST /v2/contracts/import-jobs/{jobId}/cancellation` - Cancel a job and close the contracts it created (ADR-022)
 - `GET /v2/contracts/{contractId}` - Get specific contract
 - `PATCH /v2/contracts/{contractId}/cost` - Update cost
 - `GET /v2/contracts/total?clientId={clientId}` - Sum of active contracts
@@ -52,6 +58,10 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 - Seul le `GET` unitaire renvoie l'ETag (**Read Client**, **Get Contract By ID**). Les créations et les modifications n'en renvoient pas : relancer le `GET` avant chaque modification.
 - `428 preconditionRequired` : `If-Match` absent ou `*`. `412 preconditionFailed` : la ressource a changé depuis la lecture, il faut la relire.
 - Un `GET` avec `If-None-Match` égal à l'ETag courant renvoie `304 Not Modified`.
+
+## ⏳ Client occupé par un import
+
+Un lot d'import (`POST /v2/contracts/import-jobs`) verrouille ses clients jusqu'à son commit, en général moins d'une seconde. Un `PUT`, `PATCH` ou `DELETE` sur l'un de ces clients attend ce commit. S'il attend plus que le `lock_timeout` (5 s), il répond `409 resourceBusy` sans rien modifier : renvoyer la requête quelques secondes plus tard.
 
 ---
 
@@ -226,15 +236,42 @@ Les variables `clientId` et `contractId` doivent être **manuellement copiées**
 ```
 api-collections/
 ├── ClientController.postman_collection.json        (9 requêtes)
-├── ContractController.postman_collection.json      (10 requêtes)
+├── ContractController.postman_collection.json      (16 requêtes)
 └── README.md
 ```
 
-**Total : 19 requêtes réparties dans 2 fichiers**
+**Total : 25 requêtes réparties dans 2 fichiers**
 
 ---
 
 ## 🆘 Troubleshooting
+
+### Bruno : "Export Active Contracts" échoue ou renvoie toujours la première page
+
+La collection Postman retire le paramètre `cursor` avec `pm.request.url.query.remove`. Après l'import dans Bruno, le script devient `req.getUrl().query.remove('cursor')` et échoue : `TypeError: cannot read property 'remove' of undefined`. `req.getUrl()` y renvoie une chaîne.
+
+Remplacer les scripts de la requête dans Bruno.
+
+**Script > Pre Request :**
+
+```js
+if (!bru.getVar('exportCursor')) {
+  req.setUrl(req.getUrl().replace(/[?&]cursor=[^&]*/, ''));
+}
+```
+
+**Script > Post Response :**
+
+```js
+const nextCursor = res.getBody().nextCursor;
+if (nextCursor) {
+  bru.setVar('exportCursor', nextCursor);
+} else {
+  bru.deleteVar('exportCursor');
+}
+```
+
+Le premier envoi part sans curseur, chaque envoi suivant demande la page d'après, et l'envoi qui suit la dernière page repart du début. Le paramètre `cursor=` apparaît dans la **Timeline** de Bruno à partir du deuxième envoi.
 
 ### Les variables ne fonctionnent pas
 - Vérifier que la variable est bien définie dans la collection

@@ -296,6 +296,111 @@ The `Content-Language` response header echoes the resolved locale. Error message
 
 ---
 
+## 🔍 Profiling with Java Flight Recorder (JFR)
+
+### Enable JFR in IntelliJ
+
+1. Open **Run > Edit Configurations...** and select the application configuration.
+2. If the **VM options** field is hidden, click **Modify options > Add VM options**.
+3. Add the following option, then start the application:
+
+```
+-XX:StartFlightRecording=name=continuous
+```
+
+The console displays `Started recording 1.` when JFR is running.
+
+Options can be combined, separated by commas:
+
+| Option | Description | Example |
+|---|---|---|
+| `name` | Recording name, used by the `jcmd` commands | `name=continuous` |
+| `maxage` | Maximum age of the data kept | `maxage=6h` |
+| `maxsize` | Maximum size of the data kept | `maxsize=500m` |
+| `duration` | Stops the recording after this time | `duration=5m` |
+| `filename` | File written when the recording ends | `filename=recording.jfr` |
+| `settings` | Event configuration: `default` (low overhead) or `profile` (more detail, higher overhead) | `settings=profile` |
+
+For example, to keep at most the last 6 hours and 500 MB of data:
+
+```
+-XX:StartFlightRecording=name=continuous,maxage=6h,maxsize=500m
+```
+
+### Dump a recording
+
+The dump does not stop the application or the recording. Send the requests to analyze first, then find the PID of the application:
+
+```bash
+jps -l
+```
+
+Write the recording to a timestamped file (Bash or Git Bash syntax):
+
+```bash
+jcmd <PID> JFR.dump name=continuous filename=recording-$(date +%Y%m%d-%H%M%S).jfr
+```
+
+A relative path is resolved from the working directory of the application. Open the file with JDK Mission Control, or with IntelliJ IDEA Ultimate through **Run > Open Profiler Snapshot**.
+
+---
+
+## 📦 Load Testing the CSV Import
+
+Generate a realistic data set to try `POST /v2/contracts/import-jobs` locally: 10,000 clients and a CSV file of 500,000 contracts (33 MB, within the limits of 500,000 lines and 50 MB). File format, statuses and error codes are described in [docs/cli/CONTRACT_IMPORT_JOBS.md](docs/cli/CONTRACT_IMPORT_JOBS.md).
+
+Run the commands below in Git Bash, from the project root, with the `postgres` service started. Use them on a local database only: the clients are inserted directly in SQL, without the API validation, and running the first command again adds 10,000 more clients.
+
+**1. Create the clients:**
+
+```bash
+docker compose exec -T postgres psql -U postgres -d contract -v ON_ERROR_STOP=1 <<'SQL'
+WITH new_clients AS (
+    INSERT INTO contracts.client (type, name, email, phone)
+    SELECT 'PERSON', 'Load Test ' || n, 'load.test.' || n || '@example.com', '+4179' || lpad(n::text, 7, '0')
+    FROM generate_series(1, 10000) AS n
+    RETURNING id
+)
+INSERT INTO contracts.person (id, birth_date)
+SELECT id, DATE '1980-01-01' FROM new_clients;
+SQL
+```
+
+**2. Generate the file.** It only uses clients that exist when it runs, so create them first:
+
+```bash
+docker compose exec -T postgres psql -U postgres -d contract -q > contracts-500k.csv <<'SQL'
+COPY (
+    WITH c AS (SELECT array_agg(id) AS ids FROM contracts.client WHERE deleted_at IS NULL)
+    SELECT ids[1 + n % cardinality(ids)] AS "clientId",
+           CASE WHEN n % 2 = 0 THEN to_char(DATE '2027-01-01' + n % 365, 'YYYY-MM-DD"T"00:00:00') END AS "startDate",
+           CASE WHEN n % 2 = 0 THEN to_char(DATE '2028-01-01' + n % 365, 'YYYY-MM-DD"T"00:00:00') END AS "endDate",
+           (100 + n % 9900)::numeric(12,2) AS "costAmount"
+    FROM c, generate_series(1, 500000) AS n
+) TO STDOUT WITH (FORMAT csv, HEADER, DELIMITER ';');
+SQL
+```
+
+Do not commit this file. Run it from Git Bash rather than PowerShell 5.1, whose `>` redirection can change the encoding.
+
+**3. Submit the file**, with the application running and `$TOKEN` set as described in [Quick Test Examples](#2-quick-test-examples):
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" -F "file=@contracts-500k.csv;type=text/csv" http://localhost:8080/v2/contracts/import-jobs
+```
+
+✅ **Response:** `202 Accepted` + `Location: /v2/contracts/import-jobs/{jobId}`
+
+**4. Follow the job:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/v2/contracts/import-jobs/{jobId}"
+```
+
+The job ends `COMPLETED` with `importedCount` at 500,000. Stopping the application during the import puts the job back in `PENDING`, and it resumes without duplicates at the next start. The contracts stay in the database afterwards.
+
+---
+
 ## 🔐 Security Notes
 
 - Every `/v2` endpoint requires a JWT issued by Keycloak for the `contract-service` audience, with the realm role `counselor`; health, info and the OpenAPI documentation are public, every other route is denied ([ADR-017](docs/ADR.md#adr-017--authentification-des-conseillers-par-keycloak))

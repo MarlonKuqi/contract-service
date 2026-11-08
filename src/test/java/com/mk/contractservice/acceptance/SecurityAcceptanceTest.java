@@ -57,12 +57,21 @@ class SecurityAcceptanceTest {
 
     static Stream<Arguments> rejectedTokens() {
         return Stream.of(
-                Arguments.of("expired", TestTokens.builder().realmRoles(TestTokens.COUNSELOR_ROLE)
-                        .expiresAt(Instant.now().minusSeconds(120)).build()),
-                Arguments.of("issued for another application", TestTokens.builder().realmRoles(TestTokens.COUNSELOR_ROLE)
-                        .audience("another-application").build()),
-                Arguments.of("issued by another realm", TestTokens.builder().realmRoles(TestTokens.COUNSELOR_ROLE)
-                        .issuer("https://keycloak.test/realms/another-realm").build()),
+                Arguments.of("expired",
+                        TestTokens.builder()
+                                .realmRoles(TestTokens.COUNSELOR_ROLE)
+                                .expiresAt(Instant.now().minusSeconds(120))
+                                .build()),
+                Arguments.of("issued for another application",
+                        TestTokens.builder()
+                                .realmRoles(TestTokens.COUNSELOR_ROLE)
+                                .audience("another-application")
+                                .build()),
+                Arguments.of("issued by another realm",
+                        TestTokens.builder()
+                                .realmRoles(TestTokens.COUNSELOR_ROLE)
+                                .issuer("https://keycloak.test/realms/another-realm")
+                                .build()),
                 Arguments.of("with a tampered signature", TestTokens.counselor() + "tampered")
         );
     }
@@ -85,7 +94,8 @@ class SecurityAcceptanceTest {
     @DisplayName("GIVEN an invalid token WHEN reading a client THEN 401 unauthenticated")
     void shouldRejectInvalidToken(String description, String token) {
         given()
-                .auth().oauth2(token)
+                .auth()
+                .oauth2(token)
                 .when()
                 .get(ClientEndpoints.CLIENT_BY_ID, UUID.randomUUID())
                 .then()
@@ -109,7 +119,8 @@ class SecurityAcceptanceTest {
     @DisplayName("GIVEN a user without the counselor role WHEN importing contracts THEN 403 accessDenied")
     void shouldRefuseImportWithoutCounselorRole() {
         given()
-                .auth().oauth2(TestTokens.builder().realmRoles("offline_access").build())
+                .auth()
+                .oauth2(TestTokens.builder().realmRoles("offline_access").build())
                 .body("""
                         { "contracts": [] }
                         """)
@@ -124,7 +135,8 @@ class SecurityAcceptanceTest {
     @DisplayName("GIVEN a user without the counselor role WHEN reading a client THEN 403 accessDenied")
     void shouldRejectUserWithoutCounselorRole() {
         given()
-                .auth().oauth2(TestTokens.builder().realmRoles("offline_access").build())
+                .auth()
+                .oauth2(TestTokens.builder().realmRoles("offline_access").build())
                 .when()
                 .get(ClientEndpoints.CLIENT_BY_ID, UUID.randomUUID())
                 .then()
@@ -137,7 +149,8 @@ class SecurityAcceptanceTest {
     @DisplayName("GIVEN a counselor role granted by another Keycloak client WHEN reading a client THEN 403 accessDenied")
     void shouldIgnoreRolesOfOtherKeycloakClients() {
         given()
-                .auth().oauth2(TestTokens.builder().clientRoles("another-application", TestTokens.COUNSELOR_ROLE).build())
+                .auth()
+                .oauth2(TestTokens.builder().clientRoles("another-application", TestTokens.COUNSELOR_ROLE).build())
                 .when()
                 .get(ClientEndpoints.CLIENT_BY_ID, UUID.randomUUID())
                 .then()
@@ -149,7 +162,8 @@ class SecurityAcceptanceTest {
     @DisplayName("GIVEN a counselor WHEN calling a route outside the API THEN 403 accessDenied")
     void shouldDenyRoutesOutsideTheApi() {
         given()
-                .auth().oauth2(TestTokens.counselor())
+                .auth()
+                .oauth2(TestTokens.counselor())
                 .when()
                 .get("/actuator/env")
                 .then()
@@ -184,9 +198,12 @@ class SecurityAcceptanceTest {
                             "birthDate": "1990-01-01"
                         }
                         """.formatted(email, phone))
-                .when().post(ClientEndpoints.CLIENTS_BASE)
-                .then().statusCode(201)
-                .extract().path("id");
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
 
         given().when().get(ClientEndpoints.CLIENT_BY_ID, clientId).then().statusCode(200);
 
@@ -199,16 +216,20 @@ class SecurityAcceptanceTest {
                         }
                         """.formatted(email, phone))
                 .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, clientId))
-                .when().put(ClientEndpoints.CLIENT_BY_ID, clientId)
-                .then().statusCode(204);
+                .when()
+                .put(ClientEndpoints.CLIENT_BY_ID, clientId)
+                .then()
+                .statusCode(204);
 
         given()
                 .body("""
                         { "name": "Counselor Flow Patched" }
                         """)
                 .header(HttpHeaders.IF_MATCH, ETags.current(ClientEndpoints.CLIENT_BY_ID, clientId))
-                .when().patch(ClientEndpoints.CLIENT_BY_ID, clientId)
-                .then().statusCode(204);
+                .when()
+                .patch(ClientEndpoints.CLIENT_BY_ID, clientId)
+                .then()
+                .statusCode(204);
 
         final String contractId = given()
                 .body("""
@@ -217,9 +238,12 @@ class SecurityAcceptanceTest {
                             "costAmount": "1000.00"
                         }
                         """.formatted(clientId))
-                .when().post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201)
-                .extract().path("id");
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
 
         given().when().get(ContractEndpoints.CONTRACT_BY_ID, contractId).then().statusCode(200);
 
@@ -227,21 +251,30 @@ class SecurityAcceptanceTest {
                 .body("""
                         { "contracts": [{ "clientId": "%s", "costAmount": "500.00" }] }
                         """.formatted(clientId))
-                .when().post(ContractEndpoints.CONTRACT_IMPORTS)
-                .then().statusCode(201);
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
+                .then()
+                .statusCode(201);
+
+        given().when().get(ContractEndpoints.CONTRACT_IMPORT_JOBS).then().statusCode(200);
 
         given()
                 .body("""
                         { "amount": "1200.00" }
                         """)
                 .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, contractId))
-                .when().patch(ContractEndpoints.CONTRACT_COST, contractId)
-                .then().statusCode(204);
+                .when()
+                .patch(ContractEndpoints.CONTRACT_COST, contractId)
+                .then()
+                .statusCode(204);
 
         given().when().get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", clientId).then().statusCode(200);
 
-        given().when().get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", clientId)
-                .then().statusCode(200);
+        given().when()
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        clientId)
+                .then()
+                .statusCode(200);
 
         given().when().delete(ClientEndpoints.CLIENT_BY_ID, clientId).then().statusCode(204);
     }

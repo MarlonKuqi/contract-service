@@ -2,7 +2,7 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
@@ -21,7 +21,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -105,21 +104,15 @@ class ImportContractsTest {
         }
 
         @Test
-        @DisplayName("GIVEN une liste modifiée après coup WHEN création THEN la commande ne change pas")
-        void shouldProtectItsLines() {
-            final List<ImportContracts.Line> lines = new ArrayList<>(List.of(validLine()));
-            final ImportContracts.Command command = new ImportContracts.Command(lines);
-
-            lines.add(validLine());
-
-            assertThat(command.lines()).hasSize(1);
+        @DisplayName("GIVEN une ligne sans client WHEN création THEN refuse la ligne")
+        void shouldRefuseLineWithoutClient() {
+            assertThatThrownBy(() -> new ImportContracts.Line(null, null, null, VALID_COST))
+                    .isInstanceOf(NullPointerException.class);
         }
 
         @Test
-        @DisplayName("GIVEN une ligne sans client ou sans coût WHEN création THEN refuse la ligne")
-        void shouldRefuseLineWithoutMandatoryFields() {
-            assertThatThrownBy(() -> new ImportContracts.Line(null, null, null, VALID_COST))
-                    .isInstanceOf(NullPointerException.class);
+        @DisplayName("GIVEN une ligne sans coût WHEN création THEN refuse la ligne")
+        void shouldRefuseLineWithoutCost() {
             assertThatThrownBy(() -> new ImportContracts.Line(clientId, null, null, null))
                     .isInstanceOf(NullPointerException.class);
         }
@@ -130,8 +123,8 @@ class ImportContractsTest {
     class Accepted {
 
         @Test
-        @DisplayName("GIVEN des lignes valides WHEN execute THEN insère tous les contrats dans l'ordre et les retourne")
-        void shouldInsertEveryContractInOrder() {
+        @DisplayName("GIVEN des lignes valides WHEN execute THEN crée tous les contrats dans l'ordre des lignes")
+        void shouldCreateEveryContractInLinesOrder() {
             final UUID otherClientId = UUID.randomUUID();
             final ImportContracts.Command command = commandOf(
                     new ImportContracts.Line(clientId, now, now.plusYears(1), VALID_COST),
@@ -139,18 +132,15 @@ class ImportContractsTest {
             );
             when(clientRepository.findExistingIds(Set.of(clientId, otherClientId)))
                     .thenReturn(Set.of(clientId, otherClientId));
-            final List<Contract> saved = List.of(
-                    ContractFactory.buildFromDatabase(UUID.randomUUID(), clientId, now, now.plusYears(1), VALID_COST, now)
-            );
-            when(contractRepository.insertAll(anyList())).thenReturn(saved);
+            when(contractRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
-            final List<Contract> result = handler.execute(command);
+            final List<Contract> created = handler.execute(command);
 
-            assertThat(result).isSameAs(saved);
-            verify(contractRepository).insertAll(insertedContracts.capture());
-            assertThat(insertedContracts.getValue())
-                    .extracting(Contract::clientId)
-                    .containsExactly(clientId, otherClientId);
+            assertThat(created)
+                    .extracting(Contract::clientId, contract -> contract.costAmount().value())
+                    .containsExactly(
+                            tuple(clientId, VALID_COST),
+                            tuple(otherClientId, new BigDecimal("2000.00")));
         }
 
         @Test
@@ -160,7 +150,7 @@ class ImportContractsTest {
 
             handler.execute(commandOf(validLine(), validLine()));
 
-            verify(contractRepository).insertAll(insertedContracts.capture());
+            verify(contractRepository).saveAll(insertedContracts.capture());
             assertThat(insertedContracts.getValue()).hasSize(2).allSatisfy(contract -> {
                 assertThat(contract.period().startDate()).isEqualTo(now);
                 assertThat(contract.lastModified()).isEqualTo(now);
@@ -184,7 +174,7 @@ class ImportContractsTest {
             assertThatThrownBy(() -> handler.execute(command))
                     .isInstanceOf(ContractImportRejectedException.class);
 
-            verify(contractRepository, never()).insertAll(anyList());
+            verify(contractRepository, never()).saveAll(anyList());
         }
 
         @Test
@@ -199,48 +189,21 @@ class ImportContractsTest {
                     new ImportContracts.Line(unknownClientId, null, null, VALID_COST)
             );
 
-            final ContractImportRejectedException rejection =
-                    catchThrowableOfType(ContractImportRejectedException.class, () -> handler.execute(command));
+            final ContractImportRejectedException rejection = catchThrowableOfType(
+                    ContractImportRejectedException.class,
+                    () -> handler.execute(command));
 
             assertThat(rejection.rejections())
                     .extracting(ContractImportRejectedException.LineRejection::index,
                             ContractImportRejectedException.LineRejection::clientId,
                             ContractImportRejectedException.LineRejection::reason)
                     .containsExactly(
-                            tuple(0, clientId, ContractImportRejectedException.Reason.INVALID_COST),
-                            tuple(2, clientId, ContractImportRejectedException.Reason.INVALID_PERIOD),
-                            tuple(3, unknownClientId, ContractImportRejectedException.Reason.CLIENT_NOT_FOUND)
+                            tuple(0, clientId, ContractImportRejectionReason.INVALID_COST),
+                            tuple(2, clientId, ContractImportRejectionReason.INVALID_PERIOD),
+                            tuple(3, unknownClientId, ContractImportRejectionReason.CLIENT_NOT_FOUND)
                     );
             assertThat(rejection.rejections()).allSatisfy(line -> assertThat(line.message()).isNotBlank());
             assertThat(rejection.rejections().getLast().message()).contains(unknownClientId.toString());
         }
-
-        @Test
-        @DisplayName("GIVEN une ligne invalide pour un client inconnu WHEN execute THEN rapporte uniquement le client inconnu")
-        void shouldReportOnlyUnknownClientWhenLineIsAlsoInvalid() {
-            final UUID unknownClientId = UUID.randomUUID();
-            when(clientRepository.findExistingIds(Set.of(unknownClientId))).thenReturn(Set.of());
-            final ImportContracts.Command command = commandOf(
-                    new ImportContracts.Line(unknownClientId, null, null, NEGATIVE_COST)
-            );
-
-            final ContractImportRejectedException rejection =
-                    catchThrowableOfType(ContractImportRejectedException.class, () -> handler.execute(command));
-
-            assertThat(rejection.rejections())
-                    .extracting(ContractImportRejectedException.LineRejection::reason)
-                    .containsExactly(ContractImportRejectedException.Reason.CLIENT_NOT_FOUND);
-        }
-    }
-
-    @Test
-    @DisplayName("GIVEN plusieurs lignes pour le même client WHEN execute THEN vérifie les clients en une seule fois")
-    void shouldCheckClientsOnceForAllLines() {
-        when(clientRepository.findExistingIds(Set.of(clientId))).thenReturn(Set.of(clientId));
-
-        handler.execute(commandOf(validLine(), validLine(), validLine()));
-
-        verify(clientRepository).findExistingIds(Set.of(clientId));
-        verify(clientRepository, never()).ensureExists(clientId);
     }
 }

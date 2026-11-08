@@ -22,7 +22,7 @@ Backend REST API for a Swiss insurance company (counselors manage clients and th
 
 Stack:
 - Java 27
-- Spring Boot 4.1.1, Hibernate 7.4
+- Spring Boot 4.1.2, Hibernate 7.4
 - PostgreSQL 18, schema `contracts`
 - Flyway (SQL migrations)
 - Docker / docker-compose for the local runtime
@@ -56,10 +56,11 @@ src/main/java/com/mk/contractservice
 ├── domain/          Aggregates, Value Objects, domain services, repository ports, domain exceptions
 ├── features/        One use case per file (vertical slice)
 ├── controllers/     Inbound adapters: REST endpoints, DTOs, DTO mappers, exception handlers
+├── batch/           Inbound adapter: Spring Batch jobs and their worker (ADR-022)
 └── infrastructure/  Outbound adapters: JPA entities/repositories/mappers, configuration
 ```
 
-Dependencies point inward: `controllers → features → domain ← infrastructure`. Enforced by `ArchitectureTest` (ArchUnit).
+Dependencies point inward: `controllers → features → domain ← infrastructure`, and `batch → features` like `controllers`. Enforced by `ArchitectureTest` (ArchUnit).
 
 ### Domain
 - No dependency on Spring, JPA or infrastructure. Tolerated: Lombok, JSpecify, and Spring Data `Page`/`Pageable`.
@@ -97,6 +98,7 @@ No domain object can exist in an invalid state.
     - factories (`PersonFactory`, `CompanyFactory`, `ContractFactory`): `createFromCommand(...)` and `buildFromDatabase(...)`.
 - Mutations go through intention-revealing methods that return a new instance (`changeName`, `changeEmail`, `changePhone`, `changeCoreFields`, `changeCost`).
 - Comparison methods express business equality (`hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs`). An update with an identical value must not change the object nor trigger a save: the `change*` method returns `this`, and the handler saves only when `!updated.equals(loaded)` (value equality through Lombok `@EqualsAndHashCode`; Error Prone rejects `!=` on objects that define `equals`).
+- Mutually exclusive states are a `sealed` interface with one record per state, never nullable fields read by convention (`ContractImportTermination.Ended`/`Failed`, `ContractImportJobLine.Imported`/`Rejected`, `ContractImportJobState.Pending`/`Running`/`Completed`/`Failed`/`Cancelled`). Exception to the Value Object rule (ADR-002): these variants normalize nothing, so their compact constructor validates every mandatory field and the interface keeps the factories. Consumers deconstruct them in an exhaustive `switch`.
 - Builders must be private, so that factory methods are the only way in. Production and tests go through `of`/factories.
 - Avoid `null`; mark optional values with `@Nullable` (JSpecify) and use `Optional` where absence is meaningful. NullAway fails the build when a value not declared `@Nullable` may be `null` (`src/main` only). Every package of `src/main` has a `package-info.java` annotated `@NullMarked` (checked by `ArchitectureTest`).
 

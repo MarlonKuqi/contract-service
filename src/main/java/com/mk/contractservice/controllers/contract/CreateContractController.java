@@ -1,11 +1,11 @@
 package com.mk.contractservice.controllers.contract;
 
+import com.mk.contractservice.controllers.contract.shared.ContractCreationRequest;
 import com.mk.contractservice.controllers.contract.shared.ContractDtoMapper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractResponse;
 import com.mk.contractservice.controllers.contract.shared.ContractSwaggerTags;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractCost;
 import com.mk.contractservice.features.contract.CreateContract;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -14,8 +14,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
@@ -26,11 +24,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Locale;
-import java.util.UUID;
 
 @Tag(name = ContractSwaggerTags.NAME, description = ContractSwaggerTags.DESCRIPTION)
 @RestController
@@ -44,15 +40,12 @@ public class CreateContractController {
 
     @Operation(
             summary = "Create a contract for a client",
-            description = "Creates a new contract for a client. "
-                    + "startDate defaults to now if not provided. "
-                    + "endDate null means active contract."
+            description = "Creates a new contract for a client. " + "startDate defaults to now if not provided. " + "endDate null means active contract."
     )
     @ApiResponse(
             responseCode = "201",
             description = "Contract created successfully",
-            headers = {
-                    @Header(name = "Location", description = "URI of the created contract resource")
+            headers = {@Header(name = "Location", description = "URI of the created contract resource")
             },
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ContractResponse.class))
@@ -83,7 +76,7 @@ public class CreateContractController {
     )
     @PostMapping
     public ResponseEntity<ContractResponse> createContract(
-            @Valid @RequestBody final Request request,
+            @Valid @RequestBody final ContractCreationRequest request,
             final UriComponentsBuilder uriBuilder,
             final Locale locale
     ) {
@@ -105,34 +98,4 @@ public class CreateContractController {
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
                 .body(response);
     }
-
-    public record Request(
-            @NotNull(message = "Client ID is required")
-            @Schema(description = "Client ID (owner of the contract)",
-                    example = "550e8400-e29b-41d4-a716-446655440000",
-                    requiredMode = Schema.RequiredMode.REQUIRED)
-            UUID clientId,
-
-            @Schema(description = "Contract start date (defaults to now if not provided)",
-                    example = "2025-01-01T00:00:00",
-                    format = "date-time")
-            LocalDateTime startDate,
-
-            @Schema(description = "Contract end date (null means active/indefinite contract)",
-                    example = "2026-01-01T00:00:00",
-                    format = "date-time")
-            LocalDateTime endDate,
-
-            @NotNull(message = "Cost amount is required")
-            @Digits(integer = ContractCost.MAX_INTEGER_DIGITS,
-                    fraction = ContractCost.SCALE,
-                    message = "Cost amount must have at most " + ContractCost.MAX_INTEGER_DIGITS + " integer digits and " + ContractCost.SCALE + " decimal places")
-            @Schema(description = "Contract cost amount (must be positive, max " + ContractCost.MAX_INTEGER_DIGITS + " integer digits + " + ContractCost.SCALE + " decimals)",
-                    example = "1500.00",
-                    minimum = "0.01",
-                    requiredMode = Schema.RequiredMode.REQUIRED)
-            BigDecimal costAmount
-    ) {
-    }
 }
-

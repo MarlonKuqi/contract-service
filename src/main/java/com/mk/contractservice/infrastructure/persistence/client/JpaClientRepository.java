@@ -38,9 +38,10 @@ public class JpaClientRepository implements ClientRepository {
                 case Company company -> ClientJpaMapper.toNewCompanyEntity(company);
             };
         } else {
-            entity = jpa.findById(clientId).orElseThrow(
-                    () -> new IllegalStateException("Client with id " + clientId + " not found in database")
-            );
+            entity = jpa.findById(clientId)
+                    .orElseThrow(
+                            () -> new IllegalStateException("Client with id " + clientId + " not found in database")
+                    );
             ClientJpaMapper.mergeIntoExisting(client, entity);
         }
         return ClientJpaMapper.toDomain(jpa.save(entity));
@@ -48,10 +49,12 @@ public class JpaClientRepository implements ClientRepository {
 
     @Override
     public void delete(final UUID id, final LocalDateTime deletedAt) {
-        final ClientJpaEntity entity = jpa.findById(id).orElseThrow(
-                () -> new IllegalStateException("Client with id " + id + " not found in database")
-        );
+        final ClientJpaEntity entity = jpa.findById(id)
+                .orElseThrow(
+                        () -> new IllegalStateException("Client with id " + id + " not found in database")
+                );
         entity.setDeletedAt(deletedAt);
+        jpa.flush();
     }
 
     @Override
@@ -64,6 +67,11 @@ public class JpaClientRepository implements ClientRepository {
     @Override
     public Set<UUID> findExistingIds(final Set<UUID> ids) {
         return jpa.findExistingIds(ids);
+    }
+
+    @Override
+    public Set<UUID> lockExistingIds(final Set<UUID> ids) {
+        return ids.isEmpty() ? Set.of() : jpa.lockExistingIds(ids);
     }
 
     @Override

@@ -167,14 +167,19 @@ class ClientConflictAcceptanceTest {
     @DisplayName("GIVEN another counselor changes the client between the read and the write WHEN the client is deleted THEN the deletion is retried and its contracts are closed")
     void shouldRetryDeletionWhenClientWasModifiedConcurrently() {
         Contract contract = contractRepository.save(ContractFactory.createFromCommand(
-                client.id(), now.minusDays(1), null, new BigDecimal("1000.00"), now));
+                client.id(),
+                now.minusDays(1),
+                null,
+                new BigDecimal("1000.00"),
+                now));
         AtomicBoolean concurrentWriteDone = new AtomicBoolean(false);
         doAnswer(invocation -> {
-            Object result = invocation.callRealMethod();
             if (concurrentWriteDone.compareAndSet(false, true)) {
-                writeConcurrently(invocation.getArgument(0), entity -> entity.setPhone(concurrentPhone));
+                UUID clientId = invocation.getArgument(0);
+                var _ = clientJpaRepository.findById(clientId).orElseThrow();
+                writeConcurrently(clientId, entity -> entity.setPhone(concurrentPhone));
             }
-            return result;
+            return invocation.callRealMethod();
         }).when(clientRepository).delete(any(), any());
 
         given()
@@ -201,7 +206,7 @@ class ClientConflictAcceptanceTest {
     private void writeConcurrently(final UUID clientId, final Consumer<ClientJpaEntity> concurrentWrite) {
         TransactionTemplate concurrentTransaction = new TransactionTemplate(transactionManager);
         concurrentTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-        concurrentTransaction.executeWithoutResult(status ->
-                concurrentWrite.accept(clientJpaRepository.findById(clientId).orElseThrow()));
+        concurrentTransaction.executeWithoutResult(status -> concurrentWrite.accept(clientJpaRepository.findById(
+                clientId).orElseThrow()));
     }
 }

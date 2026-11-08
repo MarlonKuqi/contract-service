@@ -44,6 +44,7 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 - [ADR-020 — Stratégie de merge entre branches majeures et mineures](#adr-020--stratégie-de-merge-entre-branches-majeures-et-mineures)
 - [ADR-021 — Import en masse de contrats : synchrone, tout ou rien](#adr-021--import-en-masse-de-contrats--synchrone-tout-ou-rien)
 - [ADR-023 — Analyse statique : Error Prone et NullAway](#adr-023--analyse-statique--error-prone-et-nullaway)
+- [ADR-022 — Import de gros volumes : fichier CSV traité en asynchrone, partiel](#adr-022--import-de-gros-volumes--fichier-csv-traité-en-asynchrone-partiel)
 
 ---
 
@@ -99,10 +100,11 @@ com.mk.contractservice
   - les factories (`PersonFactory`, `CompanyFactory`, `ContractFactory`) exposent `createFromCommand(...)` et `buildFromDatabase(...)`.
 - **Mutations par méthodes d'intention** qui renvoient une nouvelle instance : `changeName`, `changeEmail`, `changePhone`, `changeCoreFields`, `changeCost`. `birthDate` et `companyIdentifier` n'ont pas de méthode de modification.
 - **Méthodes de comparaison métier** : `hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs` (insensible à l'échelle : `100.0` = `100.00`). Une modification à valeur identique est un no-op : la règle vit dans l'agrégat, la méthode `change*` renvoie `this`. Les handlers ne sauvegardent que si l'objet renvoyé diffère de l'objet chargé (`!updated.equals(loaded)`, égalité de valeur via `@EqualsAndHashCode`). Pas de comparaison de références : Error Prone (`ReferenceEquality`) la signale sur un type qui définit `equals`.
+- **États exclusifs : une interface scellée, une variante par état.** Un objet qui est soit l'un, soit l'autre n'a pas de champs nullables à interpréter : `ContractImportTermination` est `Ended` ou `Failed(reason)`, `ContractImportJobLine` est `Imported(contractId)` ou `Rejected(reason, message)`. L'état d'un job d'import suit la même règle : `ContractImportJobState` est `Pending`, `Running(leaseUntil)`, `Completed(termination)`, `Failed(termination)` ou `Cancelled(cancellation, termination)`. Le statut (`ContractImportJobState.Status`, déclaré dans l'interface dont il est l'étiquette) n'est plus stocké à côté des données : chaque variante le renvoie, il sert à la persistance, à l'API et aux requêtes. Un job en cours a donc toujours un bail, et un job terminé n'en a jamais, sans contrôle à l'exécution. La traduction des colonnes nullables vers une variante (`ContractImportJobState.reconstituteFromDatabase`) refuse toute combinaison incohérente, et aucune valeur ne doit y être ignorée. Les variantes exposent ces données en lecture (`leaseUntil()`, `termination()`, `cancellation()`, nulles par défaut) pour les seuls adaptateurs (mapper JPA, réponse HTTP) ; le domaine, lui, décide par `switch` sur la variante. **Les variantes sont des records, par exception à la règle des Value Objects.** Elles ne normalisent rien et n'ont pas d'entrée « donnée fiable » distincte : leur constructeur compact valide chaque champ obligatoire, donc une instance créée hors des factories de l'interface reste valide. En échange, les lecteurs les déconstruisent dans un `switch` exhaustif (`case Failed(LocalDateTime _, ContractImportFailureReason reason)`). Cette exception ne vaut que pour une variante de type scellé sans normalisation. La persistance garde ses colonnes nullables : le mapper est le seul endroit qui traduit l'une en l'autre.
 - **Domain services réservés aux vraies règles métier** : un domain service porte une règle qu'aucun agrégat ne peut vérifier seul (`CompanyIdentifierUniqueness` : l'unicité demande de connaître les autres sociétés). « Charger ou lever 404 » et « vérifier l'existence » sont de l'accès aux données : ce sont des méthodes `default` du port (`ClientRepository.getById`, `ensureExists`), qui gardent la règle « introuvable → `ClientNotFoundException` » dans le domaine sans la dupliquer dans chaque adapter. `ClientService`, `ClientValidationService` et `ContractService`, qui ne portaient aucune règle, ont été supprimés.
 - Les entités JPA ne sortent jamais de l'infrastructure ; l'API n'expose que des DTO.
 - **Une seule définition d'une valeur valide : le Value Object.** Les DTO ne valident que la syntaxe du contrat HTTP (présence, type, longueur maximale, nombre de chiffres) et ne redéfinissent ni les règles de format ni les règles métier. `@Email` a été retiré : ses règles différaient de `ClientEmail` (`a@b` passait le DTO puis échouait dans le domaine, `.a@x.ch` échouait dans le DTO avec un autre code d'erreur). Toute adresse au format invalide renvoie maintenant `EMAIL_INVALID`. Même raisonnement pour le `@Pattern` du téléphone (`PHONE_INVALID`), `@Positive` sur le coût (`invalidContractCost`) et `@PastOrPresent` sur la date de naissance (`BIRTH_DATE_INVALID`) ; ce dernier lisait de plus l'horloge système au lieu de la `Clock` (ADR-003). Un `PATCH` applique les mêmes contraintes de syntaxe qu'un `PUT`, et un champ obligatoire envoyé à `null` y est refusé (`422 validationError`) au lieu d'être ignoré.
-- **Chaque point d'entrée a sa propre validation de syntaxe.** Elle dépend du format reçu (JSON ici, fichier pour un futur import) : un import aura son validateur, sans réutiliser les DTO. Tous convergent vers les mêmes Value Objects, qui restent la dernière barrière.
+- **Chaque point d'entrée a sa propre validation de syntaxe.** Elle dépend du format reçu : un point d'entrée JSON peut réutiliser un DTO JSON existant (l'import JSON de contrats, ADR-021, réutilise `ContractCreationRequest`), alors qu'un import par fichier a son propre validateur (ADR-022). Tous convergent vers les mêmes Value Objects, qui restent la dernière barrière.
 - **Le modèle d'entrée d'un use case se valide lui-même.** Une `Query` ou une `Command` ne peut pas exister dans un état invalide pour son cas d'usage : son constructeur vérifie les règles applicatives qui ne relèvent d'aucun Value Object (par exemple les bornes de pagination, ADR-018). Le use case ne dépend pas d'un adaptateur pour se protéger : un batch ou un consommateur de messages se heurterait aux mêmes règles. L'adaptateur ne fait que convertir (types, présence, valeurs par défaut) et ne duplique pas ces règles. Ce ne sont pas des règles métier : elles restent dans `features`, pas dans `domain`.
 - **Format de `ClientEmail`** : partie locale *dot-atom* RFC 5322 (64 caractères au plus, sans point en tête, en fin ni doublé, apostrophe et `+` acceptés), domaine à un ou plusieurs labels (63 caractères au plus, sans tiret en bordure), TLD alphabétique ou punycode, 254 caractères au total. Les formes entre guillemets, les adresses IP et les domaines IDN en Unicode sont refusés (le punycode est accepté). Pas de liste de TLD, qui vieillit mal. Le but est d'attraper les fautes de frappe sans jamais refuser une adresse réelle ; seul l'envoi d'un email prouverait qu'elle existe. Le message d'erreur ne reprend pas l'adresse (donnée personnelle, exposée dans le `detail` et les logs).
 
@@ -319,6 +321,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 - Breaking change de l'API : un client qui modifie sans `If-Match` reçoit `428`. Les collections (`api-collections/`) capturent l'ETag et l'envoient automatiquement.
 - Une modification basée sur une lecture périmée, entre deux requêtes HTTP ou entre deux transactions qui se chevauchent, donne `412`. Un contrat fermé par la suppression de son client depuis la lecture donne aussi `412` (sa version a été incrémentée par l'étape 1), et il reste fermé.
 - `409 optimisticLockFailure` ne subsiste que pour la suppression d'un client, après épuisement des essais.
+- **Verrou pessimiste ponctuel (ADR-022).** L'import asynchrone verrouille les clients de chaque chunk (`FOR SHARE`) jusqu'à son commit, pour qu'un client supprimé ne reçoive pas de contrat actif. Un `PUT`, `PATCH` ou `DELETE` sur l'un de ces clients attend ce commit, quelques centaines de millisecondes ; au-delà de `lock_timeout` (5 s), il reçoit `409 resourceBusy` sans rien modifier. Le verrou optimiste reste la règle : ce verrou pessimiste ne couvre que ce cas. Test : `ClientBusyDuringImportBatchAcceptanceTest`.
 - Tests : `OptimisticLockingAcceptanceTest` (contrat HTTP), `ClientConflictAcceptanceTest` et `ContractCostConflictAcceptanceTest` (conflits entre transactions), et les tests des handlers.
 
 **Statut.** Étapes 1 et 3 acceptées. Étape 2 acceptée (branche `feat/etag-if-match`).
@@ -388,7 +391,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 **Décision.**
 - Build multi-étapes :
   1. dépendances Maven en cache ;
-  2. build avec Azul Zulu JDK 27, extraction des couches Spring Boot, puis JRE minimal construit par `jdeps` + `jlink` (`jdk.crypto.ec` ajouté explicitement) ;
+  2. build avec Azul Zulu JDK 27, extraction des couches Spring Boot, puis JRE minimal construit par `jdeps` + `jlink` (`jdk.crypto.ec`, `jdk.jfr` et `jdk.jcmd` ajoutés explicitement) ;
   3. exécution sur `debian:trixie-slim`.
 - Exécution sous un utilisateur non root, healthcheck sur `/actuator/health/liveness`, options JVM adaptées aux conteneurs (`MaxRAMPercentage=75`), profil `prod`.
 - `../docker-compose.yml` : PostgreSQL 18 avec healthcheck et volume persistant ; l'application dans le profil compose `full`.
@@ -396,6 +399,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 
 **Conséquences.**
 - Image réduite et surface d'attaque limitée.
+- JFR, `jcmd` et `jps` restent disponibles pour le diagnostic en production. JFR enregistre en continu dès le démarrage, avec une rétention limitée à 6 h et 500 Mo : les données les plus anciennes sont supprimées, et un `JFR.dump` récupère l'historique sans redémarrage.
 - Le fuseau est fixé dans l'image : `TZ=Europe/Zurich` (ADR-013).
 
 **Statut.** Acceptée.
@@ -625,16 +629,20 @@ Un contrat n'a pas de clé naturelle : deux contrats identiques pour un même cl
   - `422 invalidImportSize` : aucune ligne, ou plus de `ImportContracts.MAX_LINES` (1000) ;
   - `422 validationError` : champ manquant ou mal typé, nommé `contracts[n].champ`.
 - **Syntaxe, puis règles.** Comme ailleurs (ADR-002), le DTO vérifie la syntaxe et s'arrête là : une erreur de syntaxe sur une ligne empêche d'évaluer les règles métier de toutes les autres. Une valeur mal typée interrompt le parsing JSON : seule la première est signalée.
-- **Un seul rejet par ligne, le client d'abord.** Une ligne dont le client est inconnu est rejetée sans construire le contrat : le conseiller sait qu'il doit d'abord créer ce client, et le contenu de la ligne sera évalué au renvoi. L'ordre diffère de `CreateContract`, qui valide le contrat avant de chercher le client : à l'échelle d'un import, signaler d'abord le client manquant donne la correction la plus utile. De même, `ContractFactory` s'arrête à la première règle violée : une ligne dont la période et le coût sont invalides ne signale que la période. Une correction peut donc faire apparaître un nouveau rejet sur la même ligne.
+- **Un seul rejet par ligne, le client d'abord.** Une ligne dont le client est inconnu est rejetée sans construire le contrat : le conseiller sait qu'il doit d'abord créer ce client, et le contenu de la ligne sera évalué au renvoi. L'ordre diffère de `CreateContract`, qui valide le contrat avant de chercher le client : à l'échelle d'un import, signaler d'abord le client manquant donne la correction la plus utile. De même, `ContractFactory` s'arrête à la première règle violée : une ligne dont la période et le coût sont invalides ne signale que la période. Une correction peut donc faire apparaître un nouveau rejet sur la même ligne. Cet ordre (client, période, coût) est porté par `ContractImportLineEvaluator` et vérifié par `ContractImportLineEvaluatorTest` : l'import par fichier (ADR-022) l'applique à l'identique, après son contrôle de format.
 - **L'import ne crée pas les clients manquants.** La ligne ne porte que `clientId`, alors que créer un client demande son type, son nom, son email, son téléphone et sa date de naissance ou son identifiant d'entreprise, que seul le conseiller peut fournir. De plus, l'identifiant est généré par le serveur : après `POST /v2/clients`, le conseiller remplace `clientId` dans la ligne par l'identifiant renvoyé. Enfin, `clientNotFound` couvre aussi un client supprimé (ADR-009), qu'il ne faut pas recréer sans décision du conseiller.
-- **« Always valid » conservé** : chaque contrat passe par `ContractFactory.createFromCommand`. Le handler traduit les exceptions du domaine en rejets ; il n'ajoute aucune règle.
+- **« Always valid » conservé** : chaque contrat passe par `ContractFactory.createFromCommand`. `ContractImportLineEvaluator` (`features/shared`), partagé avec l'import par fichier (ADR-022), vérifie le client puis traduit les exceptions du domaine en rejets (`ContractImportRejectionReason`), sans ajouter de règle métier. Il porte une seule politique applicative : l'ordre des contrôles, le client d'abord (voir plus haut).
+- **Codes de l'API hors du domaine.** `ContractImportRejectionReason` et `ContractImportFailureReason` ne portent que le motif. `ContractImportCodes` (`controllers/contract/shared`) les traduit en codes (`invalidContractCost`…), dans un `switch` exhaustif : un nouveau motif ne compile pas tant qu'il n'a pas de code. Les rejets de la réponse `422` sont un record (`ContractImportLineRejectionResponse`), documenté dans OpenAPI, et non une `Map`.
 - **Taille** : la limite est portée par `ImportContracts.Command` (ADR-002). 1000 lignes suffisent largement à cette échelle et gardent une transaction courte (environ 30 ms d'écriture, mesuré ci-dessous).
 - **Existence des clients sans N+1** : le port `ClientRepository.findExistingIds(Set<UUID>)` fait une seule requête `IN`. `@SQLRestriction` s'y applique : un client supprimé est absent du résultat, donc rejeté comme inconnu (ADR-009).
 - **Une seule `now`** pour tout l'import (ADR-003) : date de début par défaut et `lastModified`.
 - **Pas de version attendue** (ADR-011) : l'import ne crée que de nouveaux contrats.
-- **Écriture** : `ContractRepository.insertAll(List<Contract>)` appelle `saveAll` de Spring Data, comme `save` dans le même adapter. Les `INSERT` partent au commit.
+- **Écriture** : `ContractRepository.saveAll(List<Contract>)` délègue à `save` pour chaque contrat : même règle « id nul → création, sinon fusion dans l'existant », sans la dupliquer ni recopier en silence un contrat existant. Chaque `save` fait un `persist` ; les `INSERT` sont différés et partent en lots au commit.
 
-**JDBC batching : ce qui est retenu, et pourquoi.** `hibernate.jdbc.batch_size: 50` dans `application.yml`. C'est possible parce que l'UUID v7 est généré côté application (ADR-012) : avec un `IDENTITY`, Hibernate devrait exécuter chaque `INSERT` pour lire l'identifiant, ce qui désactive le batching.
+**JDBC batching : ce qui est retenu, et pourquoi.** `hibernate.jdbc.batch_size: 50` dans `application.yml` ; l'ADR-022
+l'a depuis porté à 1000 et a activé `reWriteBatchedInserts`, et les mesures ci-dessous restent celles de cette première
+valeur. C'est possible parce que l'UUID v7 est généré côté application (ADR-012) : avec un `IDENTITY`, Hibernate devrait
+exécuter chaque `INSERT` pour lire l'identifiant, ce qui désactive le batching.
 
 Mesures : base PostgreSQL 18 en conteneur local (Docker, poste Windows), un seul client, médiane de 5 exécutions après 2 exécutions de chauffe. Ce sont des ordres de grandeur : la latence réseau réelle accentuerait l'écart.
 
@@ -649,7 +657,9 @@ Mesures : base PostgreSQL 18 en conteneur local (Docker, poste Windows), un seul
 - **`flush`/`clear` écarté.** Aucun gain mesuré, même à 10 000 lignes, et `clear` détacherait toute autre entité du contexte de persistance. À réévaluer seulement si la limite augmente nettement.
 - **`order_inserts` écarté.** Il regroupe les `INSERT` de plusieurs tables ; l'import n'en écrit qu'une.
 - **`@Version` sans valeur initiale.** Spring Data considère comme nouvelle une entité dont le `@Version` de type objet est `null`. Les entités initialisaient ce champ à `0L` (commit `c307374`, sans justification) : `save` passait donc par `merge`, qui renvoyait une copie et laissait l'entité passée en argument sans identifiant. Comme son identifiant était `null`, Hibernate n'exécutait aucun `SELECT`, et le surcoût restait dans le bruit de mesure (dernière ligne du tableau, mesurée avant ce changement). L'initialisation est retirée de `ClientJpaEntity` et de `ContractJpaEntity` : Hibernate pose lui-même la version à `0` au `persist`, et `save` comme `saveAll` font désormais un `persist` pour une nouvelle entité. Le `DEFAULT 0` de la base reste pour les `INSERT` SQL manuels. Les lignes `persist` du tableau décrivent donc le chemin actuel.
-- **`reWriteBatchedInserts` de pgjdbc non retenu.** Il réécrit les lots en `INSERT` multi-valeurs ; non mesuré, et rien ne le justifie à ce volume.
+- **`reWriteBatchedInserts` de pgjdbc non retenu.** Il réécrit les lots en `INSERT` multi-valeurs ; non mesuré, et rien
+  ne le justifie à ce volume. Activé ensuite pour les gros volumes (ADR-022), ce réglage s'applique aussi à cet
+  endpoint.
 - **Effet global.** `batch_size` s'applique à toutes les écritures. Elles n'envoient qu'une ligne par entité et par table : un lot d'une ligne. La détection des conflits `@Version` reste vérifiée par les tests de concurrence existants.
 
 **Test technique, et sa justification.** `ContractBatchInsertAcceptanceTest` vérifie qu'un import de 1000 lignes prépare au plus une requête d'existence et une requête par lot (`Statistics.getPrepareStatementCount`). Un utilisateur de l'API ne peut pas observer cette garantie, et le réglage peut être perdu sans qu'aucun scénario métier échoue. Le test a échoué à 1001 requêtes avant l'ajout de `batch_size`. Limite : Hibernate réutilise le même `PreparedStatement` entre les lots (2 requêtes préparées en tout), donc cette statistique prouve l'absence d'une requête par ligne, sans compter les lots. Mesurer les lots demanderait `datasource-proxy`, une dépendance jugée inutile pour une seule assertion.
@@ -657,8 +667,14 @@ Mesures : base PostgreSQL 18 en conteneur local (Docker, poste Windows), un seul
 **Options écartées.**
 - **Partiel dans une transaction** (lignes valides insérées, `207` ou `200` avec rapport). Si l'appelant renvoie tout le fichier au lieu des seules lignes rejetées, les lignes déjà acceptées sont créées une seconde fois. De plus, `207` vient de WebDAV et sert souvent mal à distinguer un succès d'un échec.
 - **Commit par lots.** Une panne en cours d'import laisse un état partiel que l'appelant ne connaît pas : il faudrait une `Idempotency-Key` ou un identifiant de ligne. Cela n'aurait d'intérêt que pour de gros volumes.
-- **Asynchrone** (`202 Accepted` + ressource d'import). Envisagé puis écarté : 1000 lignes tiennent en quelques dizaines de millisecondes, et il faudrait une table (migration), un worker et une reprise après crash. La piste la plus simple si le besoin apparaît : un `@Scheduled` qui traite chaque import dans une seule transaction avec `FOR UPDATE SKIP LOCKED`, contrats et statut étant commités ensemble.
-- **CSV.** Plus proche d'un fichier métier, mais il ajoute parsing, encodage et séparateurs, sans rapport avec le sujet de l'exercice. Le sujet demande du JSON. Un import CSV aurait son propre validateur (ADR-002) et pourrait réutiliser le même use case.
+- **Asynchrone** (`202 Accepted` + ressource d'import). Envisagé puis écarté : 1000 lignes tiennent en quelques dizaines
+  de millisecondes, et il faudrait une table (migration), un worker et une reprise après crash. La piste la plus simple
+  si le besoin apparaît : un `@Scheduled` qui traite chaque import dans une seule transaction avec
+  `FOR UPDATE SKIP LOCKED`, contrats et statut étant commités ensemble. Repris pour les gros volumes par l'ADR-022, qui
+  écarte la transaction unique.
+- **CSV.** Plus proche d'un fichier métier, mais il ajoute parsing, encodage et séparateurs, sans rapport avec le sujet
+  de l'exercice. Le sujet demande du JSON. Un import CSV aurait son propre validateur (ADR-002) et pourrait réutiliser
+  le même use case. L'ADR-022 ajoute ce format pour l'import asynchrone, sans toucher à cet endpoint.
 
 **Conséquences.**
 - Aucune migration.
@@ -667,6 +683,190 @@ Mesures : base PostgreSQL 18 en conteneur local (Docker, poste Windows), un seul
 - Limite : tout le corps est lu en mémoire et validé avant le contrôle du nombre de lignes. Acceptable pour des utilisateurs authentifiés, à une dizaine de conseillers. Une API ouverte demanderait une limite de taille du corps.
 - Limite : un client supprimé entre le contrôle d'existence et le commit garde les contrats importés, actifs. Cette course existe déjà dans `CreateContract` ; un verrou sur les clients ne se justifie pas à cette échelle.
 - `ContractControllerAdvice` nomme désormais le chemin complet d'un champ mal typé (`contracts[1].costAmount`). Pour les corps à un seul niveau, le message ne change pas.
+
+**Statut.** Acceptée (exercice).
+
+---
+
+## ADR-022 — Import de gros volumes : fichier CSV traité en asynchrone, partiel
+
+**Contexte.** Exercice, comme l'ADR-021 : aucun besoin métier ne l'exige. Il sert à s'entraîner sur le traitement
+asynchrone, la reprise après panne et la concurrence. L'import synchrone de l'ADR-021 reste inchangé : l'appelant
+choisit explicitement l'un ou l'autre endpoint, sans bascule automatique selon la taille.
+
+**Décision.**
+
+- **API**, rôle `COUNSELOR` (couvert par `/v2/**`, ADR-017) :
+  - `POST /v2/contracts/import-jobs`, `multipart/form-data`, partie `file` : `202`, en-tête `Location` et
+    `{ "jobId", "status" }` ;
+  - `GET /v2/contracts/import-jobs/{jobId}` : statut, nom du fichier et compteurs ;
+  - `GET /v2/contracts/import-jobs/{jobId}/rejections?page&size` : rejets paginés, triés par ligne (bornes de
+    l'ADR-018).
+  - `GET /v2/contracts/import-jobs?submittedBy&page&size` : jobs du plus récent au plus ancien, avec leur auteur ;
+  - `POST /v2/contracts/import-jobs/{jobId}/cancellation` : annule le job et ferme ses contrats ;
+  - `GET /v2/contracts/import-jobs/{jobId}/rejections/export` : rejets en CSV, avec leur ligne d'origine.
+- **Un seul contrôleur.** `ContractImportJobController` porte les six endpoints, par exception à la règle « un
+  contrôleur par endpoint » : ils forment une seule ressource et partagent ses erreurs.
+- **Format CSV.** UTF-8, BOM toléré, séparateur `;` (celui d'Excel en Suisse et en France), en-tête obligatoire
+  `clientId;startDate;endDate;costAmount`. Dates ISO, décimales avec un point, `startDate` et `endDate` vides autorisés.
+  Pas de guillemets : aucune valeur ne contient le séparateur. Un simple `split` suffit donc, sans dépendance.
+- **Contrôles à la soumission.** Fichier vide, en-tête incorrect, encodage invalide ou plus de `MAX_LINES` (500 000)
+  lignes de données : `422 invalidImportFile`, rien n'est enregistré. Plus de 50 Mo : `413 importFileTooLarge`.
+  `resolve-lazily` est activé pour que cette erreur passe par `ContractControllerAdvice`.
+- **Partiel.** Les lignes valides créent leur contrat, les autres sont rapportées. Une ligne mal formée est rejetée avec
+  `invalidLineFormat`. Les autres codes sont ceux de l'ADR-021.
+- **Identifiant de ligne.** Chaque ligne est identifiée par `(job_id, line_number)`, clé primaire de
+  `contract_import_job_line`, qui porte soit `contract_id`, soit le code et le message du rejet. `line_number` est le
+  numéro physique dans le fichier (l'en-tête est la ligne 1), celui que le conseiller voit dans son tableur.
+  L'identifiant du contrat reste un UUID v7 (ADR-012) : ni la table `contract` ni l'agrégat ne changent.
+- **Stockage du fichier.** En `BYTEA`, dans `contract_import_job_file`, séparée de `contract_import_job`. Hibernate ne
+  charge pas paresseusement un `byte[]` sans instrumenter le bytecode : dans une seule table, chaque lecture de statut
+  et chaque lot rechargeraient jusqu'à 50 Mo. La base évite aussi de dépendre d'un disque local si plusieurs instances
+  tournent.
+- **Spring Batch.** Le traitement est un job Spring Batch à un seul step, en chunks de 2000 lignes
+  (`ContractImportBatchConfiguration`, paramètre identifiant `jobId`). `FlatFileItemReader` lit le fichier et donne le
+  numéro de ligne, le processor écarte les lignes vides, et le writer délègue à `ProcessContractImportBatch`. Spring
+  Batch reste donc un adaptateur entrant, dans le package `batch` : le domaine et les règles ne le connaissent pas. Les
+  tables `BATCH_*` sont créées par Flyway dans le schéma `contracts` (`initialize-schema: never`).
+- **Worker.** Spring Batch ne choisit pas les jobs à lancer et ne détecte pas les crashs. Un `@Scheduled` réserve donc
+  un job avec `FOR UPDATE SKIP LOCKED` : `PENDING`, ou `RUNNING` dont le bail a expiré. Chaque chunk renouvelle le bail.
+- **Use cases.** Les douze use cases de cet import sont dans `features/contract/importjob`, comme une seule tranche
+  verticale. `SubmitContractImportJob`, `GetContractImportJob`, `ListContractImportJobs`, `ListContractImportJobRejections`,
+  `ExportContractImportJobRejections` et `CancelContractImportJob` sont appelés par le contrôleur ; les deux lectures de rejets passent par `ContractImportJobQueryPort` (ADR-011), le repository ne servant qu'à l'agrégat ; `ClaimContractImportJob`, `ProcessContractImportBatch`, `FinishContractImportJob`, `ReleaseContractImportJob`,
+  `FailContractImportJob` et `LoadContractImportJobFile` sont appelés par le package `batch`. Aucune règle ne les lui réserve : rien n'empêche un
+  autre adaptateur de les appeler, ce qui contournerait la position du reader et le bail. Ce sont tous des application
+  services, appelés par des adaptateurs entrants différents. `ContractImportJob` n'accepte `recordBatch`, `finish`, `release` et
+  `fail` que sur un job `RUNNING`.
+- **Fin de job.** La décision appartient à une seule classe, `ContractImportJobOutcomeListener`, à la fin de l'exécution
+  Spring Batch, et non plus au compteur de lignes dans `recordBatch` :
+  - `COMPLETED` : `FinishContractImportJob`. Si `processedLines` n'atteint pas `totalLines`, le job échoue en
+    `incompleteProcessing` au lieu de rester `RUNNING` ;
+  - `STOPPED` ou erreur transitoire (`TransientDataAccessException`, `RecoverableDataAccessException`) :
+    `ReleaseContractImportJob`, le job revient en `PENDING` et reprend après le dernier chunk commité ;
+  - toute autre erreur : `FailContractImportJob`, en `unexpectedError`.
+- **Reprise.** Chaque transaction de chunk commite ensemble les contrats, les lignes, les compteurs, le bail et la
+  position du reader : un job repris continue exactement après le dernier chunk commité. Après un crash, l'exécution
+  reste `STARTED` et Spring Batch refuse de la relancer (`JobExecutionAlreadyRunningException`) :
+  `ContractImportJobRunner` appelle d'abord `JobOperator.recover`. Si la dernière exécution est déjà `COMPLETED` (crash
+  avant le listener), le runner applique directement `FinishContractImportJob`. Après `MAX_ATTEMPTS` (5) exécutions en
+  échec, le job échoue en `tooManyAttempts`. Une exécution `STOPPED` ne compte pas : elle ne vient que d'un arrêt de
+  l'application, et un job doit survivre à plusieurs déploiements successifs. Le `retry` de Spring Batch n'est pas utilisé : il rejoue l'écriture dans la même
+  transaction, inutilisable après une erreur PostgreSQL. La remise en file relance dans une transaction neuve.
+- **Arrêt de l'application.** `ChunkOrientedStep` (Spring Batch 6.0.6) sort de sa boucle sur une interruption du thread
+  sans lever d'erreur : avec la politique par défaut, le step finit `COMPLETED` avec des lignes non lues, et une reprise
+  le saute. `ContractImportStepInterruptionPolicy` appelle donc `setTerminateOnly` à la limite d'un chunk, sur une
+  interruption comme sur `ContextClosedEvent`. Le step finit `STOPPED`, reste relançable, et le job revient en `PENDING`
+  sans attendre l'expiration du bail.
+- **Worker remplacé.** Un worker bloqué au-delà du bail peut se réveiller après qu'un autre a repris le job. Son chunk
+  échoue sur la clé primaire de `contract_import_job_line` et sur la version de son `StepExecution`. Le listener compare
+  son exécution à la dernière de l'instance et ignore le résultat d'une exécution remplacée, sans migration.
+- **Bail en `Instant`.** Exception à l'ADR-013 : le bail est une durée technique, pas une date métier. En
+  `LocalDateTime`, il durait 65 minutes pendant l'heure répétée du passage à l'heure d'hiver.
+- **Lignes qui ne doivent jamais faire échouer un chunk.** Un caractère NUL est rejeté en `invalidLineFormat`, car
+  PostgreSQL le refuse dans un `TEXT`. `ContractPeriod` borne les années de 1 à 9999, car `TIMESTAMPTZ` a ses propres
+  limites : la règle vaut pour toutes les créations, qui répondent `invalidContractPeriod`. Le reader désactive les
+  commentaires (`.comments()`) : par défaut, il ignore les lignes commençant par `#`.
+  Une règle du contrat ne fait pas non plus échouer un chunk : `InvalidContractCostException` et
+  `InvalidContractPeriodException` héritent de `ContractValidationException`, scellée. `ContractImportLineEvaluator`
+  n'intercepte qu'elle et la traduit en motif de rejet par un `switch` exhaustif : une nouvelle règle doit être
+  ajoutée à `permits`, puis le `switch` ne compile plus tant qu'elle n'a pas de motif, ni `ContractImportCodes` tant
+  qu'elle n'a pas de code. Un filet `DomainValidationException` générique a été écarté : il cacherait la règle oubliée
+  derrière un code vague.
+- **Client supprimé pendant le traitement.** Chaque lot relit ses clients avec `FOR SHARE`
+  (`ClientRepository.lockExistingIds`, `findExistingIds` restant sans verrou). Pour que le verrou serve à quelque chose,
+  `DeleteClient` doit écrire `deleted_at` **avant** de fermer les contrats : sans `flush`, Hibernate exécute la
+  fermeture d'abord, car elle ne touche pas la table `client`, puis bloque sur le verrou au commit. Le lot pourrait
+  alors insérer un contrat que la fermeture ne verrait jamais, d'où un contrat actif sur un client supprimé.
+  `JpaClientRepository.delete` fait donc un `flush`. La course de l'import synchrone et de `CreateContract`, qui lisent
+  sans verrou, reste celle décrite dans l'ADR-021.
+- **Attente bornée : `lock_timeout` de 5 s.** Le verrou `FOR SHARE` n'est tenu que pendant un chunk (2000 lignes), pas
+  pendant tout l'import : à environ 8000 lignes par seconde (500 000 lignes en une minute au plus), un chunk le garde
+  quelques centaines de millisecondes. Un `PUT`, `PATCH` ou `DELETE` sur un client du chunk attend donc ce commit, sans
+  échouer. Sans borne, un chunk bloqué (connexion lente, pause du GC) ferait attendre ces requêtes indéfiniment.
+  `SET lock_timeout` est posé à l'ouverture de chaque connexion du pool (`connection-init-sql`, propriété
+  `app.database.lock-timeout`). 5 s laissent une marge d'environ 20 fois la durée normale d'un chunk. Au-delà :
+  - côté API, PostgreSQL annule l'instruction, Spring lève `CannotAcquireLockException` et l'API répond
+    `409 resourceBusy` sans rien modifier : le conseiller renvoie la requête quelques secondes plus tard ;
+  - côté import, l'exception est transitoire : le job retourne dans la file et reprend au dernier chunk commité,
+    dans la limite de `ContractImportJobRunner.MAX_ATTEMPTS`.
+  La borne s'applique à toute attente de verrou, migrations Flyway comprises : une migration qui attendrait plus de
+  5 s un verrou tenu par l'application échoue au démarrage au lieu de bloquer le trafic derrière elle. Le verrou
+  consultatif de Flyway n'est pas concerné, Flyway l'obtient par essais successifs. Si un jour une opération doit
+  attendre plus longtemps, elle relève la borne pour sa transaction (`SET LOCAL lock_timeout`), sans changer la
+  valeur globale. Défaut connu : `FOR SHARE` fait aussi attendre la modification d'un client, alors que seule sa
+  suppression menace la règle ; un verrou consultatif par client ne bloquerait que la suppression, à revoir si
+  l'attente gêne.
+- **Pas de version attendue** (ADR-011) : le traitement ne dépend pas d'un état lu par l'utilisateur.
+- **Auteur d'un job.** La soumission enregistre le `preferred_username` du jeton dans `submitted_by`, ou son `sub` s'il n'en a pas. L'annulation enregistre de même `cancelled_by`. Les jobs soumis avant cet ajout ont un auteur `null`. La liste montre les jobs de tous les conseillers, avec un filtre facultatif `submittedBy` : aucune règle de propriété, comme dans le reste de l'API (ADR-017).
+- **Idempotence de la soumission.** Sans protection, une double soumission (double clic, nouvel essai après un timeout, réponse `202` perdue) importe deux fois tout le fichier. L'en-tête facultatif `Idempotency-Key` (255 caractères au plus) est unique par auteur, garanti par l'index unique partiel `(submitted_by, idempotency_key)`.
+  - même clé et même fichier : `202` avec le job déjà créé et son `Location`, sans nouveau job ;
+  - même clé et autre fichier : `422 idempotencyKeyReused`. Le fichier est comparé par son empreinte SHA-256 (`content_sha256`), calculée à chaque soumission et rétro-calculée par la migration pour les jobs existants ;
+  - clé vide ou trop longue : `400 invalidIdempotencyKey` ;
+  - deux soumissions simultanées avec la même clé : la seconde viole l'index unique et reçoit `409 dataIntegrityViolation`. Un nouvel essai renvoie alors le job créé par la première.
+  - Sans clé, rien ne change. La rendre obligatoire (`428`, comme `If-Match`) casserait les appelants existants. Les clés n'expirent pas.
+- **Annulation.** `POST /v2/contracts/import-jobs/{jobId}/cancellation` annule un job dans n'importe quel état. Un job `FAILED` n'est pas relancé : comme il est déjà importé en partie, le conseiller l'annule, puis soumet un fichier corrigé, sans doublon actif.
+  - Les contrats du job encore actifs sont fermés à l'instant de l'annulation (`end_date = last_modified = cancelled_at`, `version` incrémentée comme toute mise à jour en masse, ADR-011). Ce sont des contrats annulés au sens de l'ADR-009 : ils sortent de la liste et des totaux, et restent lisibles. Ils sont retrouvés par `contract_import_job_line.contract_id`. Un contrat déjà fermé (expiré, client supprimé) n'est pas touché ; un contrat dont le coût a changé depuis l'import est fermé quand même.
+  - Une seconde annulation ne change rien et renvoie `closedContracts = 0`. Pas de `If-Match` (ADR-011) : le résultat ne dépend pas d'un état lu par le conseiller.
+  - Pendant un chunk : l'annulation verrouille la ligne du job (`SELECT ... FOR UPDATE`) avant de fermer les contrats. Un chunk déjà commité voit ses contrats fermés. Un chunk en cours ne peut plus rien commiter : s'il relit le job annulé, `recordBatch` lève `ContractImportJobCancelledException` ; s'il l'avait lu avant, sa mise à jour du job échoue sur `@Version`. Dans les deux cas sa transaction est annulée. `finish`, `release` et `fail` laissent un job annulé tel quel, et le listener reconnaît l'annulation. Spring Batch journalise quand même l'arrêt du step en erreur.
+- **Export des rejets.** `GET /v2/contracts/import-jobs/{jobId}/rejections/export` renvoie un CSV `lineNumber;rejectionCode;rejectionMessage;line`, trié par ligne. La colonne `line` est relue dans le fichier stocké : aucune migration. Les colonnes de texte sont entre guillemets, car le message et la ligne d'origine contiennent des `;`. Le conseiller corrige la ligne et la recopie dans un nouveau fichier. L'export est construit en mémoire : quelques dizaines de Mo au pire, pour un fichier de 50 Mo entièrement rejeté. Acceptable à cette échelle ; au-delà, il faudrait le diffuser en flux.
+
+**Performance : ce qui est retenu, et pourquoi.** `CHUNK_SIZE = 2000`, `hibernate.jdbc.batch_size: 1000` et
+`reWriteBatchedInserts: true` (propriété de pgjdbc, via `spring.datasource.hikari.data-source-properties`).
+
+Un chronométrage temporaire sur 50 000 lignes (chunks de 5000, `batch_size` 50) a montré que l'écriture des `INSERT`
+prend 89 % du step : 6,1 s sur 6,8 s, pour 100 000 lignes écrites, soit un contrat et une ligne de rapport par ligne du
+fichier. Le parsing, les règles du domaine, le verrou `FOR SHARE` et Spring Batch pèsent chacun 6 % au plus.
+
+| Réglage                                                | Durée du step sur 50 000 lignes |
+|--------------------------------------------------------|---------------------------------|
+| Chunk 500, `batch_size` 50                             | 7,3 s                           |
+| Chunk 5000, `batch_size` 50                            | 6,8 s                           |
+| Chunk 2000, `batch_size` 1000                          | **5,8 s**                       |
+| Chunk 2000, `batch_size` 1000, `reWriteBatchedInserts` | **4,6 s**                       |
+
+Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des ordres de grandeur.
+
+- **Le chunk décide du commit, `batch_size` de la taille des paquets envoyés.** La taille du chunk influence peu la
+  durée mesurée, mais elle fixe la durée du verrou `FOR SHARE` et le travail perdu sur une erreur. `batch_size` doit
+  rester inférieur ou égal au chunk : au-delà, il ne produit pas de paquets plus grands.
+- **`INSERT` et verrous.** Un `INSERT` ne bloque pas les autres lectures et écritures de la table. Le seul verrou gênant
+  est `FOR SHARE`, tenu jusqu'au commit du chunk : il fait attendre la suppression ou la modification d'un client de ce
+  chunk, environ 200 ms d'après ces mesures. Un `batch_size` plus grand raccourcit cette attente.
+- **`reWriteBatchedInserts`.** Le driver fusionne les `INSERT` d'un paquet en requêtes multi-valeurs. Il ne touche pas
+  aux `UPDATE`, donc la détection des conflits `@Version` ne change pas. Il renvoie « succès, nombre inconnu » au lieu
+  du nombre de lignes par `INSERT`, ce qui est sans effet ici, car un `INSERT` sans `ON CONFLICT` réussit ou lève une
+  erreur. Une erreur de contrainte n'indique plus précisément la ligne fautive, ce qui ne gêne que le diagnostic : le
+  chunk est annulé dans tous les cas.
+
+**Options écartées.**
+
+- **Clé composite sur `contract`, ou UUID v5 dérivé de `(jobId, ligne)`.** La première casse l'API et le curseur
+  d'export, la seconde perd les UUID v7 (ADR-012), et aucune des deux ne stocke les rejets.
+- **Colonnes `import_job_id` et `line_number` sur `contract`.** Elles imposent un détail d'import à chaque contrat, et
+  les rejets restent à stocker ailleurs.
+- **Boucle de lots écrite à la main.** Première version de cet ADR : `processed_lines` servait de position de reprise.
+  Elle fonctionnait, sans dépendance ni tables `BATCH_*`, mais toute violation de contrainte y était lue comme une
+  reprise par un autre worker, avec un risque de reprises sans fin. Spring Batch est retenu pour l'exercice et pour ces
+  garanties, pas pour réduire le code : la réservation, le bail et le rapport de rejets restent nécessaires.
+- **`@Async` seul.** Un redémarrage perdrait le job sans laisser de trace.
+- **Tout-ou-rien en une transaction.** Une transaction de plusieurs minutes sur 500 000 lignes bloquerait les
+  suppressions de clients pendant toute sa durée.
+
+**Conséquences.**
+
+- Migrations `V2.0.0.6` (trois tables du domaine) et `V2.0.0.7` (tables de Spring Batch, script fourni par
+  `spring-batch-core`, préfixé par le schéma).
+- Les fichiers restent en base : aucune purge n'est prévue. À traiter si cet import quittait le cadre de l'exercice.
+- Un job s'exécute dans le thread du planificateur : une instance traite un job à la fois.
+- Limite : un worker vivant dont un chunk dépasse le bail de 5 minutes voit son job repris par un autre worker. Son
+  chunk en cours est perdu (annulé) et le worker remplaçant continue. `ContractImportJobRecoveryAcceptanceTest` couvre ce cas.
+- Migration `V2.0.0.8` : `failure_reason` sur `contract_import_job`, exposé en `failureCode` par l'API.
+- Migration `V2.0.0.9` : `submitted_by`, `idempotency_key`, `content_sha256` (calculée pour les jobs existants), `cancelled_at`, `cancelled_by`, statut `CANCELLED` et index unique partiel de l'idempotence.
+- CORS : `Idempotency-Key` est autorisé, `Content-Disposition` exposé.
+- La purge des fichiers, si elle arrive, devra les garder tant que les rejets peuvent être exportés.
+- `contract_import_job_line.contract_id` référence `contract` : les tests suppriment les jobs avant les contrats.
+- Le worker est désactivé dans le profil `test` (`app.contract-import.worker-enabled`) et activé seulement par les tests
+  qui le visent : sinon chaque contexte Spring en cache aurait son propre worker, avec une horloge parfois modifiée.
 
 **Statut.** Acceptée (exercice).
 
