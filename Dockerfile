@@ -37,7 +37,7 @@ RUN apt-get update && \
 COPY --from=deps /root/.m2 /root/.m2
 COPY --from=deps ${BUILD_WORKDIR}/mvnw ./mvnw
 COPY --from=deps ${BUILD_WORKDIR}/.mvn .mvn
-COPY pom.xml .
+COPY pom.xml lombok.config ./
 COPY src src
 
 # Build the Spring Boot jar, then use jarmode=tools to expose the jar's built-in
