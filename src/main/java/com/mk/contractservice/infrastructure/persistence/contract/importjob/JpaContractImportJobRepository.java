@@ -25,7 +25,6 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
 
     private final ContractImportJobJpaRepository jobJpaRepository;
     private final ContractImportJobFileJpaRepository fileJpaRepository;
-    private final ContractImportJobLineJpaRepository lineJpaRepository;
     private final EntityManager entityManager;
 
     @Override

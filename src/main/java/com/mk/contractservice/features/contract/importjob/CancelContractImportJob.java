@@ -40,7 +40,7 @@ public interface CancelContractImportJob {
             final LocalDateTime now = LocalDateTime.now(clock);
             final ContractImportJob loaded = jobRepository.lockById(command.jobId());
             final ContractImportJob cancelled = loaded.cancel(now, command.cancelledBy());
-            if (cancelled == loaded) {
+            if (cancelled.equals(loaded)) {
                 return new Result(loaded, 0);
             }
             final ContractImportJob saved = jobRepository.save(cancelled);

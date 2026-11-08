@@ -9,6 +9,7 @@ import com.mk.contractservice.domain.contract.importjob.exception.ContractImport
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobTransitionNotAllowedException;
 import lombok.AccessLevel;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
@@ -19,6 +20,7 @@ import java.util.UUID;
 import static com.mk.contractservice.domain.shared.Assert.notNull;
 
 @Getter
+@EqualsAndHashCode
 public final class ContractImportJob {
 
     private final @Nullable UUID id;

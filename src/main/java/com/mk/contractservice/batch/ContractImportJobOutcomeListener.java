@@ -31,11 +31,11 @@ public class ContractImportJobOutcomeListener implements JobExecutionListener {
 
     @Override
     public void afterJob(final JobExecution jobExecution) {
-        final UUID jobId = UUID.fromString(jobExecution.getJobParameters()
-                .getString(ContractImportBatchConfiguration.JOB_ID_PARAMETER));
+        final UUID jobId = UUID.fromString(Objects.requireNonNull(jobExecution.getJobParameters()
+                .getString(ContractImportBatchConfiguration.JOB_ID_PARAMETER), "Job ID parameter cannot be null"));
         final JobExecution latest = jobRepository.getLastJobExecution(ContractImportBatchConfiguration.JOB_NAME,
                 jobExecution.getJobParameters());
-        if (latest == null || !Objects.equals(latest.getId(), jobExecution.getId())) {
+        if (latest == null || latest.getId() != jobExecution.getId()) {
             log.warn("Import job {}: execution {} was replaced by another worker, its outcome {} is ignored",
                     jobId,
                     jobExecution.getId(),

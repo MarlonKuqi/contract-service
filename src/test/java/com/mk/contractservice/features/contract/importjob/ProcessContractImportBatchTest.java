@@ -22,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -41,8 +40,8 @@ import static org.mockito.Mockito.when;
 class ProcessContractImportBatchTest {
 
     private static final ZoneId ZONE = ZoneId.of("Europe/Zurich");
-    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-11-03T09:00:00Z"), ZONE);
-    private static final LocalDateTime NOW = LocalDateTime.now(CLOCK);
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 3, 10, 0);
+    private static final Clock CLOCK = Clock.fixed(NOW.atZone(ZONE).toInstant(), ZONE);
     private static final UUID JOB_ID = UUID.randomUUID();
     private static final UUID CLIENT_ID = UUID.randomUUID();
     private static final UUID UNKNOWN_CLIENT_ID = UUID.randomUUID();

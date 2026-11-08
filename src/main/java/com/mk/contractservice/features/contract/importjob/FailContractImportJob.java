@@ -36,7 +36,7 @@ public interface FailContractImportJob {
             final LocalDateTime now = LocalDateTime.now(clock);
             final ContractImportJob loaded = jobRepository.getById(command.jobId());
             final ContractImportJob failed = loaded.fail(command.reason(), now);
-            if (failed != loaded) {
+            if (!failed.equals(loaded)) {
                 jobRepository.save(failed);
             }
         }

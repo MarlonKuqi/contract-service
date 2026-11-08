@@ -620,4 +620,17 @@ class ContractImportJobTest {
         assertThat(job.release()).isSameAs(job);
         assertThat(job.fail(REASON, NOW)).isSameAs(job);
     }
+
+    @Test
+    @DisplayName("GIVEN two jobs reconstituted from the same data WHEN comparing them THEN they are equal")
+    void shouldCompareJobsByValue() {
+        final UUID id = UUID.randomUUID();
+        final ContractImportSubmission submission = ContractImportJobFixtures.submission(NOW);
+
+        final ContractImportJob job = reconstitute(id, submission, ContractImportJobState.Status.RUNNING, PROGRESS);
+        final ContractImportJob same = reconstitute(id, submission, ContractImportJobState.Status.RUNNING, PROGRESS);
+
+        assertThat(same).isEqualTo(job).hasSameHashCodeAs(job);
+        assertThat(job.release()).isNotEqualTo(job);
+    }
 }

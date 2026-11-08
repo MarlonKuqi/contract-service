@@ -30,7 +30,7 @@ public interface ReleaseContractImportJob {
         public void execute(final Command command) {
             final ContractImportJob loaded = jobRepository.getById(command.jobId());
             final ContractImportJob released = loaded.release();
-            if (released != loaded) {
+            if (!released.equals(loaded)) {
                 jobRepository.save(released);
             }
         }

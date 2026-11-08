@@ -33,7 +33,6 @@ import static org.awaitility.Awaitility.await;
 class ContractImportJobShutdownAcceptanceTest {
 
     private static final int LINES = 100_000;
-    private static final String JOB_QUERY = "select %s from contracts.contract_import_job where id = ?";
 
     private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.0-alpine");
 
@@ -75,7 +74,8 @@ class ContractImportJobShutdownAcceptanceTest {
     }
 
     private static <T> T jobValue(final UUID jobId, final String column, final Class<T> type) {
-        return jdbcTemplate.queryForObject(JOB_QUERY.formatted(column), type, jobId);
+        return jdbcTemplate.queryForObject("select %s from contracts.contract_import_job where id = ?".formatted(
+                column), type, jobId);
     }
 
     @Test

@@ -34,7 +34,7 @@ public interface FinishContractImportJob {
             final LocalDateTime now = LocalDateTime.now(clock);
             final ContractImportJob loaded = jobRepository.getById(command.jobId());
             final ContractImportJob finished = loaded.finish(now);
-            if (finished != loaded) {
+            if (!finished.equals(loaded)) {
                 jobRepository.save(finished);
             }
         }
