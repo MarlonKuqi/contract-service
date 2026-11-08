@@ -102,7 +102,7 @@ class ContractImportJobShutdownAcceptanceTest {
         assertThat(jobValue(jobId, "processed_lines", Integer.class)).isLessThan(LINES);
         assertThat(jobValue(jobId, "lease_until", java.time.OffsetDateTime.class)).isNull();
 
-        try (ConfigurableApplicationContext ignored = startInstance()) {
+        try (var _ = startInstance()) {
             await().atMost(Duration.ofMinutes(2))
                     .pollInterval(Duration.ofMillis(200))
                     .until(() -> ContractImportJobState.Status.COMPLETED.name()

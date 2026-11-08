@@ -61,7 +61,8 @@ RUN ./mvnw -B package -DskipTests && \
         ${EXTRACT_DIR}/application/BOOT-INF/classes > target/jre-deps.info && \
     : "Build a custom minimal JRE for the application" && \
     : "Explicitly keep jdk.crypto.ec for modern HTTPS/TLS certificates; jdeps may not infer it reliably" && \
-    : "Explicitly keep jdk.jfr and jdk.jcmd for production diagnostics; the application code does not reference them" && \
+    : "Explicitly keep jdk.jfr and jdk.jcmd for production diagnostics; \
+     the application code does not reference them" && \
     jlink \
         --add-modules "$(cat target/jre-deps.info)",jdk.crypto.ec,jdk.jfr,jdk.jcmd \
         --strip-debug \

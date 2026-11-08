@@ -480,6 +480,7 @@ Cette version pose six problèmes :
 - **Le domaine et les use cases ne savent rien de la sécurité.** Les rôles sont une règle d'accès à l'API, pas une règle métier. Aucun changement dans `domain` ni dans `features`.
 - **Le realm est versionné.** Un export du realm `contract-service` (rôle `COUNSELOR`, client `contract-service`, utilisateurs de démo pour le développement uniquement) est importé au démarrage (`start-dev --import-realm`). Les mots de passe de démo ne servent qu'en local.
 - **CORS** : origines autorisées lues dans une propriété (`app.cors.allowed-origins`), vide par défaut. Pas de `*`.
+- **CSRF désactivé** : l'API est sans état et le jeton ne circule que dans l'en-tête `Authorization`, sans cookie ni session (`SessionCreationPolicy.STATELESS`, `allowCredentials=false`). Le navigateur n'envoie donc aucun identifiant automatiquement, et un site tiers ne peut pas forger une requête authentifiée. Garder la protection active n'apporterait rien : les requêtes avec jeton en sont déjà exemptées, et un `POST` sans jeton recevrait `403` au lieu de `401`. À réévaluer si le jeton passe un jour dans un cookie (BFF).
 - **Dépendances** : `jjwt` est retiré, `spring-boot-starter-oauth2-resource-server` suffit.
 
 **Tests.**

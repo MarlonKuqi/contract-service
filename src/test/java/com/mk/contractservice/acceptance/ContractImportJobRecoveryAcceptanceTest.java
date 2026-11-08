@@ -114,7 +114,7 @@ class ContractImportJobRecoveryAcceptanceTest {
     @BeforeEach
     void setUp() {
         AcceptanceRestAssured.configure(port);
-        cleanUp();
+        deleteTestData();
         clientId = given()
                 .body("""
                         {
@@ -174,13 +174,13 @@ class ContractImportJobRecoveryAcceptanceTest {
     }
 
     @AfterEach
-    void wakeWorkers() {
+    void cleanUp() {
         wakeFirstWorker.countDown();
         wakeTakeoverWorker.countDown();
+        deleteTestData();
     }
 
-    @AfterEach
-    void cleanUp() {
+    private void deleteTestData() {
         jdbcTemplate.update("delete from contracts.contract_import_job");
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
@@ -248,7 +248,8 @@ class ContractImportJobRecoveryAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN an unexpected error during a chunk WHEN the job runs THEN it fails and earlier chunks stay imported")
+    @DisplayName(
+        "GIVEN an unexpected error during a chunk WHEN the job runs THEN it fails and earlier chunks stay imported")
     void shouldFailAndKeepEarlierChunks() {
         final String jobId = submitLines(CHUNK_SIZE + 1);
 
@@ -266,7 +267,8 @@ class ContractImportJobRecoveryAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a job interrupted by a crash WHEN its lease expires THEN it resumes after the last chunk without duplicates")
+    @DisplayName(
+        "GIVEN a job interrupted by a crash WHEN its lease expires THEN it resumes after the last chunk without duplicates")
     void shouldResumeAfterCrashWithoutDuplicates() {
         final int lines = CHUNK_SIZE + 1;
         final String jobId = submitLines(lines);
@@ -293,7 +295,8 @@ class ContractImportJobRecoveryAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a transient database error during a chunk WHEN the job runs THEN it resumes and completes without duplicates")
+    @DisplayName(
+        "GIVEN a transient database error during a chunk WHEN the job runs THEN it resumes and completes without duplicates")
     void shouldResumeAfterTransientFailure() {
         secondChunkFailure.set(new CannotAcquireLockException("Simulated deadlock"));
         final int lines = CHUNK_SIZE * 2 + 1;
@@ -336,7 +339,8 @@ class ContractImportJobRecoveryAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a job stopped by more shutdowns than allowed attempts WHEN it runs again THEN it completes without duplicates")
+    @DisplayName(
+        "GIVEN a job stopped by more shutdowns than allowed attempts WHEN it runs again THEN it completes without duplicates")
     void shouldNotCountShutdownsAsAttempts() {
         secondChunkFailure.set(null);
         interruptionsLeft.set(ContractImportJobRunner.MAX_ATTEMPTS);
@@ -356,7 +360,8 @@ class ContractImportJobRecoveryAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a stalled worker whose job was taken over WHEN it wakes up THEN it does not fail the job of the other worker")
+    @DisplayName(
+        "GIVEN a stalled worker whose job was taken over WHEN it wakes up THEN it does not fail the job of the other worker")
     void shouldNotLetAStalledWorkerFailTheJobOfTheOtherWorker() throws Exception {
         firstWorkerStalls.set(true);
         final int lines = CHUNK_SIZE * 4 + 1;
@@ -391,7 +396,8 @@ class ContractImportJobRecoveryAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a batch execution complete but a job still running with missing lines WHEN its lease expires THEN the job fails instead of running forever")
+    @DisplayName(
+        "GIVEN a batch execution complete but a job still running with missing lines WHEN its lease expires THEN the job fails instead of running forever")
     void shouldFailJobWhoseExecutionEndedWithMissingLines() {
         secondChunkFailure.set(null);
         final String jobId = submitLines(2);
@@ -409,7 +415,8 @@ class ContractImportJobRecoveryAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN a batch execution complete and every line processed but a job still running WHEN its lease expires THEN the job completes")
+    @DisplayName(
+        "GIVEN a batch execution complete and every line processed but a job still running WHEN its lease expires THEN the job completes")
     void shouldCompleteJobWhoseListenerNeverRan() {
         secondChunkFailure.set(null);
         final String jobId = submitLines(2);

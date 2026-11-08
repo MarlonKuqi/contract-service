@@ -16,18 +16,21 @@ public final class EntityTags {
 
     public static long requiredVersion(@Nullable final String ifMatch) {
         if (ifMatch == null || ifMatch.isBlank()) {
-            throw new PreconditionRequiredException("The If-Match header is required: send the ETag of the resource you read");
+            throw new PreconditionRequiredException(
+                    "The If-Match header is required: send the ETag of the resource you read");
         }
         final List<ETag> tags = ETag.parse(ifMatch);
         if (tags.stream().anyMatch(ETag::isWildcard)) {
-            throw new PreconditionRequiredException("If-Match: * is not accepted: send the ETag of the resource you read");
+            throw new PreconditionRequiredException(
+                    "If-Match: * is not accepted: send the ETag of the resource you read");
         }
         if (tags.size() != 1 || tags.getFirst().weak()) {
-            throw new UnmatchableIfMatchException("If-Match must contain the single strong ETag of the resource you read");
+            throw new UnmatchableIfMatchException(
+                    "If-Match must contain the single strong ETag of the resource you read");
         }
         try {
             return Long.parseLong(tags.getFirst().tag());
-        } catch (final NumberFormatException e) {
+        } catch (final NumberFormatException _) {
             throw new UnmatchableIfMatchException("If-Match does not match any version of the resource");
         }
     }

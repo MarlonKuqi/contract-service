@@ -88,7 +88,6 @@ class SubmitContractImportJobTest {
         final ContractImportJob job = jobCaptor.getValue();
         assertThat(result).isSameAs(job);
         assertThat(job.status()).isEqualTo(ContractImportJobState.Status.PENDING);
-        ;
         assertThat(job.progress().totalLines()).isEqualTo(2);
         assertThat(job.submission().submittedAt()).isEqualTo(LocalDateTime.now(CLOCK));
         assertThat(job.submission().submittedBy()).isEqualTo(SUBMITTER);

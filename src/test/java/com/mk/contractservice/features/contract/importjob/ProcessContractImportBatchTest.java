@@ -74,11 +74,11 @@ class ProcessContractImportBatchTest {
 
     private static Tuple outcomeOf(final ContractImportJobLine line) {
         return switch (line) {
-            case ContractImportJobLine.Imported(UUID _, int lineNumber, UUID clientId, UUID contractId) -> tuple(
+            case ContractImportJobLine.Imported(_, int lineNumber, UUID clientId, UUID contractId) -> tuple(
                     lineNumber,
                     clientId,
                     contractId);
-            case ContractImportJobLine.Rejected(UUID _, int lineNumber, UUID clientId, ContractImportRejectionReason reason, String _) ->
+            case ContractImportJobLine.Rejected(_, int lineNumber, UUID clientId, ContractImportRejectionReason reason, _) ->
                 tuple(lineNumber, clientId, reason);
         };
     }

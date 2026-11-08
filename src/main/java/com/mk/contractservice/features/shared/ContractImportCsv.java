@@ -28,7 +28,7 @@ public final class ContractImportCsv {
     public static final String SEPARATOR = ";";
     public static final String HEADER = "clientId" + SEPARATOR + "startDate" + SEPARATOR + "endDate" + SEPARATOR + "costAmount";
 
-    private static final String BYTE_ORDER_MARK = "﻿";
+    private static final String BYTE_ORDER_MARK = "\uFEFF";
     private static final int COLUMNS = 4;
     private static final char NUL = '\0';
 

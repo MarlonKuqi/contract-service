@@ -72,7 +72,7 @@ public record ContractImportJobResponse(
 
     private static @Nullable String failureCodeOf(@Nullable final ContractImportTermination termination) {
         return switch (termination) {
-            case ContractImportTermination.Failed(LocalDateTime _, ContractImportFailureReason reason) ->
+            case ContractImportTermination.Failed(_, ContractImportFailureReason reason) ->
                 ContractImportCodes.of(reason);
             case ContractImportTermination.Ended _ -> null;
             case null -> null;

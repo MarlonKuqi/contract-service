@@ -32,7 +32,7 @@ class ContractImportCsvTest {
     @Test
     @DisplayName("GIVEN a BOM and CRLF line endings WHEN counting THEN the file is accepted")
     void shouldAcceptBomAndCrlf() {
-        final byte[] content = bytes("﻿clientId;startDate;endDate;costAmount\r\na\r\n");
+        final byte[] content = bytes("\uFEFFclientId;startDate;endDate;costAmount\r\na\r\n");
 
         assertThat(ContractImportCsv.requireValidAndCountLines(content)).isEqualTo(1);
     }

@@ -340,8 +340,9 @@ class ClientDeletionAcceptanceTest {
 
         assertThat(endDate1Str).isNotNull();
         LocalDateTime endDate1 = LocalDateTime.parse(endDate1Str);
-        assertThat(endDate1).isCloseTo(expiredEndDate1, within(1, ChronoUnit.SECONDS));
-        assertThat(endDate1).isBefore(deletionTime.minusMonths(2));
+        assertThat(endDate1)
+                .isCloseTo(expiredEndDate1, within(1, ChronoUnit.SECONDS))
+                .isBefore(deletionTime.minusMonths(2));
 
         String endDate2Str = given()
                 .queryParam("clientId", clientId)
@@ -355,8 +356,9 @@ class ClientDeletionAcceptanceTest {
 
         assertThat(endDate2Str).isNotNull();
         LocalDateTime endDate2 = LocalDateTime.parse(endDate2Str);
-        assertThat(endDate2).isCloseTo(expiredEndDate2, within(1, ChronoUnit.SECONDS));
-        assertThat(endDate2).isBefore(deletionTime.minusHours(1));
+        assertThat(endDate2)
+                .isCloseTo(expiredEndDate2, within(1, ChronoUnit.SECONDS))
+                .isBefore(deletionTime.minusHours(1));
     }
 
     @Test
