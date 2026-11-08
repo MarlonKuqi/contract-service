@@ -1,6 +1,7 @@
 package com.mk.contractservice.domain.contract;
 
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,8 +12,8 @@ public final class ContractFactory {
 
     public static Contract createFromCommand(
             final UUID clientId,
-            final LocalDateTime startDate,
-            final LocalDateTime endDate,
+            @Nullable final LocalDateTime startDate,
+            @Nullable final LocalDateTime endDate,
             final BigDecimal costAmount,
             final LocalDateTime now
     ) {
@@ -23,9 +24,9 @@ public final class ContractFactory {
 
     public static Contract buildFromDatabase(
             final UUID id,
-            final UUID clientId,
+            @Nullable final UUID clientId,
             final LocalDateTime startDate,
-            final LocalDateTime endDate,
+            @Nullable final LocalDateTime endDate,
             final BigDecimal costAmount,
             final LocalDateTime lastModified
     ) {
@@ -35,4 +36,3 @@ public final class ContractFactory {
         return Contract.reconstituteFromDatabase(id, clientId, period, cost, lastModified);
     }
 }
-

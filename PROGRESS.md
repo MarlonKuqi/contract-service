@@ -52,6 +52,40 @@ Suivi des sujets en cours. Les décisions sont détaillées dans [ADR.md](docs/A
 - [ ] **`contract.client_id NOT NULL`** : vérifier en base qu'aucun contrat n'a de `client_id` à `NULL` (héritage des anciennes suppressions physiques), puis ajouter la migration.
 - [ ] **Tests et base réutilisée** : base Testcontainers dédiée par branche, ou `withReuse(false)` en CI, pour éviter les migrations « futures » ignorées par Flyway.
 
+## CI/CD et `.github`
+
+Revue de `.github/` du 2026-11-07. Corrections appliquées sur `feat/pipeline` (non commité). GitHub ne lit les templates et `dependabot.yml` que sur la branche par défaut (`master`) : c'est pour ça que les templates ne s'affichaient pas. Ils ne s'appliqueront qu'une fois mergés dans `master`.
+
+- [x] **Dependabot** : une entrée par écosystème pour `master` (ce qui tourne en prod), `develop` (la prochaine version) et `release/2.0.0`. `target-branch` n'accepte pas de joker : ajouter chaque nouvelle release à la main.
+- [x] **Image Docker** : construite sur les pushs vers `master`, `develop` et `release/**`, et à la demande sur une autre branche (`workflow_dispatch`, case « Build and scan the Docker image »). Plus de `continue-on-error` sur le job : un `docker build` cassé fait échouer la CI. Trivy reste informatif (`exit-code: '0'`). Cache des couches via Buildx (`type=gha`).
+- [x] **Seuil de couverture supprimé** (`pom.xml`, CI, ADR-014, README) : JaCoCo reste un rapport, PIT est le seul critère bloquant.
+- [x] **`permissions`** : `contents: read` par défaut, `pull-requests: write` pour le seul job qui commente la PR, `security-events: write` pour Trivy. `persist-credentials: false` sur les checkouts.
+- [x] **Codecov supprimé** : sans seuil, le commentaire JaCoCo sur la PR et l'artefact `coverage-report` suffisent.
+- [x] **Déclencheurs** : `push` limité aux branches majeures, `pull_request` sur toutes les cibles, `concurrency` qui annule les exécutions dépassées d'une PR (jamais celles des branches majeures).
+- [x] **Pipeline par étapes conservée** (échec rapide) : compilation → tests unitaires + rapport JaCoCo → en parallèle tests d'acceptation, PIT et image. Doublons retirés : `install`, étape `jacoco:check` (déjà dans la phase `test`), cache `actions/cache` en plus de `setup-java`. Maven passe par le wrapper (`sh mvnw -B`).
+- [x] **Résumé de tests** : `.github/scripts/test-summary.sh` lit les rapports Surefire / Failsafe (total, réussis, échecs, erreurs, ignorés, classes en échec), à la place du comptage de fichiers XML.
+- [x] **Résumé PIT** : `.github/scripts/mutation-summary.sh` lit `target/pit-reports/mutations.xml` (mutants, tués, survivants, non couverts, score, solidité, liste des mutants non détectés) ; affiché dans le résumé du run et dans un commentaire de PR unique mis à jour à chaque push (`marocchino/sticky-pull-request-comment`). Pas d'outil externe : pour aller plus loin, PIT en local.
+- [x] **Actions tierces épinglées par SHA**, `timeout-minutes` sur chaque job, `retention-days: 14` sur les rapports, artefact JAR, `fetch-depth: 0` et `TESTCONTAINERS_RYUK_DISABLED` retirés.
+- [x] **Templates** : PR, feature et bug réécrits, courts et propres au projet (titre = commit squashé, branche cible et méthode de merge ADR-020, impacts ADR / Flyway / API / breaking change, TDD, `./mvnw clean verify`). Issues vierges désactivées.
+
+### Reste à faire
+
+- [ ] **`mvnw` non exécutable dans git** (mode `100644`) : la CI l'appelle avec `sh mvnw`. Pour revenir à `./mvnw` : `git update-index --chmod=+x mvnw`.
+- [x] **Error Prone + NullAway** (ADR-023), sur `feat/pipeline` (non commité) : contrôles par défaut d'Error Prone, NullAway en erreur sur `src/main` (`AnnotatedPackages=com.mk.contractservice`, le `@NullMarked` du package racine ne couvrant pas les sous-packages), désactivé sur les tests, entités JPA exclues. `--add-exports` du compilateur dans `.mvn/jvm.config`.
+  - `@NullMarked` dans un `package-info.java` de chacun des 22 packages, pour que l'IDE applique la même règle ; `ArchitectureTest.every_package_should_be_null_marked` refuse un package sans.
+  - 39 erreurs corrigées : génériques `@Nullable` dans `ValueObjectUtils`, `@Nullable` manquants (fabrique de contrat, `ExpiredContractException`, `DomainValidationException`, `detail` du `ProblemDetail`, `clientId` de `ContractDetails` / `ContractResponse` tant que la colonne accepte `NULL`), `Objects.requireNonNull` sur l'id dans les mappers de réponse.
+  - No-op des mises à jour : `updated.equals(loaded)` au lieu de `updated == loaded` (`PatchClient`, `UpdateClient`, `PatchContractCost`), règle mise à jour dans `CLAUDE.md` et l'ADR-002.
+  - Avertissements Error Prone corrigés : méthodes `public` des builders privés, lambda constante de `ContractPeriod`, `toUpperCase(Locale.ROOT)`, champ inutilisé, `LocalDateTime.of` au lieu de `now(FIXED_CLOCK)` en initialiseur statique, assertions `float` remplacées par `comparesEqualTo(BigDecimal)` (`AcceptanceRestAssured.exactNumbers()`), vérifiées en échec sur une erreur d'un centime.
+- [x] **Spotless** (2026-11-07) : `spotless-maven-plugin` 3.11.0 avec le profil `config/formatter/eclipse-java-formatter.xml`, ordre d'imports d'IntelliJ, imports inutilisés et espaces de fin supprimés, `ratchetFrom origin/develop` : seuls les fichiers modifiés sont vérifiés. En CI, `spotless:check` est la première étape du job unitaire, comparée à la branche cible de la PR (`fetch-depth: 0`). En local : `./mvnw spotless:apply`.
+  - Profil corrigé pour garder le style du code : paramètres, composants de record et arguments indentés de 8 espaces sans alignement sur la parenthèse, chaînes d'appels à un appel par ligne.
+  - Écarts acceptés : annotations des composants de record remontées sur la ligne du composant (DTO), arguments tous à la ligne dès qu'un appel est coupé, ternaires recollés.
+- [ ] **Règles de branche** (paramètre GitHub, hors dépôt) : jobs CI obligatoires sur `develop`, `release/*` et `master`, rebase-merge interdit (ADR-020).
+- [ ] **Dependabot (basse)** : login `reviewers` à vérifier (champ remplacé par `CODEOWNERS`), regroupement hebdomadaire, `ignore` sans effet, image JDK du `Dockerfile` non suivie car passée par un `ARG`, écosystème `docker-compose`, préfixe `ci` hors des types de `CLAUDE.md`.
+
+### Pour aller plus loin (CD, entraînement)
+
+- [ ] **Publication de l'image** : sur un tag `vX.Y.Z` ou un push sur `release/*`, pousser l'image vers GHCR avec SBOM et attestation de provenance (`docker/build-push-action` avec `sbom: true` / `provenance: true`), puis la scanner. Créer la release GitHub avec les notes de `docs/cli/RELEASE_NOTES_*.md`. Pas de cible de déploiement aujourd'hui : rester à la publication d'image.
+
 ## Conditionnel
 
 - [ ] **FK composite `(id, type)`** entre `client` et ses sous-tables (ADR-007) : seulement si plusieurs applications écrivent un jour dans la base.

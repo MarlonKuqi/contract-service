@@ -21,6 +21,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -82,7 +83,8 @@ class ClientDeletionAcceptanceTest {
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         LocalDateTime now = LocalDateTime.now(clock);
 
@@ -102,7 +104,8 @@ class ClientDeletionAcceptanceTest {
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // Contrat 2: endDate dans le futur (actif)
         String contract2Payload = String.format("""
@@ -120,7 +123,8 @@ class ClientDeletionAcceptanceTest {
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // Contrat 3: endDate dans le passe (dejà expire)
         String contract3Payload = String.format("""
@@ -138,7 +142,8 @@ class ClientDeletionAcceptanceTest {
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // ========================================
         // WHEN: On supprime le client
@@ -171,7 +176,8 @@ class ClientDeletionAcceptanceTest {
                 .then()
                 .statusCode(200)
                 .body("id", equalTo(contract1Id))
-                .extract().path("endDate");
+                .extract()
+                .path("endDate");
 
         assertThat(endDate1Str).isNotNull();
         LocalDateTime endDate1 = LocalDateTime.parse(endDate1Str);
@@ -185,7 +191,8 @@ class ClientDeletionAcceptanceTest {
                 .then()
                 .statusCode(200)
                 .body("id", equalTo(contract2Id))
-                .extract().path("endDate");
+                .extract()
+                .path("endDate");
 
         assertThat(endDate2Str).isNotNull();
         LocalDateTime endDate2 = LocalDateTime.parse(endDate2Str);
@@ -198,7 +205,8 @@ class ClientDeletionAcceptanceTest {
                 .then()
                 .statusCode(200)
                 .body("id", equalTo(contract3Id))
-                .extract().path("endDate");
+                .extract()
+                .path("endDate");
 
         assertThat(endDate3Str).isNotNull();
         LocalDateTime endDate3 = LocalDateTime.parse(endDate3Str);
@@ -225,7 +233,8 @@ class ClientDeletionAcceptanceTest {
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // WHEN: On supprime le client
         given()
@@ -263,7 +272,8 @@ class ClientDeletionAcceptanceTest {
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime expiredEndDate1 = now.minusMonths(3);
@@ -290,13 +300,17 @@ class ClientDeletionAcceptanceTest {
 
         String contract1Id = given().body(expiredContract1)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201)
-                .extract().path("id");
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
 
         String contract2Id = given().body(expiredContract2)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201)
-                .extract().path("id");
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
 
         // WHEN: On supprime le client
         given()
@@ -321,7 +335,8 @@ class ClientDeletionAcceptanceTest {
                 .then()
                 .statusCode(200)
                 .body("id", equalTo(contract1Id))
-                .extract().path("endDate");
+                .extract()
+                .path("endDate");
 
         assertThat(endDate1Str).isNotNull();
         LocalDateTime endDate1 = LocalDateTime.parse(endDate1Str);
@@ -335,7 +350,8 @@ class ClientDeletionAcceptanceTest {
                 .then()
                 .statusCode(200)
                 .body("id", equalTo(contract2Id))
-                .extract().path("endDate");
+                .extract()
+                .path("endDate");
 
         assertThat(endDate2Str).isNotNull();
         LocalDateTime endDate2 = LocalDateTime.parse(endDate2Str);
@@ -359,7 +375,7 @@ class ClientDeletionAcceptanceTest {
                 }
                 """.formatted(
                 uniqueId,
-                UUID.randomUUID().toString().substring(0, 9).toUpperCase()
+                UUID.randomUUID().toString().substring(0, 9).toUpperCase(Locale.ROOT)
         );
 
         String clientId = given()
@@ -368,7 +384,8 @@ class ClientDeletionAcceptanceTest {
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // Contrat actif indefiniment
         String contractPayload = String.format("""
@@ -386,7 +403,8 @@ class ClientDeletionAcceptanceTest {
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // WHEN: On supprime le client Company
         given()
@@ -411,7 +429,8 @@ class ClientDeletionAcceptanceTest {
                 .then()
                 .statusCode(200)
                 .body("id", equalTo(contractId))
-                .extract().path("endDate");
+                .extract()
+                .path("endDate");
 
         assertThat(endDateStr).isNotNull();
         LocalDateTime endDate = LocalDateTime.parse(endDateStr);
@@ -427,9 +446,12 @@ class ClientDeletionAcceptanceTest {
         given().when().delete(ClientEndpoints.CLIENT_BY_ID, clientId).then().statusCode(204);
 
         LocalDateTime deletedAt = jdbcTemplate.queryForObject(
-                "SELECT deleted_at FROM contracts.client WHERE id = ?::uuid", LocalDateTime.class, clientId);
+                "SELECT deleted_at FROM contracts.client WHERE id = ?::uuid",
+                LocalDateTime.class,
+                clientId);
         Map<String, Object> contractRow = jdbcTemplate.queryForMap(
-                "SELECT client_id, end_date FROM contracts.contract WHERE id = ?::uuid", contractId);
+                "SELECT client_id, end_date FROM contracts.contract WHERE id = ?::uuid",
+                contractId);
 
         assertThat(deletedAt).isNotNull();
         assertThat(contractRow.get("client_id")).hasToString(clientId);
@@ -447,7 +469,9 @@ class ClientDeletionAcceptanceTest {
         given().when().delete(ClientEndpoints.CLIENT_BY_ID, deletedClientId).then().statusCode(204);
 
         Timestamp otherEndDate = jdbcTemplate.queryForObject(
-                "SELECT end_date FROM contracts.contract WHERE id = ?::uuid", Timestamp.class, otherContractId);
+                "SELECT end_date FROM contracts.contract WHERE id = ?::uuid",
+                Timestamp.class,
+                otherContractId);
         assertThat(otherEndDate).isNull();
     }
 
@@ -497,17 +521,22 @@ class ClientDeletionAcceptanceTest {
                 """;
 
         String companyId = given()
-                .body(companyPayload.formatted(TestDataHelper.uniqueEmail("deleted.corp"), TestDataHelper.randomSwissPhoneNumber(), companyIdentifier))
+                .body(companyPayload.formatted(TestDataHelper.uniqueEmail("deleted.corp"),
+                        TestDataHelper.randomSwissPhoneNumber(),
+                        companyIdentifier))
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         given().when().delete(ClientEndpoints.CLIENT_BY_ID, companyId).then().statusCode(204);
 
         given()
-                .body(companyPayload.formatted(TestDataHelper.uniqueEmail("new.corp"), TestDataHelper.randomSwissPhoneNumber(), companyIdentifier))
+                .body(companyPayload.formatted(TestDataHelper.uniqueEmail("new.corp"),
+                        TestDataHelper.randomSwissPhoneNumber(),
+                        companyIdentifier))
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
@@ -525,12 +554,14 @@ class ClientDeletionAcceptanceTest {
                             "phone": "%s",
                             "birthDate": "1990-05-15"
                         }
-                        """.formatted(TestDataHelper.uniqueEmail("soft.delete"), TestDataHelper.randomSwissPhoneNumber()))
+                        """.formatted(TestDataHelper.uniqueEmail("soft.delete"),
+                        TestDataHelper.randomSwissPhoneNumber()))
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
     }
 
     private String createOpenEndedContract(final String clientId) {
@@ -546,7 +577,7 @@ class ClientDeletionAcceptanceTest {
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
     }
 }
-

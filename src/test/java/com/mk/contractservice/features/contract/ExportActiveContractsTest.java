@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 class ExportActiveContractsTest {
 
     private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-06-01T10:00:00Z"), ZoneOffset.UTC);
-    private static final LocalDateTime NOW = LocalDateTime.now(FIXED_CLOCK);
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 6, 1, 10, 0);
 
     @Mock
     private ContractRepository contractRepository;
@@ -45,10 +45,7 @@ class ExportActiveContractsTest {
     }
 
     @ParameterizedTest
-    @CsvSource({
-            "0, 'Page size must not be less than one'",
-            "-1, 'Page size must not be less than one'",
-            "1001, 'Page size must not exceed 1000'"
+    @CsvSource({"0, 'Page size must not be less than one'", "-1, 'Page size must not be less than one'", "1001, 'Page size must not exceed 1000'"
     })
     @DisplayName("GIVEN a size out of bounds WHEN building Query THEN throw InvalidPageRequestException")
     void shouldRejectSizeOutOfBounds(int size, String expectedMessage) {

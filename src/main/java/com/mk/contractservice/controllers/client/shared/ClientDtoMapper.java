@@ -8,20 +8,22 @@ import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonDetails;
 import org.mapstruct.Mapper;
 
+import java.util.Objects;
+
 @Mapper(componentModel = "spring")
 public interface ClientDtoMapper {
 
     default ClientResponse toResponse(final Client client) {
         return switch (client) {
             case Person p -> new PersonResponse(
-                    p.id(),
+                    Objects.requireNonNull(p.id()),
                     p.name().value(),
                     p.email().value(),
                     p.phone().value(),
                     p.birthDate().value()
             );
             case Company c -> new CompanyResponse(
-                    c.id(),
+                    Objects.requireNonNull(c.id()),
                     c.name().value(),
                     c.email().value(),
                     c.phone().value(),
@@ -37,4 +39,3 @@ public interface ClientDtoMapper {
         };
     }
 }
-

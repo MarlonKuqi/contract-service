@@ -1,47 +1,23 @@
 ---
 name: "Feature"
-about: Track the addition of a new feature
+about: Propose a new feature or a behavior change
 title: "feat: "
 labels: ["feature"]
 ---
 
-## 🎯 Objective
+## Need
 
-Clearly describe what you want to achieve with this feature.  
-Example: *Allow users to create an account via the `/register` endpoint.*
+<!-- Who needs it (counselor, client, ops) and what problem it solves. Link the rule in docs/sujet.txt if any. -->
 
----
+## Expected behavior
 
-## 🧩 Description
+<!-- Business rules and API behavior: endpoint, status codes, ProblemDetail codes for the error cases. -->
 
-Briefly explain:
-- the *what* (functionality),
-- the *why* (problem or need it addresses).
+## Acceptance criteria
 
----
+- [ ] 
+- [ ] 
 
-## ✅ Acceptance Criteria (Definition of Done)
+## Impacts
 
-Check what must be true to consider the feature complete:
-
-- [ ] Code implemented
-- [ ] Tests (unit / integration) written and passing
-- [ ] Documentation updated (README / API / diagrams if necessary)
-- [ ] PR reviewed and merged
-
----
-
-## 🔨 Technical Checklist
-
-- [ ] Architecture / design validated
-- [ ] Coverage impacted positively or neutrally
-- [ ] No duplication or unnecessary debt introduced
-
----
-
-## 🔗 Links (optional)
-
-- Mockup
-- RFC / documentation
-- Parent ticket / dependencies
-
+<!-- Keep what applies: domain / ADR, database migration, API contract (breaking or not), batch jobs. -->

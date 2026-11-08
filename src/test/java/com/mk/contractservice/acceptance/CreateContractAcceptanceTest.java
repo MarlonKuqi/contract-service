@@ -22,12 +22,14 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -97,7 +99,8 @@ class CreateContractAcceptanceTest {
                 .body("costAmount", equalTo(5000.00f))
                 .body("startDate", notNullValue())
                 .body("endDate", notNullValue())
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // Verify persistence
         given()
@@ -132,7 +135,8 @@ class CreateContractAcceptanceTest {
                 .body("id", notNullValue())
                 .body("costAmount", equalTo(1000.00f))
                 .body("startDate", notNullValue())
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // Verify persistence
         given()
@@ -158,12 +162,13 @@ class CreateContractAcceptanceTest {
                 """, testClient.id(), now, now.plusYears(5));
 
         given()
+                .config(AcceptanceRestAssured.exactNumbers())
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .body("costAmount", equalTo(999999.99f));
+                .body("costAmount", comparesEqualTo(new BigDecimal("999999.99")));
     }
 
     @Test

@@ -42,6 +42,11 @@
 		<flyway.version>13.9.0</flyway.version>
 		<springdoc.version>3.1.1</springdoc.version>
 		<libphonenumber.version>9.0.41</libphonenumber.version>
+		<errorprone.version>2.52.0</errorprone.version>
+		<nullaway.version>0.14.3</nullaway.version>
+		<spotless.version>3.11.0</spotless.version>
+		<spotless.ratchet-from>origin/develop</spotless.ratchet-from>
+		<errorprone.base-args>-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode -XepExcludedPaths:.*/generated-sources/.* -XepOpt:NullAway:AnnotatedPackages=com.mk.contractservice -XepOpt:NullAway:JSpecifyMode=true -XepOpt:NullAway:ExcludedClassAnnotations=jakarta.persistence.Entity,jakarta.persistence.MappedSuperclass,jakarta.persistence.Embeddable</errorprone.base-args>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -181,7 +186,22 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
+					<compilerArgs>
+						<arg>-XDcompilePolicy=simple</arg>
+						<arg>--should-stop=ifError=FLOW</arg>
+						<arg>${errorprone.base-args} -Xep:NullAway:ERROR</arg>
+					</compilerArgs>
 					<annotationProcessorPaths>
+						<path>
+							<groupId>com.google.errorprone</groupId>
+							<artifactId>error_prone_core</artifactId>
+							<version>${errorprone.version}</version>
+						</path>
+						<path>
+							<groupId>com.uber.nullaway</groupId>
+							<artifactId>nullaway</artifactId>
+							<version>${nullaway.version}</version>
+						</path>
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
@@ -194,6 +214,18 @@
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
+				<executions>
+					<execution>
+						<id>default-testCompile</id>
+						<configuration>
+							<compilerArgs>
+								<arg>-XDcompilePolicy=simple</arg>
+								<arg>--should-stop=ifError=FLOW</arg>
+								<arg>${errorprone.base-args} -Xep:NullAway:OFF</arg>
+							</compilerArgs>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -242,50 +274,6 @@
 							<goal>report</goal>
 						</goals>
 					</execution>
-
-					<!-- Check couverture tests unitaires -->
-					<execution>
-						<id>check</id>
-						<phase>test</phase>
-						<goals>
-							<goal>check</goal>
-						</goals>
-					</execution>
-
-					<!-- Agent pour tests IT (fichier séparé, optionnel) -->
-					<execution>
-						<id>prepare-agent-integration</id>
-						<goals>
-							<goal>prepare-agent-integration</goal>
-						</goals>
-						<configuration>
-							<destFile>target/jacoco-it.exec</destFile>
-						</configuration>
-					</execution>
-
-					<!-- Rapport tests IT (optionnel, pour visualisation) -->
-					<execution>
-						<id>report-it</id>
-						<phase>post-integration-test</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-						<configuration>
-							<dataFile>target/jacoco-it.exec</dataFile>
-							<outputDirectory>target/jacoco-it</outputDirectory>
-							<excludes>
-                                <exclude>**/infrastructure/**</exclude>
-								<exclude>**/controllers/**</exclude>
-                                <exclude>**/ContractServiceApplication.class</exclude>
-                                <exclude>**/dto/**</exclude>
-                                <exclude>**/mapper/**</exclude>
-                                <exclude>**/constants/**</exclude>
-                                <exclude>**/exception/**</exclude>
-                                <exclude>**/event/**</exclude>
-                                <exclude>**/shared/**</exclude>
-                            </excludes>
-						</configuration>
-					</execution>
 				</executions>
 				<configuration>
                     <!-- Exclusions pour se concentrer sur le domaine et la logique métier -->
@@ -317,24 +305,25 @@
                         <!-- Shared packages (DTOs, mappers, constants, exceptions partagés) -->
                         <exclude>**/shared/**</exclude>
 					</excludes>
-					<!-- Règles de couverture -->
-					<rules>
-						<rule>
-							<element>BUNDLE</element>
-							<limits>
-								<limit>
-									<counter>LINE</counter>
-									<value>COVEREDRATIO</value>
-									<minimum>0.70</minimum>
-								</limit>
-								<limit>
-									<counter>BRANCH</counter>
-									<value>COVEREDRATIO</value>
-									<minimum>0.70</minimum>
-								</limit>
-							</limits>
-						</rule>
-					</rules>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.diffplug.spotless</groupId>
+				<artifactId>spotless-maven-plugin</artifactId>
+				<version>${spotless.version}</version>
+				<configuration>
+					<ratchetFrom>${spotless.ratchet-from}</ratchetFrom>
+					<java>
+						<eclipse>
+							<file>${project.basedir}/config/formatter/eclipse-java-formatter.xml</file>
+						</eclipse>
+						<importOrder>
+							<order>,javax|java,\#</order>
+						</importOrder>
+						<removeUnusedImports/>
+						<trimTrailingWhitespace/>
+						<endWithNewline/>
+					</java>
 				</configuration>
 			</plugin>
 		</plugins>

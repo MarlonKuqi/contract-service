@@ -81,7 +81,7 @@ public interface ImportContracts {
         private final Clock clock;
 
         private record LineProcessResult(List<Contract> contracts, List<LineRejection> rejections) {
-            public boolean hasRejections() {
+            boolean hasRejections() {
                 return !rejections.isEmpty();
             }
         }
@@ -107,7 +107,9 @@ public interface ImportContracts {
             for (int index = 0; index < command.lines().size(); index++) {
                 final Line line = command.lines().get(index);
                 if (!existingClientIds.contains(line.clientId())) {
-                    rejections.add(line.toRejection(index, Reason.CLIENT_NOT_FOUND, ClientNotFoundException.messageFor(line.clientId())));
+                    rejections.add(line.toRejection(index,
+                            Reason.CLIENT_NOT_FOUND,
+                            ClientNotFoundException.messageFor(line.clientId())));
                     continue;
                 }
                 try {
