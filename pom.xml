@@ -274,41 +274,6 @@
 							<goal>report</goal>
 						</goals>
 					</execution>
-
-					<!-- Agent pour tests IT (fichier séparé, optionnel) -->
-					<execution>
-						<id>prepare-agent-integration</id>
-						<goals>
-							<goal>prepare-agent-integration</goal>
-						</goals>
-						<configuration>
-							<destFile>target/jacoco-it.exec</destFile>
-						</configuration>
-					</execution>
-
-					<!-- Rapport tests IT (optionnel, pour visualisation) -->
-					<execution>
-						<id>report-it</id>
-						<phase>post-integration-test</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-						<configuration>
-							<dataFile>target/jacoco-it.exec</dataFile>
-							<outputDirectory>target/jacoco-it</outputDirectory>
-							<excludes>
-                                <exclude>**/infrastructure/**</exclude>
-								<exclude>**/controllers/**</exclude>
-                                <exclude>**/ContractServiceApplication.class</exclude>
-                                <exclude>**/dto/**</exclude>
-                                <exclude>**/mapper/**</exclude>
-                                <exclude>**/constants/**</exclude>
-                                <exclude>**/exception/**</exclude>
-                                <exclude>**/event/**</exclude>
-                                <exclude>**/shared/**</exclude>
-                            </excludes>
-						</configuration>
-					</execution>
 				</executions>
 				<configuration>
                     <!-- Exclusions pour se concentrer sur le domaine et la logique métier -->
