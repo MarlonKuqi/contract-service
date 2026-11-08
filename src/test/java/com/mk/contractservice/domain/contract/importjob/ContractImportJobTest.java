@@ -191,6 +191,17 @@ class ContractImportJobTest {
     }
 
     @Test
+    @DisplayName("GIVEN a failed status with a failed termination WHEN reconstituteFromDatabase THEN the job keeps its failure")
+    void shouldReconstituteFailedJob() {
+        final ContractImportTermination failed = ContractImportTermination.failed(REASON, NOW);
+
+        final ContractImportJob job = reconstituteWith(ContractImportJobState.Status.FAILED, failed, null);
+
+        assertThat(job.status()).isEqualTo(ContractImportJobState.Status.FAILED);
+        assertThat(job.state().termination()).isEqualTo(failed);
+    }
+
+    @Test
     @DisplayName("GIVEN a completed status with a failed termination WHEN reconstituteFromDatabase THEN it is rejected")
     void shouldRejectCompletedStatusWithFailedTermination() {
         final ContractImportTermination failed = ContractImportTermination.failed(REASON, NOW);

@@ -59,6 +59,14 @@ class ContractImportFileTest {
     }
 
     @Test
+    @DisplayName("GIVEN a file name at the maximum length WHEN of THEN it is kept")
+    void shouldAcceptNameAtMaximumLength() {
+        final String name = "a".repeat(ContractImportFile.MAX_NAME_LENGTH);
+
+        assertThat(ContractImportFile.of(name, fileOf(1)).name()).isEqualTo(name);
+    }
+
+    @Test
     @DisplayName("GIVEN exactly the maximum of lines WHEN of THEN it is accepted")
     void shouldAcceptMaximumOfLines() {
         final byte[] content = fileOf(ContractImportFile.MAX_LINES);

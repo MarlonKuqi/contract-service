@@ -108,6 +108,16 @@ class ContractImportCsvTest {
     }
 
     @Test
+    @DisplayName("GIVEN a line starting with a NUL character WHEN parsing THEN it fails with a readable message")
+    void shouldRejectLeadingNulCharacter() {
+        final ContractImportCsv.RawLine line = new ContractImportCsv.RawLine(2, "\u0000abc;;;100");
+
+        assertThatThrownBy(line::parse)
+                .isInstanceOf(ContractImportCsv.MalformedLineException.class)
+                .hasMessage("The line contains a NUL character");
+    }
+
+    @Test
     @DisplayName("GIVEN a malformed line with a readable client WHEN parsing fails THEN the client is known")
     void shouldKeepClientIdOfMalformedLine() {
         assertThat(new ContractImportCsv.RawLine(2, CLIENT_ID + ";;;abc").clientIdIfReadable()).contains(CLIENT_ID);
