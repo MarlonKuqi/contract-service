@@ -39,7 +39,8 @@ class ContractImportCsvTest {
 
     @ParameterizedTest
     @ValueSource(
-            strings = {"", "clientId,startDate,endDate,costAmount\na\n", "wrong\na\n", "clientId;startDate;endDate;costAmount\n", "clientId;startDate;endDate;costAmount\n\n"})
+            strings = {"", "clientId,startDate,endDate,costAmount\na\n", "wrong\na\n",
+                    "clientId;startDate;endDate;costAmount\n", "clientId;startDate;endDate;costAmount\n\n"})
     @DisplayName("GIVEN no data or a wrong header WHEN counting THEN the file is rejected")
     void shouldRejectInvalidFiles(final String content) {
         assertThatThrownBy(() -> ContractImportCsv.requireValidAndCountLines(bytes(content)))
@@ -78,9 +79,17 @@ class ContractImportCsvTest {
     }
 
     @ParameterizedTest
-    @ValueSource(
-            strings = {"not-a-uuid;;;100", ";;;100", "550e8400-e29b-41d4-a716-446655440000;;;", "550e8400-e29b-41d4-a716-446655440000;;;abc", "550e8400-e29b-41d4-a716-446655440000;;;100,50", "550e8400-e29b-41d4-a716-446655440000;yesterday;;100", "550e8400-e29b-41d4-a716-446655440000;;tomorrow;100", "550e8400-e29b-41d4-a716-446655440000;;100", "550e8400-e29b-41d4-a716-446655440000;;;100;extra"
-            })
+    @ValueSource(strings = {
+            "not-a-uuid;;;100",
+            ";;;100",
+            "550e8400-e29b-41d4-a716-446655440000;;;",
+            "550e8400-e29b-41d4-a716-446655440000;;;abc",
+            "550e8400-e29b-41d4-a716-446655440000;;;100,50",
+            "550e8400-e29b-41d4-a716-446655440000;yesterday;;100",
+            "550e8400-e29b-41d4-a716-446655440000;;tomorrow;100",
+            "550e8400-e29b-41d4-a716-446655440000;;100",
+            "550e8400-e29b-41d4-a716-446655440000;;;100;extra"
+    })
     @DisplayName("GIVEN a malformed line WHEN parsing THEN it fails")
     void shouldRejectMalformedLines(final String raw) {
         final ContractImportCsv.RawLine line = new ContractImportCsv.RawLine(2, raw);

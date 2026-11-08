@@ -39,7 +39,9 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestControllerAdvice(
-        assignableTypes = {ContractImportJobController.class, CreateContractController.class, ExportContractController.class, ImportContractsController.class, PatchContractCostController.class, SearchContractController.class
+        assignableTypes = {ContractImportJobController.class, CreateContractController.class,
+                ExportContractController.class, ImportContractsController.class, PatchContractCostController.class,
+                SearchContractController.class
         })
 public class ContractControllerAdvice extends BaseControllerAdvice {
 
