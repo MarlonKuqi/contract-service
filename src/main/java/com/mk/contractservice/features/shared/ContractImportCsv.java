@@ -17,6 +17,7 @@ import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -66,7 +67,8 @@ public final class ContractImportCsv {
             }
             final String[] columns = columns();
             if (columns.length != COLUMNS) {
-                throw new MalformedLineException("Expected " + COLUMNS + " columns (" + HEADER + "), but found " + columns.length);
+                throw new MalformedLineException(
+                        "Expected " + COLUMNS + " columns (" + HEADER + "), but found " + columns.length);
             }
             return columns;
         }
@@ -92,6 +94,11 @@ public final class ContractImportCsv {
 
         public MalformedLineException(final String message) {
             super(message);
+        }
+
+        @Override
+        public String getMessage() {
+            return Objects.requireNonNull(super.getMessage());
         }
     }
 
@@ -143,6 +150,7 @@ public final class ContractImportCsv {
     }
 
     private static BufferedReader readerOf(final byte[] content) {
-        return new BufferedReader(new InputStreamReader(new ByteArrayInputStream(content), StandardCharsets.UTF_8.newDecoder()));
+        return new BufferedReader(new InputStreamReader(new ByteArrayInputStream(content),
+                StandardCharsets.UTF_8.newDecoder()));
     }
 }

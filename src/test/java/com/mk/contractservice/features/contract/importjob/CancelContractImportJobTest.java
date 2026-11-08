@@ -1,7 +1,6 @@
 package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import com.mk.contractservice.domain.contract.importjob.ContractImportCancellation;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
@@ -9,6 +8,7 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportJobReposit
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.domain.contract.importjob.ContractImportProgress;
 import com.mk.contractservice.domain.contract.importjob.ContractImportTermination;
+import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,9 +53,13 @@ class CancelContractImportJobTest {
     }
 
     private static ContractImportJob completedJob() {
-        return ContractImportJob.reconstituteFromDatabase(JOB_ID, ContractImportJobFixtures.submission(NOW.minusHours(1)), ContractImportJobState.Status.COMPLETED,
-                ContractImportProgress.reconstituteFromDatabase(3, 3, 2, 1), null,
-                ContractImportTermination.reconstituteFromDatabase(NOW.minusMinutes(30), null), null);
+        return ContractImportJob.reconstituteFromDatabase(JOB_ID,
+                ContractImportJobFixtures.submission(NOW.minusHours(1)),
+                ContractImportJobState.Status.COMPLETED,
+                ContractImportProgress.reconstituteFromDatabase(3, 3, 2, 1),
+                null,
+                ContractImportTermination.reconstituteFromDatabase(NOW.minusMinutes(30), null),
+                null);
     }
 
     @Test
@@ -65,11 +69,13 @@ class CancelContractImportJobTest {
         when(jobRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(contractRepository.closeAllActiveImportedBy(JOB_ID, NOW)).thenReturn(2);
 
-        final CancelContractImportJob.Result result = handler().execute(new CancelContractImportJob.Command(JOB_ID, COUNSELOR));
+        final CancelContractImportJob.Result result = handler().execute(new CancelContractImportJob.Command(JOB_ID,
+                COUNSELOR));
 
         verify(jobRepository).save(jobCaptor.capture());
         assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobState.Status.CANCELLED);
-        assertThat(jobCaptor.getValue().state().cancellation()).isEqualTo(ContractImportCancellation.of(NOW, COUNSELOR));
+        assertThat(jobCaptor.getValue().state().cancellation()).isEqualTo(ContractImportCancellation.of(NOW,
+                COUNSELOR));
         assertThat(result.job()).isSameAs(jobCaptor.getValue());
         assertThat(result.closedContracts()).isEqualTo(2);
     }
@@ -80,7 +86,8 @@ class CancelContractImportJobTest {
         final ContractImportJob cancelled = ContractImportJobFixtures.cancelledJob(JOB_ID);
         when(jobRepository.lockById(JOB_ID)).thenReturn(cancelled);
 
-        final CancelContractImportJob.Result result = handler().execute(new CancelContractImportJob.Command(JOB_ID, "other.counselor"));
+        final CancelContractImportJob.Result result = handler().execute(new CancelContractImportJob.Command(JOB_ID,
+                "other.counselor"));
 
         assertThat(result.job()).isSameAs(cancelled);
         assertThat(result.closedContracts()).isZero();

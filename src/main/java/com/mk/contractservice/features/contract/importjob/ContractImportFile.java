@@ -1,7 +1,7 @@
 package com.mk.contractservice.features.contract.importjob;
 
-import com.mk.contractservice.features.shared.InvalidImportFileException;
 import com.mk.contractservice.features.shared.ContractImportCsv;
+import com.mk.contractservice.features.shared.InvalidImportFileException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,8 @@ public final class ContractImportFile {
         }
         final int totalLines = ContractImportCsv.requireValidAndCountLines(content);
         if (totalLines > MAX_LINES) {
-            throw new InvalidImportFileException("The file must not exceed " + MAX_LINES + " contracts, but had: " + totalLines);
+            throw new InvalidImportFileException(
+                    "The file must not exceed " + MAX_LINES + " contracts, but had: " + totalLines);
         }
         return new ContractImportFile(name, content, totalLines);
     }

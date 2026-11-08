@@ -36,10 +36,7 @@ public class ImportContractsController {
 
     @Operation(
             summary = "Import contracts in bulk (all or nothing)",
-            description = "Creates up to " + ImportContracts.MAX_LINES + " contracts in one transaction. "
-                    + "If any line is rejected, nothing is created and the answer lists every rejected line: "
-                    + "fix them and send the whole import again, without any risk of duplicates. "
-                    + "An accepted import must not be sent again: it would create the contracts a second time."
+            description = "Creates up to " + ImportContracts.MAX_LINES + " contracts in one transaction. " + "If any line is rejected, nothing is created and the answer lists every rejected line: " + "fix them and send the whole import again, without any risk of duplicates. " + "An accepted import must not be sent again: it would create the contracts a second time."
     )
     @ApiResponse(
             responseCode = "201",
@@ -49,10 +46,7 @@ public class ImportContractsController {
     )
     @ApiResponse(
             responseCode = "422",
-            description = "Nothing was created. Code contractImportRejected: the rejections property lists each "
-                    + "rejected line with its zero-based index, its clientId, its code (invalidContractCost, invalidContractPeriod, "
-                    + "clientNotFound) and a message. Code invalidImportSize: empty or too many lines. "
-                    + "Code validationError: missing field or wrong type, named as contracts[n].field",
+            description = "Nothing was created. Code contractImportRejected: the rejections property lists each " + "rejected line with its zero-based index, its clientId, its code (invalidContractCost, invalidContractPeriod, " + "clientNotFound) and a message. Code invalidImportSize: empty or too many lines. " + "Code validationError: missing field or wrong type, named as contracts[n].field",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
@@ -68,7 +62,8 @@ public class ImportContractsController {
             final Locale locale
     ) {
         final List<Contract> contracts = importContracts.execute(new ImportContracts.Command(
-                request.contracts().stream()
+                request.contracts()
+                        .stream()
                         .map(line -> new ImportContracts.Line(
                                 line.clientId(),
                                 line.startDate(),
@@ -86,10 +81,10 @@ public class ImportContractsController {
     }
 
     public record Request(
-            @NotNull(message = "Contracts are required")
-            @Schema(description = "Contracts to create, at most " + ImportContracts.MAX_LINES,
-                    requiredMode = Schema.RequiredMode.REQUIRED)
-            List<@NotNull(message = "A line cannot be null") @Valid ContractCreationRequest> contracts
+            @NotNull(message = "Contracts are required") @Schema(
+                    description = "Contracts to create, at most " + ImportContracts.MAX_LINES,
+                    requiredMode = Schema.RequiredMode.REQUIRED) List<@NotNull(
+                            message = "A line cannot be null") @Valid ContractCreationRequest> contracts
     ) {
     }
 }

@@ -42,9 +42,10 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
         if (jobId == null) {
             throw new IllegalStateException("Import job must be saved with its file before it is saved alone");
         }
-        final ContractImportJobJpaEntity entity = jobJpaRepository.findById(jobId).orElseThrow(
-                () -> new IllegalStateException("Import job with id " + jobId + " not found in database")
-        );
+        final ContractImportJobJpaEntity entity = jobJpaRepository.findById(jobId)
+                .orElseThrow(
+                        () -> new IllegalStateException("Import job with id " + jobId + " not found in database")
+                );
         ContractImportJobJpaMapper.mergeIntoExisting(job, entity);
         return ContractImportJobJpaMapper.toDomain(entity);
     }
@@ -71,22 +72,25 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
     }
 
     @Override
-    public Optional<ContractImportJob> findByIdempotencyKey(final String submittedBy, final IdempotencyKey idempotencyKey) {
+    public Optional<ContractImportJob> findByIdempotencyKey(final String submittedBy,
+            final IdempotencyKey idempotencyKey) {
         return jobJpaRepository.findBySubmittedByAndIdempotencyKey(submittedBy, idempotencyKey.value())
                 .map(ContractImportJobJpaMapper::toDomain);
     }
 
     @Override
     public Page<ContractImportJob> findAll(@Nullable final String submittedBy, final Pageable pageable) {
-        final Page<ContractImportJobJpaEntity> page = submittedBy == null
-                ? jobJpaRepository.findAll(pageable)
-                : jobJpaRepository.findBySubmittedBy(submittedBy, pageable);
+        final Page<ContractImportJobJpaEntity> page = submittedBy == null ? jobJpaRepository.findAll(
+                pageable) : jobJpaRepository.findBySubmittedBy(submittedBy, pageable);
         return page.map(ContractImportJobJpaMapper::toDomain);
     }
 
     @Override
     public Optional<ContractImportJob> findNextToRun(final Instant now) {
-        return jobJpaRepository.findToRun(ContractImportJobState.Status.PENDING, ContractImportJobState.Status.RUNNING, now, Limit.of(1))
+        return jobJpaRepository.findToRun(ContractImportJobState.Status.PENDING,
+                ContractImportJobState.Status.RUNNING,
+                now,
+                Limit.of(1))
                 .stream()
                 .findFirst()
                 .map(ContractImportJobJpaMapper::toDomain);

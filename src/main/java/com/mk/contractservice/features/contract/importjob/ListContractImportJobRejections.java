@@ -1,8 +1,8 @@
 package com.mk.contractservice.features.contract.importjob;
 
-import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobQueryPort;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
+import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
 import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.PageBounds;
 import lombok.RequiredArgsConstructor;

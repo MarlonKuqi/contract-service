@@ -1,10 +1,10 @@
 package com.mk.contractservice.acceptance.helper;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -32,7 +32,9 @@ public final class TestTokens {
 
     private static final KeyPair KEY_PAIR = generateKeyPair();
     private static final NimbusJwtEncoder ENCODER = new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(
-            new RSAKey.Builder(publicKey()).privateKey((RSAPrivateKey) KEY_PAIR.getPrivate()).keyID("test-key").build())));
+            new RSAKey.Builder(publicKey()).privateKey((RSAPrivateKey) KEY_PAIR.getPrivate())
+                    .keyID("test-key")
+                    .build())));
 
     public static RSAPublicKey publicKey() {
         return (RSAPublicKey) KEY_PAIR.getPublic();

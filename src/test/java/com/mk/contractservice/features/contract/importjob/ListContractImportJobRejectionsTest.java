@@ -1,10 +1,10 @@
 package com.mk.contractservice.features.contract.importjob;
 
-import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
-import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
+import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobQueryPort;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
+import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import com.mk.contractservice.features.shared.InvalidPageRequestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -52,8 +52,12 @@ class ListContractImportJobRejectionsTest {
     @Test
     @DisplayName("GIVEN an existing job WHEN listing THEN the requested page of rejections is returned")
     void shouldReturnRequestedPage() {
-        final Page<ContractImportRejection> page = new PageImpl<>(List.of(ContractImportRejection.reconstituteFromDatabase(
-                3, null, ContractImportRejectionReason.INVALID_LINE_FORMAT, "Unreadable")));
+        final Page<ContractImportRejection> page = new PageImpl<>(List.of(ContractImportRejection
+                .reconstituteFromDatabase(
+                        3,
+                        null,
+                        ContractImportRejectionReason.INVALID_LINE_FORMAT,
+                        "Unreadable")));
         when(queryPort.findRejections(JOB_ID, PageRequest.of(2, 10))).thenReturn(page);
 
         assertThat(handler.execute(new ListContractImportJobRejections.Query(JOB_ID, 2, 10))).isSameAs(page);
@@ -82,13 +86,16 @@ class ListContractImportJobRejectionsTest {
     @Test
     @DisplayName("GIVEN the maximum page size WHEN building Query THEN it is accepted")
     void shouldAcceptMaximumPageSize() {
-        assertThatCode(() -> new ListContractImportJobRejections.Query(JOB_ID, 0, ListContractImportJobRejections.MAX_PAGE_SIZE))
+        assertThatCode(() -> new ListContractImportJobRejections.Query(JOB_ID,
+                0,
+                ListContractImportJobRejections.MAX_PAGE_SIZE))
                 .doesNotThrowAnyException();
     }
 
     @Test
     @DisplayName("GIVEN a null job id WHEN building Query THEN it is rejected")
     void shouldRejectNullJobId() {
-        assertThatThrownBy(() -> new ListContractImportJobRejections.Query(null, 0, 20)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new ListContractImportJobRejections.Query(null, 0, 20)).isInstanceOf(
+                NullPointerException.class);
     }
 }

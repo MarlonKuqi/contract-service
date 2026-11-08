@@ -22,7 +22,7 @@ public sealed interface ContractImportJobLine permits ContractImportJobLine.Impo
             @Nullable final UUID clientId,
             @Nullable final UUID contractId
     ) {
-        return new Imported(jobId, lineNumber, clientId, contractId);
+        return new Imported(notNull(jobId), lineNumber, notNull(clientId), notNull(contractId));
     }
 
     static Rejected rejected(
@@ -32,7 +32,7 @@ public sealed interface ContractImportJobLine permits ContractImportJobLine.Impo
             @Nullable final ContractImportRejectionReason reason,
             @Nullable final String message
     ) {
-        return new Rejected(jobId, lineNumber, clientId, reason, message);
+        return new Rejected(notNull(jobId), lineNumber, clientId, notNull(reason), notNull(message));
     }
 
     record Imported(UUID jobId, int lineNumber, UUID clientId, UUID contractId) implements ContractImportJobLine {

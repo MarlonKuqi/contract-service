@@ -8,4 +8,3 @@ public final class InvalidContractPeriodException extends ContractValidationExce
         super(message, DEFAULT_CODE);
     }
 }
-

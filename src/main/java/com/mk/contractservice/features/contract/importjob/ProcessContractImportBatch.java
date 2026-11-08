@@ -83,10 +83,15 @@ public interface ProcessContractImportBatch {
                 }
             }
 
-            final List<Contract> contracts = contractRepository.saveAll(imported.stream().map(ImportedLine::contract).toList());
+            final List<Contract> contracts = contractRepository.saveAll(imported.stream()
+                    .map(ImportedLine::contract)
+                    .toList());
             for (int index = 0; index < contracts.size(); index++) {
                 final Contract contract = contracts.get(index);
-                lines.add(ContractImportJobLine.imported(jobId, imported.get(index).lineNumber(), contract.clientId(), contract.id()));
+                lines.add(ContractImportJobLine.imported(jobId,
+                        imported.get(index).lineNumber(),
+                        contract.clientId(),
+                        contract.id()));
             }
             jobRepository.saveLines(lines);
 
@@ -105,12 +110,25 @@ public interface ProcessContractImportBatch {
             try {
                 parsed = line.parse();
             } catch (final MalformedLineException ex) {
-                return rejected(jobId, number, line.clientIdIfReadable().orElse(null), ContractImportRejectionReason.INVALID_LINE_FORMAT, ex.getMessage());
+                return rejected(jobId,
+                        number,
+                        line.clientIdIfReadable().orElse(null),
+                        ContractImportRejectionReason.INVALID_LINE_FORMAT,
+                        ex.getMessage());
             }
             return switch (ContractImportLineEvaluator.evaluate(
-                    parsed.clientId(), parsed.startDate(), parsed.endDate(), parsed.costAmount(), existingClientIds, now)) {
+                    parsed.clientId(),
+                    parsed.startDate(),
+                    parsed.endDate(),
+                    parsed.costAmount(),
+                    existingClientIds,
+                    now)) {
                 case Accepted(Contract contract) -> new ImportedLine(number, contract);
-                case Rejected(ContractImportRejectionReason reason, String message) -> rejected(jobId, number, parsed.clientId(), reason, message);
+                case Rejected(ContractImportRejectionReason reason, String message) -> rejected(jobId,
+                        number,
+                        parsed.clientId(),
+                        reason,
+                        message);
             };
         }
 

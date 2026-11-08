@@ -33,11 +33,16 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/error").permitAll()
-                        .requestMatchers("/v2/**").hasRole("COUNSELOR")
-                        .anyRequest().denyAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info")
+                        .permitAll()
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs", "/v3/api-docs/**")
+                        .permitAll()
+                        .requestMatchers("/error")
+                        .permitAll()
+                        .requestMatchers("/v2/**")
+                        .hasRole("COUNSELOR")
+                        .anyRequest()
+                        .denyAll()
                 )
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(securityProblemHandler)
@@ -77,7 +82,11 @@ public class SecurityConfig {
         final CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "If-Match", "If-None-Match", "Idempotency-Key"));
+        configuration.setAllowedHeaders(List.of("Authorization",
+                "Content-Type",
+                "If-Match",
+                "If-None-Match",
+                "Idempotency-Key"));
         configuration.setExposedHeaders(List.of("ETag", "Location", "Content-Range", "Content-Disposition"));
         configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);

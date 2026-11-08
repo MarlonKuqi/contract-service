@@ -74,8 +74,8 @@ public final class ContractImportJob {
 
     public ContractImportJob start(final Instant lease) {
         return switch (state) {
-            case Pending _, Running _ -> withState(ContractImportJobState.running(lease));
-            case Completed _, Failed _, Cancelled _ -> throw notAllowed("start");
+            case Pending _,Running _ -> withState(ContractImportJobState.running(lease));
+            case Completed _,Failed _,Cancelled _ -> throw notAllowed("start");
         };
     }
 
@@ -86,17 +86,17 @@ public final class ContractImportJob {
                     .state(ContractImportJobState.running(renewedLease))
                     .build();
             case Cancelled _ -> throw new ContractImportJobCancelledException(id);
-            case Pending _, Completed _, Failed _ -> throw notAllowed("record a batch");
+            case Pending _,Completed _,Failed _ -> throw notAllowed("record a batch");
         };
     }
 
     public ContractImportJob finish(final LocalDateTime now) {
         return switch (state) {
-            case Running _ -> progress.isComplete()
-                    ? withState(ContractImportJobState.completed(ContractImportTermination.ended(now)))
-                    : fail(ContractImportFailureReason.INCOMPLETE_PROCESSING, now);
+            case Running _ -> progress.isComplete() ? withState(ContractImportJobState.completed(
+                    ContractImportTermination.ended(now))) : fail(ContractImportFailureReason.INCOMPLETE_PROCESSING,
+                            now);
             case Cancelled _ -> this;
-            case Pending _, Completed _, Failed _ -> throw notAllowed("finish");
+            case Pending _,Completed _,Failed _ -> throw notAllowed("finish");
         };
     }
 
@@ -104,7 +104,7 @@ public final class ContractImportJob {
         return switch (state) {
             case Running _ -> withState(ContractImportJobState.pending());
             case Cancelled _ -> this;
-            case Pending _, Completed _, Failed _ -> throw notAllowed("release");
+            case Pending _,Completed _,Failed _ -> throw notAllowed("release");
         };
     }
 
@@ -112,18 +112,19 @@ public final class ContractImportJob {
         return switch (state) {
             case Running _ -> withState(ContractImportJobState.failed(ContractImportTermination.failed(reason, now)));
             case Cancelled _ -> this;
-            case Pending _, Completed _, Failed _ -> throw notAllowed("fail");
+            case Pending _,Completed _,Failed _ -> throw notAllowed("fail");
         };
     }
 
     public ContractImportJob cancel(final LocalDateTime now, final String counselor) {
         return switch (state) {
-            case Pending _, Running _ ->
-                    withState(ContractImportJobState.cancelled(ContractImportCancellation.of(now, counselor), ContractImportTermination.ended(now)));
+            case Pending _,Running _ ->
+                withState(ContractImportJobState.cancelled(ContractImportCancellation.of(now, counselor),
+                        ContractImportTermination.ended(now)));
             case Completed(ContractImportTermination.Ended ended) ->
-                    withState(ContractImportJobState.cancelled(ContractImportCancellation.of(now, counselor), ended));
+                withState(ContractImportJobState.cancelled(ContractImportCancellation.of(now, counselor), ended));
             case Failed(ContractImportTermination.Failed failed) ->
-                    withState(ContractImportJobState.cancelled(ContractImportCancellation.of(now, counselor), failed));
+                withState(ContractImportJobState.cancelled(ContractImportCancellation.of(now, counselor), failed));
             case Cancelled _ -> this;
         };
     }

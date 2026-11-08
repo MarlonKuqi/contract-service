@@ -1,7 +1,7 @@
 package com.mk.contractservice.batch;
 
-import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobCancelledException;
 import com.mk.contractservice.domain.contract.importjob.ContractImportFailureReason;
+import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobCancelledException;
 import com.mk.contractservice.features.contract.importjob.FailContractImportJob;
 import com.mk.contractservice.features.contract.importjob.FinishContractImportJob;
 import com.mk.contractservice.features.contract.importjob.ReleaseContractImportJob;
@@ -31,10 +31,15 @@ public class ContractImportJobOutcomeListener implements JobExecutionListener {
 
     @Override
     public void afterJob(final JobExecution jobExecution) {
-        final UUID jobId = UUID.fromString(jobExecution.getJobParameters().getString(ContractImportBatchConfiguration.JOB_ID_PARAMETER));
-        final JobExecution latest = jobRepository.getLastJobExecution(ContractImportBatchConfiguration.JOB_NAME, jobExecution.getJobParameters());
+        final UUID jobId = UUID.fromString(jobExecution.getJobParameters()
+                .getString(ContractImportBatchConfiguration.JOB_ID_PARAMETER));
+        final JobExecution latest = jobRepository.getLastJobExecution(ContractImportBatchConfiguration.JOB_NAME,
+                jobExecution.getJobParameters());
         if (latest == null || !Objects.equals(latest.getId(), jobExecution.getId())) {
-            log.warn("Import job {}: execution {} was replaced by another worker, its outcome {} is ignored", jobId, jobExecution.getId(), jobExecution.getStatus());
+            log.warn("Import job {}: execution {} was replaced by another worker, its outcome {} is ignored",
+                    jobId,
+                    jobExecution.getId(),
+                    jobExecution.getStatus());
             return;
         }
         switch (jobExecution.getStatus()) {
@@ -48,17 +53,25 @@ public class ContractImportJobOutcomeListener implements JobExecutionListener {
     }
 
     private void onFailure(final UUID jobId, final JobExecution jobExecution) {
-        if (jobExecution.getAllFailureExceptions().stream().anyMatch(ContractImportJobOutcomeListener::isCancellation)) {
+        if (jobExecution.getAllFailureExceptions()
+                .stream()
+                .anyMatch(ContractImportJobOutcomeListener::isCancellation)) {
             log.info("Import job {} was cancelled, its execution stops here", jobId);
             return;
         }
         if (jobExecution.getAllFailureExceptions().stream().anyMatch(ContractImportJobOutcomeListener::isTransient)) {
-            log.warn("Import job {} hit a transient error, it goes back to the queue: {}", jobId, jobExecution.getAllFailureExceptions());
+            log.warn("Import job {} hit a transient error, it goes back to the queue: {}",
+                    jobId,
+                    jobExecution.getAllFailureExceptions());
             releaseContractImportJob.execute(new ReleaseContractImportJob.Command(jobId));
             return;
         }
-        log.error("Import job {} ended with status {}: {}", jobId, jobExecution.getStatus(), jobExecution.getAllFailureExceptions());
-        failContractImportJob.execute(new FailContractImportJob.Command(jobId, ContractImportFailureReason.UNEXPECTED_ERROR));
+        log.error("Import job {} ended with status {}: {}",
+                jobId,
+                jobExecution.getStatus(),
+                jobExecution.getAllFailureExceptions());
+        failContractImportJob.execute(new FailContractImportJob.Command(jobId,
+                ContractImportFailureReason.UNEXPECTED_ERROR));
     }
 
     private static boolean isCancellation(final Throwable failure) {

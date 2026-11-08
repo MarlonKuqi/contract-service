@@ -166,7 +166,8 @@ class ArchitectureTest {
                 .that(areFeatures)
                 .should()
                 .dependOnClassesThat(areBatch)
-                .because("Features (application layer) must not depend on inbound adapters: batch is one, like controllers")
+                .because(
+                        "Features (application layer) must not depend on inbound adapters: batch is one, like controllers")
                 .check(classes);
     }
 }

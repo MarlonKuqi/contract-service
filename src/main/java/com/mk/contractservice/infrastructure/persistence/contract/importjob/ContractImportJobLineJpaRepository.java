@@ -8,8 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.UUID;
 
-public interface ContractImportJobLineJpaRepository
-        extends JpaRepository<ContractImportJobLineJpaEntity, ContractImportJobLineJpaEntity.LineId> {
+public interface ContractImportJobLineJpaRepository extends JpaRepository<ContractImportJobLineJpaEntity, ContractImportJobLineJpaEntity.LineId> {
 
     @Query("""
             select line from ContractImportJobLineJpaEntity line

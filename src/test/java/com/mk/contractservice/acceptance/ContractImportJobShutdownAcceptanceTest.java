@@ -42,7 +42,9 @@ class ContractImportJobShutdownAcceptanceTest {
     @BeforeAll
     static void startDatabase() {
         POSTGRES.start();
-        jdbcTemplate = new JdbcTemplate(new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()));
+        jdbcTemplate = new JdbcTemplate(new DriverManagerDataSource(POSTGRES.getJdbcUrl(),
+                POSTGRES.getUsername(),
+                POSTGRES.getPassword()));
     }
 
     @AfterAll
@@ -63,11 +65,13 @@ class ContractImportJobShutdownAcceptanceTest {
 
     private static UUID createClient(final ConfigurableApplicationContext instance) {
         final LocalDate today = LocalDate.now(instance.getBean(Clock.class));
-        return instance.getBean(ClientRepository.class).save(Person.of(
-                ClientName.of("Shutdown Test"),
-                ClientEmail.of(TestDataHelper.uniqueEmail("shutdown.test")),
-                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15), today))).id();
+        return instance.getBean(ClientRepository.class)
+                .save(Person.of(
+                        ClientName.of("Shutdown Test"),
+                        ClientEmail.of(TestDataHelper.uniqueEmail("shutdown.test")),
+                        ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
+                        PersonBirthDate.of(LocalDate.of(1990, 5, 15), today)))
+                .id();
     }
 
     private static <T> T jobValue(final UUID jobId, final String column, final Class<T> type) {
@@ -76,7 +80,7 @@ class ContractImportJobShutdownAcceptanceTest {
 
     @Test
     @DisplayName(
-            "GIVEN a job running on an instance WHEN the instance closes THEN the job goes back to pending and the next instance completes it")
+        "GIVEN a job running on an instance WHEN the instance closes THEN the job goes back to pending and the next instance completes it")
     void shouldHandOverJobOnShutdown() {
         final UUID jobId;
         final UUID clientId;
@@ -84,9 +88,13 @@ class ContractImportJobShutdownAcceptanceTest {
             clientId = createClient(firstInstance);
             final String file = "clientId;startDate;endDate;costAmount\n" + (clientId + ";;;100.00\n").repeat(LINES);
             jobId = firstInstance.getBean(SubmitContractImportJob.class)
-                    .execute(new SubmitContractImportJob.Command("contracts.csv", file.getBytes(StandardCharsets.UTF_8), "counselor.test", null))
+                    .execute(new SubmitContractImportJob.Command("contracts.csv",
+                            file.getBytes(StandardCharsets.UTF_8),
+                            "counselor.test",
+                            null))
                     .id();
-            await().atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(20))
+            await().atMost(Duration.ofSeconds(60))
+                    .pollInterval(Duration.ofMillis(20))
                     .until(() -> jobValue(jobId, "processed_lines", Integer.class) > 0);
         }
 
@@ -95,12 +103,16 @@ class ContractImportJobShutdownAcceptanceTest {
         assertThat(jobValue(jobId, "lease_until", java.time.OffsetDateTime.class)).isNull();
 
         try (ConfigurableApplicationContext ignored = startInstance()) {
-            await().atMost(Duration.ofMinutes(2)).pollInterval(Duration.ofMillis(200))
-                    .until(() -> ContractImportJobState.Status.COMPLETED.name().equals(jobValue(jobId, "status", String.class)));
+            await().atMost(Duration.ofMinutes(2))
+                    .pollInterval(Duration.ofMillis(200))
+                    .until(() -> ContractImportJobState.Status.COMPLETED.name()
+                            .equals(jobValue(jobId, "status", String.class)));
         }
 
         assertThat(jobValue(jobId, "imported_count", Integer.class)).isEqualTo(LINES);
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from contracts.contract where client_id = ?", Long.class, clientId)).isEqualTo(LINES);
+                "select count(*) from contracts.contract where client_id = ?",
+                Long.class,
+                clientId)).isEqualTo(LINES);
     }
 }

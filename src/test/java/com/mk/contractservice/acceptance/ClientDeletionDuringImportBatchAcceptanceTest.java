@@ -93,7 +93,7 @@ class ClientDeletionDuringImportBatchAcceptanceTest {
 
     @Test
     @DisplayName(
-            "GIVEN a batch holding the lock on its client WHEN the client is deleted THEN the contract of the batch is closed too")
+        "GIVEN a batch holding the lock on its client WHEN the client is deleted THEN the contract of the batch is closed too")
     void shouldCloseContractInsertedByTheBatchHoldingTheLock() throws Exception {
         final UUID clientId = createClient();
 
@@ -108,7 +108,11 @@ class ClientDeletionDuringImportBatchAcceptanceTest {
 
             final LocalDateTime now = LocalDateTime.now(clock);
             return contractRepository.saveAll(List.of(ContractFactory.createFromCommand(
-                    clientId, now, null, new BigDecimal("100.00"), now))).getFirst();
+                    clientId,
+                    now,
+                    null,
+                    new BigDecimal("100.00"),
+                    now))).getFirst();
         });
 
         deletion.get().get(10, TimeUnit.SECONDS);
@@ -118,7 +122,7 @@ class ClientDeletionDuringImportBatchAcceptanceTest {
 
     @Test
     @DisplayName(
-            "GIVEN a deletion not yet committed WHEN a batch locks the client THEN it waits and no longer sees the client")
+        "GIVEN a deletion not yet committed WHEN a batch locks the client THEN it waits and no longer sees the client")
     void shouldNotSeeClientDeletedWhileWaitingForTheLock() throws Exception {
         final UUID clientId = createClient();
         final LocalDateTime now = LocalDateTime.now(clock);

@@ -3,12 +3,12 @@ package com.mk.contractservice.features.contract.importjob;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.features.shared.ContractImportCsv.RawLine;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,8 +75,12 @@ class ProcessContractImportBatchTest {
 
     private static Tuple outcomeOf(final ContractImportJobLine line) {
         return switch (line) {
-            case ContractImportJobLine.Imported(UUID _, int lineNumber, UUID clientId, UUID contractId) -> tuple(lineNumber, clientId, contractId);
-            case ContractImportJobLine.Rejected(UUID _, int lineNumber, UUID clientId, ContractImportRejectionReason reason, String _) -> tuple(lineNumber, clientId, reason);
+            case ContractImportJobLine.Imported(UUID _, int lineNumber, UUID clientId, UUID contractId) -> tuple(
+                    lineNumber,
+                    clientId,
+                    contractId);
+            case ContractImportJobLine.Rejected(UUID _, int lineNumber, UUID clientId, ContractImportRejectionReason reason, String _) ->
+                tuple(lineNumber, clientId, reason);
         };
     }
 
@@ -88,13 +92,14 @@ class ProcessContractImportBatchTest {
         when(clientRepository.lockExistingIds(Set.of(CLIENT_ID, UNKNOWN_CLIENT_ID))).thenReturn(Set.of(CLIENT_ID));
         when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(contractId)));
 
-        handler.execute(new ProcessContractImportBatch.Command(JOB_ID, List.of(
-                new RawLine(2, CLIENT_ID + ";;;100.00"),
-                new RawLine(3, CLIENT_ID + ";;;-1"),
-                new RawLine(4, UNKNOWN_CLIENT_ID + ";;;100.00"),
-                new RawLine(5, "garbage"),
-                new RawLine(6, CLIENT_ID + ";2026-01-01T00:00:00;2025-01-01T00:00:00;100.00")
-        )));
+        handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
+                List.of(
+                        new RawLine(2, CLIENT_ID + ";;;100.00"),
+                        new RawLine(3, CLIENT_ID + ";;;-1"),
+                        new RawLine(4, UNKNOWN_CLIENT_ID + ";;;100.00"),
+                        new RawLine(5, "garbage"),
+                        new RawLine(6, CLIENT_ID + ";2026-01-01T00:00:00;2025-01-01T00:00:00;100.00")
+                )));
 
         verify(jobRepository).saveLines(linesCaptor.capture());
         assertThat(linesCaptor.getValue())
@@ -110,19 +115,21 @@ class ProcessContractImportBatchTest {
 
     @Test
     @DisplayName(
-            "GIVEN several valid lines around a rejected one WHEN processing THEN each imported line keeps its own contract")
+        "GIVEN several valid lines around a rejected one WHEN processing THEN each imported line keeps its own contract")
     void shouldLinkEachImportedLineToItsContract() {
         final UUID firstContractId = UUID.randomUUID();
         final UUID secondContractId = UUID.randomUUID();
         when(jobRepository.getById(JOB_ID)).thenReturn(runningJob(3));
         when(clientRepository.lockExistingIds(Set.of(CLIENT_ID))).thenReturn(Set.of(CLIENT_ID));
-        when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(firstContractId), persisted(secondContractId)));
+        when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(firstContractId),
+                persisted(secondContractId)));
 
-        handler.execute(new ProcessContractImportBatch.Command(JOB_ID, List.of(
-                new RawLine(2, CLIENT_ID + ";;;100.00"),
-                new RawLine(3, CLIENT_ID + ";;;-1"),
-                new RawLine(4, CLIENT_ID + ";;;200.00")
-        )));
+        handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
+                List.of(
+                        new RawLine(2, CLIENT_ID + ";;;100.00"),
+                        new RawLine(3, CLIENT_ID + ";;;-1"),
+                        new RawLine(4, CLIENT_ID + ";;;200.00")
+                )));
 
         verify(jobRepository).saveLines(linesCaptor.capture());
         assertThat(linesCaptor.getValue())
@@ -141,15 +148,17 @@ class ProcessContractImportBatchTest {
         when(clientRepository.lockExistingIds(any())).thenReturn(Set.of(CLIENT_ID));
         when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(UUID.randomUUID())));
 
-        handler.execute(new ProcessContractImportBatch.Command(JOB_ID, List.of(
-                new RawLine(2, CLIENT_ID + ";;;100.00"),
-                new RawLine(3, CLIENT_ID + ";;;-1")
-        )));
+        handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
+                List.of(
+                        new RawLine(2, CLIENT_ID + ";;;100.00"),
+                        new RawLine(3, CLIENT_ID + ";;;-1")
+                )));
 
         verify(jobRepository).save(jobCaptor.capture());
         assertThat(jobCaptor.getValue().progress().processedLines()).isEqualTo(2);
         assertThat(jobCaptor.getValue().progress().importedCount()).isEqualTo(1);
         assertThat(jobCaptor.getValue().progress().rejectedCount()).isEqualTo(1);
-        assertThat(jobCaptor.getValue().state().leaseUntil()).isEqualTo(CLOCK.instant().plus(ClaimContractImportJob.LEASE));
+        assertThat(jobCaptor.getValue().state().leaseUntil()).isEqualTo(CLOCK.instant()
+                .plus(ClaimContractImportJob.LEASE));
     }
 }

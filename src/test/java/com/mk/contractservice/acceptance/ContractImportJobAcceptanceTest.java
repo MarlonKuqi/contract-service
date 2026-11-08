@@ -99,17 +99,22 @@ class ContractImportJobAcceptanceTest {
                             "phone": "%s",
                             "birthDate": "1985-03-20"
                         }
-                        """.formatted(TestDataHelper.uniqueEmail("marie.durand"), TestDataHelper.randomSwissPhoneNumber()))
-                .when().post(ClientEndpoints.CLIENTS_BASE)
-                .then().statusCode(201)
-                .extract().path("id");
+                        """.formatted(TestDataHelper.uniqueEmail("marie.durand"),
+                        TestDataHelper.randomSwissPhoneNumber()))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
     private ValidatableResponse submit(final byte[] content) {
         return given()
                 .contentType(MULTIPART)
                 .multiPart("file", "contracts.csv", content)
-                .when().post(CONTRACT_IMPORT_JOBS)
+                .when()
+                .post(CONTRACT_IMPORT_JOBS)
                 .then();
     }
 
@@ -126,8 +131,11 @@ class ContractImportJobAcceptanceTest {
     }
 
     private void awaitStatus(final String jobId, final ContractImportJobState.Status status, final Duration timeout) {
-        await().atMost(timeout).pollInterval(Duration.ofMillis(100)).until(() -> status.name().equals(
-                given().when().get(JOB_PATH, jobId).then().statusCode(200).extract().path("status")));
+        await().atMost(timeout)
+                .pollInterval(Duration.ofMillis(100))
+                .until(() -> status.name()
+                        .equals(
+                                given().when().get(JOB_PATH, jobId).then().statusCode(200).extract().path("status")));
     }
 
     private ValidatableResponse getJob(final String jobId) {
@@ -135,39 +143,43 @@ class ContractImportJobAcceptanceTest {
     }
 
     private int contractsOfClient() {
-        return given().when().get(CONTRACTS_BASE + "?clientId={clientId}", clientId)
-                .then().statusCode(anyOf(is(200), is(206)))
-                .extract().path("totalElements");
+        return given().when()
+                .get(CONTRACTS_BASE + "?clientId={clientId}", clientId)
+                .then()
+                .statusCode(anyOf(is(200), is(206)))
+                .extract()
+                .path("totalElements");
     }
 
     private void assertNoJobStored() {
-        given().when().get(CONTRACT_IMPORT_JOBS)
-                .then().statusCode(200)
+        given().when()
+                .get(CONTRACT_IMPORT_JOBS)
+                .then()
+                .statusCode(200)
                 .body("totalElements", equalTo(0));
     }
 
     @Test
     @DisplayName(
-            "GIVEN a valid and a rejected line WHEN the job runs THEN valid lines are imported and the others are reported")
+        "GIVEN a valid and a rejected line WHEN the job runs THEN valid lines are imported and the others are reported")
     void shouldImportValidLinesAndReportOthers() {
         final String unknownClient = UUID.randomUUID().toString();
         final String jobId = given()
                 .contentType(MULTIPART)
-                .multiPart("file", "contracts.csv", (HEADER
-                        + clientId + ";;;100.00\n"
-                        + clientId + ";;;-1\n"
-                        + "\n"
-                        + unknownClient + ";;;100.00\n"
-                        + "garbage\n"
-                        + clientId + ";2026-01-01T00:00:00;2025-01-01T00:00:00;100.00\n").getBytes(StandardCharsets.UTF_8))
-                .when().post(CONTRACT_IMPORT_JOBS)
+                .multiPart("file",
+                        "contracts.csv",
+                        (HEADER + clientId + ";;;100.00\n" + clientId + ";;;-1\n" + "\n" + unknownClient + ";;;100.00\n" + "garbage\n" + clientId + ";2026-01-01T00:00:00;2025-01-01T00:00:00;100.00\n")
+                                .getBytes(StandardCharsets.UTF_8))
+                .when()
+                .post(CONTRACT_IMPORT_JOBS)
                 .then()
                 .statusCode(202)
                 .header("Location", containsString(CONTRACT_IMPORT_JOBS + "/"))
                 .body("jobId", notNullValue())
                 .body("status", equalTo(ContractImportJobState.Status.PENDING.name()))
                 .body("totalLines", equalTo(5))
-                .extract().path("jobId");
+                .extract()
+                .path("jobId");
 
         awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
@@ -179,11 +191,17 @@ class ContractImportJobAcceptanceTest {
                 .body("finishedAt", notNullValue());
         assertThat(contractsOfClient()).isEqualTo(1);
 
-        given().when().get(JOB_PATH + "/rejections", jobId)
-                .then().statusCode(200)
+        given().when()
+                .get(JOB_PATH + "/rejections", jobId)
+                .then()
+                .statusCode(200)
                 .body("totalElements", equalTo(4))
                 .body("content.lineNumber", equalTo(List.of(3, 5, 6, 7)))
-                .body("content.code", equalTo(List.of("invalidContractCost", "clientNotFound", "invalidLineFormat", "invalidContractPeriod")))
+                .body("content.code",
+                        equalTo(List.of("invalidContractCost",
+                                "clientNotFound",
+                                "invalidLineFormat",
+                                "invalidContractPeriod")))
                 .body("content[0].clientId", equalTo(clientId))
                 .body("content[1].clientId", equalTo(unknownClient))
                 .body("content[2].clientId", equalTo(null));
@@ -203,7 +221,7 @@ class ContractImportJobAcceptanceTest {
 
     @Test
     @DisplayName(
-            "GIVEN 10000 contracts for one client costing 1 to 10000 WHEN the job runs THEN all are active from now and their total is right")
+        "GIVEN 10000 contracts for one client costing 1 to 10000 WHEN the job runs THEN all are active from now and their total is right")
     void shouldImportTenThousandContractsForOneClient() {
         final int lines = 10_000;
         final LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
@@ -219,28 +237,36 @@ class ContractImportJobAcceptanceTest {
                 .body("importedCount", equalTo(lines))
                 .body("rejectedCount", equalTo(0));
 
-        given().when().get(CONTRACTS_BASE + CONTRACT_TOTAL + "?clientId={clientId}", clientId)
-                .then().statusCode(200)
+        given().when()
+                .get(CONTRACTS_BASE + CONTRACT_TOTAL + "?clientId={clientId}", clientId)
+                .then()
+                .statusCode(200)
                 .body(equalTo("50005000.00"));
 
         assertThat(contractsOfClient()).isEqualTo(lines);
-        given().when().get(CONTRACTS_BASE + "?clientId={clientId}&size=100", clientId)
-                .then().statusCode(206)
+        given().when()
+                .get(CONTRACTS_BASE + "?clientId={clientId}&size=100", clientId)
+                .then()
+                .statusCode(206)
                 .body("content.startDate", everyItem(equalTo(now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))))
                 .body("content.endDate", everyItem(nullValue()));
     }
 
     @Test
     @DisplayName(
-            "GIVEN a line starting with a hash WHEN the job runs THEN it is rejected like any malformed line and the job completes")
+        "GIVEN a line starting with a hash WHEN the job runs THEN it is rejected like any malformed line and the job completes")
     void shouldRejectLineStartingWithHash() {
         final String jobId = submitAccepted(HEADER + clientId + ";;;100.00\n#garbage;;;1\n");
 
         awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
-        getJob(jobId).body("processedLines", equalTo(2)).body("importedCount", equalTo(1)).body("rejectedCount", equalTo(1));
-        given().when().get(JOB_PATH + "/rejections", jobId)
-                .then().statusCode(200)
+        getJob(jobId).body("processedLines", equalTo(2))
+                .body("importedCount", equalTo(1))
+                .body("rejectedCount", equalTo(1));
+        given().when()
+                .get(JOB_PATH + "/rejections", jobId)
+                .then()
+                .statusCode(200)
                 .body("content.lineNumber", equalTo(List.of(3)))
                 .body("content.code", equalTo(List.of("invalidLineFormat")));
     }
@@ -248,30 +274,32 @@ class ContractImportJobAcceptanceTest {
     @Test
     @DisplayName("GIVEN a date PostgreSQL cannot store WHEN the job runs THEN only this line is rejected")
     void shouldRejectOnlyTheLineWithADateOutOfRange() {
-        final String jobId = submitAccepted(HEADER
-                + clientId + ";;;100.00\n"
-                + clientId + ";+999999-01-01T00:00:00;;100.00\n"
-                + clientId + ";;-000001-01-01T00:00:00;100.00\n"
-                + clientId + ";;;100.00\n");
+        final String jobId = submitAccepted(
+                HEADER + clientId + ";;;100.00\n" + clientId + ";+999999-01-01T00:00:00;;100.00\n" + clientId + ";;-000001-01-01T00:00:00;100.00\n" + clientId + ";;;100.00\n");
 
         awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
         getJob(jobId).body("importedCount", equalTo(2)).body("rejectedCount", equalTo(2));
-        given().when().get(JOB_PATH + "/rejections", jobId)
-                .then().statusCode(200)
+        given().when()
+                .get(JOB_PATH + "/rejections", jobId)
+                .then()
+                .statusCode(200)
                 .body("content.code", equalTo(List.of("invalidContractPeriod", "invalidContractPeriod")));
     }
 
     @Test
     @DisplayName("GIVEN a NUL character WHEN the job runs THEN only this line is rejected")
     void shouldRejectOnlyTheLineWithANulCharacter() {
-        final String jobId = submitAccepted(HEADER + clientId + ";;;100.00\nab\u0000c;;;100.00\n" + clientId + ";;;100.00\n");
+        final String jobId = submitAccepted(
+                HEADER + clientId + ";;;100.00\nab\u0000c;;;100.00\n" + clientId + ";;;100.00\n");
 
         awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
         getJob(jobId).body("importedCount", equalTo(2)).body("rejectedCount", equalTo(1));
-        given().when().get(JOB_PATH + "/rejections", jobId)
-                .then().statusCode(200)
+        given().when()
+                .get(JOB_PATH + "/rejections", jobId)
+                .then()
+                .statusCode(200)
                 .body("content.code", equalTo(List.of("invalidLineFormat")));
     }
 
@@ -290,7 +318,8 @@ class ContractImportJobAcceptanceTest {
         given()
                 .contentType(MULTIPART)
                 .multiPart("file", "", (HEADER + clientId + ";;;100.00\n").getBytes(StandardCharsets.UTF_8))
-                .when().post(CONTRACT_IMPORT_JOBS)
+                .when()
+                .post(CONTRACT_IMPORT_JOBS)
                 .then()
                 .statusCode(202)
                 .body("fileName", equalTo("import.csv"));
@@ -320,7 +349,8 @@ class ContractImportJobAcceptanceTest {
         given()
                 .contentType(MULTIPART)
                 .multiPart("other", "contracts.csv", new byte[]{1})
-                .when().post(CONTRACT_IMPORT_JOBS)
+                .when()
+                .post(CONTRACT_IMPORT_JOBS)
                 .then()
                 .statusCode(400)
                 .body("code", equalTo("missingParameter"));
@@ -331,10 +361,16 @@ class ContractImportJobAcceptanceTest {
     void shouldReturn404ForUnknownJob() {
         final UUID unknown = UUID.randomUUID();
 
-        given().when().get(JOB_PATH, unknown)
-                .then().statusCode(404).body("code", equalTo("contractImportJobNotFound"));
-        given().when().get(JOB_PATH + "/rejections", unknown)
-                .then().statusCode(404).body("code", equalTo("contractImportJobNotFound"));
+        given().when()
+                .get(JOB_PATH, unknown)
+                .then()
+                .statusCode(404)
+                .body("code", equalTo("contractImportJobNotFound"));
+        given().when()
+                .get(JOB_PATH + "/rejections", unknown)
+                .then()
+                .statusCode(404)
+                .body("code", equalTo("contractImportJobNotFound"));
     }
 
     @Test
@@ -342,18 +378,24 @@ class ContractImportJobAcceptanceTest {
     void shouldRejectPageSizeOutOfBounds() {
         final String jobId = submitAccepted(HEADER + "garbage\n");
 
-        given().queryParam("size", 101).when().get(JOB_PATH + "/rejections", jobId)
-                .then().statusCode(400).body("code", equalTo("invalidParameter"));
+        given().queryParam("size", 101)
+                .when()
+                .get(JOB_PATH + "/rejections", jobId)
+                .then()
+                .statusCode(400)
+                .body("code", equalTo("invalidParameter"));
     }
 
     @Test
     @DisplayName("GIVEN no token WHEN submitting THEN 401")
     void shouldRequireAuthentication() {
         given()
-                .auth().none()
+                .auth()
+                .none()
                 .contentType(MULTIPART)
                 .multiPart("file", "contracts.csv", (HEADER + "garbage\n").getBytes(StandardCharsets.UTF_8))
-                .when().post(CONTRACT_IMPORT_JOBS)
+                .when()
+                .post(CONTRACT_IMPORT_JOBS)
                 .then()
                 .statusCode(401);
     }

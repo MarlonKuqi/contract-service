@@ -6,16 +6,17 @@ import java.time.LocalDateTime;
 
 import static com.mk.contractservice.domain.shared.Assert.notNull;
 
-public sealed interface ContractImportTermination permits ContractImportTermination.Ended, ContractImportTermination.Failed {
+public sealed interface ContractImportTermination permits ContractImportTermination.Ended,
+        ContractImportTermination.Failed {
 
     LocalDateTime finishedAt();
 
     static Ended ended(@Nullable final LocalDateTime now) {
-        return new Ended(now);
+        return new Ended(notNull(now));
     }
 
     static Failed failed(@Nullable final ContractImportFailureReason reason, @Nullable final LocalDateTime now) {
-        return new Failed(now, reason);
+        return new Failed(notNull(now), notNull(reason));
     }
 
     static ContractImportTermination reconstituteFromDatabase(

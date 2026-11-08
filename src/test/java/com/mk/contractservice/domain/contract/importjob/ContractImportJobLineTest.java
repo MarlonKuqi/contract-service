@@ -49,7 +49,11 @@ class ContractImportJobLineTest {
     @DisplayName("GIVEN a rejected line WHEN recording it THEN the line keeps its reason and message")
     void shouldRecordRejectedLine() {
         final ContractImportJobLine line = ContractImportJobLine.rejected(
-                JOB_ID, 3, CLIENT_ID, ContractImportRejectionReason.INVALID_COST, MESSAGE);
+                JOB_ID,
+                3,
+                CLIENT_ID,
+                ContractImportRejectionReason.INVALID_COST,
+                MESSAGE);
 
         assertThat(line).isInstanceOfSatisfying(ContractImportJobLine.Rejected.class, rejected -> {
             assertThat(rejected.lineNumber()).isEqualTo(3);
@@ -63,7 +67,11 @@ class ContractImportJobLineTest {
     @DisplayName("GIVEN an unreadable client WHEN rejecting the line THEN it is recorded without client")
     void shouldRecordRejectedLineWithoutClient() {
         final ContractImportJobLine line = ContractImportJobLine.rejected(
-                JOB_ID, 4, null, ContractImportRejectionReason.INVALID_LINE_FORMAT, MESSAGE);
+                JOB_ID,
+                4,
+                null,
+                ContractImportRejectionReason.INVALID_LINE_FORMAT,
+                MESSAGE);
 
         assertThat(line.clientId()).isNull();
     }
@@ -78,7 +86,11 @@ class ContractImportJobLineTest {
     @Test
     @DisplayName("GIVEN a rejected line without message WHEN recording it THEN it is refused")
     void shouldRefuseRejectedLineWithoutMessage() {
-        assertThatThrownBy(() -> ContractImportJobLine.rejected(JOB_ID, 3, CLIENT_ID, ContractImportRejectionReason.INVALID_COST, null))
+        assertThatThrownBy(() -> ContractImportJobLine.rejected(JOB_ID,
+                3,
+                CLIENT_ID,
+                ContractImportRejectionReason.INVALID_COST,
+                null))
                 .isInstanceOf(InvalidDomainObjectError.class);
     }
 }

@@ -7,17 +7,14 @@ import java.util.UUID;
 
 @Schema(description = "Rejected line of a synchronous import")
 public record ContractImportLineRejectionResponse(
-        @Schema(description = "Zero-based index of the line in the import", example = "1")
-        int index,
+        @Schema(description = "Zero-based index of the line in the import", example = "1") int index,
 
-        @Schema(description = "Client of the line")
-        UUID clientId,
+        @Schema(description = "Client of the line") UUID clientId,
 
-        @Schema(description = "invalidContractCost, invalidContractPeriod or clientNotFound", example = "invalidContractCost")
-        String code,
+        @Schema(description = "invalidContractCost, invalidContractPeriod or clientNotFound",
+                example = "invalidContractCost") String code,
 
-        @Schema(description = "Reason of the rejection")
-        String message
+        @Schema(description = "Reason of the rejection") String message
 ) {
 
     public static ContractImportLineRejectionResponse from(final LineRejection rejection) {

@@ -82,7 +82,8 @@ class ContractImportJobTest {
     @DisplayName("GIVEN an idempotency key WHEN of THEN the job keeps it")
     void shouldKeepIdempotencyKey() {
         final ContractImportJob job = ContractImportJob.of(
-                ContractImportSubmission.of(FILE_NAME, SUBMITTER, IdempotencyKey.of("key-1"), CONTENT_SHA256, NOW), 3);
+                ContractImportSubmission.of(FILE_NAME, SUBMITTER, IdempotencyKey.of("key-1"), CONTENT_SHA256, NOW),
+                3);
 
         assertThat(job.submission().idempotencyKey()).isEqualTo(IdempotencyKey.of("key-1"));
     }
@@ -99,18 +100,24 @@ class ContractImportJobTest {
     @Test
     @DisplayName("GIVEN a null field WHEN of THEN it is rejected")
     void shouldRejectNullFields() {
-        assertThatThrownBy(() -> ContractImportSubmission.of(null, SUBMITTER, null, CONTENT_SHA256, NOW)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> ContractImportSubmission.of(FILE_NAME, SUBMITTER, null, CONTENT_SHA256, null)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> ContractImportSubmission.of(FILE_NAME, null, null, CONTENT_SHA256, NOW)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> ContractImportSubmission.of(FILE_NAME, SUBMITTER, null, null, NOW)).isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> ContractImportSubmission.of(null, SUBMITTER, null, CONTENT_SHA256, NOW)).isInstanceOf(
+                InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> ContractImportSubmission.of(FILE_NAME, SUBMITTER, null, CONTENT_SHA256, null))
+                .isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> ContractImportSubmission.of(FILE_NAME, null, null, CONTENT_SHA256, NOW)).isInstanceOf(
+                InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> ContractImportSubmission.of(FILE_NAME, SUBMITTER, null, null, NOW)).isInstanceOf(
+                InvalidDomainObjectError.class);
         assertThatThrownBy(() -> ContractImportJob.of(null, 3)).isInstanceOf(InvalidDomainObjectError.class);
     }
 
     @Test
     @DisplayName("GIVEN a blank file name or submitter WHEN of THEN it is rejected")
     void shouldRejectBlankFields() {
-        assertThatThrownBy(() -> ContractImportSubmission.of(" ", SUBMITTER, null, CONTENT_SHA256, NOW)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> ContractImportSubmission.of(FILE_NAME, " ", null, CONTENT_SHA256, NOW)).isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> ContractImportSubmission.of(" ", SUBMITTER, null, CONTENT_SHA256, NOW)).isInstanceOf(
+                InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> ContractImportSubmission.of(FILE_NAME, " ", null, CONTENT_SHA256, NOW)).isInstanceOf(
+                InvalidDomainObjectError.class);
     }
 
     @Test
@@ -126,10 +133,18 @@ class ContractImportJobTest {
     @DisplayName("GIVEN database values WHEN reconstituteFromDatabase THEN job keeps them")
     void shouldReconstitute() {
         final UUID id = UUID.randomUUID();
-        final ContractImportSubmission submission = ContractImportSubmission.reconstituteFromDatabase(FILE_NAME, SUBMITTER, IdempotencyKey.reconstituteFromDatabase("key-1"), CONTENT_SHA256, NOW);
+        final ContractImportSubmission submission = ContractImportSubmission.reconstituteFromDatabase(FILE_NAME,
+                SUBMITTER,
+                IdempotencyKey.reconstituteFromDatabase("key-1"),
+                CONTENT_SHA256,
+                NOW);
 
         final ContractImportJob job = ContractImportJob.reconstituteFromDatabase(
-                id, submission, ContractImportJobState.Status.CANCELLED, PROGRESS, null,
+                id,
+                submission,
+                ContractImportJobState.Status.CANCELLED,
+                PROGRESS,
+                null,
                 ContractImportTermination.reconstituteFromDatabase(NOW, REASON),
                 ContractImportCancellation.reconstituteFromDatabase(LATER, CANCELLER));
 
@@ -149,8 +164,13 @@ class ContractImportJobTest {
             final ContractImportTermination termination,
             final ContractImportCancellation cancellation
     ) {
-        return ContractImportJob.reconstituteFromDatabase(UUID.randomUUID(), ContractImportJobFixtures.submission(NOW),
-                status, PROGRESS, status == ContractImportJobState.Status.RUNNING ? LEASE : null, termination, cancellation);
+        return ContractImportJob.reconstituteFromDatabase(UUID.randomUUID(),
+                ContractImportJobFixtures.submission(NOW),
+                status,
+                PROGRESS,
+                status == ContractImportJobState.Status.RUNNING ? LEASE : null,
+                termination,
+                cancellation);
     }
 
     private static ContractImportTermination consistentTerminationOf(final ContractImportJobState.Status status) {
@@ -229,8 +249,13 @@ class ContractImportJobTest {
     @Test
     @DisplayName("GIVEN a running status without lease WHEN reconstituteFromDatabase THEN it is rejected")
     void shouldRejectRunningStatusWithoutLease() {
-        assertThatThrownBy(() -> ContractImportJob.reconstituteFromDatabase(UUID.randomUUID(), ContractImportJobFixtures.submission(NOW),
-                ContractImportJobState.Status.RUNNING, PROGRESS, null, null, null))
+        assertThatThrownBy(() -> ContractImportJob.reconstituteFromDatabase(UUID.randomUUID(),
+                ContractImportJobFixtures.submission(NOW),
+                ContractImportJobState.Status.RUNNING,
+                PROGRESS,
+                null,
+                null,
+                null))
                 .isInstanceOf(InvalidDomainObjectError.class);
     }
 
@@ -239,12 +264,16 @@ class ContractImportJobTest {
     @DisplayName("GIVEN a status other than running with a lease WHEN reconstituteFromDatabase THEN it is rejected")
     void shouldRejectLeaseOfJobNotRunning(final ContractImportJobState.Status status) {
         final ContractImportTermination termination = consistentTerminationOf(status);
-        final ContractImportCancellation cancellation = status == ContractImportJobState.Status.CANCELLED
-                ? ContractImportCancellation.of(LATER, CANCELLER)
-                : null;
+        final ContractImportCancellation cancellation = status == ContractImportJobState.Status.CANCELLED ? ContractImportCancellation
+                .of(LATER, CANCELLER) : null;
 
-        assertThatThrownBy(() -> ContractImportJob.reconstituteFromDatabase(UUID.randomUUID(), ContractImportJobFixtures.submission(NOW),
-                status, PROGRESS, LEASE, termination, cancellation))
+        assertThatThrownBy(() -> ContractImportJob.reconstituteFromDatabase(UUID.randomUUID(),
+                ContractImportJobFixtures.submission(NOW),
+                status,
+                PROGRESS,
+                LEASE,
+                termination,
+                cancellation))
                 .isInstanceOf(InvalidDomainObjectError.class);
     }
 
@@ -252,7 +281,8 @@ class ContractImportJobTest {
     @DisplayName("GIVEN a job cancelled after its failure WHEN reconstituteFromDatabase THEN it keeps its failure")
     void shouldReconstituteJobCancelledAfterFailure() {
         final ContractImportJob job = reconstituteWith(ContractImportJobState.Status.CANCELLED,
-                ContractImportTermination.failed(REASON, NOW), ContractImportCancellation.of(LATER, CANCELLER));
+                ContractImportTermination.failed(REASON, NOW),
+                ContractImportCancellation.of(LATER, CANCELLER));
 
         assertThat(failureReasonOf(job)).isEqualTo(REASON);
     }
@@ -260,9 +290,16 @@ class ContractImportJobTest {
     @Test
     @DisplayName("GIVEN a legacy job without submitter WHEN reconstituteFromDatabase THEN it is accepted")
     void shouldReconstituteLegacyJobWithoutSubmitter() {
-        final ContractImportSubmission submission = ContractImportSubmission.reconstituteFromDatabase(FILE_NAME, null, null, CONTENT_SHA256, NOW);
+        final ContractImportSubmission submission = ContractImportSubmission.reconstituteFromDatabase(FILE_NAME,
+                null,
+                null,
+                CONTENT_SHA256,
+                NOW);
 
-        final ContractImportJob job = reconstitute(UUID.randomUUID(), submission, ContractImportJobState.Status.RUNNING, PROGRESS);
+        final ContractImportJob job = reconstitute(UUID.randomUUID(),
+                submission,
+                ContractImportJobState.Status.RUNNING,
+                PROGRESS);
 
         assertThat(job.submission().submittedBy()).isNull();
     }
@@ -273,40 +310,61 @@ class ContractImportJobTest {
         final ContractImportSubmission submission = ContractImportJobFixtures.submission(NOW);
         final UUID id = UUID.randomUUID();
 
-        assertThatThrownBy(() -> reconstitute(null, submission, ContractImportJobState.Status.RUNNING, PROGRESS)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> reconstitute(id, null, ContractImportJobState.Status.RUNNING, PROGRESS)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> reconstitute(id, submission, null, PROGRESS)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> reconstitute(id, submission, ContractImportJobState.Status.RUNNING, null)).isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> reconstitute(null, submission, ContractImportJobState.Status.RUNNING, PROGRESS))
+                .isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> reconstitute(id, null, ContractImportJobState.Status.RUNNING, PROGRESS)).isInstanceOf(
+                InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> reconstitute(id, submission, null, PROGRESS)).isInstanceOf(
+                InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> reconstitute(id, submission, ContractImportJobState.Status.RUNNING, null))
+                .isInstanceOf(InvalidDomainObjectError.class);
     }
 
     @Test
     @DisplayName(
-            "GIVEN a submission without file name, fingerprint or date WHEN reconstituteFromDatabase THEN it is rejected")
+        "GIVEN a submission without file name, fingerprint or date WHEN reconstituteFromDatabase THEN it is rejected")
     void shouldRejectIncompleteSubmissionOnReconstitution() {
-        assertThatThrownBy(() -> ContractImportSubmission.reconstituteFromDatabase(null, SUBMITTER, null, CONTENT_SHA256, NOW)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> ContractImportSubmission.reconstituteFromDatabase(FILE_NAME, SUBMITTER, null, null, NOW)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> ContractImportSubmission.reconstituteFromDatabase(FILE_NAME, SUBMITTER, null, CONTENT_SHA256, null)).isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> ContractImportSubmission.reconstituteFromDatabase(null,
+                SUBMITTER,
+                null,
+                CONTENT_SHA256,
+                NOW)).isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> ContractImportSubmission.reconstituteFromDatabase(FILE_NAME,
+                SUBMITTER,
+                null,
+                null,
+                NOW)).isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> ContractImportSubmission.reconstituteFromDatabase(FILE_NAME,
+                SUBMITTER,
+                null,
+                CONTENT_SHA256,
+                null)).isInstanceOf(InvalidDomainObjectError.class);
     }
 
     @Test
     @DisplayName(
-            "GIVEN a termination or cancellation without mandatory field WHEN reconstituteFromDatabase THEN it is rejected")
+        "GIVEN a termination or cancellation without mandatory field WHEN reconstituteFromDatabase THEN it is rejected")
     void shouldRejectIncompleteTerminationAndCancellationOnReconstitution() {
-        assertThatThrownBy(() -> ContractImportTermination.reconstituteFromDatabase(null, REASON)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> ContractImportCancellation.reconstituteFromDatabase(null, CANCELLER)).isInstanceOf(InvalidDomainObjectError.class);
-        assertThatThrownBy(() -> ContractImportCancellation.reconstituteFromDatabase(LATER, null)).isInstanceOf(InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> ContractImportTermination.reconstituteFromDatabase(null, REASON)).isInstanceOf(
+                InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> ContractImportCancellation.reconstituteFromDatabase(null, CANCELLER)).isInstanceOf(
+                InvalidDomainObjectError.class);
+        assertThatThrownBy(() -> ContractImportCancellation.reconstituteFromDatabase(LATER, null)).isInstanceOf(
+                InvalidDomainObjectError.class);
     }
 
     @Test
     @DisplayName("GIVEN a termination without failure reason WHEN reconstituteFromDatabase THEN the job ended without failure")
     void shouldReconstituteEndedTermination() {
-        assertThat(ContractImportTermination.reconstituteFromDatabase(NOW, null)).isEqualTo(ContractImportTermination.ended(NOW));
+        assertThat(ContractImportTermination.reconstituteFromDatabase(NOW, null)).isEqualTo(ContractImportTermination
+                .ended(NOW));
     }
 
     @Test
     @DisplayName("GIVEN a termination with a failure reason WHEN reconstituteFromDatabase THEN the job failed for this reason")
     void shouldReconstituteFailedTermination() {
-        assertThat(ContractImportTermination.reconstituteFromDatabase(NOW, REASON)).isEqualTo(ContractImportTermination.failed(REASON, NOW));
+        assertThat(ContractImportTermination.reconstituteFromDatabase(NOW, REASON)).isEqualTo(ContractImportTermination
+                .failed(REASON, NOW));
     }
 
     @Test
@@ -320,7 +378,7 @@ class ContractImportJobTest {
 
     @Test
     @DisplayName(
-            "GIVEN a running job whose lease expired WHEN start THEN another execution takes it over with a new lease")
+        "GIVEN a running job whose lease expired WHEN start THEN another execution takes it over with a new lease")
     void shouldRestartRunningJob() {
         final Instant newLease = LEASE.plusSeconds(600);
 
@@ -339,7 +397,8 @@ class ContractImportJobTest {
         final ContractImportJob cancelled = pendingJob(3).cancel(LATER, CANCELLER);
 
         for (final ContractImportJob job : new ContractImportJob[]{completed, failed, cancelled}) {
-            assertThatThrownBy(() -> job.start(LEASE)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
+            assertThatThrownBy(() -> job.start(LEASE)).isInstanceOf(
+                    ContractImportJobTransitionNotAllowedException.class);
         }
     }
 
@@ -429,7 +488,7 @@ class ContractImportJobTest {
 
     @Test
     @DisplayName(
-            "GIVEN a running job WHEN fail THEN it stops, keeps its counters, gives its reason and releases its lease")
+        "GIVEN a running job WHEN fail THEN it stops, keeps its counters, gives its reason and releases its lease")
     void shouldFail() {
         final ContractImportJob job = pendingJob(3).start(LEASE).recordBatch(1, 0, LEASE).fail(REASON, NOW);
 
@@ -447,9 +506,12 @@ class ContractImportJobTest {
         final ContractImportJob failed = pendingJob(3).start(LEASE).fail(REASON, NOW);
         final ContractImportJob completed = completedJob();
 
-        assertThatThrownBy(() -> pending.recordBatch(1, 0, LEASE)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
-        assertThatThrownBy(() -> failed.recordBatch(1, 0, LEASE)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
-        assertThatThrownBy(() -> completed.recordBatch(1, 0, LEASE)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
+        assertThatThrownBy(() -> pending.recordBatch(1, 0, LEASE)).isInstanceOf(
+                ContractImportJobTransitionNotAllowedException.class);
+        assertThatThrownBy(() -> failed.recordBatch(1, 0, LEASE)).isInstanceOf(
+                ContractImportJobTransitionNotAllowedException.class);
+        assertThatThrownBy(() -> completed.recordBatch(1, 0, LEASE)).isInstanceOf(
+                ContractImportJobTransitionNotAllowedException.class);
     }
 
     @Test
@@ -460,8 +522,10 @@ class ContractImportJobTest {
         final ContractImportJob completed = completedJob();
 
         for (final ContractImportJob job : new ContractImportJob[]{pending, failed, completed}) {
-            assertThatThrownBy(() -> job.fail(REASON, NOW)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
-            assertThatThrownBy(() -> job.finish(NOW)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
+            assertThatThrownBy(() -> job.fail(REASON, NOW)).isInstanceOf(
+                    ContractImportJobTransitionNotAllowedException.class);
+            assertThatThrownBy(() -> job.finish(NOW)).isInstanceOf(
+                    ContractImportJobTransitionNotAllowedException.class);
             assertThatThrownBy(job::release).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
         }
     }
@@ -529,7 +593,7 @@ class ContractImportJobTest {
 
     @Test
     @DisplayName(
-            "GIVEN a job cancelled while it runs WHEN its batch is recorded THEN the batch is refused as cancelled")
+        "GIVEN a job cancelled while it runs WHEN its batch is recorded THEN the batch is refused as cancelled")
     void shouldRefuseBatchOfCancelledJob() {
         final ContractImportJob job = pendingJob(3).start(LEASE).cancel(LATER, CANCELLER);
 

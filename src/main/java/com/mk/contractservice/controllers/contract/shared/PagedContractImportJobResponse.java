@@ -8,20 +8,15 @@ import java.util.List;
 
 @Schema(description = "Paginated list of import jobs, newest first")
 public record PagedContractImportJobResponse(
-        @Schema(description = "Import jobs of the current page")
-        List<ContractImportJobResponse> content,
+        @Schema(description = "Import jobs of the current page") List<ContractImportJobResponse> content,
 
-        @Schema(description = "Current page number (0-based)", example = "0")
-        int pageNumber,
+        @Schema(description = "Current page number (0-based)", example = "0") int pageNumber,
 
-        @Schema(description = "Number of items per page", example = "20")
-        int pageSize,
+        @Schema(description = "Number of items per page", example = "20") int pageSize,
 
-        @Schema(description = "Total number of import jobs", example = "3")
-        long totalElements,
+        @Schema(description = "Total number of import jobs", example = "3") long totalElements,
 
-        @Schema(description = "Total number of pages", example = "1")
-        int totalPages
+        @Schema(description = "Total number of pages", example = "1") int totalPages
 ) {
 
     public static PagedContractImportJobResponse from(final Page<ContractImportJob> page) {

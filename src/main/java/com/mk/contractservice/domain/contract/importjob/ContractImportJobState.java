@@ -16,11 +16,7 @@ public sealed interface ContractImportJobState permits
         ContractImportJobState.Cancelled {
 
     enum Status {
-        PENDING,
-        RUNNING,
-        COMPLETED,
-        FAILED,
-        CANCELLED
+        PENDING, RUNNING, COMPLETED, FAILED, CANCELLED
     }
 
     Status status();
@@ -42,22 +38,22 @@ public sealed interface ContractImportJobState permits
     }
 
     static Running running(@Nullable final Instant leaseUntil) {
-        return new Running(leaseUntil);
+        return new Running(notNull(leaseUntil));
     }
 
     static Completed completed(final ContractImportTermination.@Nullable Ended termination) {
-        return new Completed(termination);
+        return new Completed(notNull(termination));
     }
 
     static Failed failed(final ContractImportTermination.@Nullable Failed termination) {
-        return new Failed(termination);
+        return new Failed(notNull(termination));
     }
 
     static Cancelled cancelled(
             @Nullable final ContractImportCancellation cancellation,
             @Nullable final ContractImportTermination termination
     ) {
-        return new Cancelled(cancellation, termination);
+        return new Cancelled(notNull(cancellation), notNull(termination));
     }
 
     static ContractImportJobState reconstituteFromDatabase(
@@ -66,25 +62,28 @@ public sealed interface ContractImportJobState permits
             @Nullable final ContractImportTermination termination,
             @Nullable final ContractImportCancellation cancellation
     ) {
-        final ContractImportJobState state = switch (notNull(status)) {
+        final Status checkedStatus = notNull(status);
+        final ContractImportJobState state = switch (checkedStatus) {
             case PENDING -> pending();
             case RUNNING -> running(leaseUntil);
-            case COMPLETED -> termination instanceof ContractImportTermination.Ended ended
-                    ? completed(ended)
-                    : inconsistent(status, leaseUntil, termination, cancellation);
-            case FAILED -> termination instanceof ContractImportTermination.Failed failed
-                    ? failed(failed)
-                    : inconsistent(status, leaseUntil, termination, cancellation);
+            case COMPLETED -> termination instanceof ContractImportTermination.Ended ended ? completed(
+                    ended) : inconsistent(checkedStatus, leaseUntil, termination, cancellation);
+            case FAILED -> termination instanceof ContractImportTermination.Failed failed ? failed(
+                    failed) : inconsistent(checkedStatus, leaseUntil, termination, cancellation);
             case CANCELLED -> cancelled(cancellation, termination);
         };
-        return isKeepingEveryValue(leaseUntil, termination, cancellation, state) ? state : inconsistent(status, leaseUntil, termination, cancellation);
+        return isKeepingEveryValue(leaseUntil, termination, cancellation, state) ? state : inconsistent(checkedStatus,
+                leaseUntil,
+                termination,
+                cancellation);
     }
 
-    private static boolean isKeepingEveryValue(@Nullable Instant leaseUntil, @Nullable ContractImportTermination termination,
-                                               @Nullable ContractImportCancellation cancellation, ContractImportJobState state) {
-        return Objects.equals(state.leaseUntil(), leaseUntil)
-                && Objects.equals(state.termination(), termination)
-                && Objects.equals(state.cancellation(), cancellation);
+    private static boolean isKeepingEveryValue(@Nullable Instant leaseUntil,
+            @Nullable ContractImportTermination termination,
+            @Nullable ContractImportCancellation cancellation,
+            ContractImportJobState state) {
+        return Objects.equals(state.leaseUntil(), leaseUntil) && Objects.equals(state.termination(),
+                termination) && Objects.equals(state.cancellation(), cancellation);
     }
 
 
@@ -94,8 +93,8 @@ public sealed interface ContractImportJobState permits
             @Nullable final ContractImportTermination termination,
             @Nullable final ContractImportCancellation cancellation
     ) {
-        throw new InvalidDomainObjectError("An import job cannot be " + status + " with lease " + leaseUntil
-                + ", termination " + termination + " and cancellation " + cancellation);
+        throw new InvalidDomainObjectError(
+                "An import job cannot be " + status + " with lease " + leaseUntil + ", termination " + termination + " and cancellation " + cancellation);
     }
 
     record Pending() implements ContractImportJobState {
@@ -142,8 +141,8 @@ public sealed interface ContractImportJobState permits
         }
     }
 
-    record Cancelled(ContractImportCancellation cancellation, ContractImportTermination termination)
-            implements ContractImportJobState {
+    record Cancelled(ContractImportCancellation cancellation,
+            ContractImportTermination termination) implements ContractImportJobState {
 
         public Cancelled {
             notNull(cancellation);

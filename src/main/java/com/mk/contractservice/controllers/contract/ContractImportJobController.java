@@ -45,6 +45,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -68,12 +69,7 @@ public class ContractImportJobController {
 
     @Operation(
             summary = "Submit a CSV file of contracts for asynchronous import",
-            description = "UTF-8 file, separator ';', first line: " + ContractImportCsv.HEADER + ". Dates in ISO format, "
-                    + "decimals with a point, startDate and endDate can stay empty. At most " + ContractImportFile.MAX_LINES
-                    + " contracts and 50 MB. Valid lines create their contract, the others are reported: "
-                    + "a job can therefore end with some contracts imported and some lines rejected. "
-                    + "Follow the job through the Location header. Send an Idempotency-Key to submit again safely "
-                    + "after a timeout: the same key and the same file return the first job instead of importing twice."
+            description = "UTF-8 file, separator ';', first line: " + ContractImportCsv.HEADER + ". Dates in ISO format, " + "decimals with a point, startDate and endDate can stay empty. At most " + ContractImportFile.MAX_LINES + " contracts and 50 MB. Valid lines create their contract, the others are reported: " + "a job can therefore end with some contracts imported and some lines rejected. " + "Follow the job through the Location header. Send an Idempotency-Key to submit again safely " + "after a timeout: the same key and the same file return the first job instead of importing twice."
     )
     @ApiResponse(
             responseCode = "202",
@@ -83,8 +79,7 @@ public class ContractImportJobController {
     )
     @ApiResponse(
             responseCode = "400",
-            description = "Code missingParameter: the file part is missing. Code invalidIdempotencyKey: blank or longer than "
-                    + IdempotencyKey.MAX_LENGTH + " characters",
+            description = "Code missingParameter: the file part is missing. Code invalidIdempotencyKey: blank or longer than " + IdempotencyKey.MAX_LENGTH + " characters",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
@@ -102,17 +97,16 @@ public class ContractImportJobController {
     )
     @ApiResponse(
             responseCode = "422",
-            description = "Code invalidImportFile: no data, wrong header, encoding other than UTF-8, or too many lines. "
-                    + "Code idempotencyKeyReused: this Idempotency-Key was already used for another file. Nothing is stored",
+            description = "Code invalidImportFile: no data, wrong header, encoding other than UTF-8, or too many lines. " + "Code idempotencyKeyReused: this Idempotency-Key was already used for another file. Nothing is stored",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ContractImportJobResponse> submit(
             @RequestParam("file") final MultipartFile file,
-            @Parameter(description = "Client-generated key, at most " + IdempotencyKey.MAX_LENGTH
-                    + " characters, unique per counselor")
-            @RequestHeader(name = IDEMPOTENCY_KEY, required = false) @Nullable final String idempotencyKey,
+            @Parameter(
+                    description = "Client-generated key, at most " + IdempotencyKey.MAX_LENGTH + " characters, unique per counselor") @RequestHeader(
+                            name = IDEMPOTENCY_KEY, required = false) @Nullable final String idempotencyKey,
             @AuthenticationPrincipal final Jwt counselor
     ) throws IOException {
         final ContractImportJob job = submitContractImportJob.execute(new SubmitContractImportJob.Command(
@@ -130,8 +124,7 @@ public class ContractImportJobController {
 
     @Operation(
             summary = "List the import jobs, newest first",
-            description = "Jobs of every counselor, or of one counselor with submittedBy. Page size: at most "
-                    + ListContractImportJobs.MAX_PAGE_SIZE + "."
+            description = "Jobs of every counselor, or of one counselor with submittedBy. Page size: at most " + ListContractImportJobs.MAX_PAGE_SIZE + "."
     )
     @ApiResponse(
             responseCode = "200",
@@ -147,8 +140,8 @@ public class ContractImportJobController {
     )
     @GetMapping
     public PagedContractImportJobResponse list(
-            @Parameter(description = "Username of the counselor who submitted the jobs", example = "counselor.demo")
-            @RequestParam(required = false) @Nullable final String submittedBy,
+            @Parameter(description = "Username of the counselor who submitted the jobs",
+                    example = "counselor.demo") @RequestParam(required = false) @Nullable final String submittedBy,
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "20") final int size
     ) {
@@ -176,10 +169,7 @@ public class ContractImportJobController {
 
     @Operation(
             summary = "Cancel an import job and close the contracts it created",
-            description = "Works on a job in any state. The job stops at its next chunk and will not run again. "
-                    + "Its contracts still active are closed now (end date = cancellation date), like the contracts "
-                    + "of a deleted client: they leave the active list and the totals, and stay readable. "
-                    + "A fixed file can then be submitted without active duplicates. Cancelling again changes nothing."
+            description = "Works on a job in any state. The job stops at its next chunk and will not run again. " + "Its contracts still active are closed now (end date = cancellation date), like the contracts " + "of a deleted client: they leave the active list and the totals, and stay readable. " + "A fixed file can then be submitted without active duplicates. Cancelling again changes nothing."
     )
     @ApiResponse(
             responseCode = "200",
@@ -230,9 +220,7 @@ public class ContractImportJobController {
 
     @Operation(
             summary = "Download the rejected lines of an import job as CSV",
-            description = "UTF-8, separator ';', columns " + ContractImportRejectionCsv.HEADER + ", ordered by line number. "
-                    + "The line column holds the original line of the file: fix it, then copy it into a new file to submit. "
-                    + "Text columns are quoted, inner quotes doubled."
+            description = "UTF-8, separator ';', columns " + ContractImportRejectionCsv.HEADER + ", ordered by line number. " + "The line column holds the original line of the file: fix it, then copy it into a new file to submit. " + "Text columns are quoted, inner quotes doubled."
     )
     @ApiResponse(
             responseCode = "200",
@@ -251,14 +239,16 @@ public class ContractImportJobController {
                 exportContractImportJobRejections.execute(new ExportContractImportJobRejections.Query(jobId)));
         return ResponseEntity.ok()
                 .contentType(TEXT_CSV)
-                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-                        .filename("import-" + jobId + "-rejections.csv")
-                        .build()
-                        .toString())
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("import-" + jobId + "-rejections.csv")
+                                .build()
+                                .toString())
                 .body(csv);
     }
 
     private static String usernameOf(final Jwt counselor) {
-        return Optional.ofNullable(counselor.getClaimAsString(USERNAME_CLAIM)).orElse(counselor.getSubject());
+        return Optional.ofNullable(counselor.getClaimAsString(USERNAME_CLAIM))
+                .orElseGet(() -> Objects.requireNonNull(counselor.getSubject()));
     }
 }

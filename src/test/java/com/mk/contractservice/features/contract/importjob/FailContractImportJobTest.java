@@ -36,8 +36,8 @@ class FailContractImportJobTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-11-03T09:00:00Z"), ZoneId.of("Europe/Zurich"));
     private static final LocalDateTime NOW = LocalDateTime.now(CLOCK);
     private static final UUID JOB_ID = UUID.randomUUID();
-    private static final FailContractImportJob.Command COMMAND =
-            new FailContractImportJob.Command(JOB_ID, ContractImportFailureReason.TOO_MANY_ATTEMPTS);
+    private static final FailContractImportJob.Command COMMAND = new FailContractImportJob.Command(JOB_ID,
+            ContractImportFailureReason.TOO_MANY_ATTEMPTS);
 
     @Mock
     private ContractImportJobRepository jobRepository;
@@ -45,8 +45,13 @@ class FailContractImportJobTest {
     private ArgumentCaptor<ContractImportJob> jobCaptor;
 
     private ContractImportJob runningJob() {
-        return ContractImportJob.reconstituteFromDatabase(JOB_ID, ContractImportJobFixtures.submission(NOW), ContractImportJobState.Status.RUNNING,
-                ContractImportProgress.reconstituteFromDatabase(2, 1, 1, 0), CLOCK.instant(), null, null);
+        return ContractImportJob.reconstituteFromDatabase(JOB_ID,
+                ContractImportJobFixtures.submission(NOW),
+                ContractImportJobState.Status.RUNNING,
+                ContractImportProgress.reconstituteFromDatabase(2, 1, 1, 0),
+                CLOCK.instant(),
+                null,
+                null);
     }
 
     @Test
@@ -58,16 +63,24 @@ class FailContractImportJobTest {
 
         verify(jobRepository).save(jobCaptor.capture());
         assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobState.Status.FAILED);
-        assertThat(jobCaptor.getValue().state().termination()).isEqualTo(ContractImportTermination.failed(ContractImportFailureReason.TOO_MANY_ATTEMPTS, NOW));
+        assertThat(jobCaptor.getValue().state().termination()).isEqualTo(ContractImportTermination.failed(
+                ContractImportFailureReason.TOO_MANY_ATTEMPTS,
+                NOW));
     }
 
     @Test
     @DisplayName("GIVEN a completed job WHEN failing it THEN nothing is saved")
     void shouldNotFailCompletedJob() {
-        when(jobRepository.getById(JOB_ID)).thenReturn(ContractImportJobFixtures.runningJob(JOB_ID, 2, 2, 0, CLOCK.instant(), NOW).finish(NOW));
+        when(jobRepository.getById(JOB_ID)).thenReturn(ContractImportJobFixtures.runningJob(JOB_ID,
+                2,
+                2,
+                0,
+                CLOCK.instant(),
+                NOW).finish(NOW));
         final FailContractImportJob handler = new FailContractImportJob.Handler(jobRepository, CLOCK);
 
-        assertThatThrownBy(() -> handler.execute(COMMAND)).isInstanceOf(ContractImportJobTransitionNotAllowedException.class);
+        assertThatThrownBy(() -> handler.execute(COMMAND)).isInstanceOf(
+                ContractImportJobTransitionNotAllowedException.class);
 
         verify(jobRepository, never()).save(any());
     }

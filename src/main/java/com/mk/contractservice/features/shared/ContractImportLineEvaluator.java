@@ -37,7 +37,8 @@ public final class ContractImportLineEvaluator {
             final LocalDateTime now
     ) {
         if (!existingClientIds.contains(clientId)) {
-            return new Rejected(ContractImportRejectionReason.CLIENT_NOT_FOUND, ClientNotFoundException.messageFor(clientId));
+            return new Rejected(ContractImportRejectionReason.CLIENT_NOT_FOUND,
+                    ClientNotFoundException.messageFor(clientId));
         }
         try {
             return new Accepted(ContractFactory.createFromCommand(clientId, startDate, endDate, costAmount, now));

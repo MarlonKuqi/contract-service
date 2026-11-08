@@ -104,10 +104,14 @@ class ContractImportJobManagementAcceptanceTest {
                             "phone": "%s",
                             "birthDate": "1985-03-20"
                         }
-                        """.formatted(TestDataHelper.uniqueEmail("marie.durand"), TestDataHelper.randomSwissPhoneNumber()))
-                .when().post(ClientEndpoints.CLIENTS_BASE)
-                .then().statusCode(201)
-                .extract().path("id");
+                        """.formatted(TestDataHelper.uniqueEmail("marie.durand"),
+                        TestDataHelper.randomSwissPhoneNumber()))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
     @AfterEach
@@ -137,7 +141,8 @@ class ContractImportJobManagementAcceptanceTest {
 
     private RequestSpecification uploadAsOtherCounselor(final String content) {
         return upload(content)
-                .auth().oauth2(TestTokens.builder().realmRoles(TestTokens.COUNSELOR_ROLE).username(OTHER_COUNSELOR).build());
+                .auth()
+                .oauth2(TestTokens.builder().realmRoles(TestTokens.COUNSELOR_ROLE).username(OTHER_COUNSELOR).build());
     }
 
     private ValidatableResponse submit(final String content, final String idempotencyKey) {
@@ -161,7 +166,10 @@ class ContractImportJobManagementAcceptanceTest {
     }
 
     private ValidatableResponse totalOfClient() {
-        return given().when().get(CONTRACTS_BASE + CONTRACT_TOTAL + "?clientId={clientId}", clientId).then().statusCode(200);
+        return given().when()
+                .get(CONTRACTS_BASE + CONTRACT_TOTAL + "?clientId={clientId}", clientId)
+                .then()
+                .statusCode(200);
     }
 
     private int jobCount() {
@@ -170,7 +178,7 @@ class ContractImportJobManagementAcceptanceTest {
 
     @Test
     @DisplayName(
-            "GIVEN a file submitted again with the same key after a timeout WHEN it runs THEN one job imports each contract once")
+        "GIVEN a file submitted again with the same key after a timeout WHEN it runs THEN one job imports each contract once")
     void shouldImportOnceWhenSubmittedTwiceWithSameKey() {
         final String file = fileOf("100.00", "200.00");
 
@@ -207,10 +215,13 @@ class ContractImportJobManagementAcceptanceTest {
 
         final String theirs = uploadAsOtherCounselor(file)
                 .header(IDEMPOTENCY_KEY, "import-42")
-                .when().post(CONTRACT_IMPORT_JOBS)
-                .then().statusCode(202)
+                .when()
+                .post(CONTRACT_IMPORT_JOBS)
+                .then()
+                .statusCode(202)
                 .body("submittedBy", equalTo(OTHER_COUNSELOR))
-                .extract().path("jobId");
+                .extract()
+                .path("jobId");
 
         assertThat(theirs).isNotEqualTo(mine);
     }
@@ -227,28 +238,38 @@ class ContractImportJobManagementAcceptanceTest {
 
     @Test
     @DisplayName(
-            "GIVEN jobs of two counselors WHEN listing THEN they come newest first, and can be narrowed to one counselor")
+        "GIVEN jobs of two counselors WHEN listing THEN they come newest first, and can be narrowed to one counselor")
     void shouldListJobsNewestFirst() {
         final String oldest = submitAccepted(fileOf("100.00"));
         final String theirs = uploadAsOtherCounselor(fileOf("200.00"))
-                .when().post(CONTRACT_IMPORT_JOBS)
-                .then().statusCode(202).extract().path("jobId");
+                .when()
+                .post(CONTRACT_IMPORT_JOBS)
+                .then()
+                .statusCode(202)
+                .extract()
+                .path("jobId");
         final String newest = submitAccepted(fileOf("300.00"));
 
-        given().when().get(CONTRACT_IMPORT_JOBS)
-                .then().statusCode(200)
+        given().when()
+                .get(CONTRACT_IMPORT_JOBS)
+                .then()
+                .statusCode(200)
                 .body("totalElements", equalTo(3))
                 .body("content.jobId", contains(newest, theirs, oldest))
-                .body("content.submittedBy", contains(TestTokens.DEFAULT_USERNAME, OTHER_COUNSELOR, TestTokens.DEFAULT_USERNAME));
+                .body("content.submittedBy",
+                        contains(TestTokens.DEFAULT_USERNAME, OTHER_COUNSELOR, TestTokens.DEFAULT_USERNAME));
 
-        given().queryParam("submittedBy", OTHER_COUNSELOR).when().get(CONTRACT_IMPORT_JOBS)
-                .then().statusCode(200)
+        given().queryParam("submittedBy", OTHER_COUNSELOR)
+                .when()
+                .get(CONTRACT_IMPORT_JOBS)
+                .then()
+                .statusCode(200)
                 .body("content.jobId", contains(theirs));
     }
 
     @Test
     @DisplayName(
-            "GIVEN an imported file WHEN the counselor cancels the job THEN its contracts are closed and leave the client total")
+        "GIVEN an imported file WHEN the counselor cancels the job THEN its contracts are closed and leave the client total")
     void shouldCloseContractsOfCancelledJob() {
         final String jobId = submitAccepted(fileOf("100.00", "200.00"));
         runNextJob();
@@ -264,7 +285,11 @@ class ContractImportJobManagementAcceptanceTest {
                 .body("job.importedCount", equalTo(2));
 
         totalOfClient().body(anyOf(equalTo("0"), equalTo("0.00"), equalTo("0.0")));
-        given().when().get(CONTRACTS_BASE + "?clientId={clientId}", clientId).then().statusCode(200).body("content", hasSize(0));
+        given().when()
+                .get(CONTRACTS_BASE + "?clientId={clientId}", clientId)
+                .then()
+                .statusCode(200)
+                .body("content", hasSize(0));
         given().when().get(CONTRACT_BY_ID, contractId).then().statusCode(200).body("endDate", notNullValue());
     }
 
@@ -298,7 +323,7 @@ class ContractImportJobManagementAcceptanceTest {
 
     @Test
     @DisplayName(
-            "GIVEN a job running its second chunk WHEN the counselor cancels it THEN the chunk is dropped and the first one is closed")
+        "GIVEN a job running its second chunk WHEN the counselor cancels it THEN the chunk is dropped and the first one is closed")
     void shouldStopRunningJobOnCancellation() throws Exception {
         final int chunkSize = ContractImportBatchConfiguration.CHUNK_SIZE;
         final String jobId = submitAccepted(fileOf(Collections.nCopies(chunkSize + 10, "10.00")));
@@ -329,19 +354,20 @@ class ContractImportJobManagementAcceptanceTest {
 
     @Test
     @DisplayName(
-            "GIVEN rejected lines WHEN the counselor downloads them THEN each comes with its code, its reason and its original line")
+        "GIVEN rejected lines WHEN the counselor downloads them THEN each comes with its code, its reason and its original line")
     void shouldExportRejectedLinesAsCsv() {
-        final String jobId = submitAccepted(HEADER
-                + clientId + ";;;100.00\n"
-                + clientId + ";;;-1\n"
-                + "garbage \"quoted\"\n");
+        final String jobId = submitAccepted(
+                HEADER + clientId + ";;;100.00\n" + clientId + ";;;-1\n" + "garbage \"quoted\"\n");
         runNextJob();
 
-        final String csv = given().when().get(REJECTIONS_EXPORT_PATH, jobId)
-                .then().statusCode(200)
+        final String csv = given().when()
+                .get(REJECTIONS_EXPORT_PATH, jobId)
+                .then()
+                .statusCode(200)
                 .contentType(startsWith("text/csv"))
                 .header("Content-Disposition", containsString("attachment"))
-                .extract().asString();
+                .extract()
+                .asString();
 
         final List<String> lines = csv.lines().toList();
         assertThat(lines).hasSize(3);
@@ -356,8 +382,10 @@ class ContractImportJobManagementAcceptanceTest {
         final String unknown = UUID.randomUUID().toString();
 
         cancel(unknown).statusCode(404).body("code", equalTo("contractImportJobNotFound"));
-        given().when().get(REJECTIONS_EXPORT_PATH, unknown)
-                .then().statusCode(404)
+        given().when()
+                .get(REJECTIONS_EXPORT_PATH, unknown)
+                .then()
+                .statusCode(404)
                 .contentType("application/problem+json")
                 .body("code", equalTo("contractImportJobNotFound"));
     }

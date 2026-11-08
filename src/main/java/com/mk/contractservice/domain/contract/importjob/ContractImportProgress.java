@@ -35,7 +35,8 @@ public class ContractImportProgress {
 
     public ContractImportProgress advance(final int imported, final int rejected) {
         if (imported < 0 || rejected < 0) {
-            throw new InvalidDomainObjectError("A batch cannot remove lines: imported " + imported + ", rejected " + rejected);
+            throw new InvalidDomainObjectError(
+                    "A batch cannot remove lines: imported " + imported + ", rejected " + rejected);
         }
         final int processed = processedLines + imported + rejected;
         if (processed > totalLines) {

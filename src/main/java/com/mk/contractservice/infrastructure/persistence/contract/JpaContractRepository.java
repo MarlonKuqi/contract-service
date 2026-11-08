@@ -38,9 +38,10 @@ public class JpaContractRepository implements ContractRepository {
         if (contractId == null) {
             entity = ContractJpaMapper.toNewEntity(contract);
         } else {
-            entity = contractJpaRepository.findById(contractId).orElseThrow(
-                    () -> new IllegalStateException("Contract with id " + contractId + " not found in database")
-            );
+            entity = contractJpaRepository.findById(contractId)
+                    .orElseThrow(
+                            () -> new IllegalStateException("Contract with id " + contractId + " not found in database")
+                    );
             ContractJpaMapper.mergeIntoExisting(contract, entity);
         }
         return ContractJpaMapper.toDomain(contractJpaRepository.save(entity));
@@ -81,7 +82,8 @@ public class JpaContractRepository implements ContractRepository {
         if (afterId != null) {
             spec = spec.and(ContractSpecifications.idGreaterThan(afterId));
         }
-        return contractJpaRepository.findBy(spec, query -> query
+        return contractJpaRepository.findBy(spec,
+                query -> query
                         .sortBy(Sort.by(ContractSpecifications.FIELD_ID))
                         .limit(limit)
                         .all())
@@ -96,7 +98,10 @@ public class JpaContractRepository implements ContractRepository {
         final CriteriaUpdate<ContractJpaEntity> update = cb.createCriteriaUpdate(ContractJpaEntity.class);
         final Root<ContractJpaEntity> root = update.from(ContractJpaEntity.class);
 
-        final Predicate wherePredicate = ContractSpecifications.isActiveWithClientIdPredicate(root, cb, clientId, closureDate);
+        final Predicate wherePredicate = ContractSpecifications.isActiveWithClientIdPredicate(root,
+                cb,
+                clientId,
+                closureDate);
 
         return closeAt(update, root, cb, closureDate, wherePredicate);
     }
@@ -108,7 +113,8 @@ public class JpaContractRepository implements ContractRepository {
         final Root<ContractJpaEntity> root = update.from(ContractJpaEntity.class);
 
         final Subquery<UUID> importedContractIds = update.subquery(UUID.class);
-        final Root<ContractImportJobLineJpaEntity> line = importedContractIds.from(ContractImportJobLineJpaEntity.class);
+        final Root<ContractImportJobLineJpaEntity> line = importedContractIds.from(
+                ContractImportJobLineJpaEntity.class);
         importedContractIds
                 .select(line.get("contractId"))
                 .where(cb.equal(line.get("id").get("jobId"), importJobId));

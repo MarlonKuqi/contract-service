@@ -28,8 +28,7 @@ public class DeleteClientController {
 
     @Operation(
             summary = "Delete a client",
-            description = "Deletes a client and closes their active contracts with endDate set to the deletion date. "
-                    + "The client is no longer returned by the API; its data and contract history are kept."
+            description = "Deletes a client and closes their active contracts with endDate set to the deletion date. " + "The client is no longer returned by the API; its data and contract history are kept."
     )
     @ApiResponse(
             responseCode = "204",
@@ -59,4 +58,3 @@ public class DeleteClientController {
         return ResponseEntity.noContent().build();
     }
 }
-

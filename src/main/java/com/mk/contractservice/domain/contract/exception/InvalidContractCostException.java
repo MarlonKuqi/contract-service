@@ -8,4 +8,3 @@ public final class InvalidContractCostException extends ContractValidationExcept
         super(message, DEFAULT_CODE);
     }
 }
-

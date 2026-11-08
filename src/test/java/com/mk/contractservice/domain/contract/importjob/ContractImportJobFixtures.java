@@ -37,7 +37,10 @@ public final class ContractImportJobFixtures {
                 id,
                 submission(submittedAt),
                 ContractImportJobState.Status.RUNNING,
-                ContractImportProgress.reconstituteFromDatabase(totalLines, importedCount + rejectedCount, importedCount, rejectedCount),
+                ContractImportProgress.reconstituteFromDatabase(totalLines,
+                        importedCount + rejectedCount,
+                        importedCount,
+                        rejectedCount),
                 leaseUntil,
                 null,
                 null

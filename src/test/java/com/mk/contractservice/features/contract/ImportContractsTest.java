@@ -189,8 +189,9 @@ class ImportContractsTest {
                     new ImportContracts.Line(unknownClientId, null, null, VALID_COST)
             );
 
-            final ContractImportRejectedException rejection =
-                    catchThrowableOfType(ContractImportRejectedException.class, () -> handler.execute(command));
+            final ContractImportRejectedException rejection = catchThrowableOfType(
+                    ContractImportRejectedException.class,
+                    () -> handler.execute(command));
 
             assertThat(rejection.rejections())
                     .extracting(ContractImportRejectedException.LineRejection::index,

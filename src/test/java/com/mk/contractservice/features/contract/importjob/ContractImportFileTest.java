@@ -1,7 +1,7 @@
 package com.mk.contractservice.features.contract.importjob;
 
-import com.mk.contractservice.features.shared.InvalidImportFileException;
 import com.mk.contractservice.features.shared.ContractImportCsv;
+import com.mk.contractservice.features.shared.InvalidImportFileException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -81,6 +81,7 @@ class ContractImportFileTest {
     void shouldRejectInvalidCsv() {
         final byte[] content = "wrong;header\nline\n".getBytes(StandardCharsets.UTF_8);
 
-        assertThatThrownBy(() -> ContractImportFile.of("contracts.csv", content)).isInstanceOf(InvalidImportFileException.class);
+        assertThatThrownBy(() -> ContractImportFile.of("contracts.csv", content)).isInstanceOf(
+                InvalidImportFileException.class);
     }
 }

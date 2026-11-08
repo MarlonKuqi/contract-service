@@ -64,7 +64,9 @@ class FinishContractImportJobTest {
 
         verify(jobRepository).save(jobCaptor.capture());
         assertThat(jobCaptor.getValue().status()).isEqualTo(ContractImportJobState.Status.FAILED);
-        assertThat(jobCaptor.getValue().state().termination()).isEqualTo(ContractImportTermination.failed(ContractImportFailureReason.INCOMPLETE_PROCESSING, NOW));
+        assertThat(jobCaptor.getValue().state().termination()).isEqualTo(ContractImportTermination.failed(
+                ContractImportFailureReason.INCOMPLETE_PROCESSING,
+                NOW));
     }
 
     @Test

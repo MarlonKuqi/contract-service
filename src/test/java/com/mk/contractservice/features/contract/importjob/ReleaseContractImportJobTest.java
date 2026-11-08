@@ -37,7 +37,12 @@ class ReleaseContractImportJobTest {
     @DisplayName("GIVEN a running job WHEN releasing it THEN it is saved as pending without a lease")
     void shouldReleaseJob() {
         when(jobRepository.getById(JOB_ID)).thenReturn(ContractImportJobFixtures.runningJob(
-                JOB_ID, 2, 1, 0, Instant.parse("2026-11-03T09:05:00Z"), LocalDateTime.of(2026, 11, 3, 10, 0)));
+                JOB_ID,
+                2,
+                1,
+                0,
+                Instant.parse("2026-11-03T09:05:00Z"),
+                LocalDateTime.of(2026, 11, 3, 10, 0)));
 
         new ReleaseContractImportJob.Handler(jobRepository).execute(new ReleaseContractImportJob.Command(JOB_ID));
 

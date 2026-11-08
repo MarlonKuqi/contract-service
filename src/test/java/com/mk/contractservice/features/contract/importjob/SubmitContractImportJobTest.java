@@ -9,8 +9,8 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportTerminatio
 import com.mk.contractservice.domain.contract.importjob.IdempotencyKey;
 import com.mk.contractservice.domain.contract.importjob.exception.IdempotencyKeyReusedException;
 import com.mk.contractservice.domain.contract.importjob.exception.InvalidIdempotencyKeyException;
-import com.mk.contractservice.features.shared.InvalidImportFileException;
 import com.mk.contractservice.features.shared.ContractImportCsv;
+import com.mk.contractservice.features.shared.InvalidImportFileException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -60,19 +60,29 @@ class SubmitContractImportJobTest {
 
     private static ContractImportJob storedJob(final byte[] content) {
         return ContractImportJob.reconstituteFromDatabase(UUID.randomUUID(),
-                ContractImportSubmission.reconstituteFromDatabase("contracts.csv", SUBMITTER, IdempotencyKey.reconstituteFromDatabase(KEY), ContractImportCsv.fingerprintOf(content), LocalDateTime.now(CLOCK)),
-                ContractImportJobState.Status.COMPLETED, ContractImportProgress.reconstituteFromDatabase(2, 2, 2, 0), null,
-                ContractImportTermination.reconstituteFromDatabase(LocalDateTime.now(CLOCK), null), null);
+                ContractImportSubmission.reconstituteFromDatabase("contracts.csv",
+                        SUBMITTER,
+                        IdempotencyKey.reconstituteFromDatabase(KEY),
+                        ContractImportCsv.fingerprintOf(content),
+                        LocalDateTime.now(CLOCK)),
+                ContractImportJobState.Status.COMPLETED,
+                ContractImportProgress.reconstituteFromDatabase(2, 2, 2, 0),
+                null,
+                ContractImportTermination.reconstituteFromDatabase(LocalDateTime.now(CLOCK), null),
+                null);
     }
 
     @Test
     @DisplayName(
-            "GIVEN a valid file WHEN submitting THEN a pending job is stored with the file, its author and its fingerprint")
+        "GIVEN a valid file WHEN submitting THEN a pending job is stored with the file, its author and its fingerprint")
     void shouldStorePendingJob() {
         final byte[] content = fileOf(2);
         when(jobRepository.save(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        final ContractImportJob result = handler().execute(new SubmitContractImportJob.Command("contracts.csv", content, SUBMITTER, null));
+        final ContractImportJob result = handler().execute(new SubmitContractImportJob.Command("contracts.csv",
+                content,
+                SUBMITTER,
+                null));
 
         verify(jobRepository).save(jobCaptor.capture(), same(content));
         final ContractImportJob job = jobCaptor.getValue();
@@ -100,13 +110,16 @@ class SubmitContractImportJobTest {
 
     @Test
     @DisplayName(
-            "GIVEN the same file submitted again with the same key WHEN submitting THEN the first job is returned and nothing is stored")
+        "GIVEN the same file submitted again with the same key WHEN submitting THEN the first job is returned and nothing is stored")
     void shouldReturnExistingJobForSameKeyAndFile() {
         final byte[] content = fileOf(2);
         final ContractImportJob existing = storedJob(content);
         when(jobRepository.findByIdempotencyKey(SUBMITTER, IdempotencyKey.of(KEY))).thenReturn(Optional.of(existing));
 
-        final ContractImportJob result = handler().execute(new SubmitContractImportJob.Command("contracts.csv", content, SUBMITTER, KEY));
+        final ContractImportJob result = handler().execute(new SubmitContractImportJob.Command("contracts.csv",
+                content,
+                SUBMITTER,
+                KEY));
 
         assertThat(result).isSameAs(existing);
         verify(jobRepository, never()).save(any(), any());
@@ -115,8 +128,12 @@ class SubmitContractImportJobTest {
     @Test
     @DisplayName("GIVEN another file with an already used key WHEN submitting THEN it is refused and nothing is stored")
     void shouldRefuseKeyReusedForAnotherFile() {
-        when(jobRepository.findByIdempotencyKey(SUBMITTER, IdempotencyKey.of(KEY))).thenReturn(Optional.of(storedJob(fileOf(2))));
-        final SubmitContractImportJob.Command command = new SubmitContractImportJob.Command("contracts.csv", fileOf(3), SUBMITTER, KEY);
+        when(jobRepository.findByIdempotencyKey(SUBMITTER, IdempotencyKey.of(KEY))).thenReturn(Optional.of(storedJob(
+                fileOf(2))));
+        final SubmitContractImportJob.Command command = new SubmitContractImportJob.Command("contracts.csv",
+                fileOf(3),
+                SUBMITTER,
+                KEY);
 
         assertThatThrownBy(() -> handler().execute(command)).isInstanceOf(IdempotencyKeyReusedException.class);
         verify(jobRepository, never()).save(any(), any());
@@ -127,8 +144,14 @@ class SubmitContractImportJobTest {
     void shouldRefuseInvalidKey() {
         final byte[] content = fileOf(1);
         final String tooLong = "k".repeat(IdempotencyKey.MAX_LENGTH + 1);
-        final SubmitContractImportJob.Command blankKey = new SubmitContractImportJob.Command("contracts.csv", content, SUBMITTER, " ");
-        final SubmitContractImportJob.Command tooLongKey = new SubmitContractImportJob.Command("contracts.csv", content, SUBMITTER, tooLong);
+        final SubmitContractImportJob.Command blankKey = new SubmitContractImportJob.Command("contracts.csv",
+                content,
+                SUBMITTER,
+                " ");
+        final SubmitContractImportJob.Command tooLongKey = new SubmitContractImportJob.Command("contracts.csv",
+                content,
+                SUBMITTER,
+                tooLong);
 
         assertThatThrownBy(() -> handler().execute(blankKey)).isInstanceOf(InvalidIdempotencyKeyException.class);
         assertThatThrownBy(() -> handler().execute(tooLongKey)).isInstanceOf(InvalidIdempotencyKeyException.class);

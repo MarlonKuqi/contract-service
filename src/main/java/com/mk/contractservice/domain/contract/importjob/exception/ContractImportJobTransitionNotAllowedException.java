@@ -7,7 +7,9 @@ import java.util.UUID;
 
 public class ContractImportJobTransitionNotAllowedException extends RuntimeException {
 
-    public ContractImportJobTransitionNotAllowedException(@Nullable final UUID jobId, final String transition, final ContractImportJobState.Status status) {
+    public ContractImportJobTransitionNotAllowedException(@Nullable final UUID jobId,
+            final String transition,
+            final ContractImportJobState.Status status) {
         super("Contract import job " + jobId + " cannot " + transition + " while " + status);
     }
 }

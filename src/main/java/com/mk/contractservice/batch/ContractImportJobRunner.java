@@ -37,7 +37,8 @@ public class ContractImportJobRunner {
         final JobParameters parameters = new JobParametersBuilder()
                 .addString(ContractImportBatchConfiguration.JOB_ID_PARAMETER, jobId.toString())
                 .toJobParameters();
-        final JobExecution last = jobRepository.getLastJobExecution(ContractImportBatchConfiguration.JOB_NAME, parameters);
+        final JobExecution last = jobRepository.getLastJobExecution(ContractImportBatchConfiguration.JOB_NAME,
+                parameters);
         if (last != null && last.getStatus() == BatchStatus.COMPLETED) {
             finishContractImportJob.execute(new FinishContractImportJob.Command(jobId));
             return;
@@ -59,11 +60,13 @@ public class ContractImportJobRunner {
     }
 
     private int failedAttemptsOf(final JobParameters parameters) {
-        final JobInstance instance = jobRepository.getJobInstance(ContractImportBatchConfiguration.JOB_NAME, parameters);
+        final JobInstance instance = jobRepository.getJobInstance(ContractImportBatchConfiguration.JOB_NAME,
+                parameters);
         if (instance == null) {
             return 0;
         }
-        return (int) jobRepository.getJobExecutions(instance).stream()
+        return (int) jobRepository.getJobExecutions(instance)
+                .stream()
                 .filter(execution -> execution.getStatus().isUnsuccessful())
                 .count();
     }

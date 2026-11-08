@@ -96,9 +96,15 @@ public interface ImportContracts {
 
             for (int index = 0; index < command.lines().size(); index++) {
                 final Line line = command.lines().get(index);
-                switch (ContractImportLineEvaluator.evaluate(line.clientId(), line.startDate(), line.endDate(), line.costAmount(), existingClientIds, now)) {
+                switch (ContractImportLineEvaluator.evaluate(line.clientId(),
+                        line.startDate(),
+                        line.endDate(),
+                        line.costAmount(),
+                        existingClientIds,
+                        now)) {
                     case Accepted(Contract contract) -> contracts.add(contract);
-                    case Rejected(ContractImportRejectionReason reason, String message) -> rejections.add(new LineRejection(index, line.clientId(), reason, message));
+                    case Rejected(ContractImportRejectionReason reason, String message) -> rejections.add(
+                            new LineRejection(index, line.clientId(), reason, message));
                 }
             }
             return new LineProcessResult(contracts, rejections);

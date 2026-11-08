@@ -4,8 +4,8 @@ import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportCancellation;
 import com.mk.contractservice.domain.contract.importjob.ContractImportFailureReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
+import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.domain.contract.importjob.ContractImportProgress;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
 import com.mk.contractservice.domain.contract.importjob.ContractImportSubmission;
@@ -65,16 +65,18 @@ public final class ContractImportJobJpaMapper {
     }
 
     public static ContractImportJobLineJpaEntity toLineEntity(final ContractImportJobLine line) {
-        final ContractImportJobLineJpaEntity.LineId id = new ContractImportJobLineJpaEntity.LineId(line.jobId(), line.lineNumber());
+        final ContractImportJobLineJpaEntity.LineId id = new ContractImportJobLineJpaEntity.LineId(line.jobId(),
+                line.lineNumber());
         return switch (line) {
             case ContractImportJobLine.Imported(UUID _, int _, UUID clientId, UUID contractId) ->
-                    new ContractImportJobLineJpaEntity(id, clientId, contractId, null, null);
+                new ContractImportJobLineJpaEntity(id, clientId, contractId, null, null);
             case ContractImportJobLine.Rejected(UUID _, int _, UUID clientId, ContractImportRejectionReason reason, String message) ->
-                    new ContractImportJobLineJpaEntity(id, clientId, null, reason, message);
+                new ContractImportJobLineJpaEntity(id, clientId, null, reason, message);
         };
     }
 
-    private static @Nullable ContractImportFailureReason failureReasonOf(@Nullable final ContractImportTermination termination) {
+    private static @Nullable ContractImportFailureReason failureReasonOf(
+            @Nullable final ContractImportTermination termination) {
         return switch (termination) {
             case ContractImportTermination.Failed(LocalDateTime _, ContractImportFailureReason reason) -> reason;
             case ContractImportTermination.Ended _ -> null;
@@ -117,15 +119,13 @@ public final class ContractImportJobJpaMapper {
 
     private static @Nullable ContractImportTermination terminationOf(final ContractImportJobJpaEntity entity) {
         final LocalDateTime finishedAt = entity.getFinishedAt();
-        return finishedAt == null
-                ? null
-                : ContractImportTermination.reconstituteFromDatabase(finishedAt, entity.getFailureReason());
+        return finishedAt == null ? null : ContractImportTermination.reconstituteFromDatabase(finishedAt,
+                entity.getFailureReason());
     }
 
     private static @Nullable ContractImportCancellation cancellationOf(final ContractImportJobJpaEntity entity) {
         final LocalDateTime cancelledAt = entity.getCancelledAt();
-        return cancelledAt == null
-                ? null
-                : ContractImportCancellation.reconstituteFromDatabase(cancelledAt, entity.getCancelledBy());
+        return cancelledAt == null ? null : ContractImportCancellation.reconstituteFromDatabase(cancelledAt,
+                entity.getCancelledBy());
     }
 }

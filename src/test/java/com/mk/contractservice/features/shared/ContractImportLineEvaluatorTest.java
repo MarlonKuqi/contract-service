@@ -23,7 +23,10 @@ class ContractImportLineEvaluatorTest {
     private static final BigDecimal VALID_COST = new BigDecimal("100.00");
     private static final BigDecimal NEGATIVE_COST = new BigDecimal("-1.00");
 
-    private static Outcome evaluate(final UUID clientId, final LocalDateTime startDate, final LocalDateTime endDate, final BigDecimal cost) {
+    private static Outcome evaluate(final UUID clientId,
+            final LocalDateTime startDate,
+            final LocalDateTime endDate,
+            final BigDecimal cost) {
         return ContractImportLineEvaluator.evaluate(clientId, startDate, endDate, cost, EXISTING_CLIENTS, NOW);
     }
 

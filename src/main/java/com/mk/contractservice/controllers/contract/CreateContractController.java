@@ -40,15 +40,12 @@ public class CreateContractController {
 
     @Operation(
             summary = "Create a contract for a client",
-            description = "Creates a new contract for a client. "
-                    + "startDate defaults to now if not provided. "
-                    + "endDate null means active contract."
+            description = "Creates a new contract for a client. " + "startDate defaults to now if not provided. " + "endDate null means active contract."
     )
     @ApiResponse(
             responseCode = "201",
             description = "Contract created successfully",
-            headers = {
-                    @Header(name = "Location", description = "URI of the created contract resource")
+            headers = {@Header(name = "Location", description = "URI of the created contract resource")
             },
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ContractResponse.class))

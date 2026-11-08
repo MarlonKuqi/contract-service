@@ -1,10 +1,10 @@
 package com.mk.contractservice.features.contract.importjob;
 
-import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
-import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
+import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobQueryPort;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
+import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,24 +41,29 @@ class ExportContractImportJobRejectionsTest {
     private ContractImportJobQueryPort queryPort;
 
     private static ContractImportRejection rejected(final int lineNumber, final ContractImportRejectionReason reason) {
-        return ContractImportRejection.reconstituteFromDatabase(lineNumber, CLIENT_ID, reason, "reason of line " + lineNumber);
+        return ContractImportRejection.reconstituteFromDatabase(lineNumber,
+                CLIENT_ID,
+                reason,
+                "reason of line " + lineNumber);
     }
 
     @Test
     @DisplayName("GIVEN rejections spread over several pages WHEN exporting THEN each comes with its original line, in file order")
     void shouldExportRejectionsWithTheirOriginalLines() {
-        final String file = "clientId;startDate;endDate;costAmount\n"
-                + CLIENT_ID + ";;;100.00\n"
-                + CLIENT_ID + ";;;-1\n"
-                + "\n"
-                + "garbage;\"quoted\"\n";
+        final String file = "clientId;startDate;endDate;costAmount\n" + CLIENT_ID + ";;;100.00\n" + CLIENT_ID + ";;;-1\n" + "\n" + "garbage;\"quoted\"\n";
         when(jobRepository.loadFile(JOB_ID)).thenReturn(file.getBytes(StandardCharsets.UTF_8));
         when(queryPort.findRejections(JOB_ID, PageRequest.of(0, PAGE_SIZE)))
-                .thenReturn(new PageImpl<>(List.of(rejected(3, ContractImportRejectionReason.INVALID_COST)), PageRequest.of(0, PAGE_SIZE), PAGE_SIZE + 1L));
+                .thenReturn(new PageImpl<>(List.of(rejected(3, ContractImportRejectionReason.INVALID_COST)),
+                        PageRequest.of(0, PAGE_SIZE),
+                        PAGE_SIZE + 1L));
         when(queryPort.findRejections(JOB_ID, PageRequest.of(1, PAGE_SIZE)))
-                .thenReturn(new PageImpl<>(List.of(rejected(5, ContractImportRejectionReason.INVALID_LINE_FORMAT)), PageRequest.of(1, PAGE_SIZE), PAGE_SIZE + 1L));
+                .thenReturn(new PageImpl<>(List.of(rejected(5, ContractImportRejectionReason.INVALID_LINE_FORMAT)),
+                        PageRequest.of(1, PAGE_SIZE),
+                        PAGE_SIZE + 1L));
 
-        final List<ExportContractImportJobRejections.RejectedLine> lines = new ExportContractImportJobRejections.Handler(jobRepository, queryPort)
+        final List<ExportContractImportJobRejections.RejectedLine> lines = new ExportContractImportJobRejections.Handler(
+                jobRepository,
+                queryPort)
                 .execute(new ExportContractImportJobRejections.Query(JOB_ID));
 
         assertThat(lines)
@@ -68,7 +73,10 @@ class ExportContractImportJobRejectionsTest {
                         ExportContractImportJobRejections.RejectedLine::line)
                 .containsExactly(
                         tuple(3, ContractImportRejectionReason.INVALID_COST, "reason of line 3", CLIENT_ID + ";;;-1"),
-                        tuple(5, ContractImportRejectionReason.INVALID_LINE_FORMAT, "reason of line 5", "garbage;\"quoted\"")
+                        tuple(5,
+                                ContractImportRejectionReason.INVALID_LINE_FORMAT,
+                                "reason of line 5",
+                                "garbage;\"quoted\"")
                 );
     }
 
