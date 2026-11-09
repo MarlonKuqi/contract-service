@@ -27,7 +27,7 @@ class ClientTest {
         @DisplayName("GIVEN valid fields WHEN creating updated person instance THEN new instance has updated fields and original is unchanged")
         void shouldCreateNewPersonInstanceWithUpdatedFields(ClientTestData.CommonClientData updatedData) {
             UUID personId = UUID.randomUUID();
-            final Person original = PersonFactory.buildFromDatabase(
+            final Person original = ClientFixtures.existingPerson(
                     personId,
                     "John Doe",
                     "john.doe@example.com",
@@ -63,7 +63,7 @@ class ClientTest {
             UUID companyId = UUID.randomUUID();
             String companyIdentifier = "company-123";
 
-            Company originalCompany = CompanyFactory.buildFromDatabase(
+            Company originalCompany = ClientFixtures.existingCompany(
                     companyId,
                     "ACME Corp",
                     "contact@acme.com",
@@ -97,7 +97,7 @@ class ClientTest {
         @MethodSource("nullFieldCombinationsForPerson")
         @DisplayName("GIVEN null fields WHEN updating person THEN throw InvalidDomainObjectError")
         void shouldRejectNullFieldsOnPersonCoreUpdate(ClientName name, ClientEmail email, ClientPhoneNumber phone) {
-            Person person = PersonFactory.createFromCommand(
+            Person person = ClientFixtures.newPerson(
                     "Test User",
                     "test@example.com",
                     "+33123456789",
@@ -121,7 +121,7 @@ class ClientTest {
         @MethodSource("nullFieldCombinationsForCompany")
         @DisplayName("GIVEN null fields WHEN updating company THEN throw InvalidDomainObjectError")
         void shouldRejectNullFieldsOnCompanyCoreUpdate(ClientName name, ClientEmail email, ClientPhoneNumber phone) {
-            Company company = CompanyFactory.createFromCommand(
+            Company company = ClientFixtures.newCompany(
                     "Test Company",
                     "test@example.com",
                     "+33123456789",
@@ -148,8 +148,12 @@ class ClientTest {
 
         static Stream<Client> clients() {
             return Stream.of(
-                    PersonFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", LocalDate.of(1990, 1, 1), TODAY),
-                    CompanyFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", "acme-123")
+                    ClientFixtures.newPerson("John Doe",
+                            "john.doe@example.com",
+                            "+33123456789",
+                            LocalDate.of(1990, 1, 1),
+                            TODAY),
+                    ClientFixtures.newCompany("John Doe", "john.doe@example.com", "+33123456789", "acme-123")
             );
         }
 
@@ -178,8 +182,12 @@ class ClientTest {
 
         static Stream<Client> clients() {
             return Stream.of(
-                    PersonFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", LocalDate.of(1990, 1, 1), TODAY),
-                    CompanyFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", "acme-123")
+                    ClientFixtures.newPerson("John Doe",
+                            "john.doe@example.com",
+                            "+33123456789",
+                            LocalDate.of(1990, 1, 1),
+                            TODAY),
+                    ClientFixtures.newCompany("John Doe", "john.doe@example.com", "+33123456789", "acme-123")
             );
         }
 
@@ -275,4 +283,3 @@ class ClientTest {
     }
 
 }
-

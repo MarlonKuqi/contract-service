@@ -1,7 +1,7 @@
 package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
@@ -50,7 +50,7 @@ class PatchContractCostTest {
     void shouldRejectCostChangeWhenContractExpiredAtClockTime() {
         UUID contractId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now(FIXED_CLOCK);
-        Contract expiredContract = ContractFactory.buildFromDatabase(
+        Contract expiredContract = ContractFixtures.existingContract(
                 contractId,
                 UUID.randomUUID(),
                 now.minusMonths(6),
@@ -102,7 +102,8 @@ class PatchContractCostTest {
     @DisplayName("GIVEN un nouveau montant WHEN execute THEN vérifie la version attendue")
     void shouldCheckExpectedVersion() {
         UUID contractId = UUID.randomUUID();
-        when(contractRepository.getById(contractId)).thenReturn(activeContractWithCost(contractId, new BigDecimal("500.00")));
+        when(contractRepository.getById(contractId)).thenReturn(activeContractWithCost(contractId,
+                new BigDecimal("500.00")));
         when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         patchContractCostHandler.execute(new PatchContractCost.Command(contractId, VERSION, new BigDecimal("1000.00")));
@@ -115,7 +116,7 @@ class PatchContractCostTest {
     void shouldCheckVersionBeforeExpiration() {
         UUID contractId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now(FIXED_CLOCK);
-        Contract expiredContract = ContractFactory.buildFromDatabase(
+        Contract expiredContract = ContractFixtures.existingContract(
                 contractId,
                 UUID.randomUUID(),
                 now.minusMonths(6),
@@ -124,7 +125,8 @@ class PatchContractCostTest {
                 now.minusMonths(6)
         );
         when(contractRepository.getById(contractId)).thenReturn(expiredContract);
-        doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(contractRepository).ensureVersion(contractId, VERSION);
+        doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(contractRepository)
+                .ensureVersion(contractId, VERSION);
 
         assertThatThrownBy(() -> patchContractCostHandler.execute(
                 new PatchContractCost.Command(contractId, VERSION, new BigDecimal("1000.00"))))
@@ -134,7 +136,7 @@ class PatchContractCostTest {
 
     private static Contract activeContractWithCost(final UUID contractId, final BigDecimal cost) {
         LocalDateTime now = LocalDateTime.now(FIXED_CLOCK);
-        return ContractFactory.buildFromDatabase(
+        return ContractFixtures.existingContract(
                 contractId,
                 UUID.randomUUID(),
                 now.minusMonths(6),

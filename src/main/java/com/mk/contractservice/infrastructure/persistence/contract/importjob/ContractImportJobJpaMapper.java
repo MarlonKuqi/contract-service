@@ -68,9 +68,9 @@ public final class ContractImportJobJpaMapper {
         final ContractImportJobLineJpaEntity.LineId id = new ContractImportJobLineJpaEntity.LineId(line.jobId(),
                 line.lineNumber());
         return switch (line) {
-            case ContractImportJobLine.Imported(UUID _, int _, UUID clientId, UUID contractId) ->
+            case ContractImportJobLine.Imported(_, _, UUID clientId, UUID contractId) ->
                 new ContractImportJobLineJpaEntity(id, clientId, contractId, null, null);
-            case ContractImportJobLine.Rejected(UUID _, int _, UUID clientId, ContractImportRejectionReason reason, String message) ->
+            case ContractImportJobLine.Rejected(_, _, UUID clientId, ContractImportRejectionReason reason, String message) ->
                 new ContractImportJobLineJpaEntity(id, clientId, null, reason, message);
         };
     }
@@ -78,7 +78,7 @@ public final class ContractImportJobJpaMapper {
     private static @Nullable ContractImportFailureReason failureReasonOf(
             @Nullable final ContractImportTermination termination) {
         return switch (termination) {
-            case ContractImportTermination.Failed(LocalDateTime _, ContractImportFailureReason reason) -> reason;
+            case ContractImportTermination.Failed(_, ContractImportFailureReason reason) -> reason;
             case ContractImportTermination.Ended _ -> null;
             case null -> null;
         };

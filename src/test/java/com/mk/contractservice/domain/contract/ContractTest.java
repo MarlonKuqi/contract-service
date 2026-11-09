@@ -98,7 +98,7 @@ class ContractTest {
                 LocalDateTime startDate = NOW;
                 LocalDateTime endDate = startDate.plusDays(daysInFuture);
 
-                Contract contract = ContractFactory.createFromCommand(testClientId,
+                Contract contract = ContractFixtures.newContract(testClientId,
                         startDate,
                         endDate,
                         costAmount,
@@ -116,7 +116,7 @@ class ContractTest {
             void shouldCreateContractWithValidPeriods(LocalDateTime startDate, LocalDateTime endDate) {
                 BigDecimal costAmount = new BigDecimal("500.00");
 
-                Contract contract = ContractFactory.createFromCommand(testClientId,
+                Contract contract = ContractFixtures.newContract(testClientId,
                         startDate,
                         endDate,
                         costAmount,
@@ -140,7 +140,7 @@ class ContractTest {
                 LocalDateTime startDate = NOW;
                 LocalDateTime endDate = startDate.plusDays(30);
 
-                assertThatThrownBy(() -> ContractFactory.createFromCommand(testClientId,
+                assertThatThrownBy(() -> ContractFixtures.newContract(testClientId,
                         startDate,
                         endDate,
                         invalidCost,
@@ -153,7 +153,7 @@ class ContractTest {
             })
             @DisplayName("GIVEN negative cost with an invalid precision WHEN creating Contract THEN the precision error is reported first")
             void shouldReportPrecisionBeforePositivity(BigDecimal invalidCost, String expectedMessage) {
-                assertThatThrownBy(() -> ContractFactory.createFromCommand(testClientId,
+                assertThatThrownBy(() -> ContractFixtures.newContract(testClientId,
                         NOW,
                         NOW.plusDays(30),
                         invalidCost,
@@ -168,7 +168,7 @@ class ContractTest {
             void shouldRejectInvalidPeriod(LocalDateTime startDate, LocalDateTime endDate) {
                 BigDecimal costAmount = new BigDecimal("100.00");
 
-                assertThatThrownBy(() -> ContractFactory.createFromCommand(testClientId,
+                assertThatThrownBy(() -> ContractFixtures.newContract(testClientId,
                         startDate,
                         endDate,
                         costAmount,
@@ -184,19 +184,19 @@ class ContractTest {
                 LocalDateTime tooLate = LocalDateTime.of(10000, 1, 1, 0, 0);
                 LocalDateTime tooEarly = LocalDateTime.of(0, 12, 31, 0, 0);
 
-                assertThatThrownBy(() -> ContractFactory.createFromCommand(testClientId,
+                assertThatThrownBy(() -> ContractFixtures.newContract(testClientId,
                         tooLate,
                         null,
                         costAmount,
                         NOW))
                         .isInstanceOf(InvalidContractPeriodException.class);
-                assertThatThrownBy(() -> ContractFactory.createFromCommand(testClientId,
+                assertThatThrownBy(() -> ContractFixtures.newContract(testClientId,
                         tooEarly,
                         NOW,
                         costAmount,
                         NOW))
                         .isInstanceOf(InvalidContractPeriodException.class);
-                assertThatThrownBy(() -> ContractFactory.createFromCommand(testClientId, NOW, tooLate, costAmount, NOW))
+                assertThatThrownBy(() -> ContractFixtures.newContract(testClientId, NOW, tooLate, costAmount, NOW))
                         .isInstanceOf(InvalidContractPeriodException.class);
             }
 
@@ -206,7 +206,7 @@ class ContractTest {
                 LocalDateTime first = LocalDateTime.of(1, 1, 1, 0, 0);
                 LocalDateTime last = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
 
-                Contract contract = ContractFactory.createFromCommand(testClientId,
+                Contract contract = ContractFixtures.newContract(testClientId,
                         first,
                         last,
                         new BigDecimal("100.00"),
@@ -223,7 +223,7 @@ class ContractTest {
                 LocalDateTime endDate = startDate.plusDays(30);
                 BigDecimal costAmount = new BigDecimal("100.00");
 
-                assertThatThrownBy(() -> ContractFactory.createFromCommand(null, startDate, endDate, costAmount, NOW))
+                assertThatThrownBy(() -> ContractFixtures.newContract(null, startDate, endDate, costAmount, NOW))
                         .isInstanceOf(InvalidDomainObjectError.class);
             }
 
@@ -232,7 +232,7 @@ class ContractTest {
             void shouldSetLastModifiedToGivenNowOnCreation() {
                 LocalDateTime now = LocalDateTime.of(2026, 6, 1, 10, 0);
 
-                Contract contract = ContractFactory.createFromCommand(testClientId,
+                Contract contract = ContractFixtures.newContract(testClientId,
                         now.minusDays(1),
                         null,
                         new BigDecimal("100.00"),
@@ -263,7 +263,7 @@ class ContractTest {
             void shouldKeepPersistedLastModified() {
                 LocalDateTime lastModified = LocalDateTime.of(2026, 3, 15, 8, 30);
 
-                Contract contract = ContractFactory.buildFromDatabase(
+                Contract contract = ContractFixtures.existingContract(
                         UUID.randomUUID(),
                         testClientId,
                         lastModified.minusMonths(1),
@@ -277,7 +277,7 @@ class ContractTest {
             @Test
             @DisplayName("GIVEN null lastModified WHEN reconstituting THEN throw InvalidDomainObjectError")
             void shouldRejectNullLastModified() {
-                assertThatThrownBy(() -> ContractFactory.buildFromDatabase(
+                assertThatThrownBy(() -> ContractFixtures.existingContract(
                         UUID.randomUUID(),
                         testClientId,
                         LocalDateTime.of(2026, 1, 1, 0, 0),
@@ -304,7 +304,7 @@ class ContractTest {
                 LocalDateTime startDate = NOW;
                 LocalDateTime endDate = startDate.plusDays(30);
 
-                Contract contract = ContractFactory.createFromCommand(testClientId,
+                Contract contract = ContractFixtures.newContract(testClientId,
                         startDate,
                         endDate,
                         initialCost,
@@ -320,7 +320,7 @@ class ContractTest {
             @DisplayName("GIVEN null cost WHEN changing cost THEN throw InvalidDomainObjectError")
             void shouldRejectNullCostOnUpdate() {
                 LocalDateTime startDate = NOW;
-                Contract contract = ContractFactory.createFromCommand(testClientId,
+                Contract contract = ContractFixtures.newContract(testClientId,
                         startDate,
                         startDate.plusDays(30),
                         new BigDecimal("100.00"),
@@ -336,7 +336,7 @@ class ContractTest {
             @DisplayName("GIVEN invalid cost WHEN changing cost THEN throw InvalidContractCostException")
             void shouldRejectInvalidCostOnUpdate(BigDecimal invalidCost) {
                 LocalDateTime startDate = NOW;
-                Contract contract = ContractFactory.createFromCommand(testClientId,
+                Contract contract = ContractFixtures.newContract(testClientId,
                         startDate,
                         startDate.plusDays(30),
                         new BigDecimal("100.00"),
@@ -356,7 +356,7 @@ class ContractTest {
                 LocalDateTime pastEnd = now.minusDays(1);
                 BigDecimal initialCost = new BigDecimal("100.00");
 
-                Contract contract = ContractFactory.buildFromDatabase(contractId,
+                Contract contract = ContractFixtures.existingContract(contractId,
                         testClientId,
                         pastStart,
                         pastEnd,
@@ -371,7 +371,7 @@ class ContractTest {
             @Test
             @DisplayName("GIVEN expired contract and null cost WHEN changing cost THEN throw InvalidDomainObjectError")
             void shouldRejectNullCostBeforeCheckingExpiration() {
-                Contract expiredContract = ContractFactory.buildFromDatabase(
+                Contract expiredContract = ContractFixtures.existingContract(
                         UUID.randomUUID(),
                         testClientId,
                         NOW.minusDays(100),
@@ -388,7 +388,7 @@ class ContractTest {
             void shouldSetLastModifiedToGivenNowWhenCostChanges() {
                 LocalDateTime createdAt = LocalDateTime.of(2026, 1, 1, 9, 0);
                 LocalDateTime changedAt = LocalDateTime.of(2026, 6, 1, 10, 0);
-                Contract contract = ContractFactory.createFromCommand(testClientId,
+                Contract contract = ContractFixtures.newContract(testClientId,
                         createdAt,
                         null,
                         new BigDecimal("100.00"),
@@ -404,7 +404,7 @@ class ContractTest {
             @DisplayName("GIVEN same amount with another scale WHEN changing cost THEN contract and lastModified are unchanged")
             void shouldKeepContractUnchangedWhenAmountIsTheSame() {
                 LocalDateTime createdAt = LocalDateTime.of(2026, 1, 1, 9, 0);
-                Contract contract = ContractFactory.createFromCommand(testClientId,
+                Contract contract = ContractFixtures.newContract(testClientId,
                         createdAt,
                         null,
                         new BigDecimal("100.00"),
@@ -427,7 +427,7 @@ class ContractTest {
         @DisplayName("GIVEN contract with null end date WHEN checking isActive THEN should be active")
         void shouldBeActiveWhenEndDateIsNull() {
             LocalDateTime startDate = NOW.minusDays(10);
-            Contract contract = ContractFactory.createFromCommand(testClientId,
+            Contract contract = ContractFixtures.newContract(testClientId,
                     startDate,
                     null,
                     new BigDecimal("1000.00"),
@@ -442,7 +442,7 @@ class ContractTest {
         void shouldBeActiveWhenEndDateIsInFuture() {
             LocalDateTime startDate = NOW.minusDays(10);
             LocalDateTime endDate = NOW.plusDays(30);
-            Contract contract = ContractFactory.createFromCommand(testClientId,
+            Contract contract = ContractFixtures.newContract(testClientId,
                     startDate,
                     endDate,
                     new BigDecimal("1000.00"),
@@ -458,7 +458,7 @@ class ContractTest {
             LocalDateTime pastStart = NOW.minusDays(100);
             LocalDateTime pastEnd = NOW.minusDays(1);
 
-            Contract contract = ContractFactory.createFromCommand(testClientId,
+            Contract contract = ContractFixtures.newContract(testClientId,
                     pastStart,
                     pastEnd,
                     new BigDecimal("1000.00"),
@@ -472,7 +472,7 @@ class ContractTest {
         @MethodSource("com.mk.contractservice.domain.contract.ContractTest#activeContractPeriods")
         @DisplayName("GIVEN various active periods WHEN checking isActive THEN should be active")
         void shouldBeActiveForVariousPeriods(LocalDateTime startDate, LocalDateTime endDate) {
-            Contract contract = ContractFactory.createFromCommand(testClientId,
+            Contract contract = ContractFixtures.newContract(testClientId,
                     startDate,
                     endDate,
                     new BigDecimal("500.00"),
@@ -485,7 +485,7 @@ class ContractTest {
         @DisplayName("GIVEN fixed reference dates WHEN checking isActiveAt THEN end date is exclusive")
         void shouldEvaluateActivityAgainstGivenReferenceDate() {
             LocalDateTime endDate = LocalDateTime.of(2026, 6, 1, 0, 0);
-            Contract contract = ContractFactory.buildFromDatabase(
+            Contract contract = ContractFixtures.existingContract(
                     UUID.randomUUID(),
                     testClientId,
                     endDate.minusYears(1),
@@ -503,7 +503,7 @@ class ContractTest {
         void shouldDefaultStartDateToGivenNow() {
             LocalDateTime now = LocalDateTime.of(2026, 6, 1, 10, 0);
 
-            Contract contract = ContractFactory.createFromCommand(testClientId,
+            Contract contract = ContractFixtures.newContract(testClientId,
                     null,
                     null,
                     new BigDecimal("500.00"),

@@ -1,11 +1,10 @@
 package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
-import com.mk.contractservice.domain.client.CompanyFactory;
 import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonFactory;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +53,7 @@ class UpdateClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = PersonFactory.buildFromDatabase(
+            existingPerson = ClientFixtures.existingPerson(
                     clientId,
                     "John Doe",
                     "john@example.com",
@@ -191,7 +190,7 @@ class UpdateClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = PersonFactory.buildFromDatabase(
+            existingPerson = ClientFixtures.existingPerson(
                     clientId,
                     "John Doe",
                     "john@example.com",
@@ -249,7 +248,7 @@ class UpdateClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingCompany = CompanyFactory.buildFromDatabase(
+            existingCompany = ClientFixtures.existingCompany(
                     clientId,
                     "Acme Corp",
                     "contact@acme.com",
@@ -351,7 +350,7 @@ class UpdateClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = PersonFactory.buildFromDatabase(
+            existingPerson = ClientFixtures.existingPerson(
                     clientId,
                     "John Doe",
                     "john@example.com",

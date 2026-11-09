@@ -95,11 +95,11 @@ No domain object can exist in an invalid state.
 - Entry points:
     - `of(...)`: data coming from outside, validated and normalized;
     - `reconstituteFromDatabase(...)`: trusted data, only null-checked;
-    - factories (`PersonFactory`, `CompanyFactory`, `ContractFactory`): `createFromCommand(...)` and `buildFromDatabase(...)`.
+    - aggregates take Value Objects, never raw values: callers build each VO through its own `of`/`reconstituteFromDatabase`. No factory class: it would only turn typed arguments into positional strings.
 - Mutations go through intention-revealing methods that return a new instance (`changeName`, `changeEmail`, `changePhone`, `changeCoreFields`, `changeCost`).
 - Comparison methods express business equality (`hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs`). An update with an identical value must not change the object nor trigger a save: the `change*` method returns `this`, and the handler saves only when `!updated.equals(loaded)` (value equality through Lombok `@EqualsAndHashCode`; Error Prone rejects `!=` on objects that define `equals`).
 - Mutually exclusive states are a `sealed` interface with one record per state, never nullable fields read by convention (`ContractImportTermination.Ended`/`Failed`, `ContractImportJobLine.Imported`/`Rejected`, `ContractImportJobState.Pending`/`Running`/`Completed`/`Failed`/`Cancelled`). Exception to the Value Object rule (ADR-002): these variants normalize nothing, so their compact constructor validates every mandatory field and the interface keeps the factories. Consumers deconstruct them in an exhaustive `switch`.
-- Builders must be private, so that factory methods are the only way in. Production and tests go through `of`/factories.
+- Builders must be private, so that factory methods are the only way in. Production goes through `of`/`reconstituteFromDatabase`; tests also use `ClientFixtures` and `ContractFixtures` (`src/test`), which only chain those entry points from raw values.
 - Avoid `null`; mark optional values with `@Nullable` (JSpecify) and use `Optional` where absence is meaningful. NullAway fails the build when a value not declared `@Nullable` may be `null` (`src/main` only). Every package of `src/main` has a `package-info.java` annotated `@NullMarked` (checked by `ArchitectureTest`).
 
 ### Time
@@ -123,7 +123,7 @@ No domain object can exist in an invalid state.
 - Tests never call `now()` without a clock: acceptance tests inject the application `Clock` bean, unit tests use fixed dates or `Clock.fixed`.
 - Concurrency bugs are reproduced with two real transactions (`TransactionTemplate` + `PROPAGATION_REQUIRES_NEW`).
 - A regression test must fail without the fix: check it before delivering.
-- Value Objects are tested through entity factories and the REST API. A dedicated VO test exists only when the VO is shared across aggregates or carries logic not observable through an entity.
+- Value Objects are tested through the entities' `of` (via the test fixtures) and the REST API. A dedicated VO test exists only when the VO is shared across aggregates or carries logic not observable through an entity.
 - Required for each entity:
     - `of()` with valid data, and with null or invalid fields;
     - `reconstituteFromDatabase()` with a valid id, and rejecting a null id or a null mandatory field;

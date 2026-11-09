@@ -2,7 +2,7 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
@@ -60,7 +60,12 @@ class CreateContractTest {
                 now.plusMonths(12),
                 new BigDecimal("1000.00")
         );
-        Contract saved = ContractFactory.buildFromDatabase(UUID.randomUUID(), clientId, now, now.plusMonths(12), new BigDecimal("1000.00"), now);
+        Contract saved = ContractFixtures.existingContract(UUID.randomUUID(),
+                clientId,
+                now,
+                now.plusMonths(12),
+                new BigDecimal("1000.00"),
+                now);
         when(contractRepository.save(any(Contract.class))).thenReturn(saved);
 
         // When
@@ -87,7 +92,8 @@ class CreateContractTest {
                 new BigDecimal("1000.00")
         );
 
-        doThrow(ClientNotFoundException.forId(nonExistentClientId)).when(clientRepository).ensureExists(nonExistentClientId);
+        doThrow(ClientNotFoundException.forId(nonExistentClientId)).when(clientRepository)
+                .ensureExists(nonExistentClientId);
 
         // When & Then
         assertThatThrownBy(() -> createContractHandler.execute(command))

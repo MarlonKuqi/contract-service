@@ -13,7 +13,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.client.entities.ClientJpaEntity;
@@ -166,7 +166,7 @@ class ClientConflictAcceptanceTest {
     @Test
     @DisplayName("GIVEN another counselor changes the client between the read and the write WHEN the client is deleted THEN the deletion is retried and its contracts are closed")
     void shouldRetryDeletionWhenClientWasModifiedConcurrently() {
-        Contract contract = contractRepository.save(ContractFactory.createFromCommand(
+        Contract contract = contractRepository.save(ContractFixtures.newContract(
                 client.id(),
                 now.minusDays(1),
                 null,

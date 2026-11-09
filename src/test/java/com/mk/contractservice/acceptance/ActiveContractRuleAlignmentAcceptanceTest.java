@@ -10,7 +10,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractQueryPort;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
@@ -87,7 +87,7 @@ class ActiveContractRuleAlignmentAcceptanceTest {
                 PersonBirthDate.of(LocalDate.of(1985, 3, 20), NOW.toLocalDate())
         ));
         final Contract contract = contractRepository.save(
-                ContractFactory.createFromCommand(client.id(), startDate, endDate, COST, PAST.minusYears(1))
+                ContractFixtures.newContract(client.id(), startDate, endDate, COST, PAST.minusYears(1))
         );
 
         final boolean activeInDomain = contract.isActiveAt(NOW);
@@ -100,7 +100,8 @@ class ActiveContractRuleAlignmentAcceptanceTest {
 
         assertThat(activeInDomain).as("domain").isEqualTo(expectedActive);
         assertThat(listedAsActive).as("active contracts listing").isEqualTo(expectedActive);
-        assertThat(activeTotal).as("active contracts total").isEqualByComparingTo(expectedActive ? COST : BigDecimal.ZERO);
+        assertThat(activeTotal).as("active contracts total")
+                .isEqualByComparingTo(expectedActive ? COST : BigDecimal.ZERO);
         assertThat(closedCount).as("bulk closure").isEqualTo(expectedActive ? 1 : 0);
     }
 }

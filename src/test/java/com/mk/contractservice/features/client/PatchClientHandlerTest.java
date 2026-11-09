@@ -1,11 +1,10 @@
 package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
-import com.mk.contractservice.domain.client.CompanyFactory;
 import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonFactory;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +52,7 @@ class PatchClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = PersonFactory.buildFromDatabase(
+            existingPerson = ClientFixtures.existingPerson(
                     clientId,
                     "John Doe",
                     "john@example.com",
@@ -166,7 +165,7 @@ class PatchClientHandlerTest {
         void shouldNotChangeAnythingWhenNoFieldsProvidedForPerson() {
             // Given
             final UUID clientId = UUID.randomUUID();
-            final Person existingPerson = PersonFactory.buildFromDatabase(
+            final Person existingPerson = ClientFixtures.existingPerson(
                     clientId,
                     "John Doe",
                     "john@example.com",
@@ -200,7 +199,7 @@ class PatchClientHandlerTest {
         void shouldNotChangeAnythingWhenNoFieldsProvidedForCompany() {
             // Given
             final UUID clientId = UUID.randomUUID();
-            final Company existingCompany = CompanyFactory.buildFromDatabase(
+            final Company existingCompany = ClientFixtures.existingCompany(
                     clientId,
                     "Acme Corp",
                     "contact@acme.com",
@@ -240,7 +239,7 @@ class PatchClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingCompany = CompanyFactory.buildFromDatabase(
+            existingCompany = ClientFixtures.existingCompany(
                     clientId,
                     "Acme Corp",
                     "contact@acme.com",
@@ -309,7 +308,7 @@ class PatchClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = PersonFactory.buildFromDatabase(
+            existingPerson = ClientFixtures.existingPerson(
                     clientId,
                     "John Doe",
                     "john@example.com",
@@ -412,7 +411,11 @@ class PatchClientHandlerTest {
         @Test
         @DisplayName("GIVEN tous les champs identiques WHEN execute THEN ne sauvegarde pas")
         void shouldNotSaveWhenAllFieldsAreIdentical() {
-            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, "John Doe", "john@example.com", "+33111111111");
+            PatchClient.Command command = new PatchClient.Command(clientId,
+                    VERSION,
+                    "John Doe",
+                    "john@example.com",
+                    "+33111111111");
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -425,7 +428,11 @@ class PatchClientHandlerTest {
         @Test
         @DisplayName("GIVEN email identique et nom différent WHEN execute THEN sauvegarde une seule fois le client modifié")
         void shouldSaveOnceWhenOnlySomeFieldsChange() {
-            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, "Jane Doe", "john@example.com", null);
+            PatchClient.Command command = new PatchClient.Command(clientId,
+                    VERSION,
+                    "Jane Doe",
+                    "john@example.com",
+                    null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -448,7 +455,7 @@ class PatchClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = PersonFactory.buildFromDatabase(
+            existingPerson = ClientFixtures.existingPerson(
                     clientId,
                     "John Doe",
                     "john@example.com",
@@ -472,9 +479,14 @@ class PatchClientHandlerTest {
         @DisplayName("GIVEN une version périmée WHEN execute THEN lève VersionMismatchException sans sauvegarder")
         void shouldRejectStaleVersion() {
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
-            doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(clientRepository).ensureVersion(clientId, VERSION);
+            doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(clientRepository)
+                    .ensureVersion(clientId, VERSION);
 
-            assertThatThrownBy(() -> patchClientHandler.execute(new PatchClient.Command(clientId, VERSION, "Jane Doe", null, null)))
+            assertThatThrownBy(() -> patchClientHandler.execute(new PatchClient.Command(clientId,
+                    VERSION,
+                    "Jane Doe",
+                    null,
+                    null)))
                     .isInstanceOf(VersionMismatchException.class);
             verify(clientRepository, never()).save(any(Client.class));
         }
@@ -483,9 +495,14 @@ class PatchClientHandlerTest {
         @DisplayName("GIVEN une version périmée et un email invalide WHEN execute THEN la précondition est évaluée avant la validation")
         void shouldCheckVersionBeforeValidatingContent() {
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
-            doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(clientRepository).ensureVersion(clientId, VERSION);
+            doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(clientRepository)
+                    .ensureVersion(clientId, VERSION);
 
-            assertThatThrownBy(() -> patchClientHandler.execute(new PatchClient.Command(clientId, VERSION, null, "not-an-email", null)))
+            assertThatThrownBy(() -> patchClientHandler.execute(new PatchClient.Command(clientId,
+                    VERSION,
+                    null,
+                    "not-an-email",
+                    null)))
                     .isInstanceOf(VersionMismatchException.class);
         }
     }

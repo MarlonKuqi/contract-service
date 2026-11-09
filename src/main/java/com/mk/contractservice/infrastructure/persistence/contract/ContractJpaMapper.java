@@ -1,7 +1,8 @@
 package com.mk.contractservice.infrastructure.persistence.contract;
 
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractCost;
+import com.mk.contractservice.domain.contract.ContractPeriod;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -9,12 +10,11 @@ import lombok.NoArgsConstructor;
 public final class ContractJpaMapper {
 
     public static Contract toDomain(final ContractJpaEntity entity) {
-        return ContractFactory.buildFromDatabase(
+        return Contract.reconstituteFromDatabase(
                 entity.getId(),
                 entity.getClientId(),
-                entity.getStartDate(),
-                entity.getEndDate(),
-                entity.getCostAmount(),
+                ContractPeriod.reconstituteFromDatabase(entity.getStartDate(), entity.getEndDate()),
+                ContractCost.reconstituteFromDatabase(entity.getCostAmount()),
                 entity.getLastModified()
         );
     }
@@ -37,4 +37,3 @@ public final class ContractJpaMapper {
         existing.setLastModified(domain.lastModified());
     }
 }
-

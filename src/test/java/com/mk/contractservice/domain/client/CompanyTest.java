@@ -44,7 +44,7 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidEmails")
             @DisplayName("GIVEN invalid email WHEN creating Company THEN throw exception")
             void shouldRejectInvalidEmail(String email) {
-                assertThatThrownBy(() -> CompanyFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newCompany(
                         "ACME Corp",
                         email,
                         "+33123456789",
@@ -56,7 +56,7 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#validEmails")
             @DisplayName("GIVEN valid email with subdomains, apostrophe or punycode WHEN creating Company THEN email is kept")
             void shouldAcceptValidEmail(String email) {
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         "ACME Corp",
                         email,
                         "+33123456789",
@@ -70,7 +70,7 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidNames")
             @DisplayName("GIVEN invalid name WHEN creating Company THEN throw exception")
             void shouldRejectInvalidName(String name) {
-                assertThatThrownBy(() -> CompanyFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newCompany(
                         name,
                         "contact@acme.com",
                         "+33123456789",
@@ -82,7 +82,7 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidPhones")
             @DisplayName("GIVEN invalid phone WHEN creating Company THEN throw exception")
             void shouldRejectInvalidPhone(String phone) {
-                assertThatThrownBy(() -> CompanyFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newCompany(
                         "ACME Corp",
                         "contact@acme.com",
                         phone,
@@ -94,7 +94,7 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#acceptedPhoneFormats")
             @DisplayName("GIVEN phone in accepted format WHEN creating Company THEN phone is normalized to E.164")
             void shouldNormalizePhoneToE164(ClientTestData.PhoneFormat format) {
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         "ACME Corp",
                         "contact@acme.com",
                         format.raw(),
@@ -108,7 +108,7 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.CompanyTest#invalidCompanyIdentifiers")
             @DisplayName("GIVEN invalid company identifier WHEN creating Company THEN throw exception")
             void shouldRejectInvalidCompanyIdentifier(String identifier) {
-                assertThatThrownBy(() -> CompanyFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newCompany(
                         "ACME Corp",
                         "contact@acme.com",
                         "+33123456789",
@@ -120,7 +120,7 @@ class CompanyTest {
             @ValueSource(strings = {"", "   "})
             @DisplayName("GIVEN blank company identifier WHEN creating Company THEN throw exception explaining the value is blank")
             void shouldExplainBlankCompanyIdentifier(String identifier) {
-                assertThatThrownBy(() -> CompanyFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newCompany(
                         "ACME Corp",
                         "contact@acme.com",
                         "+33123456789",
@@ -134,7 +134,7 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#validCompanies")
             @DisplayName("GIVEN various valid combinations of fields WHEN creating Company THEN company is created with all correct values")
             void shouldCreateCompanyWithValidCombinations(ClientTestData.ValidCompanyData data) {
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         data.name(),
                         data.email(),
                         data.phone(),
@@ -144,7 +144,8 @@ class CompanyTest {
                 assertThat(company.name().value()).isEqualTo(data.name());
                 assertThat(company.email().value()).isEqualTo(data.email());
                 assertThat(company.phone().value()).isEqualTo(data.expectedPhone());
-                assertThat(company.companyIdentifier().value()).isEqualTo(data.companyIdentifier().toUpperCase(Locale.ROOT));
+                assertThat(company.companyIdentifier().value()).isEqualTo(data.companyIdentifier()
+                        .toUpperCase(Locale.ROOT));
             }
 
             @ParameterizedTest
@@ -155,7 +156,7 @@ class CompanyTest {
             })
             @DisplayName("GIVEN company identifier in any case WHEN creating Company THEN identifier is stored in upper case")
             void shouldNormalizeCompanyIdentifierToUpperCase(String identifier, String expected) {
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         "ACME Corp",
                         "contact@acme.com",
                         "+33123456789",
@@ -170,7 +171,7 @@ class CompanyTest {
             void shouldCreateCompanyWithMaxLengthIdentifier() {
                 final String maxLengthIdentifier = "a".repeat(CompanyIdentifier.MAX_LENGTH);
 
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         "Max Length Corp",
                         "max@length.com",
                         "+33123456789",
@@ -185,7 +186,7 @@ class CompanyTest {
             void shouldCreateCompanyWithMaxLengthName() {
                 final String maxLengthName = "a".repeat(ClientName.MAX_LENGTH);
 
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         maxLengthName,
                         "max@length.com",
                         "+33123456789",
@@ -200,7 +201,7 @@ class CompanyTest {
             void shouldCreateCompanyWithMaxLengthEmail() {
                 final String maxLengthEmail = ClientTestData.maxLengthEmail();
 
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         "Max Length Corp",
                         maxLengthEmail,
                         "+33123456789",
@@ -218,7 +219,7 @@ class CompanyTest {
             @Test
             @DisplayName("GIVEN stored E.164 phone WHEN rebuilding Company THEN phone is kept as is")
             void shouldRebuildCompanyWithStoredPhone() {
-                final Company company = CompanyFactory.buildFromDatabase(
+                final Company company = ClientFixtures.existingCompany(
                         UUID.randomUUID(),
                         "ACME Corp",
                         "contact@acme.com",
@@ -232,7 +233,7 @@ class CompanyTest {
             @Test
             @DisplayName("GIVEN identifier stored in lower case before normalization WHEN rebuilding Company THEN identifier is kept as is")
             void shouldRebuildCompanyWithLegacyLowerCaseIdentifier() {
-                final Company company = CompanyFactory.buildFromDatabase(
+                final Company company = ClientFixtures.existingCompany(
                         UUID.randomUUID(),
                         "ACME Corp",
                         "contact@acme.com",
@@ -247,7 +248,7 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#corruptedStoredPhones")
             @DisplayName("GIVEN corrupted stored phone WHEN rebuilding Company THEN throw InvalidDomainObjectError")
             void shouldRejectCorruptedStoredPhone(String phone) {
-                assertThatThrownBy(() -> CompanyFactory.buildFromDatabase(
+                assertThatThrownBy(() -> ClientFixtures.existingCompany(
                         UUID.randomUUID(),
                         "ACME Corp",
                         "contact@acme.com",
@@ -291,7 +292,7 @@ class CompanyTest {
         @Test
         @DisplayName("GIVEN company WHEN updating with same values THEN returns the same instance")
         void shouldReturnSameInstanceWhenValuesAreIdentical() {
-            final Company company = CompanyFactory.createFromCommand(
+            final Company company = ClientFixtures.newCompany(
                     "ACME Corp",
                     "contact@acme.com",
                     "+33123456789",
@@ -313,7 +314,7 @@ class CompanyTest {
         @Test
         @DisplayName("GIVEN company WHEN updating only name THEN only name changes")
         void shouldUpdateOnlyName() {
-            final Company company = CompanyFactory.createFromCommand(
+            final Company company = ClientFixtures.newCompany(
                     "ACME Corp",
                     "contact@acme.com",
                     "+33123456789",
@@ -335,7 +336,7 @@ class CompanyTest {
         @Test
         @DisplayName("GIVEN company WHEN updating only email THEN only email changes")
         void shouldUpdateOnlyEmail() {
-            final Company company = CompanyFactory.createFromCommand(
+            final Company company = ClientFixtures.newCompany(
                     "ACME Corp",
                     "contact@acme.com",
                     "+33123456789",
@@ -356,7 +357,7 @@ class CompanyTest {
         @Test
         @DisplayName("GIVEN company WHEN updating only phone THEN only phone changes")
         void shouldUpdateOnlyPhone() {
-            final Company company = CompanyFactory.createFromCommand(
+            final Company company = ClientFixtures.newCompany(
                     "ACME Corp",
                     "contact@acme.com",
                     "+33123456789",
@@ -375,4 +376,3 @@ class CompanyTest {
         }
     }
 }
-

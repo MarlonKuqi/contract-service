@@ -13,7 +13,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaEntity;
@@ -92,8 +92,12 @@ class ContractCostConflictAcceptanceTest {
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate())
         ));
-        contract = contractRepository.save(ContractFactory.createFromCommand(
-                client.id(), now.minusDays(1), null, new BigDecimal("1000.00"), now));
+        contract = contractRepository.save(ContractFixtures.newContract(
+                client.id(),
+                now.minusDays(1),
+                null,
+                new BigDecimal("1000.00"),
+                now));
     }
 
     @Test

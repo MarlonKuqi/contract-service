@@ -10,7 +10,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.features.client.DeleteClient;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
@@ -107,7 +107,7 @@ class ClientDeletionDuringImportBatchAcceptanceTest {
             awaitAnotherTransactionBlockedOnALock();
 
             final LocalDateTime now = LocalDateTime.now(clock);
-            return contractRepository.saveAll(List.of(ContractFactory.createFromCommand(
+            return contractRepository.saveAll(List.of(ContractFixtures.newContract(
                     clientId,
                     now,
                     null,

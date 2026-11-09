@@ -4,8 +4,7 @@ import com.mk.contractservice.controllers.client.shared.ClientDtoMapper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.client.shared.ClientResponse;
 import com.mk.contractservice.controllers.client.shared.ClientSwaggerTags;
-import com.mk.contractservice.domain.client.Company;
-import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.features.client.CreateCompany;
 import com.mk.contractservice.features.client.CreatePerson;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,10 +39,7 @@ public class CreateClientController {
 
     @Operation(
             summary = "Create a client (Person or Company)",
-            description = "Creates a new client. The type is discriminated via the 'type' field in JSON. "
-                    + "Use 'PERSON' for person clients (requires birthDate) or 'COMPANY' for company clients (requires companyIdentifier). "
-                    + "On success returns 201 Created with Location header to /clients/{id}. "
-                    + "API version 2.0."
+            description = "Creates a new client. The type is discriminated via the 'type' field in JSON. " + "Use 'PERSON' for person clients (requires birthDate) or 'COMPANY' for company clients (requires companyIdentifier). " + "On success returns 201 Created with Location header to /clients/{id}. " + "API version 2.0."
     )
     @ApiResponse(
             responseCode = "201",
@@ -84,58 +80,28 @@ public class CreateClientController {
             final UriComponentsBuilder uriBuilder,
             final Locale locale
     ) {
-        return switch (request) {
-            case CreatePersonRequest personReq -> createPersonResponse(personReq, uriBuilder, locale);
-            case CreateCompanyRequest companyReq -> createCompanyResponse(companyReq, uriBuilder, locale);
+        final Client client = switch (request) {
+            case CreatePersonRequest person -> createPerson.execute(new CreatePerson.Command(
+                    person.name(),
+                    person.email(),
+                    person.phone(),
+                    person.birthDate()
+            ));
+            case CreateCompanyRequest company -> createCompany.execute(new CreateCompany.Command(
+                    company.name(),
+                    company.email(),
+                    company.phone(),
+                    company.companyIdentifier()
+            ));
         };
-    }
-
-    private ResponseEntity<ClientResponse> createPersonResponse(
-            CreatePersonRequest request,
-            UriComponentsBuilder uriBuilder,
-            Locale locale
-    ) {
-        final CreatePerson.Command command = new CreatePerson.Command(
-                request.name(),
-                request.email(),
-                request.phone(),
-                request.birthDate()
-        );
-        final Person person = createPerson.execute(command);
-        final ClientResponse response = clientDtoMapper.toResponse(person);
 
         final var location = uriBuilder
                 .path(ClientEndpoints.CLIENT_BY_ID)
-                .buildAndExpand(person.id())
+                .buildAndExpand(client.id())
                 .toUri();
         return ResponseEntity.created(location)
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(response);
-    }
-
-    private ResponseEntity<ClientResponse> createCompanyResponse(
-            CreateCompanyRequest request,
-            UriComponentsBuilder uriBuilder,
-            Locale locale
-    ) {
-        final CreateCompany.Command command = new CreateCompany.Command(
-                request.name(),
-                request.email(),
-                request.phone(),
-                request.companyIdentifier()
-        );
-        final Company company = createCompany.execute(command);
-        final ClientResponse response = clientDtoMapper.toResponse(company);
-
-        final var location = uriBuilder
-                .path(ClientEndpoints.CLIENT_BY_ID)
-                .buildAndExpand(company.id())
-                .toUri();
-        return ResponseEntity.created(location)
-                .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(response);
+                .body(clientDtoMapper.toResponse(client));
     }
 }
-

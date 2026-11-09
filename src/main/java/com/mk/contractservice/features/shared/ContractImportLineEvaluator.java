@@ -1,8 +1,9 @@
 package com.mk.contractservice.features.shared;
 
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractCost;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.exception.ContractValidationException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
@@ -41,7 +42,12 @@ public final class ContractImportLineEvaluator {
                     ClientNotFoundException.messageFor(clientId));
         }
         try {
-            return new Accepted(ContractFactory.createFromCommand(clientId, startDate, endDate, costAmount, now));
+            return new Accepted(Contract.of(
+                    clientId,
+                    ContractPeriod.of(startDate, endDate, now),
+                    ContractCost.of(costAmount),
+                    now
+            ));
         } catch (final ContractValidationException ex) {
             return new Rejected(reasonOf(ex), ex.getMessage());
         }

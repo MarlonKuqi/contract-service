@@ -2,7 +2,7 @@ package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
@@ -69,7 +69,7 @@ class ProcessContractImportBatchTest {
     }
 
     private Contract persisted(final UUID id) {
-        return ContractFactory.buildFromDatabase(id, CLIENT_ID, NOW, null, new BigDecimal("100.00"), NOW);
+        return ContractFixtures.existingContract(id, CLIENT_ID, NOW, null, new BigDecimal("100.00"), NOW);
     }
 
     private static Tuple outcomeOf(final ContractImportJobLine line) {

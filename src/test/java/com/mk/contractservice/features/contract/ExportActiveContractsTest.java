@@ -1,7 +1,7 @@
 package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.features.shared.InvalidPageRequestException;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +45,8 @@ class ExportActiveContractsTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"0, 'Page size must not be less than one'", "-1, 'Page size must not be less than one'", "1001, 'Page size must not exceed 1000'"
+    @CsvSource({"0, 'Page size must not be less than one'", "-1, 'Page size must not be less than one'",
+            "1001, 'Page size must not exceed 1000'"
     })
     @DisplayName("GIVEN a size out of bounds WHEN building Query THEN throw InvalidPageRequestException")
     void shouldRejectSizeOutOfBounds(int size, String expectedMessage) {
@@ -88,7 +89,7 @@ class ExportActiveContractsTest {
 
     private static List<Contract> contracts(final int count) {
         return IntStream.range(0, count)
-                .mapToObj(i -> ContractFactory.buildFromDatabase(
+                .mapToObj(i -> ContractFixtures.existingContract(
                         UUID.randomUUID(),
                         UUID.randomUUID(),
                         NOW.minusMonths(1),

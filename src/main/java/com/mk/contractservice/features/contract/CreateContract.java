@@ -2,7 +2,8 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractCost;
+import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.shared.UseCase;
 import lombok.RequiredArgsConstructor;
@@ -41,12 +42,12 @@ public interface CreateContract {
 
         @Override
         public Contract execute(final Command command) {
-            final Contract contract = ContractFactory.createFromCommand(
+            final LocalDateTime now = LocalDateTime.now(clock);
+            final Contract contract = Contract.of(
                     command.clientId(),
-                    command.startDate(),
-                    command.endDate(),
-                    command.costAmount(),
-                    LocalDateTime.now(clock)
+                    ContractPeriod.of(command.startDate(), command.endDate(), now),
+                    ContractCost.of(command.costAmount()),
+                    now
             );
 
             clientRepository.ensureExists(command.clientId());
@@ -55,4 +56,3 @@ public interface CreateContract {
         }
     }
 }
-
