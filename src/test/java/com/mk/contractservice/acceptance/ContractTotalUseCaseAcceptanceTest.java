@@ -6,12 +6,8 @@ import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.ClientEmail;
-import com.mk.contractservice.domain.client.ClientName;
-import com.mk.contractservice.domain.client.ClientPhoneNumber;
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonBirthDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,7 +19,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Clock;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -54,12 +49,10 @@ class ContractTotalUseCaseAcceptanceTest {
         AcceptanceRestAssured.configure(port);
 
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-        testClient = Person.of(
-                ClientName.of("Sum Test Client"),
-                ClientEmail.of("sum.test." + uniqueId + "@example.com"),
-                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
-        );
+        testClient = ClientFixtures.newCompany("Sum Test Client",
+                "sum.test." + uniqueId + "@example.com",
+                TestDataHelper.randomSwissPhoneNumber(),
+                TestDataHelper.uniqueCompanyIdentifier("CHE"));
         testClient = clientRepository.save(testClient);
     }
 
@@ -79,7 +72,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String activeContract1 = String.format("""
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "%s",
                         "endDate": null,
                         "costAmount": "1000.00"
@@ -90,7 +83,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String activeContract2 = String.format("""
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "%s",
                         "endDate": "%s",
                         "costAmount": "2000.00"
@@ -101,7 +94,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String expiredContract1 = String.format("""
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "%s",
                         "endDate": "%s",
                         "costAmount": "500.00"
@@ -112,7 +105,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String expiredContract2 = String.format("""
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "%s",
                         "endDate": "%s",
                         "costAmount": "700.00"
@@ -162,7 +155,7 @@ class ContractTotalUseCaseAcceptanceTest {
                 String contractPayload = String.format("""
                         {
                             "clientId": "%s",
-                            "type": "LAMAL",
+                            "type": "LAA",
                             "startDate": "%s",
                             "endDate": null,
                             "costAmount": "%d.00"
@@ -195,7 +188,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String expiredContract1 = String.format("""
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "%s",
                         "endDate": "%s",
                         "costAmount": "1000.00"
@@ -205,7 +198,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String expiredContract2 = String.format("""
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "%s",
                         "endDate": "%s",
                         "costAmount": "2000.00"
@@ -262,7 +255,7 @@ class ContractTotalUseCaseAcceptanceTest {
                 String contractPayload = String.format("""
                         {
                             "clientId": "%s",
-                            "type": "LAMAL",
+                            "type": "LAA",
                             "startDate": "%s",
                             "endDate": null,
                             "costAmount": "999999.99"
@@ -295,7 +288,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String contract1 = String.format("""
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "%s",
                         "endDate": null,
                         "costAmount": "10.50"
@@ -305,7 +298,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String contract2 = String.format("""
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "%s",
                         "endDate": null,
                         "costAmount": "20.75"
@@ -315,7 +308,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String contract3 = String.format("""
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "%s",
                         "endDate": null,
                         "costAmount": "30.33"
@@ -362,7 +355,7 @@ class ContractTotalUseCaseAcceptanceTest {
                 String contractPayload = String.format("""
                         {
                             "clientId": "%s",
-                            "type": "LAMAL",
+                            "type": "LAA",
                             "startDate": "%s",
                             "endDate": null,
                             "costAmount": "100.00"

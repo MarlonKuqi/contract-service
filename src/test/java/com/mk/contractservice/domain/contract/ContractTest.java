@@ -222,6 +222,22 @@ class ContractTest {
             }
 
             @Test
+            @DisplayName("GIVEN dates finer than the microsecond WHEN creating Contract THEN they are truncated to the stored precision")
+            void shouldTruncateDatesToMicroseconds() {
+                LocalDateTime start = LocalDateTime.of(2027, 1, 1, 0, 0, 0, 123_456_789);
+                LocalDateTime end = LocalDateTime.of(2028, 1, 1, 0, 0, 0, 987_654_321);
+
+                Contract contract = ContractFixtures.newContract(testClientId,
+                        start,
+                        end,
+                        new BigDecimal("100.00"),
+                        NOW);
+
+                assertThat(contract.period().startDate()).isEqualTo(LocalDateTime.of(2027, 1, 1, 0, 0, 0, 123_456_000));
+                assertThat(contract.period().endDate()).isEqualTo(LocalDateTime.of(2028, 1, 1, 0, 0, 0, 987_654_000));
+            }
+
+            @Test
             @DisplayName("GIVEN null client ID WHEN creating Contract THEN throw InvalidDomainObjectError")
             void shouldRejectNullClientId() {
                 LocalDateTime startDate = NOW;

@@ -3,7 +3,9 @@ package com.mk.contractservice.features.contract;
 import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
@@ -62,11 +64,18 @@ class ImportContractsTest {
 
     @BeforeEach
     void setUp() {
-        handler = new ImportContracts.Handler(clientRepository, contractRepository, clock);
+        handler = new ImportContracts.Handler(clientRepository,
+                contractRepository,
+                new ContractOverlapPolicy(contractRepository),
+                clock);
     }
 
     private ImportContracts.Line validLine() {
         return new ImportContracts.Line(clientId, ContractType.LAMAL, null, null, VALID_COST);
+    }
+
+    private ImportContracts.Line laaLine() {
+        return new ImportContracts.Line(clientId, ContractType.LAA, null, null, VALID_COST);
     }
 
     private ImportContracts.Command commandOf(final ImportContracts.Line... lines) {
@@ -157,9 +166,9 @@ class ImportContractsTest {
         @DisplayName("GIVEN des lignes sans date de début WHEN execute THEN tous les contrats reçoivent le même instant")
         void shouldUseSingleNowForAllContracts() {
             when(clientRepository.findAllByIds(Set.of(clientId)))
-                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
+                    .thenReturn(List.of(ClientFixtures.existingCompany(clientId)));
 
-            handler.execute(commandOf(validLine(), validLine()));
+            handler.execute(commandOf(laaLine(), laaLine()));
 
             verify(contractRepository).saveAll(insertedContracts.capture());
             assertThat(insertedContracts.getValue()).hasSize(2).allSatisfy(contract -> {
@@ -219,6 +228,52 @@ class ImportContractsTest {
                     );
             assertThat(rejection.rejections()).allSatisfy(line -> assertThat(line.message()).isNotBlank());
             assertThat(rejection.rejections().get(2).message()).contains(unknownClientId.toString());
+        }
+
+        @Test
+        @DisplayName("GIVEN une personne avec une LAMal sans fin WHEN une ligne lui ajoute une LAMal THEN rejette la ligne pour chevauchement")
+        void shouldRejectLineOverlappingExistingContract() {
+            when(clientRepository.findAllByIds(Set.of(clientId)))
+                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
+            when(contractRepository.findAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
+                    .thenReturn(List.of(ContractFixtures.existingContract(UUID.randomUUID(),
+                            clientId,
+                            now.minusYears(1),
+                            null,
+                            VALID_COST,
+                            now)));
+            final ImportContracts.Command command = commandOf(validLine());
+
+            final ContractImportRejectedException rejection = catchThrowableOfType(
+                    ContractImportRejectedException.class,
+                    () -> handler.execute(command));
+
+            assertThat(rejection.rejections())
+                    .extracting(ContractImportRejectedException.LineRejection::index,
+                            ContractImportRejectedException.LineRejection::reason)
+                    .containsExactly(tuple(0, ContractImportRejectionReason.OVERLAPPING_CONTRACT));
+            verify(contractRepository, never()).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("GIVEN deux lignes LAMal qui se chevauchent pour une personne WHEN execute THEN rejette la seconde")
+        void shouldRejectSecondOfTwoOverlappingLines() {
+            when(clientRepository.findAllByIds(Set.of(clientId)))
+                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
+            final ImportContracts.Command command = commandOf(
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, now, now.plusYears(1), VALID_COST),
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, now.plusYears(1), null, VALID_COST),
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, now.plusMonths(6), null, VALID_COST)
+            );
+
+            final ContractImportRejectedException rejection = catchThrowableOfType(
+                    ContractImportRejectedException.class,
+                    () -> handler.execute(command));
+
+            assertThat(rejection.rejections())
+                    .extracting(ContractImportRejectedException.LineRejection::index,
+                            ContractImportRejectedException.LineRejection::reason)
+                    .containsExactly(tuple(2, ContractImportRejectionReason.OVERLAPPING_CONTRACT));
         }
     }
 }

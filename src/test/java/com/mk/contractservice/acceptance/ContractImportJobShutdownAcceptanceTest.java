@@ -2,12 +2,8 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.ContractServiceApplication;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
-import com.mk.contractservice.domain.client.ClientEmail;
-import com.mk.contractservice.domain.client.ClientName;
-import com.mk.contractservice.domain.client.ClientPhoneNumber;
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.features.contract.importjob.SubmitContractImportJob;
 import org.junit.jupiter.api.AfterAll;
@@ -21,9 +17,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -63,13 +57,11 @@ class ContractImportJobShutdownAcceptanceTest {
     }
 
     private static UUID createClient(final ConfigurableApplicationContext instance) {
-        final LocalDate today = LocalDate.now(instance.getBean(Clock.class));
         return instance.getBean(ClientRepository.class)
-                .save(Person.of(
-                        ClientName.of("Shutdown Test"),
-                        ClientEmail.of(TestDataHelper.uniqueEmail("shutdown.test")),
-                        ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                        PersonBirthDate.of(LocalDate.of(1990, 5, 15), today)))
+                .save(ClientFixtures.newCompany("Shutdown Test",
+                        TestDataHelper.uniqueEmail("shutdown.test"),
+                        TestDataHelper.randomSwissPhoneNumber(),
+                        TestDataHelper.uniqueCompanyIdentifier("CHE")))
                 .id();
     }
 
@@ -86,7 +78,7 @@ class ContractImportJobShutdownAcceptanceTest {
         final UUID clientId;
         try (ConfigurableApplicationContext firstInstance = startInstance()) {
             clientId = createClient(firstInstance);
-            final String file = "clientId;type;startDate;endDate;costAmount\n" + (clientId + ";LAMAL;;;100.00\n")
+            final String file = "clientId;type;startDate;endDate;costAmount\n" + (clientId + ";LAA;;;100.00\n")
                     .repeat(LINES);
             jobId = firstInstance.getBean(SubmitContractImportJob.class)
                     .execute(new SubmitContractImportJob.Command("contracts.csv",

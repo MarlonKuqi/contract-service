@@ -8,6 +8,7 @@ import lombok.Value;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 import static com.mk.contractservice.domain.shared.Assert.notNull;
 
@@ -32,6 +33,11 @@ public class ContractPeriod {
         return endDate != null && endDate.isBefore(referenceDate);
     }
 
+    public boolean overlaps(final ContractPeriod other) {
+        final LocalDateTime latestStart = startDate.isAfter(other.startDate) ? startDate : other.startDate;
+        return isEffectiveAt(latestStart) && other.isEffectiveAt(latestStart);
+    }
+
     public static ContractPeriod of(
             @Nullable final LocalDateTime startDate,
             @Nullable final LocalDateTime endDate,
@@ -41,8 +47,8 @@ public class ContractPeriod {
         return ValueObjectUtils
                 .<ContractPeriod, @Nullable LocalDateTime, @Nullable LocalDateTime, LocalDateTime>validateAndCreate(
                         startDate,
-                        endDate,
-                        start -> start == null ? now : start,
+                        endDate == null ? null : endDate.truncatedTo(ChronoUnit.MICROS),
+                        start -> (start == null ? now : start).truncatedTo(ChronoUnit.MICROS),
                         ContractPeriod::validate,
                         ContractPeriod::new
                 );

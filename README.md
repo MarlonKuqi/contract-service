@@ -357,22 +357,23 @@ Run the commands below in Git Bash, from the project root, with the `postgres` s
 docker compose exec -T postgres psql -U postgres -d contract -v ON_ERROR_STOP=1 <<'SQL'
 WITH new_clients AS (
     INSERT INTO contracts.client (type, name, email, phone)
-    SELECT 'PERSON', 'Load Test ' || n, 'load.test.' || n || '@example.com', '+4179' || lpad(n::text, 7, '0')
+    SELECT 'COMPANY', 'Load Test ' || n, 'load.test.' || n || '@example.com', '+4179' || lpad(n::text, 7, '0')
     FROM generate_series(1, 10000) AS n
     RETURNING id
 )
-INSERT INTO contracts.person (id, birth_date)
-SELECT id, DATE '1980-01-01' FROM new_clients;
+INSERT INTO contracts.company (id, company_identifier)
+SELECT id, 'CHE-LOAD-' || id FROM new_clients;
 SQL
 ```
 
-**2. Generate the file.** It only uses persons that exist when it runs (a `LAMAL` contract is reserved to persons), so create them first:
+**2. Generate the file.** It only uses companies that exist when it runs, so create them first. Their `LAA` and `LPP` contracts may overlap, unlike the `LAMAL` contracts of a person, so every line is imported:
 
 ```bash
 docker compose exec -T postgres psql -U postgres -d contract -q > contracts-500k.csv <<'SQL'
 COPY (
-    WITH c AS (SELECT array_agg(id) AS ids FROM contracts.client WHERE deleted_at IS NULL AND type = 'PERSON')
+    WITH c AS (SELECT array_agg(id) AS ids FROM contracts.client WHERE deleted_at IS NULL AND type = 'COMPANY')
     SELECT ids[1 + n % cardinality(ids)] AS "clientId",
+           CASE WHEN n % 2 = 0 THEN 'LAA' ELSE 'LPP' END AS "type",
            CASE WHEN n % 2 = 0 THEN to_char(DATE '2027-01-01' + n % 365, 'YYYY-MM-DD"T"00:00:00') END AS "startDate",
            CASE WHEN n % 2 = 0 THEN to_char(DATE '2028-01-01' + n % 365, 'YYYY-MM-DD"T"00:00:00') END AS "endDate",
            (100 + n % 9900)::numeric(12,2) AS "costAmount"

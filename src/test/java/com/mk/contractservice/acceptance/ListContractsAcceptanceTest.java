@@ -5,12 +5,8 @@ import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.ClientEmail;
-import com.mk.contractservice.domain.client.ClientName;
-import com.mk.contractservice.domain.client.ClientPhoneNumber;
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.specification.RequestSpecification;
@@ -30,7 +26,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -69,12 +64,10 @@ class ListContractsAcceptanceTest {
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-        testClient = Person.of(
-                ClientName.of("List Test Client"),
-                ClientEmail.of("list.test." + uniqueId + "@example.com"),
-                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
-        );
+        testClient = ClientFixtures.newCompany("List Test Client",
+                "list.test." + uniqueId + "@example.com",
+                TestDataHelper.randomSwissPhoneNumber(),
+                TestDataHelper.uniqueCompanyIdentifier("CHE"));
         testClient = clientRepository.save(testClient);
     }
 
@@ -154,7 +147,7 @@ class ListContractsAcceptanceTest {
             String oldContract = String.format("""
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "2025-01-01T00:00:00",
                         "endDate": null,
                         "costAmount": "100.00"
@@ -164,7 +157,7 @@ class ListContractsAcceptanceTest {
             String middleContract = String.format("""
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "2025-01-15T00:00:00",
                         "endDate": null,
                         "costAmount": "200.00"
@@ -174,7 +167,7 @@ class ListContractsAcceptanceTest {
             String recentContract = String.format("""
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "2025-02-01T00:00:00",
                         "endDate": null,
                         "costAmount": "300.00"
@@ -242,7 +235,7 @@ class ListContractsAcceptanceTest {
                 String oldContract = String.format("""
                         {
                             "clientId": "%s",
-                            "type": "LAMAL",
+                            "type": "LAA",
                             "startDate": "2025-01-01T00:00:00Z",
                             "endDate": null,
                             "costAmount": "%d.00"
@@ -265,7 +258,7 @@ class ListContractsAcceptanceTest {
                 String recentContract = String.format("""
                         {
                             "clientId": "%s",
-                            "type": "LAMAL",
+                            "type": "LAA",
                             "startDate": "2025-02-01T00:00:00Z",
                             "endDate": null,
                             "costAmount": "%d.00"
@@ -388,7 +381,7 @@ class ListContractsAcceptanceTest {
                 String expiredContract = String.format("""
                         {
                             "clientId": "%s",
-                            "type": "LAMAL",
+                            "type": "LAA",
                             "startDate": "2024-01-01T00:00:00Z",
                             "endDate": "2024-12-31T23:59:59Z",
                             "costAmount": "%d.00"
@@ -406,7 +399,7 @@ class ListContractsAcceptanceTest {
                 String activeContract = String.format("""
                         {
                             "clientId": "%s",
-                            "type": "LAMAL",
+                            "type": "LAA",
                             "startDate": "2025-01-01T00:00:00Z",
                             "endDate": null,
                             "costAmount": "%d.00"
@@ -466,7 +459,7 @@ class ListContractsAcceptanceTest {
             String contractPayload = """
                     {
                         "clientId": "%s",
-                        "type": "LAMAL",
+                        "type": "LAA",
                         "startDate": "2025-01-01T00:00:00Z",
                         "endDate": null,
                         "costAmount": "%s"

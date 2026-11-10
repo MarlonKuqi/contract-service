@@ -7,12 +7,8 @@ import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.ClientEmail;
-import com.mk.contractservice.domain.client.ClientName;
-import com.mk.contractservice.domain.client.ClientPhoneNumber;
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.path.json.JsonPath;
@@ -35,7 +31,6 @@ import org.springframework.test.context.ActiveProfiles;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -223,19 +218,17 @@ class ExportContractsAcceptanceTest {
     }
 
     private Client createClient(final String prefix) {
-        return clientRepository.save(Person.of(
-                ClientName.of("Export Client"),
-                ClientEmail.of(TestDataHelper.uniqueEmail(prefix)),
-                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
-        ));
+        return clientRepository.save(ClientFixtures.newCompany("Export Client",
+                TestDataHelper.uniqueEmail(prefix),
+                TestDataHelper.randomSwissPhoneNumber(),
+                TestDataHelper.uniqueCompanyIdentifier("CHE")));
     }
 
     private String createContract(final Client client, @Nullable final LocalDateTime endDate) {
         final String payload = String.format("""
                 {
                     "clientId": "%s",
-                    "type": "LAMAL",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": %s,
                     "costAmount": "100.00"

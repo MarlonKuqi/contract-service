@@ -63,6 +63,12 @@ public class CreateContractController {
                     schema = @Schema(implementation = ProblemDetail.class))
     )
     @ApiResponse(
+            responseCode = "409",
+            description = "Code contractOverlap: the person already has a LAMAL contract overlapping this period that is still active, future ones included (the end date is exclusive: a LAMAL may start when the previous one ends; ended or closed LAMAL do not count)",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
             responseCode = "422",
             description = "Business validation failed: invalid cost amount or date range, missing or unknown type (code validationError), type not allowed for this client (code contractTypeNotAllowed: LAMAL is reserved to persons, LAA and LPP to companies)",
             content = @Content(mediaType = "application/problem+json",

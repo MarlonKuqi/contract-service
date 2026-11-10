@@ -98,14 +98,15 @@ class ContractImportJobManagementAcceptanceTest {
         clientId = given()
                 .body("""
                         {
-                            "type": "PERSON",
-                            "name": "Marie Durand",
+                            "type": "COMPANY",
+                            "name": "Acme SA",
                             "email": "%s",
                             "phone": "%s",
-                            "birthDate": "1985-03-20"
+                            "companyIdentifier": "%s"
                         }
-                        """.formatted(TestDataHelper.uniqueEmail("marie.durand"),
-                        TestDataHelper.randomSwissPhoneNumber()))
+                        """.formatted(TestDataHelper.uniqueEmail("acme"),
+                        TestDataHelper.randomSwissPhoneNumber(),
+                        TestDataHelper.uniqueCompanyIdentifier("CHE")))
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
@@ -124,7 +125,7 @@ class ContractImportJobManagementAcceptanceTest {
     private String fileOf(final List<String> costs) {
         final StringBuilder file = new StringBuilder(HEADER);
         for (final String cost : costs) {
-            file.append(clientId).append(";LAMAL;;;").append(cost).append('\n');
+            file.append(clientId).append(";LAA;;;").append(cost).append('\n');
         }
         return file.toString();
     }
@@ -294,6 +295,41 @@ class ContractImportJobManagementAcceptanceTest {
     }
 
     @Test
+    @DisplayName(
+        "GIVEN an imported LAMal that already started WHEN the job is cancelled and the fixed file submitted THEN the fixed LAMal is imported")
+    void shouldImportFixedLamalAfterCancellingTheJob() {
+        final String personId = given()
+                .body("""
+                        {
+                            "type": "PERSON",
+                            "name": "Marie Durand",
+                            "email": "%s",
+                            "phone": "%s",
+                            "birthDate": "1985-03-20"
+                        }
+                        """.formatted(TestDataHelper.uniqueEmail("marie.durand"),
+                        TestDataHelper.randomSwissPhoneNumber()))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+        final String wrongFile = HEADER + personId + ";LAMAL;2000-01-01T00:00:00;;999.00\n";
+        final String fixedFile = HEADER + personId + ";LAMAL;2000-01-01T00:00:00;;300.00\n";
+        final String wrongJob = submitAccepted(wrongFile);
+        runNextJob();
+        cancel(wrongJob).statusCode(200).body("closedContracts", equalTo(1));
+
+        final String fixedJob = submitAccepted(fixedFile);
+        runNextJob();
+
+        getJob(fixedJob).body("status", equalTo("COMPLETED"))
+                .body("importedCount", equalTo(1))
+                .body("rejectedCount", equalTo(0));
+    }
+
+    @Test
     @DisplayName("GIVEN a cancelled job WHEN it is cancelled again THEN nothing changes")
     void shouldIgnoreSecondCancellation() {
         final String jobId = submitAccepted(fileOf("100.00"));
@@ -357,7 +393,7 @@ class ContractImportJobManagementAcceptanceTest {
         "GIVEN rejected lines WHEN the counselor downloads them THEN each comes with its code, its reason and its original line")
     void shouldExportRejectedLinesAsCsv() {
         final String jobId = submitAccepted(
-                HEADER + clientId + ";LAMAL;;;100.00\n" + clientId + ";LAMAL;;;-1\n" + "garbage \"quoted\"\n");
+                HEADER + clientId + ";LAA;;;100.00\n" + clientId + ";LAA;;;-1\n" + "garbage \"quoted\"\n");
         runNextJob();
 
         final String csv = given().when()
@@ -372,7 +408,7 @@ class ContractImportJobManagementAcceptanceTest {
         final List<String> lines = csv.lines().toList();
         assertThat(lines).hasSize(3);
         assertThat(lines.get(0)).isEqualTo(ContractImportRejectionCsv.HEADER);
-        assertThat(lines.get(1)).startsWith("3;invalidContractCost;\"").endsWith(";\"" + clientId + ";LAMAL;;;-1\"");
+        assertThat(lines.get(1)).startsWith("3;invalidContractCost;\"").endsWith(";\"" + clientId + ";LAA;;;-1\"");
         assertThat(lines.get(2)).startsWith("4;invalidLineFormat;\"").endsWith(";\"garbage \"\"quoted\"\"\"");
     }
 

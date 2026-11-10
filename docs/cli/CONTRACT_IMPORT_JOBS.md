@@ -21,7 +21,7 @@ UTF-8, séparateur `;`, 50 Mo et 500 000 contrats au plus. Dates ISO, décimales
 
 ```csv
 clientId;type;startDate;endDate;costAmount
-550e8400-e29b-41d4-a716-446655440000;LAMAL;;;1500.00
+550e8400-e29b-41d4-a716-446655440000;LAMAL;;2027-01-01T00:00:00;1500.00
 550e8400-e29b-41d4-a716-446655440000;LAMAL;2027-01-01T00:00:00;2028-01-01T00:00:00;900.00
 ```
 
@@ -71,7 +71,7 @@ Exemple de rejet (`lineNumber` est le numéro de ligne dans le fichier, l'en-tê
 }
 ```
 
-Codes d'une ligne rejetée : `invalidLineFormat` (y compris un type inconnu), `invalidContractCost`, `invalidContractPeriod`, `clientNotFound` (client inconnu ou supprimé), `contractTypeNotAllowed` (type réservé à une autre nature de client).
+Codes d'une ligne rejetée : `invalidLineFormat` (y compris un type inconnu), `invalidContractCost`, `invalidContractPeriod`, `clientNotFound` (client inconnu ou supprimé), `contractTypeNotAllowed` (type réservé à une autre nature de client), `contractOverlap` (LAMal qui chevauche une LAMal de la même personne, en base ou plus haut dans le fichier).
 
 ## À savoir
 

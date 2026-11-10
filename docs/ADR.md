@@ -775,7 +775,7 @@ choisit explicitement l'un ou l'autre endpoint, sans bascule automatique selon l
   ajoutée à `permits`, puis le `switch` ne compile plus tant qu'elle n'a pas de motif, ni `ContractImportCodes` tant
   qu'elle n'a pas de code. Un filet `DomainValidationException` générique a été écarté : il cacherait la règle oubliée
   derrière un code vague.
-- **Client supprimé pendant le traitement.** Chaque lot relit ses clients avec `FOR SHARE`
+- **Client supprimé pendant le traitement.** Chaque lot relit ses clients avec `FOR SHARE` (devenu `FOR UPDATE` trié par identifiant avec l'incrément 2 de l'ADR-024)
   (`ClientRepository.lockExistingIds`, `findExistingIds` restant sans verrou). Pour que le verrou serve à quelque chose,
   `DeleteClient` doit écrire `deleted_at` **avant** de fermer les contrats : sans `flush`, Hibernate exécute la
   fermeture d'abord, car elle ne touche pas la table `client`, puis bloque sur le verrou au commit. Le lot pourrait
@@ -925,13 +925,52 @@ Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des 
 - **Type optionnel ou valeur `UNSPECIFIED`** : un contrat sans type contournerait l'éligibilité. Sans contrat existant, rien ne justifie cette valeur.
 - **`Contract.of(Client, …)`** : plus direct, mais il couple les deux agrégats et casse la règle ArchUnit.
 - **Règle dans les handlers** : elle serait à répéter dans trois use cases, et un quatrième pourrait l'oublier.
-- **Service de domaine dédié** : la règle ne demande aucune donnée supplémentaire, le type sait à qui il s'adresse. Un service de domaine deviendra nécessaire pour « une seule LAMal active par personne », qui doit interroger les contrats existants.
+- **Service de domaine dédié** : la règle ne demande aucune donnée supplémentaire, le type sait à qui il s'adresse. Un service de domaine deviendra nécessaire pour interdire que deux LAMal d'une même personne se chevauchent : il doit interroger les contrats existants.
 - **Type `sealed` avec attributs propres** : prématuré tant qu'aucun type ne porte d'attribut. À reconsidérer avec la franchise LAMal.
 
 **Conséquences.**
 - Changement cassant pour les appelants, sans impact sur une version publiée : la 2.0.0 n'est pas encore taguée. À mentionner dans ses release notes.
 - Charger les clients d'un import (1000 lignes au plus en JSON, un chunk en CSV) coûte une requête avec jointures au lieu d'une requête sur les identifiants : acceptable à ce volume.
-- Hors périmètre, à traiter dans des incréments suivants : une seule LAMal active par personne, franchise LAMal, droit d'option des frontaliers (demande une notion de résidence sur le client).
+- Hors périmètre, à traiter dans des incréments suivants : pas de LAMal qui se chevauchent pour une même personne (incrément 2, ci-dessous), franchise LAMal, droit d'option des frontaliers (demande une notion de résidence sur le client).
+
+### Incrément 2 : pas de LAMal qui se chevauchent pour une même personne
+
+**Contexte.** Une personne n'est couverte que par une assurance-maladie obligatoire à la fois. Le métier n'est pas joignable : la règle ci-dessous est une hypothèse, à confirmer.
+
+**Décision.**
+- **Règle : une nouvelle LAMal ne chevauche aucune LAMal active de la même personne** (active au sens de l’ADR-004 : pas encore expirée, futures comprises). Les périodes sont comparées avec une fin exclusive (ADR-004) : une LAMal peut commencer à l'instant où la précédente finit. `ContractPeriod.overlaps` porte la comparaison.
+- **« Une seule LAMal active » écartée.** Un contrat à début futur est actif (ADR-004) : la LAMal de l'année prochaine serait refusée tant que celle de l'année en cours court, alors qu'elle lui succède sans chevauchement. La règle compare donc les périodes, mais seulement avec les LAMal actives à `now`.
+- **Le type dit s'il interdit le chevauchement** (`ContractType.forbidsOverlap`, seulement `LAMAL`) : une entreprise peut avoir plusieurs LAA ou LPP en même temps.
+- **`ContractCoverage`** (domaine) regroupe les périodes des contrats concernés par client et par type. `add(contract)` refuse un contrat qui chevauche une période connue (`OverlappingContractException`), sinon l'enregistre. Un import ajoute ses lignes une à une à la même couverture : une ligne qui chevauche une ligne acceptée plus haut est rejetée, une ligne rejetée ne couvre rien.
+- **Service de domaine `ContractOverlapPolicy`** : la règle doit lire les contrats existants, ce qu'aucun agrégat ne peut faire seul. Il charge en une requête les contrats des types concernés pour tous les clients d'un lot (`ContractRepository.findAllByClientIdsAndTypes`), sans N+1. `ensureNoOverlap(contract)` sert la création unitaire ; `coverageOf(clientIds)` les imports.
+- **Ordre des contrôles** : le chevauchement vient en dernier, après le type. Dans les imports : client, période, coût, type, chevauchement.
+- **Refus** : `409 contractOverlap` à la création (conflit avec un état existant, comme `contractExpired`), rejet de ligne `OVERLAPPING_CONTRACT` (code `contractOverlap`) dans les deux imports.
+- **Concurrence : verrou `FOR UPDATE` sur les clients, posé par `ContractOverlapPolicy`.** Avant de lire les contrats existants, `coverageOf` appelle `ContractRepository.lockCoverageOf(clientIds)` : `select … from contracts.client where id in (…) order by id for update`. La ligne client est verrouillée parce qu'on ne peut pas verrouiller une LAMal qui n'existe pas encore. Deux conseillers qui créent une LAMal pour la même personne sont ainsi sérialisés : le second attend le commit du premier, puis voit son contrat et reçoit le refus précis du domaine. Le verrou est dans la politique, pas dans les handlers : tout chemin qui vérifie la règle verrouille, aucun ne peut l'oublier. Le port vit dans `ContractRepository`, car `domain.contract` ne peut pas dépendre de `ClientRepository` (ArchUnit).
+- **Ordre fixe, par identifiant.** Un lot d'import verrouille plusieurs clients : deux lots qui les prendraient dans un ordre différent pourraient s'attendre mutuellement (interblocage, `40P01`). `order by id` impose le même ordre à tous. L'import par fichier passe son verrou de chunk (`lockExistingIds`) de `FOR SHARE` à `FOR UPDATE` trié : deux verrous `FOR SHARE` ne s'excluent pas, deux lots liraient tous deux « aucune LAMal ».
+- **Attente bornée** par le `lock_timeout` de 5 s (ADR-022) : au-delà, `409 resourceBusy` pour une création ou un import JSON, erreur transitoire (job remis en file) pour l'import par fichier.
+- **Contrat fermé avant d'avoir commencé : il ne couvre rien.** La fermeture en masse (suppression du client, ADR-009 ; annulation d'un import, ADR-022) met `end_date` à la date de fermeture, y compris sur un contrat à début futur. `ContractPeriod.overlaps` (chacune des deux périodes est en vigueur au plus tardif des deux débuts) ne le compte jamais, sans cas particulier.
+
+**Alternatives écartées.**
+- **Contrainte d'exclusion PostgreSQL** (`EXCLUDE USING gist (client_id WITH =, tstzrange(start_date, end_date, '[)') WITH &&) WHERE (type = 'LAMAL')`, extension `btree_gist`) : la base garantirait la règle quel que soit le chemin d'écriture, même un script SQL. Écartée pour ce service, seul propriétaire de sa base, à une dizaine de conseillers : la course n'y est détectée qu'au commit (`23P01`), d'où un message générique à traduire, un chunk d'import à rejouer, et un intervalle à adapter pour les contrats fermés avant leur début (`LEAST(start_date, end_date)`). Le verrou donne toujours le message précis du domaine pour moins de code. À reconsidérer si d'autres applications écrivent dans la base.
+- **Comparer aussi aux LAMal terminées** : empêcherait une LAMal rétroactive de recouvrir une période passée déjà couverte, mais une LAMal fermée (`end_date = now` à la suppression du client ou à l'annulation d'un import) garderait sa période écoulée. Annuler un import dont une LAMal avait commencé, puis soumettre le fichier corrigé, ferait rejeter la ligne corrigée : le workflow de l'ADR-022 serait cassé. Comparer aux seules LAMal actives règle ce cas sans colonne ni migration ; le prix accepté est qu'une saisie rétroactive, rare, peut recouvrir une LAMal déjà expirée.
+- **Index unique partiel** : il ne compare que des égalités, pas des chevauchements de périodes.
+- **Requête par ligne d'import** : N+1, jusqu'à 2000 requêtes par chunk.
+- **`Person` racine de ses contrats** : l'invariant deviendrait interne, mais l'agrégat grossirait avec les contrats, chaque modification du client entrerait en conflit de version avec celles de ses contrats, et la règle ne concerne pas les entreprises. Contraire à l'indépendance des agrégats (ADR-001).
+- **Hiérarchie `sealed` `LamalContract` / `LaaContract` / `LppContract`** : utile pour porter des données propres à un type (franchise, incrément 3), mais chaque `LamalContract` reste un agrégat avec sa propre version. La règle porterait toujours sur plusieurs agrégats : une sous-classe change le type, pas la frontière de cohérence.
+- **Agrégat de réservation à côté de `Contract`** (périodes et version dans une table dédiée) : deux agrégats modifiés dans une transaction, périodes dupliquées que les fermetures en masse devraient aussi tenir à jour.
+- **Agrégat `AssuranceMaladie` (table `lamal`), reporté** : voir « Suite prévue ».
+
+**Suite prévue : un agrégat pour l'assurance de base d'une personne.** La règle porte sur plusieurs agrégats `Contract` : le service de domaine vérifie, le verrou sur la ligne client sérialise. C'est un écart assumé à la règle « un invariant, un agrégat ». La forme DDD visée est un agrégat `AssuranceMaladie`, une racine par personne :
+- table `lamal` (`person_id` unique, `version`, puis les données de la couverture) ; les échéances sont les contrats `LAMAL` de la table `contract`, sans dupliquer les périodes ni ajouter de clé étrangère (`client_id` + `type` suffisent) ;
+- l'invariant devient interne : ajouter une échéance charge la racine, vérifie le chevauchement et incrémente sa version même sans autre changement (`OPTIMISTIC_FORCE_INCREMENT`). Deux créations simultanées entrent en conflit de version (ADR-011) : plus de verrou sur la ligne client, et la modification d'un client ne bloque plus la création d'une LAMal ;
+- la racine est créée avec la personne, ou à la première LAMal (`INSERT … ON CONFLICT (person_id) DO NOTHING`) ; l'unicité de `person_id` règle la course ;
+- seuls les chemins qui peuvent créer un chevauchement passent par la racine : création unitaire et imports. Changer le coût ou fermer un contrat ne fait que garder ou raccourcir une période ;
+- reportée parce qu'aujourd'hui la racine ne porterait qu'un identifiant et une version, ce que fait déjà le verrou sans table. À créer au plus tard à l'incrément 4 : le droit d'option du frontalier est une donnée de la couverture, pas d'une échéance. La franchise (incrément 3) reste sur chaque échéance ; si l'incrément 3 introduit la hiérarchie `sealed`, `LamalContract` en sera l'entité.
+
+**Conséquences.**
+- `POST /v2/contracts` peut répondre `409 contractOverlap` ; nouveau code de rejet dans les imports.
+- Une personne peut avoir plusieurs LAMal actives (2026, 2027, 2028), mais plus deux LAMal qui se chevauchent : les tests qui en créaient (plusieurs LAMal sans fin, par exemple) utilisent désormais une entreprise et des LAA ou LPP.
+- Un lot d'import verrouille ses clients en écriture jusqu'à son commit (en général moins d'une seconde) : une création de contrat ou un autre lot qui touche l'un d'eux attend, comme le faisaient déjà la modification et la suppression du client.
 
 **Statut.** Acceptée.
 

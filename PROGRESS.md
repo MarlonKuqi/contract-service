@@ -27,7 +27,7 @@ Suivi des sujets en cours. Les décisions sont détaillées dans [ADR.md](docs/A
 | Authentification des conseillers par Keycloak : rôle unique `counselor` par règles d'URL, audience vérifiée, rôles du realm uniquement, 401/403 en `ProblemDetail`, realm versionné, tests avec JWT signés localement | `develop` (#78) | ADR-017 |
 | `ETag` / `If-Match` (étape 2 reprise) : ETag fort sur le `GET` unitaire (read models `ClientDetails` / `ContractDetails`), `If-Match` obligatoire sur `PUT`/`PATCH` client et `PATCH` du coût (`428` / `412`), `ensureVersion` dans les ports d'écriture, conflit au commit traduit en `412` sans réessai. Breaking change | `develop` (#82) | ADR-011 |
 | Accesseurs fluides Lombok (`lombok.config` racine), JavaBean conservé pour les entités JPA | `develop` (43bb8f6) | ADR-002 |
-| Types de contrats, incrément 1 : type obligatoire et immuable (`LAMAL`, `LAA`, `LPP`), éligibilité selon la nature du client, `type` dans l'API et les deux imports, migration `V2.0.0.10` | `develop` (non commité) | ADR-024 |
+| Types de contrats, incrément 1 : type obligatoire et immuable (`LAMAL`, `LAA`, `LPP`), éligibilité selon la nature du client, `type` dans l'API et les deux imports, migration `V2.0.0.10` | `develop` (358aa10) | ADR-024 |
 | Modification de la période d'un contrat : `PUT /v2/contracts/{id}/period` (remplacement de la période, `If-Match`), début modifiable même dans le passé, fin jamais dans le passé, `lastModified` mis à jour | `feat/patch-contract-periods` | ADR-025 |
 
 ## 1. Priorité moyenne
@@ -90,11 +90,30 @@ Revue de `.github/` du 2026-11-07. Corrections mergées sur `develop` (#86). Git
 - [ ] **FK composite `(id, type)`** entre `client` et ses sous-tables (ADR-007) : seulement si plusieurs applications écrivent un jour dans la base.
 - [ ] **Accès client à ses propres contrats** (suite de l'authentification Keycloak) : un rôle `CLIENT` en lecture seule, limité à ses propres données. Il faut relier le compte Keycloak au client (`sub` ↔ `client.id`) et contrôler la propriété dans les use cases, pas seulement par rôle. Seulement quand un portail client est demandé.
 
+## Types de contrats (entraînement, ADR-024)
+
+Non exigé par `docs/sujet.txt`, livré par incréments. Chaque incrément a sa migration et met à jour l'ADR-024. Le métier n'est pas joignable : les règles retenues sont des hypothèses, à écrire comme telles dans l'ADR.
+
+- [x] **Incrément 1 : type et éligibilité.** Type obligatoire et immuable (`LAMAL`, `LAA`, `LPP`), `ContractType.isClosedTo(ClientKind)` vérifié par `Contract.of` : LAMal réservée aux personnes, LAA et LPP aux entreprises. `type` dans l'API et les deux imports, `422 contractTypeNotAllowed` / rejet `TYPE_NOT_ALLOWED`, migration `V2.0.0.10`.
+- [x] **Incrément 2 : pas de LAMal qui se chevauchent pour une même personne** (`feat/contract-types-increment-2`, non commité).
+  - Règle retenue : deux LAMal d'une même personne ne se chevauchent pas, la nouvelle étant comparée aux seules LAMal actives (fin exclusive, ADR-004). « Une seule LAMal active » est écartée : un contrat à début futur est actif, une LAMal 2028 serait donc refusée tant que celle de 2027 court, alors qu'elle lui succède sans chevauchement.
+  - `ContractCoverage` (domaine) porte la règle, `ContractOverlapPolicy` (service de domaine) charge en une requête les LAMal de tous les clients d'un lot. `409 contractOverlap` à la création, rejet `OVERLAPPING_CONTRACT` / `contractOverlap` dans les imports, y compris entre lignes d'un même import.
+  - Concurrence : `ContractOverlapPolicy` verrouille les clients (`FOR UPDATE … ORDER BY id`) avant de lire leurs LAMal ; le verrou de chunk de l'import par fichier passe de `FOR SHARE` à `FOR UPDATE` trié. Contrainte d'exclusion PostgreSQL envisagée puis écartée (ADR-024). Test avec deux vraies transactions sur deux threads.
+  - Clôture d'un contrat et suppression d'un client : sans effet sur la règle (une fin plus tôt ne crée pas de chevauchement).
+- [ ] **Incrément 3 : franchise LAMal.**
+  - Hiérarchie `sealed` dans le domaine (`LamalContract` porte la franchise), une seule table : colonne `franchise` nullable, `CHECK` liée au type, lectures sans jointure.
+  - Value Object validé contre les paliers légaux : adulte 300, 500, 1000, 1500, 2000, 2500 CHF ; enfant de 0 à 600 CHF par paliers de 100.
+  - L'âge vient de la date de naissance du client, transmise par le use case à `Contract.of` (comme `ClientKind`, sans dépendance à l'agrégat client).
+  - Changement de franchise : à étudier (en pratique au 1er janvier), méthode `changeFranchise` avec sa règle de date.
+- [ ] **Incrément 4 : droit d'option des frontaliers.**
+  - Notion de résidence sur le client (Suisse ou pays frontalier) : migration sur les tables client et API client.
+  - Un frontalier peut choisir l'assurance-maladie de son pays de résidence au lieu de la LAMal, dans un délai après le début de son emploi en Suisse. Règle détaillée à définir avant de modéliser.
+  - Créer l'agrégat `AssuranceMaladie` (table `lamal`, une racine par personne avec sa `version`) qui porte le droit d'option, et y déplacer la règle de non-chevauchement : verrouillage optimiste forcé sur la racine à la place du verrou `FOR UPDATE` sur le client (ADR-024, « Suite prévue »). Au plus tard ici ; à reconsidérer dès l'incrément 3 si la franchise ajoute des règles propres à la couverture.
+
 ## Pour aller plus loin (entraînement)
 
 Sujets non exigés par `docs/sujet.txt` ni justifiés à l'échelle actuelle (une dizaine de conseillers). Ils servent à s'exercer : chaque ADR le dit explicitement plutôt que d'inventer un besoin.
 
-- [ ] **Types de contrats, suite** (incrément 1 fait, ADR-024) : une seule LAMal active par personne (service de domaine, concurrence à traiter), attributs propres au type (franchise LAMal, selon l'âge), droit d'option des frontaliers (demande une notion de résidence sur le client). Une migration et une mise à jour de l'ADR-024 par incrément.
 - [x] **Import en masse de contrats** (ADR-021) : `POST /v2/contracts/imports`, synchrone, JSON, tout ou rien avec rapport par ligne, 1000 lignes au plus. JDBC batching mesuré (`batch_size=50` : 20 lots au lieu de 1000 exécutions, environ 10 fois plus rapide ; `flush`/`clear` et `order_inserts` sans intérêt ici).
 - [x] **Import asynchrone de gros volumes** (ADR-022) : `POST /v2/contracts/import-jobs`, fichier CSV, import partiel, Spring Batch en chunks, worker `@Scheduled` avec `SKIP LOCKED`, bail et reprise après panne sans doublon (`JobOperator.recover`), remise en file à l'arrêt et sur erreur transitoire, raison d'échec exposée, verrou `FOR SHARE` sur les clients de chaque lot. Ajouts : `Idempotency-Key` à la soumission, auteur et liste des jobs, annulation qui ferme les contrats du job (un job `FAILED` n'est pas relancé : il est annulé, puis un fichier corrigé est soumis), export CSV des rejets avec la ligne d'origine.
 - [ ] **Transactional outbox et événements de domaine** : `ContractCreated`, `ContractCostChanged`, `ClientDeleted` écrits dans une table `outbox` dans la même transaction, publiés vers Kafka (Testcontainers). Livraison au moins une fois, consommateur idempotent, ordre par client, version de l'agrégat dans l'événement. Comparer polling `SKIP LOCKED`, Debezium et Spring Modulith dans l'ADR.

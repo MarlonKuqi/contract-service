@@ -118,14 +118,15 @@ class ContractImportJobRecoveryAcceptanceTest {
         clientId = given()
                 .body("""
                         {
-                            "type": "PERSON",
-                            "name": "Marie Durand",
+                            "type": "COMPANY",
+                            "name": "Acme SA",
                             "email": "%s",
                             "phone": "%s",
-                            "birthDate": "1985-03-20"
+                            "companyIdentifier": "%s"
                         }
-                        """.formatted(TestDataHelper.uniqueEmail("marie.durand"),
-                        TestDataHelper.randomSwissPhoneNumber()))
+                        """.formatted(TestDataHelper.uniqueEmail("acme"),
+                        TestDataHelper.randomSwissPhoneNumber(),
+                        TestDataHelper.uniqueCompanyIdentifier("CHE")))
                 .when()
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
@@ -191,7 +192,7 @@ class ContractImportJobRecoveryAcceptanceTest {
                 .contentType("multipart/form-data")
                 .multiPart("file",
                         "contracts.csv",
-                        (HEADER + (clientId + ";LAMAL;;;100.00\n").repeat(lines)).getBytes(StandardCharsets.UTF_8))
+                        (HEADER + (clientId + ";LAA;;;100.00\n").repeat(lines)).getBytes(StandardCharsets.UTF_8))
                 .when()
                 .post(ContractEndpoints.CONTRACT_IMPORT_JOBS)
                 .then()
@@ -441,7 +442,7 @@ class ContractImportJobRecoveryAcceptanceTest {
                 .contentType("multipart/form-data")
                 .multiPart("file",
                         "contracts.csv",
-                        (HEADER + (clientId + ";LAMAL;;;100.00\n").repeat(CHUNK_SIZE) + "\n").getBytes(
+                        (HEADER + (clientId + ";LAA;;;100.00\n").repeat(CHUNK_SIZE) + "\n").getBytes(
                                 StandardCharsets.UTF_8))
                 .when()
                 .post(ContractEndpoints.CONTRACT_IMPORT_JOBS)
@@ -465,7 +466,7 @@ class ContractImportJobRecoveryAcceptanceTest {
     void shouldRejectSameBatchTwice() {
         secondChunkFailure.set(null);
         final LocalDateTime now = LocalDateTime.now(clock);
-        final byte[] file = (HEADER + clientId + ";LAMAL;;;100.00\n" + clientId + ";LAMAL;;;100.00\n").getBytes(
+        final byte[] file = (HEADER + clientId + ";LAA;;;100.00\n" + clientId + ";LAA;;;100.00\n").getBytes(
                 StandardCharsets.UTF_8);
         final ContractImportJob job = new TransactionTemplate(transactionManager).execute(status -> {
             final ContractImportJob inserted = jobRepository.save(ContractImportJob.of(ContractImportSubmission.of(
@@ -478,7 +479,7 @@ class ContractImportJobRecoveryAcceptanceTest {
         });
         final ProcessContractImportBatch.Command batch = new ProcessContractImportBatch.Command(
                 job.id(),
-                List.of(new RawLine(2, clientId + ";LAMAL;;;100.00")));
+                List.of(new RawLine(2, clientId + ";LAA;;;100.00")));
 
         processBatch.execute(batch);
 

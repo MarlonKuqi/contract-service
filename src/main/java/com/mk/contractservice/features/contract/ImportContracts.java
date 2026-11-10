@@ -3,7 +3,9 @@ package com.mk.contractservice.features.contract;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.ContractCoverage;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
@@ -73,6 +75,7 @@ public interface ImportContracts {
 
         private final ClientRepository clientRepository;
         private final ContractRepository contractRepository;
+        private final ContractOverlapPolicy contractOverlapPolicy;
         private final Clock clock;
 
         private record LineProcessResult(List<Contract> contracts, List<LineRejection> rejections) {
@@ -99,6 +102,7 @@ public interface ImportContracts {
 
             final Map<UUID, Client> clientsById = ContractImportLineEvaluator.indexById(
                     clientRepository.findAllByIds(command.clientIds()));
+            final ContractCoverage coverage = contractOverlapPolicy.coverageOf(clientsById.keySet(), now);
 
             for (int index = 0; index < command.lines().size(); index++) {
                 final Line line = command.lines().get(index);
@@ -108,6 +112,7 @@ public interface ImportContracts {
                         line.endDate(),
                         line.costAmount(),
                         clientsById,
+                        coverage,
                         now)) {
                     case Accepted(Contract contract) -> contracts.add(contract);
                     case Rejected(ContractImportRejectionReason reason, String message) -> rejections.add(

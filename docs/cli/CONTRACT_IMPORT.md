@@ -9,7 +9,7 @@ Décision : ADR-021. Aucune migration, aucun changement cassant.
 ```json
 {
   "contracts": [
-    { "clientId": "550e8400-e29b-41d4-a716-446655440000", "type": "LAMAL", "costAmount": "1500.00" },
+    { "clientId": "550e8400-e29b-41d4-a716-446655440000", "type": "LAMAL", "endDate": "2027-01-01T00:00:00", "costAmount": "1500.00" },
     { "clientId": "550e8400-e29b-41d4-a716-446655440000", "type": "LAMAL", "startDate": "2027-01-01T00:00:00", "endDate": "2028-01-01T00:00:00", "costAmount": "900.00" }
   ]
 }
@@ -37,7 +37,7 @@ Exemple de rejet (`index` commence à 0) :
 }
 ```
 
-Codes d'une ligne rejetée : `invalidContractCost`, `invalidContractPeriod`, `clientNotFound` (client inconnu ou supprimé), `contractTypeNotAllowed` (type réservé à une autre nature de client, voir [CONTRACT_TYPES.md](CONTRACT_TYPES.md)).
+Codes d'une ligne rejetée : `invalidContractCost`, `invalidContractPeriod`, `clientNotFound` (client inconnu ou supprimé), `contractTypeNotAllowed` (type réservé à une autre nature de client, voir [CONTRACT_TYPES.md](CONTRACT_TYPES.md)), `contractOverlap` (LAMal qui chevauche une LAMal de la même personne, en base ou plus haut dans l'import).
 
 ## À savoir
 

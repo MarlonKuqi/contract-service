@@ -2,6 +2,8 @@ package com.mk.contractservice.features.shared;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientFixtures;
+import com.mk.contractservice.domain.contract.ContractCoverage;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Accepted;
@@ -42,7 +44,68 @@ class ContractImportLineEvaluatorTest {
             final LocalDateTime startDate,
             final LocalDateTime endDate,
             final BigDecimal cost) {
-        return ContractImportLineEvaluator.evaluate(clientId, type, startDate, endDate, cost, EXISTING_CLIENTS, NOW);
+        return evaluate(clientId, type, startDate, endDate, cost, ContractCoverage.of(List.of(), NOW));
+    }
+
+    private static Outcome evaluate(final UUID clientId,
+            final ContractType type,
+            final LocalDateTime startDate,
+            final LocalDateTime endDate,
+            final BigDecimal cost,
+            final ContractCoverage coverage) {
+        return ContractImportLineEvaluator.evaluate(clientId,
+                type,
+                startDate,
+                endDate,
+                cost,
+                EXISTING_CLIENTS,
+                coverage,
+                NOW);
+    }
+
+    @Test
+    @DisplayName("GIVEN a LAMal of the client covering the period WHEN evaluating a LAMal THEN the line is rejected for the overlap")
+    void shouldRejectLamalOverlappingExistingOne() {
+        final ContractCoverage coverage = ContractCoverage.of(List.of(ContractFixtures.existingContract(
+                UUID.randomUUID(),
+                CLIENT_ID,
+                NOW.minusYears(1),
+                null,
+                VALID_COST,
+                NOW)), NOW);
+
+        final Outcome outcome = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, VALID_COST, coverage);
+
+        assertThat(outcome).isInstanceOfSatisfying(Rejected.class, rejected -> {
+            assertThat(rejected.reason()).isEqualTo(ContractImportRejectionReason.OVERLAPPING_CONTRACT);
+            assertThat(rejected.message()).contains(CLIENT_ID.toString());
+        });
+    }
+
+    @Test
+    @DisplayName("GIVEN an accepted LAMal line WHEN evaluating an overlapping LAMal line with the same coverage THEN the second one is rejected")
+    void shouldRejectLineOverlappingAPreviouslyAcceptedOne() {
+        final ContractCoverage coverage = ContractCoverage.of(List.of(), NOW);
+
+        final Outcome first = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, VALID_COST, coverage);
+        final Outcome second = evaluate(CLIENT_ID, ContractType.LAMAL, NOW.plusYears(1), null, VALID_COST, coverage);
+
+        assertThat(first).isInstanceOf(Accepted.class);
+        assertThat(second).isInstanceOfSatisfying(Rejected.class,
+                rejected -> assertThat(rejected.reason()).isEqualTo(
+                        ContractImportRejectionReason.OVERLAPPING_CONTRACT));
+    }
+
+    @Test
+    @DisplayName("GIVEN a rejected line WHEN evaluating a line overlapping only the rejected one THEN it is accepted")
+    void shouldNotCoverWithRejectedLine() {
+        final ContractCoverage coverage = ContractCoverage.of(List.of(), NOW);
+
+        final Outcome rejected = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, NEGATIVE_COST, coverage);
+        final Outcome accepted = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, VALID_COST, coverage);
+
+        assertThat(rejected).isInstanceOf(Rejected.class);
+        assertThat(accepted).isInstanceOf(Accepted.class);
     }
 
     @Test

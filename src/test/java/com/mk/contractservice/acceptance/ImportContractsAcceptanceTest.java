@@ -60,7 +60,28 @@ class ImportContractsAcceptanceTest {
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
 
-        clientId = createPerson();
+        clientId = createCompany();
+    }
+
+    private String createCompany() {
+        return given()
+                .body("""
+                        {
+                            "type": "COMPANY",
+                            "name": "Acme SA",
+                            "email": "%s",
+                            "phone": "%s",
+                            "companyIdentifier": "%s"
+                        }
+                        """.formatted(TestDataHelper.uniqueEmail("acme"),
+                        TestDataHelper.randomSwissPhoneNumber(),
+                        TestDataHelper.uniqueCompanyIdentifier("CHE")))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
     private String createPerson() {
@@ -85,7 +106,15 @@ class ImportContractsAcceptanceTest {
 
     private String line(final String ownerId, final String costAmount) {
         return """
-                { "clientId": "%s", "type": "LAMAL", "costAmount": "%s" }""".formatted(ownerId, costAmount);
+                { "clientId": "%s", "type": "LAA", "costAmount": "%s" }""".formatted(ownerId, costAmount);
+    }
+
+    private String lamalLine(final String personId, final LocalDateTime startDate, final LocalDateTime endDate) {
+        return """
+                { "clientId": "%s", "type": "LAMAL", "startDate": "%s", "endDate": %s, "costAmount": "300.00" }"""
+                .formatted(personId,
+                        isoDateTime(startDate),
+                        endDate == null ? "null" : "\"" + isoDateTime(endDate) + "\"");
     }
 
     private String importOf(final List<String> lines) {
@@ -112,14 +141,14 @@ class ImportContractsAcceptanceTest {
     @Test
     @DisplayName("GIVEN valid lines for several clients WHEN importing THEN every contract exists and the ids follow the lines order")
     void shouldImportContractsForSeveralClients() {
-        final String otherClientId = createPerson();
+        final String otherClientId = createCompany();
         final String start = isoDateTime(LocalDateTime.now(clock).plusDays(1).truncatedTo(ChronoUnit.SECONDS));
         final String end = isoDateTime(LocalDateTime.now(clock).plusYears(1).truncatedTo(ChronoUnit.SECONDS));
 
         final List<String> contractIds = given()
                 .body(importOf(
                         """
-                                { "clientId": "%s", "type": "LAMAL", "startDate": "%s", "endDate": "%s", "costAmount": "1000.00" }"""
+                                { "clientId": "%s", "type": "LPP", "startDate": "%s", "endDate": "%s", "costAmount": "1000.00" }"""
                                 .formatted(clientId, start, end),
                         line(otherClientId, "2500.50")
                 ))
@@ -188,12 +217,12 @@ class ImportContractsAcceptanceTest {
     }
 
     @Test
-    @DisplayName("GIVEN an employer insurance (LPP) for a person WHEN importing THEN nothing is imported and the line is reported")
+    @DisplayName("GIVEN a health insurance (LAMal) for a company WHEN importing THEN nothing is imported and the line is reported")
     void shouldImportNothingWhenATypeIsNotAllowedForTheClient() {
         given()
                 .body(importOf(line(clientId, "1000.00"),
                         """
-                                { "clientId": "%s", "type": "LPP", "costAmount": "500.00" }""".formatted(clientId)))
+                                { "clientId": "%s", "type": "LAMAL", "costAmount": "500.00" }""".formatted(clientId)))
                 .when()
                 .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()
@@ -217,7 +246,7 @@ class ImportContractsAcceptanceTest {
                         line(clientId, "0.00"),
                         line(clientId, "1000.00"),
                         """
-                                { "clientId": "%s", "type": "LAMAL", "startDate": "%s", "endDate": "%s", "costAmount": "1000.00" }"""
+                                { "clientId": "%s", "type": "LAA", "startDate": "%s", "endDate": "%s", "costAmount": "1000.00" }"""
                                 .formatted(clientId, start, start.minusDays(1)),
                         line(unknownClientId, "1000.00")
                 ))
@@ -238,6 +267,54 @@ class ImportContractsAcceptanceTest {
                 .body("rejections[2].message", containsString(unknownClientId));
 
         assertClientHasNoContract();
+    }
+
+    @Test
+    @DisplayName("GIVEN a person with an open-ended LAMal WHEN importing a LAMal for that person THEN nothing is imported and the line is reported")
+    void shouldImportNothingWhenALamalOverlapsAnExistingOne() {
+        final String personId = createPerson();
+        final LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
+        given().body(importOf(lamalLine(personId, now.minusMonths(1), null)))
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
+                .then()
+                .statusCode(201);
+
+        given()
+                .body(importOf(line(clientId, "1000.00"), lamalLine(personId, now.plusYears(1), null)))
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
+                .then()
+                .statusCode(422)
+                .body("rejections", hasSize(1))
+                .body("rejections[0].index", equalTo(1))
+                .body("rejections[0].clientId", equalTo(personId))
+                .body("rejections[0].code", equalTo("contractOverlap"));
+
+        assertClientHasNoContract();
+    }
+
+    @Test
+    @DisplayName("GIVEN two overlapping LAMal lines for a person WHEN importing THEN the second one is reported")
+    void shouldReportLamalOverlappingAPreviousLine() {
+        final String personId = createPerson();
+        final LocalDateTime nextYear = LocalDateTime.now(clock)
+                .plusYears(1)
+                .withDayOfYear(1)
+                .toLocalDate()
+                .atStartOfDay();
+
+        given()
+                .body(importOf(lamalLine(personId, nextYear, nextYear.plusYears(1)),
+                        lamalLine(personId, nextYear.plusYears(1), null),
+                        lamalLine(personId, nextYear.plusMonths(6), nextYear.plusMonths(18))))
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
+                .then()
+                .statusCode(422)
+                .body("rejections", hasSize(1))
+                .body("rejections[0].index", equalTo(2))
+                .body("rejections[0].code", equalTo("contractOverlap"));
     }
 
     @Test
@@ -300,7 +377,7 @@ class ImportContractsAcceptanceTest {
     void shouldNameLineAndFieldOfMissingValue() {
         given()
                 .body(importOf(line(clientId, "1000.00"), """
-                        { "clientId": "%s", "type": "LAMAL" }""".formatted(clientId)))
+                        { "clientId": "%s", "type": "LAA" }""".formatted(clientId)))
                 .when()
                 .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()

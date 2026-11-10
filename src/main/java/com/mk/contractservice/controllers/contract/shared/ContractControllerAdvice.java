@@ -15,6 +15,7 @@ import com.mk.contractservice.domain.contract.exception.ExpiredContractException
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
+import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import com.mk.contractservice.domain.contract.importjob.exception.IdempotencyKeyReusedException;
 import com.mk.contractservice.domain.contract.importjob.exception.InvalidIdempotencyKeyException;
@@ -48,6 +49,7 @@ import java.util.Optional;
 public class ContractControllerAdvice extends BaseControllerAdvice {
 
     public static final String CONTEXT = "context";
+    private static final String CONTRACT_OVERLAP = "contractOverlap";
     private static final Logger log = LoggerFactory.getLogger(ContractControllerAdvice.class);
 
     public ContractControllerAdvice(final Clock clock) {
@@ -277,6 +279,12 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
                 "Contract Type Not Allowed",
                 ex.getMessage(),
                 "contractTypeNotAllowed"));
+    }
+
+    @ExceptionHandler(OverlappingContractException.class)
+    public ResponseEntity<ProblemDetail> handleOverlappingContract(OverlappingContractException ex) {
+        log.debug("Business rule violation: {}", ex.getMessage());
+        return respond(problem(HttpStatus.CONFLICT, "Overlapping Contract", ex.getMessage(), CONTRACT_OVERLAP));
     }
 
     @ExceptionHandler(DomainValidationException.class)
