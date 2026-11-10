@@ -28,6 +28,7 @@ Suivi des sujets en cours. Les décisions sont détaillées dans [ADR.md](docs/A
 | `ETag` / `If-Match` (étape 2 reprise) : ETag fort sur le `GET` unitaire (read models `ClientDetails` / `ContractDetails`), `If-Match` obligatoire sur `PUT`/`PATCH` client et `PATCH` du coût (`428` / `412`), `ensureVersion` dans les ports d'écriture, conflit au commit traduit en `412` sans réessai. Breaking change | `develop` (#82) | ADR-011 |
 | Accesseurs fluides Lombok (`lombok.config` racine), JavaBean conservé pour les entités JPA | `develop` (43bb8f6) | ADR-002 |
 | Types de contrats, incrément 1 : type obligatoire et immuable (`LAMAL`, `LAA`, `LPP`), éligibilité selon la nature du client, `type` dans l'API et les deux imports, migration `V2.0.0.10` | `develop` (non commité) | ADR-024 |
+| Modification de la période d'un contrat : `PUT /v2/contracts/{id}/period` (remplacement de la période, `If-Match`), début modifiable même dans le passé, fin jamais dans le passé, `lastModified` mis à jour | `feat/patch-contract-periods` | ADR-025 |
 
 ## 1. Priorité moyenne
 

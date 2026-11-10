@@ -28,6 +28,10 @@ public class ContractPeriod {
         return endDate == null || referenceDate.isBefore(endDate);
     }
 
+    public boolean endsBefore(final LocalDateTime referenceDate) {
+        return endDate != null && endDate.isBefore(referenceDate);
+    }
+
     public static ContractPeriod of(
             @Nullable final LocalDateTime startDate,
             @Nullable final LocalDateTime endDate,

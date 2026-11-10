@@ -101,7 +101,7 @@ public final class Company extends Client {
     }
 
     @Override
-    public Company changePhone(@Nullable ClientPhoneNumber phoneNumber) {
+    public Company changePhone(@Nullable final ClientPhoneNumber phoneNumber) {
         final ClientPhoneNumber newPhone = notNull(phoneNumber);
         if (hasPhone(newPhone)) {
             return this;

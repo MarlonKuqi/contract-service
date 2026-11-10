@@ -20,6 +20,7 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 - [ADR-004 — Définition d'un contrat actif](#adr-004--définition-dun-contrat-actif)
 - [ADR-005 — `lastModified` est une donnée du domaine](#adr-005--lastmodified-est-une-donnée-du-domaine)
 - [ADR-024 — Types de contrats : un type obligatoire qui porte l'éligibilité](#adr-024--types-de-contrats--un-type-obligatoire-qui-porte-léligibilité)
+- [ADR-025 — Modification de la période d'un contrat](#adr-025--modification-de-la-période-dun-contrat)
 
 **Persistance et données**
 - [ADR-006 — PostgreSQL + Flyway, migrations immuables](#adr-006--postgresql--flyway-migrations-immuables)
@@ -156,7 +157,7 @@ com.mk.contractservice
 **Contexte.** Le sujet impose : « mettre à jour le coût met à jour la date de mise à jour », date interne non exposée par l'API mais utilisable comme filtre. Elle était posée par `@UpdateTimestamp` (Hibernate), et à la main dans la fermeture en masse : deux sources de vérité.
 
 **Décision.**
-- `Contract` porte `lastModified`, posé à la création (`Contract.of(..., now)`) et par `changeCost(cost, now)`.
+- `Contract` porte `lastModified`, posé à la création (`Contract.of(..., now)`) et par `changeCost(cost, now)` et `changePeriod(period, now)` (ADR-025).
 - Un changement de coût vers le même montant ne modifie ni le contrat ni `lastModified`.
 - `@UpdateTimestamp` est retiré de `ContractJpaEntity` ; le mapper lit et écrit le champ explicitement.
 - `ContractResponse` n'expose pas `lastModified`.
@@ -249,7 +250,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 - Les tests qui nettoient la base doivent supprimer les contrats avant les clients.
 - **Contrat annulé.** Un contrat actif fermé par la suppression de son client n'est pas expiré : il est **annulé**, qu'il ait déjà commencé ou non.
   - Un contrat dont la date de début est dans le futur est actif (ADR-004) : il est fermé à `deleted_at` comme les autres, ce qui donne `end_date <= start_date`.
-  - L'invariant « fin après début » de `ContractPeriod` n'est donc garanti qu'à la création (`ContractPeriod.of`). Il n'est **pas** vrai pour toutes les lignes en base : `ContractPeriod.reconstituteFromDatabase` ne doit jamais revalider la période, et aucune contrainte `CHECK (end_date > start_date)` ne doit être ajoutée, sinon ces contrats deviennent illisibles ou la suppression d'un client échoue. 
+  - L'invariant « fin après début » de `ContractPeriod` n'est donc garanti qu'à la création (`ContractPeriod.of`) et à la modification de la période (ADR-025). Il n'est **pas** vrai pour toutes les lignes en base : `ContractPeriod.reconstituteFromDatabase` ne doit jamais revalider la période, et aucune contrainte `CHECK (end_date > start_date)` ne doit être ajoutée, sinon ces contrats deviennent illisibles ou la suppression d'un client échoue. 
     - On part ici de l'idée qu'on est dans un contexte always-valid et qu'on ne peut pas se retrouver avec un contrat qui est censé être actif mais qui est invalide. Le domaine ne doit pas lever d'exception sur un contrat annulé, il doit juste le considérer comme inactif.
   - L'état « annulé » n'est pas modélisé : pas de statut, pas de règle dédiée. Aucun traitement n'est prévu sur un contrat annulé. Il est déjà exclu de tout traitement parce qu'il est inactif : absent de la liste et de la somme, non modifiable (`ExpiredContractException`).
   - Il reste lisible par `GET /contracts/{id}`, comme tout contrat inactif.
@@ -281,7 +282,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 1. **Correctif (fait)** : la fermeture en masse des contrats incrémente `version`. Sans cela, une modification du coût lancée avant la suppression du client pouvait rouvrir le contrat (`end_date` remis à `null`). Test : `ContractClosureConcurrencyAcceptanceTest`.
 2. **Protection entre deux requêtes HTTP par `ETag` / `If-Match` (faite, après avoir été différée)** :
    - seul le `GET` unitaire d'un client ou d'un contrat renvoie un ETag fort `"<version>"` ;
-   - `PUT`/`PATCH` d'un client et `PATCH` du coût d'un contrat exigent `If-Match` :
+   - `PUT`/`PATCH` d'un client et `PATCH` du coût d'un contrat et `PUT` de sa période (ADR-025) exigent `If-Match` :
      - `428 preconditionRequired` si l'en-tête manque ou vaut `*` (le joker contournerait le verrou) ;
      - `412 preconditionFailed` si la version a changé depuis la lecture, si l'ETag est faible (`If-Match` utilise la comparaison forte) ou s'il ne contient pas exactement un ETag ;
    - les réponses de création et de modification ne portent pas d'ETag : le client relit la ressource avant une nouvelle modification. Pour le `PUT`, c'est de toute façon imposé par RFC 9110 §9.3.4, qui interdit un validateur dans la réponse quand la représentation stockée diffère de celle reçue (on normalise l'email et le téléphone) ;
@@ -933,3 +934,33 @@ Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des 
 - Hors périmètre, à traiter dans des incréments suivants : une seule LAMal active par personne, franchise LAMal, droit d'option des frontaliers (demande une notion de résidence sur le client).
 
 **Statut.** Acceptée.
+
+---
+
+## ADR-025 — Modification de la période d'un contrat
+
+**Contexte.** La période (`startDate`, `endDate`) n'était fixée qu'à la création. Un conseiller doit pouvoir résilier un contrat, le prolonger, le rendre sans fin ou corriger sa date de début. `docs/sujet.txt` ne le demande pas : règles métier décidées le 10/11/2026.
+
+**Décision.**
+- **Endpoint** `PUT /v2/contracts/{id}/period` : la période est une sous-ressource remplacée en entier. `startDate` est obligatoire (`422 validationError`) ; `endDate` absent ou `null` rend le contrat sans fin. `If-Match` obligatoire, comme pour le coût (ADR-011) : la commande traduit une décision prise sur un état lu.
+- **Règles**, portées par `Contract.changePeriod(period, now)` :
+  - seul un contrat actif est modifiable (`409 contractExpired`, ADR-004) ;
+  - la date de début peut être déplacée librement, y compris dans le passé ;
+  - la date de fin ne peut pas être dans le passé (`endDate >= now`) : pas de résiliation rétroactive, la couverture passée a été fournie. `endDate = now` ferme le contrat immédiatement ;
+  - la fin reste après le début et les années entre 1 et 9999 (`ContractPeriod.of`) ;
+  - erreurs de période : `422 invalidContractPeriod` ;
+  - une période identique est un no-op ; sinon `lastModified = now` (ADR-005 : toute modification métier du contrat compte pour le filtre `updatedSince`).
+- Le use case `UpdateContractPeriod` construit `ContractPeriod.of(startDate, endDate, now)` et délègue à `changePeriod` : aucune règle dans le handler.
+
+**Alternatives écartées.**
+- **Merge patch (`PATCH`, champs optionnels)** : implémenté puis abandonné avant merge. Avec une date de fin qui peut valoir `null`, il faut distinguer « champ absent » (conserver) de « `null` » (retirer). Jackson donne `null` dans les deux cas : il fallait deux désérialiseurs dédiés, un type `sealed` à trois états dans la commande et une fusion dans le handler. Aucun gain pour l'appelant : `If-Match` l'oblige déjà à lire le contrat, il connaît donc la période courante et peut la renvoyer en entier.
+- **Date de début modifiable seulement avant le début du contrat** : refusée, la correction d'une date de début erronée doit rester possible tant que le contrat est actif.
+- **Résiliation rétroactive** : refusée, elle réécrirait une couverture déjà fournie.
+- **Réactivation d'un contrat expiré** : non prévue, un contrat expiré reste non modifiable (ADR-004) ; on crée un nouveau contrat.
+
+**Conséquences.**
+- `endDate >= now` est évalué à l'heure du serveur : pour résilier « maintenant », l'appelant envoie une date légèrement future (ou la fin de journée) ; une date déjà dépassée à l'arrivée de la requête est refusée.
+- L'invariant « fin après début » est aussi garanti à la modification ; un contrat annulé (ADR-009) reste non modifiable car inactif.
+- Avec l'incrément 2 de l'ADR-024 (pas de chevauchement de LAMal), modifier la période d'une LAMal devra aussi vérifier le chevauchement.
+
+**Statut.** Acceptée (branche `feat/patch-contract-periods`).
