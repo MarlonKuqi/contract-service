@@ -424,6 +424,112 @@ class ContractTest {
                 assertThat(result.lastModified()).isEqualTo(createdAt);
             }
         }
+
+        @Nested
+        @DisplayName("Change Period")
+        class ChangePeriod {
+
+            private final LocalDateTime createdAt = NOW.minusMonths(3);
+
+            private Contract activeContract(final LocalDateTime startDate, final LocalDateTime endDate) {
+                return ContractFixtures.existingContract(UUID.randomUUID(),
+                        testClientId,
+                        startDate,
+                        endDate,
+                        new BigDecimal("100.00"),
+                        createdAt);
+            }
+
+            @Test
+            @DisplayName("GIVEN active contract WHEN changing period THEN period is replaced and lastModified is the given now")
+            void shouldReplacePeriodAndSetLastModified() {
+                Contract contract = activeContract(NOW.minusMonths(3), NOW.plusMonths(9));
+                ContractPeriod newPeriod = ContractPeriod.of(NOW.minusMonths(2), NOW.plusYears(1), NOW);
+
+                Contract updated = contract.changePeriod(newPeriod, NOW);
+
+                assertThat(updated.period()).isEqualTo(newPeriod);
+                assertThat(updated.lastModified()).isEqualTo(NOW);
+                assertThat(updated.id()).isEqualTo(contract.id());
+                assertThat(updated.type()).isEqualTo(contract.type());
+                assertThat(updated.costAmount()).isEqualTo(contract.costAmount());
+                assertThat(contract.lastModified()).isEqualTo(createdAt);
+            }
+
+            @Test
+            @DisplayName("GIVEN active contract WHEN moving start date into the past THEN period is changed")
+            void shouldAcceptRetroactiveStartDate() {
+                Contract contract = activeContract(NOW.plusDays(10), null);
+                ContractPeriod newPeriod = ContractPeriod.of(NOW.minusYears(1), null, NOW);
+
+                Contract updated = contract.changePeriod(newPeriod, NOW);
+
+                assertThat(updated.period().startDate()).isEqualTo(NOW.minusYears(1));
+            }
+
+            @Test
+            @DisplayName("GIVEN contract with end date WHEN removing end date THEN contract is open-ended")
+            void shouldRemoveEndDate() {
+                Contract contract = activeContract(NOW.minusMonths(3), NOW.plusMonths(9));
+
+                Contract updated = contract.changePeriod(ContractPeriod.of(NOW.minusMonths(3), null, NOW), NOW);
+
+                assertThat(updated.period().endDate()).isNull();
+            }
+
+            @Test
+            @DisplayName("GIVEN end date equal to now WHEN changing period THEN contract is closed now")
+            void shouldCloseContractNow() {
+                Contract contract = activeContract(NOW.minusMonths(3), null);
+
+                Contract updated = contract.changePeriod(ContractPeriod.of(NOW.minusMonths(3), NOW, NOW), NOW);
+
+                assertThat(updated.period().endDate()).isEqualTo(NOW);
+                assertThat(updated.isActiveAt(NOW)).isFalse();
+            }
+
+            @Test
+            @DisplayName("GIVEN end date in the past WHEN changing period THEN throw InvalidContractPeriodException")
+            void shouldRejectRetroactiveEndDate() {
+                Contract contract = activeContract(NOW.minusMonths(3), null);
+                ContractPeriod retroactiveEnd = ContractPeriod.of(NOW.minusMonths(3), NOW.minusSeconds(1), NOW);
+
+                assertThatThrownBy(() -> contract.changePeriod(retroactiveEnd, NOW))
+                        .isInstanceOf(InvalidContractPeriodException.class)
+                        .hasMessageContaining("past");
+            }
+
+            @Test
+            @DisplayName("GIVEN expired contract WHEN changing period THEN throw ExpiredContractException")
+            void shouldRejectPeriodChangeOnExpiredContract() {
+                Contract expired = activeContract(NOW.minusMonths(3), NOW.minusDays(1));
+
+                assertThatThrownBy(() -> expired.changePeriod(ContractPeriod.of(NOW.minusMonths(3), null, NOW), NOW))
+                        .isInstanceOf(ExpiredContractException.class)
+                        .hasMessageContaining(expired.id().toString());
+            }
+
+            @Test
+            @DisplayName("GIVEN expired contract and null period WHEN changing period THEN throw InvalidDomainObjectError")
+            void shouldRejectNullPeriodBeforeCheckingExpiration() {
+                Contract expired = activeContract(NOW.minusMonths(3), NOW.minusDays(1));
+
+                assertThatThrownBy(() -> expired.changePeriod(null, NOW))
+                        .isInstanceOf(InvalidDomainObjectError.class);
+            }
+
+            @Test
+            @DisplayName("GIVEN same period WHEN changing period THEN contract and lastModified are unchanged")
+            void shouldKeepContractUnchangedWhenPeriodIsTheSame() {
+                Contract contract = activeContract(NOW.minusMonths(3), NOW.plusMonths(9));
+
+                Contract result = contract.changePeriod(ContractPeriod.of(NOW.minusMonths(3), NOW.plusMonths(9), NOW),
+                        NOW);
+
+                assertThat(result).isSameAs(contract);
+                assertThat(result.lastModified()).isEqualTo(createdAt);
+            }
+        }
     }
 
     @Nested

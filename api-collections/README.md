@@ -44,6 +44,7 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 - `POST /v2/contracts/import-jobs/{jobId}/cancellation` - Cancel a job and close the contracts it created (ADR-022)
 - `GET /v2/contracts/{contractId}` - Get specific contract
 - `PATCH /v2/contracts/{contractId}/cost` - Update cost
+- `PUT /v2/contracts/{contractId}/period` - Replace start and end dates (`If-Match`)
 - `GET /v2/contracts/total?clientId={clientId}` - Sum of active contracts
 
 **Requêtes** : création, lecture, mise à jour du coût et agrégation. Il n'existe pas d'endpoint de suppression ou de clôture de contrat : un contrat se termine par sa `endDate`, ou à la suppression de son client.

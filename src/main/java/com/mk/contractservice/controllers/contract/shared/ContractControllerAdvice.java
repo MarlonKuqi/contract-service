@@ -6,6 +6,7 @@ import com.mk.contractservice.controllers.contract.ExportContractController;
 import com.mk.contractservice.controllers.contract.ImportContractsController;
 import com.mk.contractservice.controllers.contract.PatchContractCostController;
 import com.mk.contractservice.controllers.contract.SearchContractController;
+import com.mk.contractservice.controllers.contract.UpdateContractPeriodController;
 import com.mk.contractservice.controllers.shared.BaseControllerAdvice;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
@@ -42,7 +43,7 @@ import java.util.Optional;
 @RestControllerAdvice(
         assignableTypes = {ContractImportJobController.class, CreateContractController.class,
                 ExportContractController.class, ImportContractsController.class, PatchContractCostController.class,
-                SearchContractController.class
+                SearchContractController.class, UpdateContractPeriodController.class
         })
 public class ContractControllerAdvice extends BaseControllerAdvice {
 

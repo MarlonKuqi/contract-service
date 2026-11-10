@@ -2,6 +2,7 @@ package com.mk.contractservice.domain.contract;
 
 import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
+import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import com.mk.contractservice.domain.shared.ClientKind;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -98,6 +99,23 @@ public class Contract {
         }
         return toBuilder()
                 .costAmount(cost)
+                .lastModified(now)
+                .build();
+    }
+
+    public Contract changePeriod(@Nullable final ContractPeriod newPeriod, final LocalDateTime now) {
+        final ContractPeriod changedPeriod = notNull(newPeriod);
+        assertModifiableAt(now);
+        if (period.equals(changedPeriod)) {
+            return this;
+        }
+        if (changedPeriod.endsBefore(now)) {
+            throw new InvalidContractPeriodException(
+                    "Contract end date cannot be in the past. End: " + changedPeriod.endDate() + ", now: " + now
+            );
+        }
+        return toBuilder()
+                .period(changedPeriod)
                 .lastModified(now)
                 .build();
     }
