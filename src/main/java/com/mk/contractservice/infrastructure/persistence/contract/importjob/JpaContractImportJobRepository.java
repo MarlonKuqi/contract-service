@@ -3,7 +3,6 @@ package com.mk.contractservice.infrastructure.persistence.contract.importjob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import com.mk.contractservice.domain.contract.importjob.IdempotencyKey;
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import jakarta.persistence.EntityManager;
@@ -86,10 +85,7 @@ public class JpaContractImportJobRepository implements ContractImportJobReposito
 
     @Override
     public Optional<ContractImportJob> findNextToRun(final Instant now) {
-        return jobJpaRepository.findToRun(ContractImportJobState.Status.PENDING,
-                ContractImportJobState.Status.RUNNING,
-                now,
-                Limit.of(1))
+        return jobJpaRepository.findToRun(now, Limit.of(1))
                 .stream()
                 .findFirst()
                 .map(ContractImportJobJpaMapper::toDomain);

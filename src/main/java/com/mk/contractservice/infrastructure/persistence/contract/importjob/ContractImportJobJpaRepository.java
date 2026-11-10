@@ -1,6 +1,5 @@
 package com.mk.contractservice.infrastructure.persistence.contract.importjob;
 
-import com.mk.contractservice.domain.contract.importjob.ContractImportJobState;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
 import org.springframework.data.domain.Limit;
@@ -25,15 +24,12 @@ public interface ContractImportJobJpaRepository extends JpaRepository<ContractIm
     @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = SKIP_LOCKED))
     @Query("""
             select job from ContractImportJobJpaEntity job
-            where job.status = :pending or (job.status = :running and job.leaseUntil < :now)
+            where job.status = com.mk.contractservice.domain.contract.importjob.ContractImportJobState.Status.PENDING
+               or (job.status = com.mk.contractservice.domain.contract.importjob.ContractImportJobState.Status.RUNNING
+                   and job.leaseUntil < :now)
             order by job.createdAt
             """)
-    List<ContractImportJobJpaEntity> findToRun(
-            @Param("pending") ContractImportJobState.Status pending,
-            @Param("running") ContractImportJobState.Status running,
-            @Param("now") Instant now,
-            Limit limit
-    );
+    List<ContractImportJobJpaEntity> findToRun(@Param("now") Instant now, Limit limit);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select job from ContractImportJobJpaEntity job where job.id = :id")
