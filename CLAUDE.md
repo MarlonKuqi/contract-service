@@ -41,6 +41,7 @@ endDate IS NULL  OR  t < endDate
 The end date is exclusive. A contract whose `startDate` is in the future **is active**: "active" means "not yet expired", not "currently running". Do NOT add a `startDate <= t` condition without an explicit business requirement (ADR-004). The rule lives in `ContractPeriod.isEffectiveAt` and `ContractSpecifications.isActive`: keep them aligned.
 
 **Other rules**
+- A contract has a mandatory, immutable `type` (`ContractType`): `LAMAL` is reserved to persons, `LAA` and `LPP` to companies. `Contract.of` enforces it from the client's `ClientKind` (`domain/shared`), never from the `Client` itself: the two aggregates stay independent (ADR-024, `ContractTypeNotAllowedException` → 422 `contractTypeNotAllowed`).
 - Only active contracts can be modified (`ExpiredContractException`).
 - Updating the cost updates `lastModified`; the same amount (scale-insensitive) is a no-op. `lastModified` is never exposed by the API (ADR-005).
 - `birthDate` and `companyIdentifier` are immutable.

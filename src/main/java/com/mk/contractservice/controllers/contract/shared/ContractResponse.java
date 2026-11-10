@@ -1,6 +1,7 @@
 package com.mk.contractservice.controllers.contract.shared;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.mk.contractservice.domain.contract.ContractType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.jspecify.annotations.Nullable;
 
@@ -15,6 +16,9 @@ public record ContractResponse(
 
         @JsonProperty("clientId") @Schema(description = "Client identifier owning this contract",
                 example = "3fa85f64-5717-4562-b3fc-2c963f66afa6") @Nullable UUID clientId,
+
+        @JsonProperty("type") @Schema(description = "Contract type",
+                example = "LAMAL") ContractType type,
 
         @JsonProperty("startDate") @Schema(description = "Contract start date",
                 example = "2024-01-01T00:00:00") LocalDateTime startDate,

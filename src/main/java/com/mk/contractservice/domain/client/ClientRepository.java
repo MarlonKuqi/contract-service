@@ -3,6 +3,7 @@ package com.mk.contractservice.domain.client;
 import com.mk.contractservice.domain.shared.RepositoryPort;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -16,7 +17,7 @@ public interface ClientRepository {
 
     void ensureExists(final UUID id);
 
-    Set<UUID> findExistingIds(final Set<UUID> ids);
+    List<Client> findAllByIds(final Set<UUID> ids);
 
     Set<UUID> lockExistingIds(final Set<UUID> ids);
 

@@ -64,7 +64,7 @@ public class CreateContractController {
     )
     @ApiResponse(
             responseCode = "422",
-            description = "Business validation failed (e.g., invalid cost amount, date range)",
+            description = "Business validation failed: invalid cost amount or date range, missing or unknown type (code validationError), type not allowed for this client (code contractTypeNotAllowed: LAMAL is reserved to persons, LAA and LPP to companies)",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
@@ -82,6 +82,7 @@ public class CreateContractController {
     ) {
         final Contract contract = createContract.execute(new CreateContract.Command(
                 request.clientId(),
+                request.type(),
                 request.startDate(),
                 request.endDate(),
                 request.costAmount()

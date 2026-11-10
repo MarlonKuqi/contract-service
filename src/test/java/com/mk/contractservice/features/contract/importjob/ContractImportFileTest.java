@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("ContractImportFile")
 class ContractImportFileTest {
 
-    private static final String HEADER = "clientId;startDate;endDate;costAmount\n";
+    private static final String HEADER = "clientId;type;startDate;endDate;costAmount\n";
 
     private static byte[] fileOf(final int lines) {
         return (HEADER + "line\n".repeat(lines)).getBytes(StandardCharsets.UTF_8);

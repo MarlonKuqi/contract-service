@@ -235,6 +235,7 @@ class SecurityAcceptanceTest {
                 .body("""
                         {
                             "clientId": "%s",
+                            "type": "LAMAL",
                             "costAmount": "1000.00"
                         }
                         """.formatted(clientId))
@@ -249,7 +250,7 @@ class SecurityAcceptanceTest {
 
         given()
                 .body("""
-                        { "contracts": [{ "clientId": "%s", "costAmount": "500.00" }] }
+                        { "contracts": [{ "clientId": "%s", "type": "LAMAL", "costAmount": "500.00" }] }
                         """.formatted(clientId))
                 .when()
                 .post(ContractEndpoints.CONTRACT_IMPORTS)

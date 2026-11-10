@@ -1,8 +1,12 @@
 package com.mk.contractservice.domain.contract;
 
+import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.ClientFixtures;
+import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
+import com.mk.contractservice.domain.shared.ClientKind;
 import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -10,6 +14,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
@@ -247,6 +252,8 @@ class ContractTest {
                 LocalDateTime startDate = LocalDateTime.of(2026, 6, 1, 10, 0);
 
                 assertThatThrownBy(() -> Contract.of(testClientId,
+                        ClientKind.PERSON,
+                        ContractType.LAMAL,
                         ContractPeriod.of(startDate, null, startDate),
                         ContractCost.of(new BigDecimal("100.00")),
                         null))
@@ -510,6 +517,122 @@ class ContractTest {
                     now);
 
             assertThat(contract.period().startDate()).isEqualTo(now);
+        }
+    }
+
+    @Nested
+    @DisplayName("Contract Type")
+    class Type {
+
+        private static final BigDecimal COST = new BigDecimal("350.00");
+
+        @Test
+        @DisplayName("GIVEN a person WHEN taking out a LAMal contract THEN the contract is created with its type")
+        void shouldAllowLamalForPerson() {
+            Client person = ClientFixtures.existingPerson(testClientId);
+
+            Contract contract = ContractFixtures.newContract(person, ContractType.LAMAL, NOW, null, COST, NOW);
+
+            assertThat(contract.type()).isEqualTo(ContractType.LAMAL);
+            assertThat(contract.clientId()).isEqualTo(testClientId);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = ContractType.class, names = {"LAA", "LPP"})
+        @DisplayName("GIVEN a company WHEN taking out a LAA or LPP contract THEN the contract is created with its type")
+        void shouldAllowLaaAndLppForCompany(ContractType type) {
+            Client company = ClientFixtures.existingCompany(testClientId);
+
+            Contract contract = ContractFixtures.newContract(company, type, NOW, null, COST, NOW);
+
+            assertThat(contract.type()).isEqualTo(type);
+            assertThat(contract.clientId()).isEqualTo(testClientId);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = ContractType.class, names = {"LAA", "LPP"})
+        @DisplayName("GIVEN a person WHEN taking out a LAA or LPP contract THEN it is refused: these insurances are taken out by employers")
+        void shouldRefuseLaaAndLppForPerson(ContractType type) {
+            Client person = ClientFixtures.existingPerson(testClientId);
+
+            assertThatThrownBy(() -> ContractFixtures.newContract(person, type, NOW, null, COST, NOW))
+                    .isInstanceOf(ContractTypeNotAllowedException.class)
+                    .hasMessageContaining(type.name())
+                    .hasMessageContaining("person");
+        }
+
+        @Test
+        @DisplayName("GIVEN a company WHEN taking out a LAMal contract THEN it is refused: health insurance covers a person")
+        void shouldRefuseLamalForCompany() {
+            Client company = ClientFixtures.existingCompany(testClientId);
+
+            assertThatThrownBy(() -> ContractFixtures.newContract(company, ContractType.LAMAL, NOW, null, COST, NOW))
+                    .isInstanceOf(ContractTypeNotAllowedException.class)
+                    .hasMessageContaining("LAMAL")
+                    .hasMessageContaining("company");
+        }
+
+        @Test
+        @DisplayName("GIVEN no type WHEN creating Contract THEN throw InvalidDomainObjectError")
+        void shouldRejectNullType() {
+            Client person = ClientFixtures.existingPerson(testClientId);
+
+            assertThatThrownBy(() -> ContractFixtures.newContract(person, null, NOW, null, COST, NOW))
+                    .isInstanceOf(InvalidDomainObjectError.class);
+        }
+
+        @Test
+        @DisplayName("GIVEN no client kind WHEN creating Contract THEN throw InvalidDomainObjectError")
+        void shouldRejectNullClientKind() {
+            assertThatThrownBy(() -> Contract.of(testClientId,
+                    null,
+                    ContractType.LAMAL,
+                    ContractPeriod.of(NOW, null, NOW),
+                    ContractCost.of(COST),
+                    NOW))
+                    .isInstanceOf(InvalidDomainObjectError.class);
+        }
+
+        @Test
+        @DisplayName("GIVEN a contract WHEN changing its cost THEN its type is unchanged")
+        void shouldKeepTypeWhenChangingCost() {
+            Contract contract = ContractFixtures.newContract(ClientFixtures.existingCompany(testClientId),
+                    ContractType.LPP,
+                    NOW,
+                    null,
+                    COST,
+                    NOW);
+
+            Contract updated = contract.changeCost(ContractCost.of(new BigDecimal("400.00")), NOW.plusDays(1));
+
+            assertThat(updated.type()).isEqualTo(ContractType.LPP);
+        }
+
+        @Test
+        @DisplayName("GIVEN a persisted type WHEN reconstituting THEN the type is kept")
+        void shouldKeepPersistedType() {
+            Contract contract = ContractFixtures.existingContract(UUID.randomUUID(),
+                    testClientId,
+                    ContractType.LAA,
+                    NOW.minusMonths(1),
+                    null,
+                    COST,
+                    NOW);
+
+            assertThat(contract.type()).isEqualTo(ContractType.LAA);
+        }
+
+        @Test
+        @DisplayName("GIVEN no type WHEN reconstituting THEN throw InvalidDomainObjectError")
+        void shouldRejectNullTypeFromDatabase() {
+            assertThatThrownBy(() -> ContractFixtures.existingContract(UUID.randomUUID(),
+                    testClientId,
+                    null,
+                    NOW.minusMonths(1),
+                    null,
+                    COST,
+                    NOW))
+                    .isInstanceOf(InvalidDomainObjectError.class);
         }
     }
 }

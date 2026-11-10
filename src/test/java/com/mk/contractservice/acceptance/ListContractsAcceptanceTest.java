@@ -154,6 +154,7 @@ class ListContractsAcceptanceTest {
             String oldContract = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "2025-01-01T00:00:00",
                         "endDate": null,
                         "costAmount": "100.00"
@@ -163,6 +164,7 @@ class ListContractsAcceptanceTest {
             String middleContract = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "2025-01-15T00:00:00",
                         "endDate": null,
                         "costAmount": "200.00"
@@ -172,6 +174,7 @@ class ListContractsAcceptanceTest {
             String recentContract = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "2025-02-01T00:00:00",
                         "endDate": null,
                         "costAmount": "300.00"
@@ -181,19 +184,22 @@ class ListContractsAcceptanceTest {
             // Create contracts with explicit delays to ensure distinct lastModified timestamps
             given().body(middleContract)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
 
             given().body(oldContract)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
 
             given().body(recentContract)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             // Wait a bit to ensure all transactions are committed
             await().pollDelay(Duration.ofMillis(50)).atMost(Duration.ofSeconds(1)).until(() -> true);
@@ -236,6 +242,7 @@ class ListContractsAcceptanceTest {
                 String oldContract = String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAMAL",
                             "startDate": "2025-01-01T00:00:00Z",
                             "endDate": null,
                             "costAmount": "%d.00"
@@ -244,7 +251,8 @@ class ListContractsAcceptanceTest {
 
                 given().body(oldContract)
                         .post(ContractEndpoints.CONTRACTS_BASE)
-                        .then().statusCode(201);
+                        .then()
+                        .statusCode(201);
             }
 
             await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
@@ -257,6 +265,7 @@ class ListContractsAcceptanceTest {
                 String recentContract = String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAMAL",
                             "startDate": "2025-02-01T00:00:00Z",
                             "endDate": null,
                             "costAmount": "%d.00"
@@ -265,7 +274,8 @@ class ListContractsAcceptanceTest {
 
                 given().body(recentContract)
                         .post(ContractEndpoints.CONTRACTS_BASE)
-                        .then().statusCode(201);
+                        .then()
+                        .statusCode(201);
             }
 
             given()
@@ -378,6 +388,7 @@ class ListContractsAcceptanceTest {
                 String expiredContract = String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAMAL",
                             "startDate": "2024-01-01T00:00:00Z",
                             "endDate": "2024-12-31T23:59:59Z",
                             "costAmount": "%d.00"
@@ -395,6 +406,7 @@ class ListContractsAcceptanceTest {
                 String activeContract = String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAMAL",
                             "startDate": "2025-01-01T00:00:00Z",
                             "endDate": null,
                             "costAmount": "%d.00"
@@ -454,6 +466,7 @@ class ListContractsAcceptanceTest {
             String contractPayload = """
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "2025-01-01T00:00:00Z",
                         "endDate": null,
                         "costAmount": "%s"
@@ -514,7 +527,8 @@ class ListContractsAcceptanceTest {
                     .when()
                     .get(ContractEndpoints.CONTRACTS_BASE)
                     .then()
-                    .log().all()
+                    .log()
+                    .all()
                     .statusCode(HttpStatus.BAD_REQUEST.value())
                     .body("title", containsString("Invalid Parameter"))
                     .body("detail", containsString(expectedMessage));
@@ -593,4 +607,3 @@ class ListContractsAcceptanceTest {
         }
     }
 }
-

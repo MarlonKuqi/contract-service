@@ -87,6 +87,7 @@ class ContractLifecycleAcceptanceTest {
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "5000.00"
@@ -149,6 +150,7 @@ class ContractLifecycleAcceptanceTest {
         String contract1 = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "1000.00"
@@ -158,6 +160,7 @@ class ContractLifecycleAcceptanceTest {
         String contract2 = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "2500.00"
@@ -167,6 +170,7 @@ class ContractLifecycleAcceptanceTest {
         String contract3 = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "750.50"
@@ -199,6 +203,7 @@ class ContractLifecycleAcceptanceTest {
         String expiredContract = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "2024-01-01T00:00:00Z",
                     "endDate": "2024-12-31T23:59:59Z",
                     "costAmount": "3000.00"
@@ -208,6 +213,7 @@ class ContractLifecycleAcceptanceTest {
         String activeContract = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": "2026-12-31T23:59:59Z",
                     "costAmount": "5000.00"
@@ -240,6 +246,7 @@ class ContractLifecycleAcceptanceTest {
         String invalidPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": "2025-12-31T23:59:59Z",
                     "costAmount": "-1000.00"
@@ -257,6 +264,7 @@ class ContractLifecycleAcceptanceTest {
         String invalidDateRange = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "1000.00"
@@ -279,6 +287,7 @@ class ContractLifecycleAcceptanceTest {
         String payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": "2025-12-31T23:59:59Z",
                     "costAmount": "1000.00"
@@ -299,6 +308,7 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": "2026-12-31T23:59:59Z",
                     "costAmount": "1000.00"
@@ -347,6 +357,7 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "1500.00"
@@ -386,6 +397,7 @@ class ContractLifecycleAcceptanceTest {
         String activeNoEndDatePayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "1000.00"
@@ -395,6 +407,7 @@ class ContractLifecycleAcceptanceTest {
         String activeFutureEndPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "2000.00"
@@ -404,6 +417,7 @@ class ContractLifecycleAcceptanceTest {
         String expiredYesterdayPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "3000.00"
@@ -413,6 +427,7 @@ class ContractLifecycleAcceptanceTest {
         String expiredLastMonthPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "4000.00"
@@ -459,6 +474,7 @@ class ContractLifecycleAcceptanceTest {
         String active1Payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "1000.00"
@@ -468,6 +484,7 @@ class ContractLifecycleAcceptanceTest {
         String active2Payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "2000.00"
@@ -478,6 +495,7 @@ class ContractLifecycleAcceptanceTest {
         String expired1Payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "500.00"
@@ -487,6 +505,7 @@ class ContractLifecycleAcceptanceTest {
         String expired2Payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "700.00"
@@ -528,6 +547,7 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": null,
                     "costAmount": "2500.00"
@@ -559,6 +579,7 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": null,
                     "costAmount": "1500.00"
@@ -587,6 +608,7 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": null,
                     "costAmount": "3000.00"
@@ -610,6 +632,7 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "999999999.99"
@@ -641,6 +664,7 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "1000.00"
@@ -669,6 +693,7 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "500.00"
@@ -698,6 +723,7 @@ class ContractLifecycleAcceptanceTest {
         String zeroAmountPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "0.00"

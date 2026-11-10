@@ -9,6 +9,7 @@ import com.mk.contractservice.controllers.contract.SearchContractController;
 import com.mk.contractservice.controllers.shared.BaseControllerAdvice;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
+import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
@@ -266,6 +267,15 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
                 "invalidContractPeriod");
         problemDetail.setProperty(CONTEXT, "Contract period validation failed");
         return respond(problemDetail);
+    }
+
+    @ExceptionHandler(ContractTypeNotAllowedException.class)
+    public ResponseEntity<ProblemDetail> handleContractTypeNotAllowed(ContractTypeNotAllowedException ex) {
+        log.warn("Business rule violation: {}", ex.getMessage());
+        return respond(problem(HttpStatus.UNPROCESSABLE_CONTENT,
+                "Contract Type Not Allowed",
+                ex.getMessage(),
+                "contractTypeNotAllowed"));
     }
 
     @ExceptionHandler(DomainValidationException.class)

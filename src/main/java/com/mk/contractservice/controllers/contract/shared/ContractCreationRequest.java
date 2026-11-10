@@ -1,6 +1,7 @@
 package com.mk.contractservice.controllers.contract.shared;
 
 import com.mk.contractservice.domain.contract.ContractCost;
+import com.mk.contractservice.domain.contract.ContractType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
@@ -14,6 +15,11 @@ public record ContractCreationRequest(
         @NotNull(message = "Client ID is required") @Schema(description = "Client ID (owner of the contract)",
                 example = "550e8400-e29b-41d4-a716-446655440000",
                 requiredMode = Schema.RequiredMode.REQUIRED) UUID clientId,
+
+        @NotNull(message = "Contract type is required") @Schema(
+                description = "Contract type. LAMAL (health insurance) is reserved to persons, LAA (accident insurance) and LPP (occupational pension) to companies",
+                example = "LAMAL",
+                requiredMode = Schema.RequiredMode.REQUIRED) ContractType type,
 
         @Schema(description = "Contract start date (defaults to now if not provided)",
                 example = "2025-01-01T00:00:00",

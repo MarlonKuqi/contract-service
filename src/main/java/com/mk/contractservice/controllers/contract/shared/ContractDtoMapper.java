@@ -14,6 +14,7 @@ public interface ContractDtoMapper {
         return new ContractResponse(
                 Objects.requireNonNull(contract.id()),
                 contract.clientId(),
+                contract.type(),
                 contract.period().startDate(),
                 contract.period().endDate(),
                 contract.isActiveAt(referenceDate),
@@ -25,6 +26,7 @@ public interface ContractDtoMapper {
         return new ContractResponse(
                 contract.id(),
                 contract.clientId(),
+                contract.type(),
                 contract.startDate(),
                 contract.endDate(),
                 contract.active(),

@@ -85,7 +85,7 @@ class ImportContractsAcceptanceTest {
 
     private String line(final String ownerId, final String costAmount) {
         return """
-                { "clientId": "%s", "costAmount": "%s" }""".formatted(ownerId, costAmount);
+                { "clientId": "%s", "type": "LAMAL", "costAmount": "%s" }""".formatted(ownerId, costAmount);
     }
 
     private String importOf(final List<String> lines) {
@@ -119,7 +119,7 @@ class ImportContractsAcceptanceTest {
         final List<String> contractIds = given()
                 .body(importOf(
                         """
-                                { "clientId": "%s", "startDate": "%s", "endDate": "%s", "costAmount": "1000.00" }"""
+                                { "clientId": "%s", "type": "LAMAL", "startDate": "%s", "endDate": "%s", "costAmount": "1000.00" }"""
                                 .formatted(clientId, start, end),
                         line(otherClientId, "2500.50")
                 ))
@@ -188,6 +188,25 @@ class ImportContractsAcceptanceTest {
     }
 
     @Test
+    @DisplayName("GIVEN an employer insurance (LPP) for a person WHEN importing THEN nothing is imported and the line is reported")
+    void shouldImportNothingWhenATypeIsNotAllowedForTheClient() {
+        given()
+                .body(importOf(line(clientId, "1000.00"),
+                        """
+                                { "clientId": "%s", "type": "LPP", "costAmount": "500.00" }""".formatted(clientId)))
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORTS)
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("contractImportRejected"))
+                .body("rejections", hasSize(1))
+                .body("rejections[0].index", equalTo(1))
+                .body("rejections[0].code", equalTo("contractTypeNotAllowed"));
+
+        assertClientHasNoContract();
+    }
+
+    @Test
     @DisplayName("GIVEN several problems WHEN importing THEN all of them are reported in one answer")
     void shouldReportEveryProblemAtOnce() {
         final String unknownClientId = UUID.randomUUID().toString();
@@ -198,7 +217,7 @@ class ImportContractsAcceptanceTest {
                         line(clientId, "0.00"),
                         line(clientId, "1000.00"),
                         """
-                                { "clientId": "%s", "startDate": "%s", "endDate": "%s", "costAmount": "1000.00" }"""
+                                { "clientId": "%s", "type": "LAMAL", "startDate": "%s", "endDate": "%s", "costAmount": "1000.00" }"""
                                 .formatted(clientId, start, start.minusDays(1)),
                         line(unknownClientId, "1000.00")
                 ))
@@ -281,7 +300,7 @@ class ImportContractsAcceptanceTest {
     void shouldNameLineAndFieldOfMissingValue() {
         given()
                 .body(importOf(line(clientId, "1000.00"), """
-                        { "clientId": "%s" }""".formatted(clientId)))
+                        { "clientId": "%s", "type": "LAMAL" }""".formatted(clientId)))
                 .when()
                 .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()

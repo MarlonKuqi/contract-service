@@ -17,12 +17,12 @@ Rôle `COUNSELOR`.
 
 ## Format du fichier
 
-UTF-8, séparateur `;`, 50 Mo et 500 000 contrats au plus. Dates ISO, décimales avec un point, `startDate` et `endDate` vides autorisés, pas de guillemets.
+UTF-8, séparateur `;`, 50 Mo et 500 000 contrats au plus. Dates ISO, décimales avec un point, `startDate` et `endDate` vides autorisés, pas de guillemets. `type` est obligatoire : `LAMAL`, `LAA` ou `LPP`, en majuscules (voir [CONTRACT_TYPES.md](CONTRACT_TYPES.md)).
 
 ```csv
-clientId;startDate;endDate;costAmount
-550e8400-e29b-41d4-a716-446655440000;;;1500.00
-550e8400-e29b-41d4-a716-446655440000;2027-01-01T00:00:00;2028-01-01T00:00:00;900.00
+clientId;type;startDate;endDate;costAmount
+550e8400-e29b-41d4-a716-446655440000;LAMAL;;;1500.00
+550e8400-e29b-41d4-a716-446655440000;LAMAL;2027-01-01T00:00:00;2028-01-01T00:00:00;900.00
 ```
 
 ## Réponses à la soumission
@@ -62,7 +62,7 @@ Exemple de rejet (`lineNumber` est le numéro de ligne dans le fichier, l'en-tê
 {
   "content": [
     { "lineNumber": 3, "clientId": "550e8400-e29b-41d4-a716-446655440000", "code": "invalidContractCost", "message": "..." },
-    { "lineNumber": 7, "clientId": null, "code": "invalidLineFormat", "message": "Expected 4 columns (clientId;startDate;endDate;costAmount), but found 1" }
+    { "lineNumber": 7, "clientId": null, "code": "invalidLineFormat", "message": "Expected 5 columns (clientId;type;startDate;endDate;costAmount), but found 1" }
   ],
   "pageNumber": 0,
   "pageSize": 20,
@@ -71,7 +71,7 @@ Exemple de rejet (`lineNumber` est le numéro de ligne dans le fichier, l'en-tê
 }
 ```
 
-Codes d'une ligne rejetée : `invalidLineFormat`, `invalidContractCost`, `invalidContractPeriod`, `clientNotFound` (client inconnu ou supprimé).
+Codes d'une ligne rejetée : `invalidLineFormat` (y compris un type inconnu), `invalidContractCost`, `invalidContractPeriod`, `clientNotFound` (client inconnu ou supprimé), `contractTypeNotAllowed` (type réservé à une autre nature de client).
 
 ## À savoir
 

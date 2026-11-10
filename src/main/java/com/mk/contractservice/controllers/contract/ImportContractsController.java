@@ -46,7 +46,7 @@ public class ImportContractsController {
     )
     @ApiResponse(
             responseCode = "422",
-            description = "Nothing was created. Code contractImportRejected: the rejections property lists each " + "rejected line with its zero-based index, its clientId, its code (invalidContractCost, invalidContractPeriod, " + "clientNotFound) and a message. Code invalidImportSize: empty or too many lines. " + "Code validationError: missing field or wrong type, named as contracts[n].field",
+            description = "Nothing was created. Code contractImportRejected: the rejections property lists each " + "rejected line with its zero-based index, its clientId, its code (invalidContractCost, invalidContractPeriod, " + "clientNotFound, contractTypeNotAllowed) and a message. Code invalidImportSize: empty or too many lines. " + "Code validationError: missing field or wrong type, named as contracts[n].field",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
@@ -66,6 +66,7 @@ public class ImportContractsController {
                         .stream()
                         .map(line -> new ImportContracts.Line(
                                 line.clientId(),
+                                line.type(),
                                 line.startDate(),
                                 line.endDate(),
                                 line.costAmount()))

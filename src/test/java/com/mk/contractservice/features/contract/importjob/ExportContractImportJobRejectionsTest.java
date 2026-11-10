@@ -50,7 +50,7 @@ class ExportContractImportJobRejectionsTest {
     @Test
     @DisplayName("GIVEN rejections spread over several pages WHEN exporting THEN each comes with its original line, in file order")
     void shouldExportRejectionsWithTheirOriginalLines() {
-        final String file = "clientId;startDate;endDate;costAmount\n" + CLIENT_ID + ";;;100.00\n" + CLIENT_ID + ";;;-1\n" + "\n" + "garbage;\"quoted\"\n";
+        final String file = "clientId;type;startDate;endDate;costAmount\n" + CLIENT_ID + ";LAMAL;;;100.00\n" + CLIENT_ID + ";LAMAL;;;-1\n" + "\n" + "garbage;\"quoted\"\n";
         when(jobRepository.loadFile(JOB_ID)).thenReturn(file.getBytes(StandardCharsets.UTF_8));
         when(queryPort.findRejections(JOB_ID, PageRequest.of(0, PAGE_SIZE)))
                 .thenReturn(new PageImpl<>(List.of(rejected(3, ContractImportRejectionReason.INVALID_COST)),
@@ -72,7 +72,10 @@ class ExportContractImportJobRejectionsTest {
                         ExportContractImportJobRejections.RejectedLine::message,
                         ExportContractImportJobRejections.RejectedLine::line)
                 .containsExactly(
-                        tuple(3, ContractImportRejectionReason.INVALID_COST, "reason of line 3", CLIENT_ID + ";;;-1"),
+                        tuple(3,
+                                ContractImportRejectionReason.INVALID_COST,
+                                "reason of line 3",
+                                CLIENT_ID + ";LAMAL;;;-1"),
                         tuple(5,
                                 ContractImportRejectionReason.INVALID_LINE_FORMAT,
                                 "reason of line 5",

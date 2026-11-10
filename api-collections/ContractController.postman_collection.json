@@ -88,7 +88,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"costAmount\": 1500.50\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"type\": \"LAMAL\",\n  \"costAmount\": 1500.50\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/v2/contracts",
@@ -110,7 +110,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2025-12-31T23:59:59\",\n  \"costAmount\": 2500.00\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"type\": \"LAMAL\",\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2025-12-31T23:59:59\",\n  \"costAmount\": 2500.00\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/v2/contracts",
@@ -132,7 +132,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"type\": \"LAMAL\",\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/v2/contracts",
@@ -271,14 +271,14 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"contracts\": [\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"costAmount\": 1500.50\n    },\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"startDate\": \"2027-01-01T00:00:00\",\n      \"endDate\": \"2028-01-01T00:00:00\",\n      \"costAmount\": 900.00\n    }\n  ]\n}"
+          "raw": "{\n  \"contracts\": [\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"type\": \"LAMAL\",\n      \"costAmount\": 1500.50\n    },\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"type\": \"LAMAL\",\n      \"startDate\": \"2027-01-01T00:00:00\",\n      \"endDate\": \"2028-01-01T00:00:00\",\n      \"costAmount\": 900.00\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/v2/contracts/imports",
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts", "imports"]
         },
-        "description": "Import up to 1000 contracts, all or nothing (ADR-021). 201: {importedCount, contractIds} in the order of the lines; do not send it again, the contracts would be created twice. 422 contractImportRejected: nothing was created, the rejections property lists each problem with its zero-based index, clientId, code (invalidContractCost, invalidContractPeriod, clientNotFound) and message; fix the lines and send the whole import again. 422 invalidImportSize: no line or more than 1000. 422 validationError: missing or wrongly typed field, named contracts[n].field."
+        "description": "Import up to 1000 contracts, all or nothing (ADR-021). 201: {importedCount, contractIds} in the order of the lines; do not send it again, the contracts would be created twice. 422 contractImportRejected: nothing was created, the rejections property lists each problem with its zero-based index, clientId, code (invalidContractCost, invalidContractPeriod, clientNotFound, contractTypeNotAllowed) and message; fix the lines and send the whole import again. 422 invalidImportSize: no line or more than 1000. 422 validationError: missing or wrongly typed field, named contracts[n].field."
       }
     },
     {
@@ -307,7 +307,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts", "import-jobs"]
         },
-        "description": "Submit a CSV file for asynchronous, partial import (ADR-022). UTF-8, separator ';', first line clientId;startDate;endDate;costAmount, at most 500000 contracts and 50 MB. 202: Location header and job state; valid lines create their contract, the others are reported, so send only the rejected lines again. Idempotency-Key (optional, at most 255 characters, unique per counselor): the same key with the same file returns the first job; with another file, 422 idempotencyKeyReused; blank or too long, 400 invalidIdempotencyKey. 400 missingParameter: no file part. 413 importFileTooLarge: over 50 MB. 422 invalidImportFile: no data, wrong header, encoding other than UTF-8 or too many lines; nothing is stored."
+        "description": "Submit a CSV file for asynchronous, partial import (ADR-022). UTF-8, separator ';', first line clientId;type;startDate;endDate;costAmount (type: LAMAL, LAA or LPP), at most 500000 contracts and 50 MB. 202: Location header and job state; valid lines create their contract, the others are reported, so send only the rejected lines again. Idempotency-Key (optional, at most 255 characters, unique per counselor): the same key with the same file returns the first job; with another file, 422 idempotencyKeyReused; blank or too long, 400 invalidIdempotencyKey. 400 missingParameter: no file part. 413 importFileTooLarge: over 50 MB. 422 invalidImportFile: no data, wrong header, encoding other than UTF-8 or too many lines; nothing is stored."
       },
       "event": [
         {
@@ -350,7 +350,7 @@
             { "key": "size", "value": "20" }
           ]
         },
-        "description": "List the lines rejected so far, ordered by line number (ADR-022). lineNumber is the line in the file, the header being line 1. Codes: invalidLineFormat, invalidContractCost, invalidContractPeriod, clientNotFound. size: at most 100, otherwise 400 invalidParameter. 404 contractImportJobNotFound: unknown job."
+        "description": "List the lines rejected so far, ordered by line number (ADR-022). lineNumber is the line in the file, the header being line 1. Codes: invalidLineFormat, invalidContractCost, invalidContractPeriod, clientNotFound, contractTypeNotAllowed. size: at most 100, otherwise 400 invalidParameter. 404 contractImportJobNotFound: unknown job."
       }
     },
     {

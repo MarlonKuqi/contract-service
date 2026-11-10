@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.client;
 
+import com.mk.contractservice.domain.shared.ClientKind;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -55,6 +56,11 @@ public final class Person extends Client {
                 .phone(notNull(phone))
                 .birthDate(notNull(birthDate))
                 .build();
+    }
+
+    @Override
+    public ClientKind kind() {
+        return ClientKind.PERSON;
     }
 
     @Override

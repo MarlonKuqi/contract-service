@@ -14,6 +14,7 @@ public final class ContractImportCodes {
             case INVALID_COST -> "invalidContractCost";
             case INVALID_PERIOD -> "invalidContractPeriod";
             case CLIENT_NOT_FOUND -> "clientNotFound";
+            case TYPE_NOT_ALLOWED -> "contractTypeNotAllowed";
         };
     }
 

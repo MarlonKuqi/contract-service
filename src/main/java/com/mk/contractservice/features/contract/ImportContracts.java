@@ -1,9 +1,11 @@
 package com.mk.contractservice.features.contract;
 
+import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException.LineRejection;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
@@ -20,6 +22,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -31,12 +34,14 @@ public interface ImportContracts {
 
     record Line(
             UUID clientId,
+            ContractType type,
             @Nullable LocalDateTime startDate,
             @Nullable LocalDateTime endDate,
             BigDecimal costAmount
     ) {
         public Line {
             Objects.requireNonNull(clientId, "Client ID cannot be null");
+            Objects.requireNonNull(type, "Contract type cannot be null");
             Objects.requireNonNull(costAmount, "Cost amount cannot be null");
         }
     }
@@ -92,15 +97,17 @@ public interface ImportContracts {
             final List<Contract> contracts = new ArrayList<>(command.lines().size());
             final List<LineRejection> rejections = new ArrayList<>();
 
-            final Set<UUID> existingClientIds = clientRepository.findExistingIds(command.clientIds());
+            final Map<UUID, Client> clientsById = ContractImportLineEvaluator.indexById(
+                    clientRepository.findAllByIds(command.clientIds()));
 
             for (int index = 0; index < command.lines().size(); index++) {
                 final Line line = command.lines().get(index);
                 switch (ContractImportLineEvaluator.evaluate(line.clientId(),
+                        line.type(),
                         line.startDate(),
                         line.endDate(),
                         line.costAmount(),
-                        existingClientIds,
+                        clientsById,
                         now)) {
                     case Accepted(Contract contract) -> contracts.add(contract);
                     case Rejected(ContractImportRejectionReason reason, String message) -> rejections.add(

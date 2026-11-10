@@ -9,6 +9,7 @@ import java.util.UUID;
 public record ContractDetails(
         UUID id,
         @Nullable UUID clientId,
+        ContractType type,
         LocalDateTime startDate,
         @Nullable LocalDateTime endDate,
         boolean active,

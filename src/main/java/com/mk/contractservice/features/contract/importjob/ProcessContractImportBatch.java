@@ -1,5 +1,6 @@
 package com.mk.contractservice.features.contract.importjob;
 
+import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
@@ -23,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -72,12 +74,13 @@ public interface ProcessContractImportBatch {
             final LocalDateTime now = LocalDateTime.ofInstant(instant, clock.getZone());
             final UUID jobId = command.jobId();
             final ContractImportJob job = jobRepository.getById(jobId);
-            final Set<UUID> existingClientIds = clientRepository.lockExistingIds(command.clientIds());
+            final Map<UUID, Client> clientsById = ContractImportLineEvaluator.indexById(
+                    clientRepository.findAllByIds(clientRepository.lockExistingIds(command.clientIds())));
 
             final List<ImportedLine> imported = new ArrayList<>();
             final List<ContractImportJobLine> lines = new ArrayList<>(command.lines().size());
             for (final RawLine line : command.lines()) {
-                switch (evaluate(jobId, line, existingClientIds, now)) {
+                switch (evaluate(jobId, line, clientsById, now)) {
                     case ImportedLine importedLine -> imported.add(importedLine);
                     case RejectedLine(ContractImportJobLine rejectedLine) -> lines.add(rejectedLine);
                 }
@@ -102,7 +105,7 @@ public interface ProcessContractImportBatch {
         private static LineOutcome evaluate(
                 final UUID jobId,
                 final RawLine line,
-                final Set<UUID> existingClientIds,
+                final Map<UUID, Client> clientsById,
                 final LocalDateTime now
         ) {
             final int number = line.lineNumber();
@@ -118,10 +121,11 @@ public interface ProcessContractImportBatch {
             }
             return switch (ContractImportLineEvaluator.evaluate(
                     parsed.clientId(),
+                    parsed.type(),
                     parsed.startDate(),
                     parsed.endDate(),
                     parsed.costAmount(),
-                    existingClientIds,
+                    clientsById,
                     now)) {
                 case Accepted(Contract contract) -> new ImportedLine(number, contract);
                 case Rejected(ContractImportRejectionReason reason, String message) -> rejected(jobId,

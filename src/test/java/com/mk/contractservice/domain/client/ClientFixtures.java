@@ -40,6 +40,18 @@ public final class ClientFixtures {
         );
     }
 
+    public static Person existingPerson(final UUID id) {
+        return existingPerson(id,
+                "Alice Martin",
+                "alice.martin@example.com",
+                "+41791234567",
+                LocalDate.of(1990, 5, 14));
+    }
+
+    public static Company existingCompany(final UUID id) {
+        return existingCompany(id, "Acme SA", "contact@acme.example.com", "+41223456789", "CHE-123.456.789");
+    }
+
     public static Company newCompany(
             final String name,
             final String email,

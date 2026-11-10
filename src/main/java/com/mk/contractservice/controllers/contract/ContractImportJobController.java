@@ -69,7 +69,7 @@ public class ContractImportJobController {
 
     @Operation(
             summary = "Submit a CSV file of contracts for asynchronous import",
-            description = "UTF-8 file, separator ';', first line: " + ContractImportCsv.HEADER + ". Dates in ISO format, " + "decimals with a point, startDate and endDate can stay empty. At most " + ContractImportFile.MAX_LINES + " contracts and 50 MB. Valid lines create their contract, the others are reported: " + "a job can therefore end with some contracts imported and some lines rejected. " + "Follow the job through the Location header. Send an Idempotency-Key to submit again safely " + "after a timeout: the same key and the same file return the first job instead of importing twice."
+            description = "UTF-8 file, separator ';', first line: " + ContractImportCsv.HEADER + ". type is LAMAL, LAA or LPP, dates in ISO format, " + "decimals with a point, startDate and endDate can stay empty. At most " + ContractImportFile.MAX_LINES + " contracts and 50 MB. Valid lines create their contract, the others are reported: " + "a job can therefore end with some contracts imported and some lines rejected. " + "Follow the job through the Location header. Send an Idempotency-Key to submit again safely " + "after a timeout: the same key and the same file return the first job instead of importing twice."
     )
     @ApiResponse(
             responseCode = "202",

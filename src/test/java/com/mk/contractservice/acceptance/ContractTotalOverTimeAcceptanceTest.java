@@ -35,7 +35,8 @@ import static org.hamcrest.Matchers.equalTo;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@Import({TestcontainersConfiguration.class, ContractTotalOverTimeAcceptanceTest.MutableInstantSourceConfiguration.class})
+@Import({TestcontainersConfiguration.class,
+        ContractTotalOverTimeAcceptanceTest.MutableInstantSourceConfiguration.class})
 @DisplayName("Sum of active contracts over time - Acceptance Tests")
 class ContractTotalOverTimeAcceptanceTest {
 
@@ -110,6 +111,7 @@ class ContractTotalOverTimeAcceptanceTest {
         String payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": %s,
                     "costAmount": "%s"
@@ -117,14 +119,17 @@ class ContractTotalOverTimeAcceptanceTest {
                 """, testClient.id(), startDate, endDate == null ? "null" : "\"" + endDate + "\"", costAmount);
 
         given().body(payload)
-                .when().post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
     }
 
     private void assertTotal(final String expectedTotal) {
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        testClient.id())
                 .then()
                 .statusCode(200)
                 .body(equalTo(expectedTotal));

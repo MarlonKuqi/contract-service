@@ -26,7 +26,7 @@ class LoadContractImportJobFileTest {
     @Test
     @DisplayName("GIVEN a job with a stored file WHEN loading THEN the content of the file is returned")
     void shouldReturnStoredFile() {
-        final byte[] content = "clientId;startDate;endDate;costAmount\n".getBytes(StandardCharsets.UTF_8);
+        final byte[] content = "clientId;type;startDate;endDate;costAmount\n".getBytes(StandardCharsets.UTF_8);
         when(jobRepository.loadFile(JOB_ID)).thenReturn(content);
 
         final byte[] loaded = new LoadContractImportJobFile.Handler(jobRepository)

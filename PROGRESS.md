@@ -19,43 +19,40 @@ Suivi des sujets en cours. Les décisions sont détaillées dans [ADR.md](docs/A
 | Fermeture des contrats directement dans `DeleteClient` (plus d'événement de domaine) | `develop` (b96c762) | ADR-009 |
 | Contrôles « not found » portés par `ClientRepository`, seuls les vrais services de domaine restent (`CompanyIdentifierUniqueness`) | `develop` (ecc1199) | ADR-001 |
 | Version de l'application exposée dans l'OpenAPI | `develop` (1e762ec) | — |
-| UUID v7 générés par Hibernate et par défaut en base (`uuidv7()`) | `develop` (non commité) | ADR-012 |
-| Code mort : index `ix_client_type`, `InvalidClientException`, `InvalidContractException` | `develop` (non commité) | ADR-007 |
-| Collections Bruno / Postman alignées sur les contrôleurs, `Close Contract.bru` supprimée | `develop` (non commité) | — |
-| README racine (structure, soft delete, endpoints `/v2`), `docs/DDD/` supprimé | `develop` (non commité) | ADR-009 |
+| UUID v7 générés par Hibernate et par défaut en base (`uuidv7()`) | `develop` | ADR-012 |
+| Code mort : index `ix_client_type`, `InvalidClientException`, `InvalidContractException` | `develop` | ADR-007 |
+| Collections Bruno / Postman alignées sur les contrôleurs, `Close Contract.bru` supprimée | `develop` | — |
+| README racine (structure, soft delete, endpoints `/v2`), `docs/DDD/` supprimé | `develop` | ADR-009 |
 | Fuseau `Europe/Zurich` explicite (`app.time-zone`, converter JPA, `TZ` Docker) ; `hibernate.jdbc.time_zone` écarté (sans effet sur `LocalDateTime` en Hibernate 7) | `develop` (7b8b366) | ADR-013 |
-| Authentification des conseillers par Keycloak : rôle unique `counselor` par règles d'URL, audience vérifiée, rôles du realm uniquement, 401/403 en `ProblemDetail`, realm versionné, tests avec JWT signés localement | `feat/add-auth-keycloak` (non commité) | ADR-017 |
-| `ETag` / `If-Match` (étape 2 reprise) : ETag fort sur le `GET` unitaire (read models `ClientDetails` / `ContractDetails`), `If-Match` obligatoire sur `PUT`/`PATCH` client et `PATCH` du coût (`428` / `412`), `ensureVersion` dans les ports d'écriture, conflit au commit traduit en `412` sans réessai. Breaking change | `feat/etag-if-match` (non commité) | ADR-011 |
+| Authentification des conseillers par Keycloak : rôle unique `counselor` par règles d'URL, audience vérifiée, rôles du realm uniquement, 401/403 en `ProblemDetail`, realm versionné, tests avec JWT signés localement | `develop` (#78) | ADR-017 |
+| `ETag` / `If-Match` (étape 2 reprise) : ETag fort sur le `GET` unitaire (read models `ClientDetails` / `ContractDetails`), `If-Match` obligatoire sur `PUT`/`PATCH` client et `PATCH` du coût (`428` / `412`), `ensureVersion` dans les ports d'écriture, conflit au commit traduit en `412` sans réessai. Breaking change | `develop` (#82) | ADR-011 |
+| Accesseurs fluides Lombok (`lombok.config` racine), JavaBean conservé pour les entités JPA | `develop` (43bb8f6) | ADR-002 |
+| Types de contrats, incrément 1 : type obligatoire et immuable (`LAMAL`, `LAA`, `LPP`), éligibilité selon la nature du client, `type` dans l'API et les deux imports, migration `V2.0.0.10` | `develop` (non commité) | ADR-024 |
 
-## 1. Priorité haute
-
-- [ ] **Fichiers Keycloak non suivis à la racine** (`KEYCLOAK_QUICK_START.md`, `SECURITY_README.md`…) : les comparer au README et à l'ADR-017, puis les supprimer ou les fusionner.
-
-## 2. Priorité moyenne
+## 1. Priorité moyenne
 
 - [x] **ADR à mettre à jour** : ADR-012 passe en « Acceptée », retirer la ligne `ix_client_type` des conséquences de l'ADR-007.
 - [ ] **Docs utilisateur**
-  - Release notes 2.0.0 : fait, voir `docs/cli/RELEASE_NOTES_2.0.0.md`.
+  - Release notes 2.0.0 : à écrire dans `docs/cli/RELEASE_NOTES_2.0.0.md` (fichier absent de toutes les branches) :
+    - `type` obligatoire sur les contrats (`POST /v2/contracts`, imports JSON et CSV), éligibilité selon la nature du client (ADR-024) ;
     - plus de 409 sur email / téléphone ;
     - `DELETE` d'un client inconnu ou déjà supprimé : 404 ;
     - soft delete ;
     - plus de cache sur la somme ;
     - mise à jour avec une valeur identique : no-op (pas de changement de `lastModified`) ;
     - identifiants UUID v7 pour les nouveaux clients et contrats, PostgreSQL 18 requis.
-  - `docs-claude` : plus de 100 fichiers, dont certains se contredisent. Archiver ce qui est périmé et garder `../ADR.md` comme référence.
-  - Fichiers non suivis à la racine (`DOCUMENTATION_INDEX.md`, `GETTING_STARTED.md`, `IMPLEMENTATION_SUMMARY.md`, `KEYCLOAK_QUICK_START.md`, `SECURITY_README.md`, `START_HERE.md`, `scripts/`) : décider s'ils sont versionnés, déplacés ou supprimés. S'ils portent sur Keycloak, une ADR sécurité est nécessaire avant tout code.
+  - `docs-claude` : 56 fichiers suivis, dont certains se contredisent. Archiver ce qui est périmé et garder `docs/ADR.md` comme référence.
 
-## 3. Priorité basse
+## 2. Priorité basse
 
 - [ ] **Audit technique sur la `Clock`** : `created_at` (client, contrat) et `last_modified` (client) via l'audit Spring Data (`@EnableJpaAuditing(dateTimeProviderRef = ...)`) au lieu de `@CreationTimestamp` / `@UpdateTimestamp`.
 - [ ] **RGPD** : anonymiser les clients supprimés (nom, email, téléphone) après la durée légale de conservation, sans toucher aux contrats. Une ADR dédiée est nécessaire (durée, déclenchement, irréversibilité).
 - [ ] **`contract.client_id NOT NULL`** : vérifier en base qu'aucun contrat n'a de `client_id` à `NULL` (héritage des anciennes suppressions physiques), puis ajouter la migration.
 - [ ] **Tests et base réutilisée** : base Testcontainers dédiée par branche, ou `withReuse(false)` en CI, pour éviter les migrations « futures » ignorées par Flyway.
-- [ ] **Accesseurs fluides dans le domaine** : `lombok.accessors.fluent = true` dans un `lombok.config` placé sous `domain/` (`termination()` au lieu de `getTermination()`, même style que les records). Refactoring transverse de tous les appelants, à faire dans une PR dédiée avec une ADR. Ne pas l'appliquer à `infrastructure` (Hibernate, Spring, Jackson attendent les conventions JavaBean).
 
 ## CI/CD et `.github`
 
-Revue de `.github/` du 2026-11-07. Corrections appliquées sur `feat/pipeline` (non commité). GitHub ne lit les templates et `dependabot.yml` que sur la branche par défaut (`master`) : c'est pour ça que les templates ne s'affichaient pas. Ils ne s'appliqueront qu'une fois mergés dans `master`.
+Revue de `.github/` du 2026-11-07. Corrections mergées sur `develop` (#86). GitHub ne lit les templates et `dependabot.yml` que sur la branche par défaut (`master`) : c'est pour ça que les templates ne s'affichaient pas. Ils ne s'appliqueront qu'une fois mergés dans `master`.
 
 - [x] **Dependabot** : une entrée par écosystème pour `master` (ce qui tourne en prod), `develop` (la prochaine version) et `release/2.0.0`. `target-branch` n'accepte pas de joker : ajouter chaque nouvelle release à la main.
 - [x] **Image Docker** : construite sur les pushs vers `master`, `develop` et `release/**`, et à la demande sur une autre branche (`workflow_dispatch`, case « Build and scan the Docker image »). Plus de `continue-on-error` sur le job : un `docker build` cassé fait échouer la CI. Trivy reste informatif (`exit-code: '0'`). Cache des couches via Buildx (`type=gha`).
@@ -72,7 +69,7 @@ Revue de `.github/` du 2026-11-07. Corrections appliquées sur `feat/pipeline` (
 ### Reste à faire
 
 - [ ] **`mvnw` non exécutable dans git** (mode `100644`) : la CI l'appelle avec `sh mvnw`. Pour revenir à `./mvnw` : `git update-index --chmod=+x mvnw`.
-- [x] **Error Prone + NullAway** (ADR-023), sur `feat/pipeline` (non commité) : contrôles par défaut d'Error Prone, NullAway en erreur sur `src/main` (`AnnotatedPackages=com.mk.contractservice`, le `@NullMarked` du package racine ne couvrant pas les sous-packages), désactivé sur les tests, entités JPA exclues. `--add-exports` du compilateur dans `.mvn/jvm.config`.
+- [x] **Error Prone + NullAway** (ADR-023), sur `develop` (#86) : contrôles par défaut d'Error Prone, NullAway en erreur sur `src/main` (`AnnotatedPackages=com.mk.contractservice`, le `@NullMarked` du package racine ne couvrant pas les sous-packages), désactivé sur les tests, entités JPA exclues. `--add-exports` du compilateur dans `.mvn/jvm.config`.
   - `@NullMarked` dans un `package-info.java` de chacun des 22 packages, pour que l'IDE applique la même règle ; `ArchitectureTest.every_package_should_be_null_marked` refuse un package sans.
   - 39 erreurs corrigées : génériques `@Nullable` dans `ValueObjectUtils`, `@Nullable` manquants (fabrique de contrat, `ExpiredContractException`, `DomainValidationException`, `detail` du `ProblemDetail`, `clientId` de `ContractDetails` / `ContractResponse` tant que la colonne accepte `NULL`), `Objects.requireNonNull` sur l'id dans les mappers de réponse.
   - No-op des mises à jour : `updated.equals(loaded)` au lieu de `updated == loaded` (`PatchClient`, `UpdateClient`, `PatchContractCost`), règle mise à jour dans `CLAUDE.md` et l'ADR-002.
@@ -96,7 +93,7 @@ Revue de `.github/` du 2026-11-07. Corrections appliquées sur `feat/pipeline` (
 
 Sujets non exigés par `docs/sujet.txt` ni justifiés à l'échelle actuelle (une dizaine de conseillers). Ils servent à s'exercer : chaque ADR le dit explicitement plutôt que d'inventer un besoin.
 
-- [ ] **Types de contrats** : un type qui porte des règles, pas un enum décoratif. Éligibilité selon le type de client (LAMal pour une personne, LAA / LPP pour une entreprise), une seule LAMal active par personne (service de domaine), attributs propres au type (franchise LAMal), droit d'option des frontaliers. Migration, changement d'API et ADR.
+- [ ] **Types de contrats, suite** (incrément 1 fait, ADR-024) : une seule LAMal active par personne (service de domaine, concurrence à traiter), attributs propres au type (franchise LAMal, selon l'âge), droit d'option des frontaliers (demande une notion de résidence sur le client). Une migration et une mise à jour de l'ADR-024 par incrément.
 - [x] **Import en masse de contrats** (ADR-021) : `POST /v2/contracts/imports`, synchrone, JSON, tout ou rien avec rapport par ligne, 1000 lignes au plus. JDBC batching mesuré (`batch_size=50` : 20 lots au lieu de 1000 exécutions, environ 10 fois plus rapide ; `flush`/`clear` et `order_inserts` sans intérêt ici).
 - [x] **Import asynchrone de gros volumes** (ADR-022) : `POST /v2/contracts/import-jobs`, fichier CSV, import partiel, Spring Batch en chunks, worker `@Scheduled` avec `SKIP LOCKED`, bail et reprise après panne sans doublon (`JobOperator.recover`), remise en file à l'arrêt et sur erreur transitoire, raison d'échec exposée, verrou `FOR SHARE` sur les clients de chaque lot. Ajouts : `Idempotency-Key` à la soumission, auteur et liste des jobs, annulation qui ferme les contrats du job (un job `FAILED` n'est pas relancé : il est annulé, puis un fichier corrigé est soumis), export CSV des rejets avec la ligne d'origine.
 - [ ] **Transactional outbox et événements de domaine** : `ContractCreated`, `ContractCostChanged`, `ClientDeleted` écrits dans une table `outbox` dans la même transaction, publiés vers Kafka (Testcontainers). Livraison au moins une fois, consommateur idempotent, ordre par client, version de l'agrégat dans l'événement. Comparer polling `SKIP LOCKED`, Debezium et Spring Modulith dans l'ADR.

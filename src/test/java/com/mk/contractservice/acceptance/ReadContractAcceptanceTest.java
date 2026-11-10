@@ -167,6 +167,7 @@ class ReadContractAcceptanceTest {
                 .body(String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAMAL",
                             "startDate": "%s",
                             "endDate": "%s",
                             "costAmount": "1000.00"

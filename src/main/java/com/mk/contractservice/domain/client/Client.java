@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.client;
 
+import com.mk.contractservice.domain.shared.ClientKind;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
@@ -29,6 +30,8 @@ public abstract sealed class Client permits Person, Company {
         this.email = notNull(email);
         this.phone = notNull(phone);
     }
+
+    public abstract ClientKind kind();
 
     public boolean hasName(final ClientName otherName) {
         return name.equals(otherName);

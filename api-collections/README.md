@@ -31,7 +31,7 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 ### 2️⃣ ContractController
 **Fichier** : `ContractController.postman_collection.json`  
 **Endpoints** :
-- `POST /v2/contracts` - Create contract (`clientId` in the body)
+- `POST /v2/contracts` - Create contract (`clientId` and `type` in the body: `LAMAL` for a person, `LAA` or `LPP` for a company)
 - `GET /v2/contracts?clientId={clientId}` - List active contracts (paginated)
 - `GET /v2/contracts?clientId={clientId}&updatedSince=...` - Filter by update date
 - `GET /v2/contracts/export` - Export active contracts of all clients (cursor)

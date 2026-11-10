@@ -1,6 +1,8 @@
 package com.mk.contractservice.domain.contract;
 
+import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
+import com.mk.contractservice.domain.shared.ClientKind;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -18,6 +20,7 @@ public class Contract {
 
     private final @Nullable UUID id;
     private final @Nullable UUID clientId;
+    private final ContractType type;
     private final ContractPeriod period;
     private final ContractCost costAmount;
     private final LocalDateTime lastModified;
@@ -26,12 +29,14 @@ public class Contract {
     private Contract(
             @Nullable final UUID id,
             @Nullable final UUID clientId,
+            @Nullable final ContractType type,
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount,
             @Nullable final LocalDateTime lastModified
     ) {
         this.id = id;
         this.clientId = notNull(clientId);
+        this.type = notNull(type);
         this.period = notNull(period);
         this.costAmount = notNull(costAmount);
         this.lastModified = notNull(lastModified);
@@ -39,12 +44,20 @@ public class Contract {
 
     public static Contract of(
             @Nullable final UUID clientId,
+            @Nullable final ClientKind clientKind,
+            @Nullable final ContractType type,
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount,
             @Nullable final LocalDateTime now
     ) {
+        final ClientKind ownerKind = notNull(clientKind);
+        final ContractType contractType = notNull(type);
+        if (contractType.isClosedTo(ownerKind)) {
+            throw new ContractTypeNotAllowedException(contractType, ownerKind);
+        }
         return builder()
                 .clientId(notNull(clientId))
+                .type(contractType)
                 .period(notNull(period))
                 .costAmount(notNull(costAmount))
                 .lastModified(notNull(now))
@@ -54,6 +67,7 @@ public class Contract {
     public static Contract reconstituteFromDatabase(
             @Nullable final UUID id,
             @Nullable final UUID clientId,
+            @Nullable final ContractType type,
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount,
             @Nullable final LocalDateTime lastModified
@@ -61,6 +75,7 @@ public class Contract {
         return builder()
                 .id(notNull(id))
                 .clientId(notNull(clientId))
+                .type(notNull(type))
                 .period(notNull(period))
                 .costAmount(notNull(costAmount))
                 .lastModified(notNull(lastModified))

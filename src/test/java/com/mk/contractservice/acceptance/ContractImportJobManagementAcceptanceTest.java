@@ -60,7 +60,7 @@ import static org.mockito.Mockito.doAnswer;
 @DisplayName("Feature: A counselor follows, cancels and fixes the asynchronous import jobs")
 class ContractImportJobManagementAcceptanceTest {
 
-    private static final String HEADER = "clientId;startDate;endDate;costAmount\n";
+    private static final String HEADER = "clientId;type;startDate;endDate;costAmount\n";
     private static final String MULTIPART = "multipart/form-data";
     private static final String IDEMPOTENCY_KEY = "Idempotency-Key";
     private static final String JOB_PATH = CONTRACT_IMPORT_JOBS + "/{jobId}";
@@ -124,7 +124,7 @@ class ContractImportJobManagementAcceptanceTest {
     private String fileOf(final List<String> costs) {
         final StringBuilder file = new StringBuilder(HEADER);
         for (final String cost : costs) {
-            file.append(clientId).append(";;;").append(cost).append('\n');
+            file.append(clientId).append(";LAMAL;;;").append(cost).append('\n');
         }
         return file.toString();
     }
@@ -357,7 +357,7 @@ class ContractImportJobManagementAcceptanceTest {
         "GIVEN rejected lines WHEN the counselor downloads them THEN each comes with its code, its reason and its original line")
     void shouldExportRejectedLinesAsCsv() {
         final String jobId = submitAccepted(
-                HEADER + clientId + ";;;100.00\n" + clientId + ";;;-1\n" + "garbage \"quoted\"\n");
+                HEADER + clientId + ";LAMAL;;;100.00\n" + clientId + ";LAMAL;;;-1\n" + "garbage \"quoted\"\n");
         runNextJob();
 
         final String csv = given().when()
@@ -372,7 +372,7 @@ class ContractImportJobManagementAcceptanceTest {
         final List<String> lines = csv.lines().toList();
         assertThat(lines).hasSize(3);
         assertThat(lines.get(0)).isEqualTo(ContractImportRejectionCsv.HEADER);
-        assertThat(lines.get(1)).startsWith("3;invalidContractCost;\"").endsWith(";\"" + clientId + ";;;-1\"");
+        assertThat(lines.get(1)).startsWith("3;invalidContractCost;\"").endsWith(";\"" + clientId + ";LAMAL;;;-1\"");
         assertThat(lines.get(2)).startsWith("4;invalidLineFormat;\"").endsWith(";\"garbage \"\"quoted\"\"\"");
     }
 

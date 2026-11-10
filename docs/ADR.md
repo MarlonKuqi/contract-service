@@ -19,6 +19,7 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 - [ADR-003 — Le domaine reçoit le temps, il ne le lit jamais](#adr-003--le-domaine-reçoit-le-temps-il-ne-le-lit-jamais)
 - [ADR-004 — Définition d'un contrat actif](#adr-004--définition-dun-contrat-actif)
 - [ADR-005 — `lastModified` est une donnée du domaine](#adr-005--lastmodified-est-une-donnée-du-domaine)
+- [ADR-024 — Types de contrats : un type obligatoire qui porte l'éligibilité](#adr-024--types-de-contrats--un-type-obligatoire-qui-porte-léligibilité)
 
 **Persistance et données**
 - [ADR-006 — PostgreSQL + Flyway, migrations immuables](#adr-006--postgresql--flyway-migrations-immuables)
@@ -630,7 +631,7 @@ Un contrat n'a pas de clé naturelle : deux contrats identiques pour un même cl
   - `422 invalidImportSize` : aucune ligne, ou plus de `ImportContracts.MAX_LINES` (1000) ;
   - `422 validationError` : champ manquant ou mal typé, nommé `contracts[n].champ`.
 - **Syntaxe, puis règles.** Comme ailleurs (ADR-002), le DTO vérifie la syntaxe et s'arrête là : une erreur de syntaxe sur une ligne empêche d'évaluer les règles métier de toutes les autres. Une valeur mal typée interrompt le parsing JSON : seule la première est signalée.
-- **Un seul rejet par ligne, le client d'abord.** Une ligne dont le client est inconnu est rejetée sans construire le contrat : le conseiller sait qu'il doit d'abord créer ce client, et le contenu de la ligne sera évalué au renvoi. L'ordre diffère de `CreateContract`, qui valide le contrat avant de chercher le client : à l'échelle d'un import, signaler d'abord le client manquant donne la correction la plus utile. De même, la construction du contrat s'arrête à la première règle violée : une ligne dont la période et le coût sont invalides ne signale que la période. Une correction peut donc faire apparaître un nouveau rejet sur la même ligne. Cet ordre (client, période, coût) est porté par `ContractImportLineEvaluator` et vérifié par `ContractImportLineEvaluatorTest` : l'import par fichier (ADR-022) l'applique à l'identique, après son contrôle de format.
+- **Un seul rejet par ligne, le client d'abord.** Une ligne dont le client est inconnu est rejetée sans construire le contrat : le conseiller sait qu'il doit d'abord créer ce client, et le contenu de la ligne sera évalué au renvoi. L'ordre diffère de `CreateContract`, qui valide le contrat avant de chercher le client : à l'échelle d'un import, signaler d'abord le client manquant donne la correction la plus utile. De même, la construction du contrat s'arrête à la première règle violée : une ligne dont la période et le coût sont invalides ne signale que la période. Une correction peut donc faire apparaître un nouveau rejet sur la même ligne. Cet ordre (client, période, coût, puis type depuis l'ADR-024) est porté par `ContractImportLineEvaluator` et vérifié par `ContractImportLineEvaluatorTest` : l'import par fichier (ADR-022) l'applique à l'identique, après son contrôle de format.
 - **L'import ne crée pas les clients manquants.** La ligne ne porte que `clientId`, alors que créer un client demande son type, son nom, son email, son téléphone et sa date de naissance ou son identifiant d'entreprise, que seul le conseiller peut fournir. De plus, l'identifiant est généré par le serveur : après `POST /v2/clients`, le conseiller remplace `clientId` dans la ligne par l'identifiant renvoyé. Enfin, `clientNotFound` couvre aussi un client supprimé (ADR-009), qu'il ne faut pas recréer sans décision du conseiller.
 - **« Always valid » conservé** : chaque contrat passe par `Contract.of`. `ContractImportLineEvaluator` (`features/shared`), partagé avec l'import par fichier (ADR-022), vérifie le client puis traduit les exceptions du domaine en rejets (`ContractImportRejectionReason`), sans ajouter de règle métier. Il porte une seule politique applicative : l'ordre des contrôles, le client d'abord (voir plus haut).
 - **Codes de l'API hors du domaine.** `ContractImportRejectionReason` et `ContractImportFailureReason` ne portent que le motif. `ContractImportCodes` (`controllers/contract/shared`) les traduit en codes (`invalidContractCost`…), dans un `switch` exhaustif : un nouveau motif ne compile pas tant qu'il n'a pas de code. Les rejets de la réponse `422` sont un record (`ContractImportLineRejectionResponse`), documenté dans OpenAPI, et non une `Map`.
@@ -709,7 +710,7 @@ choisit explicitement l'un ou l'autre endpoint, sans bascule automatique selon l
 - **Un seul contrôleur.** `ContractImportJobController` porte les six endpoints, par exception à la règle « un
   contrôleur par endpoint » : ils forment une seule ressource et partagent ses erreurs.
 - **Format CSV.** UTF-8, BOM toléré, séparateur `;` (celui d'Excel en Suisse et en France), en-tête obligatoire
-  `clientId;startDate;endDate;costAmount`. Dates ISO, décimales avec un point, `startDate` et `endDate` vides autorisés.
+  `clientId;type;startDate;endDate;costAmount` (colonne `type` ajoutée par l'ADR-024). Dates ISO, décimales avec un point, `startDate` et `endDate` vides autorisés.
   Pas de guillemets : aucune valeur ne contient le séparateur. Un simple `split` suffit donc, sans dépendance.
 - **Contrôles à la soumission.** Fichier vide, en-tête incorrect, encodage invalide ou plus de `MAX_LINES` (500 000)
   lignes de données : `422 invalidImportFile`, rien n'est enregistré. Plus de 50 Mo : `413 importFileTooLarge`.
@@ -899,5 +900,36 @@ Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des 
 - Les inférences de génériques de NullAway restent limitées : `ContractPeriod.of` donne ses arguments de type explicitement à `ValueObjectUtils.validateAndCreate`.
 - Error Prone se met à jour avec le JDK ; une nouvelle version de Java peut demander une nouvelle version d'Error Prone avant de compiler.
 - IntelliJ compile avec les arguments du `pom.xml` : si sa compilation échoue sur `-Xplugin:ErrorProne`, déléguer le build à Maven (*Build Tools → Maven → Runner → Delegate IDE build/run actions to Maven*).
+
+**Statut.** Acceptée.
+
+---
+
+## ADR-024 — Types de contrats : un type obligatoire qui porte l'éligibilité
+
+**Contexte.** Un contrat n'avait ni nature ni règle liée à son souscripteur : un conseiller pouvait créer n'importe quel contrat pour n'importe quel client. Le sujet (`docs/sujet.txt`) ne demande pas de type : ce sujet sert à s'exercer (voir `PROGRESS.md`), et il est livré par incréments. Cette ADR couvre le premier : le type et l'éligibilité selon la nature du client.
+
+**Décision.**
+- **Trois types, portés par une enum du domaine** (`ContractType`) : `LAMAL` (assurance-maladie obligatoire), `LAA` (assurance-accidents) et `LPP` (prévoyance professionnelle). Le type est obligatoire à la création et immuable (`updatable = false`, aucune méthode `change*`).
+- **Le type porte la règle d'éligibilité** (`ContractType.isClosedTo`) : la LAMal est souscrite par une personne, la LAA et la LPP par une entreprise, en tant qu'employeur. Ce n'est pas un libellé décoratif.
+- **La règle est vérifiée par `Contract.of`**, qui reçoit l'identifiant du client et sa nature (`ClientKind`), en plus du type. Aucun contrat ne peut exister avec un type interdit à son souscripteur (ADR-002), quel que soit le point d'entrée : création unitaire, import JSON (ADR-021), import par fichier (ADR-022). `reconstituteFromDatabase` ne revérifie pas : la donnée est de confiance, et la nature du client est immuable.
+- **Les agrégats restent indépendants.** `ArchitectureTest` interdit à `domain.contract` de dépendre de `domain.client` : le contrat ne reçoit donc pas le `Client`, seulement `ClientKind` (`PERSON`, `COMPANY`), placé dans `domain/shared` comme `ClientNotFoundException`. `Client.kind()` l'expose ; ce sont les use cases qui chargent le client et transmettent sa nature.
+- **Refus** : `ContractTypeNotAllowedException` (une `ContractValidationException`), traduite en `422 contractTypeNotAllowed` à la création et en rejet de ligne `TYPE_NOT_ALLOWED` dans les deux imports.
+- **Ordre des contrôles** : forme des valeurs d'abord (période, coût), existence du client ensuite, éligibilité en dernier. Dans les imports, l'ordre de l'ADR-021 devient : client, période, coût, type.
+- **API.** `type` est requis dans `POST /v2/contracts` et dans chaque ligne de `POST /v2/contracts/imports` ; il est renvoyé par toutes les lectures de contrats. L'en-tête CSV devient `clientId;type;startDate;endDate;costAmount`. Un type absent ou inconnu est une erreur de forme : `422 validationError` en JSON, `invalidLineFormat` en CSV, comme un UUID ou un montant illisible.
+- **Persistance.** Migration `V2.0.0.10` : colonne `contract.type VARCHAR(16) NOT NULL`, contrainte `CHECK (type IN ('LAMAL', 'LAA', 'LPP'))`, sans valeur par défaut. Hypothèse retenue : aucun contrat n'existe en base avant cette migration. Sur une base non vide, la migration échoue au lieu d'inventer un type.
+- **Ports.** `ClientRepository.findExistingIds` est remplacé par `findAllByIds`, qui renvoie les clients : les imports ont besoin de leur nature, pas seulement de leur existence. L'import par fichier garde son verrou `FOR SHARE` (`lockExistingIds`), puis charge les clients verrouillés.
+
+**Alternatives écartées.**
+- **Type optionnel ou valeur `UNSPECIFIED`** : un contrat sans type contournerait l'éligibilité. Sans contrat existant, rien ne justifie cette valeur.
+- **`Contract.of(Client, …)`** : plus direct, mais il couple les deux agrégats et casse la règle ArchUnit.
+- **Règle dans les handlers** : elle serait à répéter dans trois use cases, et un quatrième pourrait l'oublier.
+- **Service de domaine dédié** : la règle ne demande aucune donnée supplémentaire, le type sait à qui il s'adresse. Un service de domaine deviendra nécessaire pour « une seule LAMal active par personne », qui doit interroger les contrats existants.
+- **Type `sealed` avec attributs propres** : prématuré tant qu'aucun type ne porte d'attribut. À reconsidérer avec la franchise LAMal.
+
+**Conséquences.**
+- Changement cassant pour les appelants, sans impact sur une version publiée : la 2.0.0 n'est pas encore taguée. À mentionner dans ses release notes.
+- Charger les clients d'un import (1000 lignes au plus en JSON, un chunk en CSV) coûte une requête avec jointures au lieu d'une requête sur les identifiants : acceptable à ce volume.
+- Hors périmètre, à traiter dans des incréments suivants : une seule LAMal active par personne, franchise LAMal, droit d'option des frontaliers (demande une notion de résidence sur le client).
 
 **Statut.** Acceptée.

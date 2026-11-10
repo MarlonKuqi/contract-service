@@ -1,9 +1,12 @@
 package com.mk.contractservice.features.contract;
 
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.contract.ContractType;
+import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,7 +27,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,6 +35,8 @@ import static org.mockito.Mockito.when;
 @DisplayName("CreateContract Handler")
 class CreateContractTest {
 
+    private static final BigDecimal COST = new BigDecimal("1000.00");
+
     @Mock
     private ClientRepository clientRepository;
 
@@ -40,6 +44,8 @@ class CreateContractTest {
     private ContractRepository contractRepository;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-15T10:00:00Z"), ZoneId.of("Europe/Zurich"));
+    private final LocalDateTime now = LocalDateTime.now(clock);
+    private final UUID clientId = UUID.randomUUID();
 
     private CreateContract.Handler createContractHandler;
 
@@ -48,54 +54,60 @@ class CreateContractTest {
         createContractHandler = new CreateContract.Handler(clientRepository, contractRepository, clock);
     }
 
+    private CreateContract.Command commandOf(final ContractType type, final BigDecimal cost) {
+        return new CreateContract.Command(clientId, type, now, now.plusMonths(12), cost);
+    }
+
     @Test
-    @DisplayName("GIVEN client existant WHEN execute THEN sauvegarde et retourne le contrat créé")
+    @DisplayName("GIVEN une personne WHEN elle souscrit une LAMal THEN sauvegarde et retourne le contrat créé")
     void shouldSaveAndReturnCreatedContract() {
-        // Given
-        UUID clientId = UUID.randomUUID();
-        LocalDateTime now = LocalDateTime.now(clock);
-        CreateContract.Command command = new CreateContract.Command(
-                clientId,
-                now,
-                now.plusMonths(12),
-                new BigDecimal("1000.00")
-        );
+        when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId));
         Contract saved = ContractFixtures.existingContract(UUID.randomUUID(),
                 clientId,
                 now,
                 now.plusMonths(12),
-                new BigDecimal("1000.00"),
+                COST,
                 now);
         when(contractRepository.save(any(Contract.class))).thenReturn(saved);
 
-        // When
-        Contract result = createContractHandler.execute(command);
+        Contract result = createContractHandler.execute(commandOf(ContractType.LAMAL, COST));
 
-        // Then
         assertThat(result).isSameAs(saved);
         ArgumentCaptor<Contract> captor = ArgumentCaptor.forClass(Contract.class);
         verify(contractRepository).save(captor.capture());
         assertThat(captor.getValue().clientId()).isEqualTo(clientId);
+        assertThat(captor.getValue().type()).isEqualTo(ContractType.LAMAL);
         assertThat(captor.getValue().lastModified()).isEqualTo(now);
+    }
+
+    @Test
+    @DisplayName("GIVEN une entreprise WHEN elle souscrit une LPP THEN le contrat créé porte ce type")
+    void shouldCreateLppContractForCompany() {
+        when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingCompany(clientId));
+        when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Contract result = createContractHandler.execute(commandOf(ContractType.LPP, COST));
+
+        assertThat(result.type()).isEqualTo(ContractType.LPP);
+    }
+
+    @Test
+    @DisplayName("GIVEN une entreprise WHEN elle souscrit une LAMal THEN refuse sans créer de contrat")
+    void shouldRefuseTypeNotAllowedForClient() {
+        when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingCompany(clientId));
+        CreateContract.Command command = commandOf(ContractType.LAMAL, COST);
+
+        assertThatThrownBy(() -> createContractHandler.execute(command))
+                .isInstanceOf(ContractTypeNotAllowedException.class);
+        verify(contractRepository, never()).save(any(Contract.class));
     }
 
     @Test
     @DisplayName("GIVEN client inexistant WHEN execute THEN lève ClientNotFoundException sans créer de contrat")
     void shouldThrowExceptionWhenClientNotFound() {
-        // Given
-        UUID nonExistentClientId = UUID.randomUUID();
-        LocalDateTime now = LocalDateTime.now(clock);
-        CreateContract.Command command = new CreateContract.Command(
-                nonExistentClientId,
-                now,
-                now.plusMonths(12),
-                new BigDecimal("1000.00")
-        );
+        when(clientRepository.getById(clientId)).thenThrow(ClientNotFoundException.forId(clientId));
+        CreateContract.Command command = commandOf(ContractType.LAMAL, COST);
 
-        doThrow(ClientNotFoundException.forId(nonExistentClientId)).when(clientRepository)
-                .ensureExists(nonExistentClientId);
-
-        // When & Then
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(ClientNotFoundException.class);
         verify(contractRepository, never()).save(any(Contract.class));
@@ -104,17 +116,18 @@ class CreateContractTest {
     @Test
     @DisplayName("GIVEN coût invalide WHEN execute THEN lève InvalidContractCostException sans interroger les clients")
     void shouldValidateContractBeforeCheckingClientExistence() {
-        LocalDateTime now = LocalDateTime.now(clock);
-        CreateContract.Command command = new CreateContract.Command(
-                UUID.randomUUID(),
-                now,
-                now.plusMonths(12),
-                new BigDecimal("-1000.00")
-        );
+        CreateContract.Command command = commandOf(ContractType.LAMAL, new BigDecimal("-1000.00"));
 
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(InvalidContractCostException.class);
-        verify(clientRepository, never()).ensureExists(any(UUID.class));
+        verify(clientRepository, never()).getById(any(UUID.class));
         verify(contractRepository, never()).save(any(Contract.class));
+    }
+
+    @Test
+    @DisplayName("GIVEN aucun type de contrat WHEN création de la commande THEN refuse la commande")
+    void shouldRefuseCommandWithoutType() {
+        assertThatThrownBy(() -> commandOf(null, COST))
+                .isInstanceOf(NullPointerException.class);
     }
 }

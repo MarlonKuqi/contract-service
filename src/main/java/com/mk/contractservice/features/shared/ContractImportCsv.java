@@ -1,5 +1,6 @@
 package com.mk.contractservice.features.shared;
 
+import com.mk.contractservice.domain.contract.ContractType;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -14,6 +15,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.Map;
@@ -26,18 +28,19 @@ import java.util.UUID;
 public final class ContractImportCsv {
 
     public static final String SEPARATOR = ";";
-    public static final String HEADER = "clientId" + SEPARATOR + "startDate" + SEPARATOR + "endDate" + SEPARATOR + "costAmount";
+    public static final String HEADER = "clientId" + SEPARATOR + "type" + SEPARATOR + "startDate" + SEPARATOR + "endDate" + SEPARATOR + "costAmount";
 
     private static final String BYTE_ORDER_MARK = "\uFEFF";
-    private static final int COLUMNS = 4;
+    private static final int COLUMNS = 5;
     private static final char NUL = '\0';
 
     public record RawLine(int lineNumber, String raw) {
 
         private static final int CLIENT_ID = 0;
-        private static final int START_DATE = 1;
-        private static final int END_DATE = 2;
-        private static final int COST_AMOUNT = 3;
+        private static final int TYPE = 1;
+        private static final int START_DATE = 2;
+        private static final int END_DATE = 3;
+        private static final int COST_AMOUNT = 4;
 
         public Optional<UUID> clientIdIfReadable() {
             try {
@@ -52,6 +55,7 @@ public final class ContractImportCsv {
             try {
                 return new ParsedLine(
                         UUID.fromString(columns[CLIENT_ID]),
+                        typeOf(columns[TYPE]),
                         optionalDate(columns[START_DATE]),
                         optionalDate(columns[END_DATE]),
                         new BigDecimal(columns[COST_AMOUNT])
@@ -77,6 +81,15 @@ public final class ContractImportCsv {
             return raw.split(SEPARATOR, -1);
         }
 
+        private static ContractType typeOf(final String value) {
+            try {
+                return ContractType.valueOf(value);
+            } catch (final IllegalArgumentException _) {
+                throw new MalformedLineException("Unknown contract type: '" + value + "'. Expected one of: " + Arrays
+                        .toString(ContractType.values()));
+            }
+        }
+
         private static @Nullable LocalDateTime optionalDate(final String value) {
             return value.isEmpty() ? null : LocalDateTime.parse(value);
         }
@@ -84,6 +97,7 @@ public final class ContractImportCsv {
 
     public record ParsedLine(
             UUID clientId,
+            ContractType type,
             @Nullable LocalDateTime startDate,
             @Nullable LocalDateTime endDate,
             BigDecimal costAmount

@@ -92,6 +92,7 @@ class ClientDeletionAcceptanceTest {
         String contract1Payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": null,
                     "costAmount": "1000.00"
@@ -111,6 +112,7 @@ class ClientDeletionAcceptanceTest {
         String contract2Payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "2000.00"
@@ -130,6 +132,7 @@ class ClientDeletionAcceptanceTest {
         String contract3Payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "3000.00"
@@ -283,6 +286,7 @@ class ClientDeletionAcceptanceTest {
         String expiredContract1 = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "1000.00"
@@ -292,6 +296,7 @@ class ClientDeletionAcceptanceTest {
         String expiredContract2 = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "2000.00"
@@ -393,6 +398,7 @@ class ClientDeletionAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "5000.00"
@@ -499,6 +505,7 @@ class ClientDeletionAcceptanceTest {
                 .body("""
                         {
                             "clientId": "%s",
+                            "type": "LAMAL",
                             "costAmount": "100.00"
                         }
                         """.formatted(clientId))
@@ -571,6 +578,7 @@ class ClientDeletionAcceptanceTest {
                 .body("""
                         {
                             "clientId": "%s",
+                            "type": "LAMAL",
                             "startDate": "%s",
                             "costAmount": "100.00"
                         }

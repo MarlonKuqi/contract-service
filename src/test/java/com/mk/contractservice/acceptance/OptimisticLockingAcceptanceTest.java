@@ -76,7 +76,8 @@ class OptimisticLockingAcceptanceTest {
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
         clientETag = currentClientETag();
     }
 
@@ -319,6 +320,7 @@ class OptimisticLockingAcceptanceTest {
                     .body("""
                             {
                                 "clientId": "%s",
+                                "type": "LAMAL",
                                 "startDate": "2025-01-01T00:00:00",
                                 "costAmount": "1000.00"
                             }
@@ -326,7 +328,8 @@ class OptimisticLockingAcceptanceTest {
                     .post(ContractEndpoints.CONTRACTS_BASE)
                     .then()
                     .statusCode(201)
-                    .extract().path("id");
+                    .extract()
+                    .path("id");
             contractETag = currentContractETag();
         }
 
@@ -421,7 +424,8 @@ class OptimisticLockingAcceptanceTest {
                     .statusCode(412);
 
             assertCost(1000.00f);
-            assertThat(contractJpaRepository.findById(UUID.fromString(contractId)).orElseThrow().getEndDate()).isNotNull();
+            assertThat(contractJpaRepository.findById(UUID.fromString(contractId)).orElseThrow().getEndDate())
+                    .isNotNull();
         }
 
         @Test
@@ -442,7 +446,8 @@ class OptimisticLockingAcceptanceTest {
                     .get(ContractEndpoints.CONTRACT_BY_ID, contractId)
                     .then()
                     .statusCode(200)
-                    .extract().header(HttpHeaders.ETAG);
+                    .extract()
+                    .header(HttpHeaders.ETAG);
         }
 
         private void assertCost(final float expectedCost) {
@@ -459,7 +464,8 @@ class OptimisticLockingAcceptanceTest {
                 .get(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(200)
-                .extract().header(HttpHeaders.ETAG);
+                .extract()
+                .header(HttpHeaders.ETAG);
     }
 
     private void makeClientETagStale() {

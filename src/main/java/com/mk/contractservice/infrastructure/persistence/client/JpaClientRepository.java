@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -65,8 +66,8 @@ public class JpaClientRepository implements ClientRepository {
     }
 
     @Override
-    public Set<UUID> findExistingIds(final Set<UUID> ids) {
-        return jpa.findExistingIds(ids);
+    public List<Client> findAllByIds(final Set<UUID> ids) {
+        return ids.isEmpty() ? List.of() : jpa.findAllById(ids).stream().map(ClientJpaMapper::toDomain).toList();
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.mk.contractservice.features.contract.importjob;
 
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
@@ -87,17 +88,21 @@ class ProcessContractImportBatchTest {
     @DisplayName("GIVEN mixed lines WHEN processing THEN valid lines create contracts and the others are rejected")
     void shouldImportValidLinesAndRejectOthers() {
         final UUID contractId = UUID.randomUUID();
-        when(jobRepository.getById(JOB_ID)).thenReturn(runningJob(5));
+        when(jobRepository.getById(JOB_ID)).thenReturn(runningJob(7));
         when(clientRepository.lockExistingIds(Set.of(CLIENT_ID, UNKNOWN_CLIENT_ID))).thenReturn(Set.of(CLIENT_ID));
+        when(clientRepository.findAllByIds(Set.of(CLIENT_ID))).thenReturn(List.of(ClientFixtures.existingPerson(
+                CLIENT_ID)));
         when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(contractId)));
 
         handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
                 List.of(
-                        new RawLine(2, CLIENT_ID + ";;;100.00"),
-                        new RawLine(3, CLIENT_ID + ";;;-1"),
-                        new RawLine(4, UNKNOWN_CLIENT_ID + ";;;100.00"),
+                        new RawLine(2, CLIENT_ID + ";LAMAL;;;100.00"),
+                        new RawLine(3, CLIENT_ID + ";LAMAL;;;-1"),
+                        new RawLine(4, UNKNOWN_CLIENT_ID + ";LAMAL;;;100.00"),
                         new RawLine(5, "garbage"),
-                        new RawLine(6, CLIENT_ID + ";2026-01-01T00:00:00;2025-01-01T00:00:00;100.00")
+                        new RawLine(6, CLIENT_ID + ";LAMAL;2026-01-01T00:00:00;2025-01-01T00:00:00;100.00"),
+                        new RawLine(7, CLIENT_ID + ";LAA;;;100.00"),
+                        new RawLine(8, CLIENT_ID + ";CASCO;;;100.00")
                 )));
 
         verify(jobRepository).saveLines(linesCaptor.capture());
@@ -108,7 +113,9 @@ class ProcessContractImportBatchTest {
                         tuple(3, CLIENT_ID, ContractImportRejectionReason.INVALID_COST),
                         tuple(4, UNKNOWN_CLIENT_ID, ContractImportRejectionReason.CLIENT_NOT_FOUND),
                         tuple(5, null, ContractImportRejectionReason.INVALID_LINE_FORMAT),
-                        tuple(6, CLIENT_ID, ContractImportRejectionReason.INVALID_PERIOD)
+                        tuple(6, CLIENT_ID, ContractImportRejectionReason.INVALID_PERIOD),
+                        tuple(7, CLIENT_ID, ContractImportRejectionReason.TYPE_NOT_ALLOWED),
+                        tuple(8, CLIENT_ID, ContractImportRejectionReason.INVALID_LINE_FORMAT)
                 );
     }
 
@@ -120,14 +127,16 @@ class ProcessContractImportBatchTest {
         final UUID secondContractId = UUID.randomUUID();
         when(jobRepository.getById(JOB_ID)).thenReturn(runningJob(3));
         when(clientRepository.lockExistingIds(Set.of(CLIENT_ID))).thenReturn(Set.of(CLIENT_ID));
+        when(clientRepository.findAllByIds(Set.of(CLIENT_ID))).thenReturn(List.of(ClientFixtures.existingPerson(
+                CLIENT_ID)));
         when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(firstContractId),
                 persisted(secondContractId)));
 
         handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
                 List.of(
-                        new RawLine(2, CLIENT_ID + ";;;100.00"),
-                        new RawLine(3, CLIENT_ID + ";;;-1"),
-                        new RawLine(4, CLIENT_ID + ";;;200.00")
+                        new RawLine(2, CLIENT_ID + ";LAMAL;;;100.00"),
+                        new RawLine(3, CLIENT_ID + ";LAMAL;;;-1"),
+                        new RawLine(4, CLIENT_ID + ";LAMAL;;;200.00")
                 )));
 
         verify(jobRepository).saveLines(linesCaptor.capture());
@@ -145,12 +154,14 @@ class ProcessContractImportBatchTest {
     void shouldRecordProgress() {
         when(jobRepository.getById(JOB_ID)).thenReturn(runningJob(5));
         when(clientRepository.lockExistingIds(any())).thenReturn(Set.of(CLIENT_ID));
+        when(clientRepository.findAllByIds(Set.of(CLIENT_ID))).thenReturn(List.of(ClientFixtures.existingPerson(
+                CLIENT_ID)));
         when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(UUID.randomUUID())));
 
         handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
                 List.of(
-                        new RawLine(2, CLIENT_ID + ";;;100.00"),
-                        new RawLine(3, CLIENT_ID + ";;;-1")
+                        new RawLine(2, CLIENT_ID + ";LAMAL;;;100.00"),
+                        new RawLine(3, CLIENT_ID + ";LAMAL;;;-1")
                 )));
 
         verify(jobRepository).save(jobCaptor.capture());

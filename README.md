@@ -203,7 +203,7 @@ Import from `api-collections/` for complete API examples:
 ### Contracts
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/v2/contracts` | Create contract (`clientId` in the body, startDate defaults to now) |
+| POST | `/v2/contracts` | Create contract (`clientId` and `type` in the body: `LAMAL` for a person, `LAA` or `LPP` for a company; startDate defaults to now) |
 | GET | `/v2/contracts?clientId={id}` | Get active contracts (paginated, filter by updatedSince) |
 | GET | `/v2/contracts/{id}` | Get specific contract |
 | PATCH | `/v2/contracts/{id}/cost` | Update cost (updates the internal last modification date) |
@@ -366,12 +366,12 @@ SELECT id, DATE '1980-01-01' FROM new_clients;
 SQL
 ```
 
-**2. Generate the file.** It only uses clients that exist when it runs, so create them first:
+**2. Generate the file.** It only uses persons that exist when it runs (a `LAMAL` contract is reserved to persons), so create them first:
 
 ```bash
 docker compose exec -T postgres psql -U postgres -d contract -q > contracts-500k.csv <<'SQL'
 COPY (
-    WITH c AS (SELECT array_agg(id) AS ids FROM contracts.client WHERE deleted_at IS NULL)
+    WITH c AS (SELECT array_agg(id) AS ids FROM contracts.client WHERE deleted_at IS NULL AND type = 'PERSON')
     SELECT ids[1 + n % cardinality(ids)] AS "clientId",
            CASE WHEN n % 2 = 0 THEN to_char(DATE '2027-01-01' + n % 365, 'YYYY-MM-DD"T"00:00:00') END AS "startDate",
            CASE WHEN n % 2 = 0 THEN to_char(DATE '2028-01-01' + n % 365, 'YYYY-MM-DD"T"00:00:00') END AS "endDate",

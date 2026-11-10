@@ -13,6 +13,7 @@ public final class ContractJpaMapper {
         return Contract.reconstituteFromDatabase(
                 entity.getId(),
                 entity.getClientId(),
+                entity.getType(),
                 ContractPeriod.reconstituteFromDatabase(entity.getStartDate(), entity.getEndDate()),
                 ContractCost.reconstituteFromDatabase(entity.getCostAmount()),
                 entity.getLastModified()
@@ -22,6 +23,7 @@ public final class ContractJpaMapper {
     public static ContractJpaEntity toNewEntity(final Contract domain) {
         return new ContractJpaEntity(
                 domain.clientId(),
+                domain.type(),
                 domain.period().startDate(),
                 domain.period().endDate(),
                 domain.costAmount().value(),

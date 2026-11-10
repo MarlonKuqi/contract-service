@@ -36,8 +36,7 @@ public class JpaContractQueryAdapter implements ContractQueryPort {
         query.select(cb.coalesce(cb.sum(root.get("costAmount")), BigDecimal.ZERO));
         query.where(spec.toPredicate(root, query, cb));
 
-        final BigDecimal result = entityManager.createQuery(query).getSingleResult();
-        return result == null ? BigDecimal.ZERO : result;
+        return entityManager.createQuery(query).getSingleResult();
     }
 
     @Override
@@ -51,6 +50,7 @@ public class JpaContractQueryAdapter implements ContractQueryPort {
         return new ContractDetails(
                 entity.getId(),
                 entity.getClientId(),
+                entity.getType(),
                 entity.getStartDate(),
                 entity.getEndDate(),
                 active,
@@ -59,4 +59,3 @@ public class JpaContractQueryAdapter implements ContractQueryPort {
         );
     }
 }
-

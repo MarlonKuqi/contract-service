@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
 class SubmitContractImportJobTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-11-03T09:00:00Z"), ZoneId.of("Europe/Zurich"));
-    private static final String HEADER = "clientId;startDate;endDate;costAmount\n";
+    private static final String HEADER = "clientId;type;startDate;endDate;costAmount\n";
     private static final String SUBMITTER = "marie.counselor";
     private static final String KEY = "import-2026-11-03";
 

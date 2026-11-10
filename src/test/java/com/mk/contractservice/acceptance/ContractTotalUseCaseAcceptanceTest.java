@@ -79,6 +79,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String activeContract1 = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "%s",
                         "endDate": null,
                         "costAmount": "1000.00"
@@ -89,6 +90,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String activeContract2 = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "%s",
                         "endDate": "%s",
                         "costAmount": "2000.00"
@@ -99,6 +101,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String expiredContract1 = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "%s",
                         "endDate": "%s",
                         "costAmount": "500.00"
@@ -109,6 +112,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String expiredContract2 = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "%s",
                         "endDate": "%s",
                         "costAmount": "700.00"
@@ -118,26 +122,31 @@ class ContractTotalUseCaseAcceptanceTest {
             // Create all contracts
             given().body(activeContract1)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             given().body(activeContract2)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             given().body(expiredContract1)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             given().body(expiredContract2)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             // WHEN
             // THEN: Sum should be 3000.00 (1000 + 2000)
             // Expired contracts (500 + 700) are NOT included
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                            testClient.id())
                     .then()
                     .statusCode(200)
                     .body(equalTo("3000.00"));
@@ -153,6 +162,7 @@ class ContractTotalUseCaseAcceptanceTest {
                 String contractPayload = String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAMAL",
                             "startDate": "%s",
                             "endDate": null,
                             "costAmount": "%d.00"
@@ -161,14 +171,16 @@ class ContractTotalUseCaseAcceptanceTest {
 
                 given().body(contractPayload)
                         .post(ContractEndpoints.CONTRACTS_BASE)
-                        .then().statusCode(201);
+                        .then()
+                        .statusCode(201);
             }
 
             // WHEN & THEN
             // 100 + 200 + 300 = 600
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                            testClient.id())
                     .then()
                     .statusCode(200)
                     .body(equalTo("600.00"));
@@ -183,6 +195,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String expiredContract1 = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "%s",
                         "endDate": "%s",
                         "costAmount": "1000.00"
@@ -192,6 +205,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String expiredContract2 = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "%s",
                         "endDate": "%s",
                         "costAmount": "2000.00"
@@ -200,16 +214,19 @@ class ContractTotalUseCaseAcceptanceTest {
 
             given().body(expiredContract1)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             given().body(expiredContract2)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             // WHEN & THEN
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                            testClient.id())
                     .then()
                     .statusCode(200)
                     .body(anyOf(equalTo("0"), equalTo("0.00"), equalTo("0.0")));
@@ -224,7 +241,8 @@ class ContractTotalUseCaseAcceptanceTest {
             // WHEN & THEN:
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", fakeClientId)
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                            fakeClientId)
                     .then()
                     .statusCode(404);
         }
@@ -244,6 +262,7 @@ class ContractTotalUseCaseAcceptanceTest {
                 String contractPayload = String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAMAL",
                             "startDate": "%s",
                             "endDate": null,
                             "costAmount": "999999.99"
@@ -252,14 +271,16 @@ class ContractTotalUseCaseAcceptanceTest {
 
                 given().body(contractPayload)
                         .post(ContractEndpoints.CONTRACTS_BASE)
-                        .then().statusCode(201);
+                        .then()
+                        .statusCode(201);
             }
 
             // WHEN & THEN
             // 5 × 999999.99 = 4999999.95
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                            testClient.id())
                     .then()
                     .statusCode(200)
                     .body(equalTo("4999999.95"));
@@ -274,6 +295,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String contract1 = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "%s",
                         "endDate": null,
                         "costAmount": "10.50"
@@ -283,6 +305,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String contract2 = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "%s",
                         "endDate": null,
                         "costAmount": "20.75"
@@ -292,6 +315,7 @@ class ContractTotalUseCaseAcceptanceTest {
             String contract3 = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "%s",
                         "endDate": null,
                         "costAmount": "30.33"
@@ -300,20 +324,24 @@ class ContractTotalUseCaseAcceptanceTest {
 
             given().body(contract1)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             given().body(contract2)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             given().body(contract3)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             // WHEN & THEN: 10.50 + 20.75 + 30.33 = 61.58
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                            testClient.id())
                     .then()
                     .statusCode(200)
                     .body(equalTo("61.58"));
@@ -334,6 +362,7 @@ class ContractTotalUseCaseAcceptanceTest {
                 String contractPayload = String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAMAL",
                             "startDate": "%s",
                             "endDate": null,
                             "costAmount": "100.00"
@@ -342,17 +371,20 @@ class ContractTotalUseCaseAcceptanceTest {
 
                 given().body(contractPayload)
                         .post(ContractEndpoints.CONTRACTS_BASE)
-                        .then().statusCode(201);
+                        .then()
+                        .statusCode(201);
             }
             // WHEN
             long startTime = System.currentTimeMillis();
 
             final String sum = given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.id())
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                            testClient.id())
                     .then()
                     .statusCode(200)
-                    .extract().asString();
+                    .extract()
+                    .asString();
 
             long duration = System.currentTimeMillis() - startTime;
 
@@ -389,7 +421,8 @@ class ContractTotalUseCaseAcceptanceTest {
                     .post(ClientEndpoints.CLIENTS_BASE)
                     .then()
                     .statusCode(201)
-                    .extract().path("id");
+                    .extract()
+                    .path("id");
 
             String uniqueId2 = UUID.randomUUID().toString().substring(0, 8);
             String client2Payload = String.format("""
@@ -408,12 +441,14 @@ class ContractTotalUseCaseAcceptanceTest {
                     .post(ClientEndpoints.CLIENTS_BASE)
                     .then()
                     .statusCode(201)
-                    .extract().path("id");
+                    .extract()
+                    .path("id");
 
             LocalDateTime now = LocalDateTime.now(clock);
             String contractPayload = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAMAL",
                         "startDate": "%s",
                         "endDate": null,
                         "costAmount": "1000.00"
@@ -429,18 +464,19 @@ class ContractTotalUseCaseAcceptanceTest {
 
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", clientId1)
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                            clientId1)
                     .then()
                     .statusCode(200)
                     .body(equalTo("1000.00"));
 
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", clientId2)
+                    .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                            clientId2)
                     .then()
                     .statusCode(200)
                     .body(anyOf(equalTo("0"), equalTo("0.00"), equalTo("0.0")));
         }
     }
 }
-

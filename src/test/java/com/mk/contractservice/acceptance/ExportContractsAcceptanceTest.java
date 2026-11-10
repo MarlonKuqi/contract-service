@@ -235,6 +235,7 @@ class ExportContractsAcceptanceTest {
         final String payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
                     "startDate": "%s",
                     "endDate": %s,
                     "costAmount": "100.00"
@@ -242,15 +243,21 @@ class ExportContractsAcceptanceTest {
                 """, client.id(), now.minusMonths(1), endDate == null ? "null" : "\"" + endDate + "\"");
 
         return given().body(payload)
-                .when().post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201)
-                .extract().path("id");
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
     private void changeCost(final String contractId, final String amount) {
         given().body("{\"amount\": " + amount + "}")
-                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, UUID.fromString(contractId)))
-                .when().patch(ContractEndpoints.CONTRACT_COST, UUID.fromString(contractId))
-                .then().statusCode(204);
+                .header(HttpHeaders.IF_MATCH,
+                        ETags.current(ContractEndpoints.CONTRACT_BY_ID, UUID.fromString(contractId)))
+                .when()
+                .patch(ContractEndpoints.CONTRACT_COST, UUID.fromString(contractId))
+                .then()
+                .statusCode(204);
     }
 }

@@ -1,9 +1,11 @@
 package com.mk.contractservice.features.contract;
 
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,7 +66,7 @@ class ImportContractsTest {
     }
 
     private ImportContracts.Line validLine() {
-        return new ImportContracts.Line(clientId, null, null, VALID_COST);
+        return new ImportContracts.Line(clientId, ContractType.LAMAL, null, null, VALID_COST);
     }
 
     private ImportContracts.Command commandOf(final ImportContracts.Line... lines) {
@@ -106,14 +108,21 @@ class ImportContractsTest {
         @Test
         @DisplayName("GIVEN une ligne sans client WHEN création THEN refuse la ligne")
         void shouldRefuseLineWithoutClient() {
-            assertThatThrownBy(() -> new ImportContracts.Line(null, null, null, VALID_COST))
+            assertThatThrownBy(() -> new ImportContracts.Line(null, ContractType.LAMAL, null, null, VALID_COST))
+                    .isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("GIVEN une ligne sans type de contrat WHEN création THEN refuse la ligne")
+        void shouldRefuseLineWithoutType() {
+            assertThatThrownBy(() -> new ImportContracts.Line(clientId, null, null, null, VALID_COST))
                     .isInstanceOf(NullPointerException.class);
         }
 
         @Test
         @DisplayName("GIVEN une ligne sans coût WHEN création THEN refuse la ligne")
         void shouldRefuseLineWithoutCost() {
-            assertThatThrownBy(() -> new ImportContracts.Line(clientId, null, null, null))
+            assertThatThrownBy(() -> new ImportContracts.Line(clientId, ContractType.LAMAL, null, null, null))
                     .isInstanceOf(NullPointerException.class);
         }
     }
@@ -127,11 +136,12 @@ class ImportContractsTest {
         void shouldCreateEveryContractInLinesOrder() {
             final UUID otherClientId = UUID.randomUUID();
             final ImportContracts.Command command = commandOf(
-                    new ImportContracts.Line(clientId, now, now.plusYears(1), VALID_COST),
-                    new ImportContracts.Line(otherClientId, null, null, new BigDecimal("2000.00"))
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, now, now.plusYears(1), VALID_COST),
+                    new ImportContracts.Line(otherClientId, ContractType.LAMAL, null, null, new BigDecimal("2000.00"))
             );
-            when(clientRepository.findExistingIds(Set.of(clientId, otherClientId)))
-                    .thenReturn(Set.of(clientId, otherClientId));
+            when(clientRepository.findAllByIds(Set.of(clientId, otherClientId)))
+                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId),
+                            ClientFixtures.existingPerson(otherClientId)));
             when(contractRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
             final List<Contract> created = handler.execute(command);
@@ -146,7 +156,8 @@ class ImportContractsTest {
         @Test
         @DisplayName("GIVEN des lignes sans date de début WHEN execute THEN tous les contrats reçoivent le même instant")
         void shouldUseSingleNowForAllContracts() {
-            when(clientRepository.findExistingIds(Set.of(clientId))).thenReturn(Set.of(clientId));
+            when(clientRepository.findAllByIds(Set.of(clientId)))
+                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
 
             handler.execute(commandOf(validLine(), validLine()));
 
@@ -165,10 +176,11 @@ class ImportContractsTest {
         @Test
         @DisplayName("GIVEN une seule ligne invalide WHEN execute THEN n'insère aucun contrat")
         void shouldInsertNothingWhenOneLineIsInvalid() {
-            when(clientRepository.findExistingIds(Set.of(clientId))).thenReturn(Set.of(clientId));
+            when(clientRepository.findAllByIds(Set.of(clientId)))
+                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
             final ImportContracts.Command command = commandOf(
                     validLine(),
-                    new ImportContracts.Line(clientId, null, null, NEGATIVE_COST)
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, null, null, NEGATIVE_COST)
             );
 
             assertThatThrownBy(() -> handler.execute(command))
@@ -178,15 +190,17 @@ class ImportContractsTest {
         }
 
         @Test
-        @DisplayName("GIVEN plusieurs lignes invalides WHEN execute THEN rapporte chacune avec son index et sa raison")
+        @DisplayName("GIVEN plusieurs lignes invalides dont une LPP pour une personne WHEN execute THEN rapporte chacune avec son index et sa raison")
         void shouldReportEveryRejectedLine() {
             final UUID unknownClientId = UUID.randomUUID();
-            when(clientRepository.findExistingIds(Set.of(clientId, unknownClientId))).thenReturn(Set.of(clientId));
+            when(clientRepository.findAllByIds(Set.of(clientId, unknownClientId)))
+                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
             final ImportContracts.Command command = commandOf(
-                    new ImportContracts.Line(clientId, null, null, NEGATIVE_COST),
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, null, null, NEGATIVE_COST),
                     validLine(),
-                    new ImportContracts.Line(clientId, now, now.minusDays(1), VALID_COST),
-                    new ImportContracts.Line(unknownClientId, null, null, VALID_COST)
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, now, now.minusDays(1), VALID_COST),
+                    new ImportContracts.Line(unknownClientId, ContractType.LAMAL, null, null, VALID_COST),
+                    new ImportContracts.Line(clientId, ContractType.LPP, null, null, VALID_COST)
             );
 
             final ContractImportRejectedException rejection = catchThrowableOfType(
@@ -200,10 +214,11 @@ class ImportContractsTest {
                     .containsExactly(
                             tuple(0, clientId, ContractImportRejectionReason.INVALID_COST),
                             tuple(2, clientId, ContractImportRejectionReason.INVALID_PERIOD),
-                            tuple(3, unknownClientId, ContractImportRejectionReason.CLIENT_NOT_FOUND)
+                            tuple(3, unknownClientId, ContractImportRejectionReason.CLIENT_NOT_FOUND),
+                            tuple(4, clientId, ContractImportRejectionReason.TYPE_NOT_ALLOWED)
                     );
             assertThat(rejection.rejections()).allSatisfy(line -> assertThat(line.message()).isNotBlank());
-            assertThat(rejection.rejections().getLast().message()).contains(unknownClientId.toString());
+            assertThat(rejection.rejections().get(2).message()).contains(unknownClientId.toString());
         }
     }
 }
