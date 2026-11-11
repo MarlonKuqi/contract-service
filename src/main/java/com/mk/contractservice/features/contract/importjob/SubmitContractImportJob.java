@@ -5,10 +5,9 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportJobReposit
 import com.mk.contractservice.domain.contract.importjob.ContractImportSubmission;
 import com.mk.contractservice.domain.contract.importjob.IdempotencyKey;
 import com.mk.contractservice.domain.contract.importjob.exception.IdempotencyKeyReusedException;
-import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -41,7 +40,6 @@ public interface SubmitContractImportJob {
     ContractImportJob execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements SubmitContractImportJob {
 

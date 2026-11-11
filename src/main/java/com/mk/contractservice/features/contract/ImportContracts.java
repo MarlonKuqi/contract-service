@@ -10,13 +10,12 @@ import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException.LineRejection;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
-import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Accepted;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Rejected;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -68,7 +67,6 @@ public interface ImportContracts {
     List<Contract> execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements ImportContracts {
 

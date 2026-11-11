@@ -2,9 +2,8 @@ package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -20,7 +19,6 @@ public interface ReleaseContractImportJob {
     void execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements ReleaseContractImportJob {
 

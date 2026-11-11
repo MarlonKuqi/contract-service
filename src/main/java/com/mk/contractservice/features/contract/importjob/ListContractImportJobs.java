@@ -2,15 +2,14 @@ package com.mk.contractservice.features.contract.importjob;
 
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.PageBounds;
+import com.mk.contractservice.features.shared.QueryUseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.transaction.annotation.Transactional;
 
 public interface ListContractImportJobs {
 
@@ -29,8 +28,7 @@ public interface ListContractImportJobs {
 
     Page<ContractImportJob> execute(Query query);
 
-    @UseCase
-    @Transactional(readOnly = true)
+    @QueryUseCase
     @RequiredArgsConstructor
     class Handler implements ListContractImportJobs {
 

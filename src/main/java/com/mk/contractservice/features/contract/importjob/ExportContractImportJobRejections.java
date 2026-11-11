@@ -4,12 +4,11 @@ import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobQueryPort;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
-import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.ContractImportCsv;
+import com.mk.contractservice.features.shared.QueryUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,8 +33,7 @@ public interface ExportContractImportJobRejections {
 
     List<RejectedLine> execute(Query query);
 
-    @UseCase
-    @Transactional(readOnly = true)
+    @QueryUseCase
     @RequiredArgsConstructor
     class Handler implements ExportContractImportJobRejections {
 

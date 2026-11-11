@@ -4,10 +4,9 @@ import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -31,7 +30,6 @@ public interface UpdateContractPeriod {
     Contract execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements UpdateContractPeriod {
 

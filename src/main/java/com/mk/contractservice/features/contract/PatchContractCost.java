@@ -3,9 +3,8 @@ package com.mk.contractservice.features.contract;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractCost;
 import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -29,7 +28,6 @@ public interface PatchContractCost {
     Contract execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements PatchContractCost {
 

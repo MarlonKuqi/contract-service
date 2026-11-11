@@ -66,14 +66,14 @@ Dependencies point inward: `controllers → features → domain ← infrastructu
 
 ### Domain
 - No dependency on Spring, JPA or infrastructure. Tolerated: Lombok, JSpecify, and Spring Data `Page`/`Pageable`.
-- `@UseCase`, `@DomainService`, `@RepositoryPort` are defined in `domain/shared` and registered by `DomainBeanConfiguration`.
+- `@DomainService` and `@RepositoryPort` are defined in `domain/shared`; `@UseCase` and `@QueryUseCase` in `features/shared`. All are registered by `DomainBeanConfiguration`.
 - Aggregates: `Client` (`sealed`, `permits Person, Company`) and `Contract`. A contract references its client by id.
 - Repository interfaces (ports) live in the domain; their JPA implementations live in `infrastructure`.
 
 ### Use cases (`features/`)
 - One interface per use case containing its `Command`/`Query` record, its `execute` method and its `Handler`.
 - The `Command`/`Query` validates itself: its constructor checks the application rules no Value Object covers (e.g. pagination bounds through `PageBounds`, `InvalidPageRequestException` → 400). The use case never relies on a controller to protect it; controllers only convert (ADR-002, ADR-018).
-- The handler is annotated `@UseCase` and declares `@Transactional` or `@Transactional(readOnly = true)` explicitly.
+- The handler is annotated `@UseCase` (read-write transaction) or `@QueryUseCase` (read-only transaction): both carry `@Transactional` as a meta-annotation, so a handler never runs without a transaction. Never add `@Transactional` on a handler.
 - Handlers orchestrate: they load aggregates and check existence through the ports (`getById`, `ensureExists`), delegate rules to domain objects and domain services, and call ports. No business rule in a handler.
 - A domain service holds a business rule that no single aggregate can check on its own (e.g. `CompanyIdentifierUniqueness`). Data access helpers ("find or throw", "exists or throw") belong to the port, not to a domain service.
 

@@ -9,16 +9,15 @@ import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.ContractImportCsv.MalformedLineException;
 import com.mk.contractservice.features.shared.ContractImportCsv.ParsedLine;
 import com.mk.contractservice.features.shared.ContractImportCsv.RawLine;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Accepted;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Rejected;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -51,7 +50,6 @@ public interface ProcessContractImportBatch {
     void execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements ProcessContractImportBatch {
 

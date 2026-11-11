@@ -66,10 +66,10 @@ com.mk.contractservice
 └── infrastructure/    Adapters sortants : JPA, configuration (Clock, beans du domaine)
 ```
 
-- **Un cas d'usage = une interface** dans `features/` qui contient sa `Command`/`Query` (record), sa méthode `execute` et son `Handler` (`@UseCase`, `@Transactional` explicite). Exemple : `CreateContract`, `PatchContractCost`.
+- **Un cas d'usage = une interface** dans `features/` qui contient sa `Command`/`Query` (record), sa méthode `execute` et son `Handler` (`@UseCase` s’il écrit, `@QueryUseCase` s’il ne fait que lire). Exemple : `CreateContract`, `PatchContractCost`.
 - **Un endpoint = un controller** (`CreateClientController`, `DeleteClientController`…), sans logique métier.
 - **Sens des dépendances** : `controllers → features → domain ← infrastructure`. Le domaine définit les ports, l'infrastructure les implémente.
-- Les annotations `@UseCase`, `@DomainService`, `@RepositoryPort` sont définies dans `domain/shared` sans dépendance Spring ; `DomainBeanConfiguration` (infrastructure) les enregistre par component scan.
+- `@DomainService` et `@RepositoryPort` sont définies dans `domain/shared` sans dépendance Spring. `@UseCase` et `@QueryUseCase` sont dans `features/shared` et portent la transaction en méta-annotation (`@Transactional`, `@Transactional(readOnly = true)`) : un handler ne peut pas s’exécuter sans transaction, et le choix entre lecture et écriture reste visible, puisqu’on choisit l’annotation. `DomainBeanConfiguration` (infrastructure) les enregistre par component scan. Port de transaction (`TransactionRunner` exécuté par un `TransactionTemplate`) écarté : il garderait `features` sans Spring, ce que l’architecture n’exige pas (seul le domaine l’est), au prix d’un lambda dans chaque handler.
 - Les règles sont vérifiées par **ArchUnit** (`ArchitectureTest`) : le domaine ne dépend ni de l'infrastructure, ni des features, ni des controllers, ni de Spring.
 
 **Compromis documentés.**
