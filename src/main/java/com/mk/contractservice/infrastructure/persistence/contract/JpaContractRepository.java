@@ -68,6 +68,7 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void ensureVersion(final UUID contractId, final long expectedVersion) {
         final ContractJpaEntity entity = contractJpaRepository.findById(contractId)
                 .orElseThrow(() -> new ContractNotFoundException(contractId));

@@ -79,6 +79,7 @@ public class JpaClientRepository implements ClientRepository {
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void ensureVersion(final UUID id, final long expectedVersion) {
         final ClientJpaEntity entity = jpa.findById(id).orElseThrow(() -> ClientNotFoundException.forId(id));
         if (entity.getVersion() != expectedVersion) {
