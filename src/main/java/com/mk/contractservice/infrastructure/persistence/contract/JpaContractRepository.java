@@ -21,6 +21,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -97,6 +99,7 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void lockCoverageOf(final Set<UUID> clientIds) {
         if (!clientIds.isEmpty()) {
             clientJpaRepository.lockExistingIds(clientIds);
