@@ -2,9 +2,8 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.ContractQueryPort;
-import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.features.shared.QueryUseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -22,8 +21,7 @@ public interface GetTotalCostAmountOfActiveContractsByClient {
 
     BigDecimal execute(Query query);
 
-    @UseCase
-    @Transactional(readOnly = true)
+    @QueryUseCase
     @RequiredArgsConstructor
     class Handler implements GetTotalCostAmountOfActiveContractsByClient {
 

@@ -2,9 +2,12 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
+import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
+import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +21,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,6 +44,7 @@ class UpdateContractPeriodTest {
     private static final LocalDateTime CURRENT_END = NOW.plusMonths(6);
 
     private final UUID contractId = UUID.randomUUID();
+    private final UUID clientId = UUID.randomUUID();
 
     @Mock
     private ContractRepository contractRepository;
@@ -47,7 +53,9 @@ class UpdateContractPeriodTest {
 
     @BeforeEach
     void setUp() {
-        handler = new UpdateContractPeriod.Handler(contractRepository, FIXED_CLOCK);
+        handler = new UpdateContractPeriod.Handler(contractRepository,
+                new ContractOverlapPolicy(contractRepository),
+                FIXED_CLOCK);
     }
 
     @Test
@@ -85,6 +93,37 @@ class UpdateContractPeriodTest {
 
         verify(contractRepository, never()).save(any(Contract.class));
         assertThat(result).isSameAs(loaded);
+    }
+
+    @Test
+    @DisplayName("GIVEN a LAMal followed by another one WHEN its new period runs over the next one THEN refuses without saving")
+    void shouldRefusePeriodOverlappingAnotherLamal() {
+        Contract loaded = givenContract(CURRENT_START, CURRENT_END);
+        Contract next = ContractFixtures.existingContract(UUID.randomUUID(),
+                clientId,
+                CURRENT_END,
+                null,
+                new BigDecimal("500.00"),
+                CURRENT_START);
+        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
+                .thenReturn(List.of(loaded, next));
+        UpdateContractPeriod.Command command = command(CURRENT_START, CURRENT_END.plusMonths(1));
+
+        assertThatThrownBy(() -> handler.execute(command)).isInstanceOf(OverlappingContractException.class);
+        verify(contractRepository, never()).save(any(Contract.class));
+    }
+
+    @Test
+    @DisplayName("GIVEN a LAMal WHEN its new period runs over its own previous period THEN saves it, the contract not overlapping itself")
+    void shouldNotCompareTheContractWithItself() {
+        Contract loaded = givenContract(CURRENT_START, CURRENT_END);
+        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
+                .thenReturn(List.of(loaded));
+        givenSaveReturnsArgument();
+
+        Contract result = handler.execute(command(CURRENT_START, CURRENT_END.plusMonths(1)));
+
+        assertThat(result.period().endDate()).isEqualTo(CURRENT_END.plusMonths(1));
     }
 
     @Test
@@ -145,7 +184,7 @@ class UpdateContractPeriodTest {
 
     private Contract givenContract(final LocalDateTime startDate, final LocalDateTime endDate) {
         Contract contract = ContractFixtures.existingContract(contractId,
-                UUID.randomUUID(),
+                clientId,
                 startDate,
                 endDate,
                 new BigDecimal("500.00"),

@@ -42,10 +42,11 @@ The end date is exclusive. A contract whose `startDate` is in the future **is ac
 
 **Other rules**
 - A contract has a mandatory, immutable `type` (`ContractType`): `LAMAL` is reserved to persons, `LAA` and `LPP` to companies. `Contract.of` enforces it from the client's `ClientKind` (`domain/shared`), never from the `Client` itself: the two aggregates stay independent (ADR-024, `ContractTypeNotAllowedException` → 422 `contractTypeNotAllowed`).
+- A new LAMAL never overlaps an active LAMAL of the same person (active as in ADR-004, future ones included; ended or closed ones, such as those closed by a cancellation, no longer count; end exclusive: one may start when the previous one ends). `ContractOverlapPolicy` holds the rule: `startBatch` loads the existing contracts in one query for all clients of an import and returns a `Batch` whose `admit` refuses each overlapping contract and keeps the admitted ones (lines of the same import included), `ensureNoOverlap` checks a single contract; the policy reads them through `ContractRepository.lockAndFindAllByClientIdsAndTypes`, which locks the client rows first (`FOR UPDATE … ORDER BY id`), so concurrent creations are serialized and the policy cannot read without locking; the lock adapters (`lockAndFindAllByClientIdsAndTypes`, `lockExistingIds`) are `@Transactional(propagation = MANDATORY)`, so the policy fails outside a transaction, even for an empty batch, instead of locking for nothing (ADR-024, `OverlappingContractException` → 409 `contractOverlap`). A person may hold several active LAMAL (2026, 2027, 2028) as long as they do not overlap; tests that need overlapping contracts for one client use a company with `LAA`/`LPP`.
 - Only active contracts can be modified (`ExpiredContractException`).
 - Updating the cost updates `lastModified`; the same amount (scale-insensitive) is a no-op. Replacing the period (`PUT /v2/contracts/{id}/period`, ADR-025) updates it too; the end date cannot be set in the past. `lastModified` is never exposed by the API (ADR-005).
 - `birthDate` and `companyIdentifier` are immutable.
-- `PUT`/`PATCH` of a client and `PATCH` of a contract cost and `PUT` of its period require `If-Match` with the strong ETag `"<version>"` (`428` if missing or `*`, `412` if stale). Only the single-resource `GET` returns the ETag, through read models (`ClientQueryPort`, `ContractQueryPort.getDetails`). The version stays out of the aggregates and of the write ports: commands carry `expectedVersion`, handlers call `repository.ensureVersion(id, expectedVersion)` right after loading (ADR-011). Only commands that apply a user decision taken on a previously read state carry `expectedVersion`; creations, state-independent operations (client deletion) and same-transaction processing (bulk closure, jobs) rely on `@Version` alone.
+- `PUT`/`PATCH` of a client and `PATCH` of a contract cost and `PUT` of its period require `If-Match` with the strong ETag `"<version>"` (`428` if missing or `*`, `412` if stale). Only the single-resource `GET` returns the ETag, through read models (`ClientQueryPort`, `ContractQueryPort.getDetails`). The version stays out of the aggregates and of the write ports: commands carry `expectedVersion`, handlers call `repository.ensureVersion(id, expectedVersion)` right after loading, inside the transaction (the adapters are `@Transactional(propagation = MANDATORY)`) (ADR-011). Only commands that apply a user decision taken on a previously read state carry `expectedVersion`; creations, state-independent operations (client deletion) and same-transaction processing (bulk closure, jobs) rely on `@Version` alone.
 - Email and phone are NOT unique. `companyIdentifier` is unique, even after the company is deleted (ADR-008).
 - Deleting a client is a soft delete: `deleted_at` is set, the client answers 404 everywhere, and its active contracts are closed with `endDate = deleted_at` (ADR-009).
 
@@ -65,14 +66,14 @@ Dependencies point inward: `controllers → features → domain ← infrastructu
 
 ### Domain
 - No dependency on Spring, JPA or infrastructure. Tolerated: Lombok, JSpecify, and Spring Data `Page`/`Pageable`.
-- `@UseCase`, `@DomainService`, `@RepositoryPort` are defined in `domain/shared` and registered by `DomainBeanConfiguration`.
+- `@DomainService` and `@RepositoryPort` are defined in `domain/shared`; `@UseCase` and `@QueryUseCase` in `features/shared`. All are registered by `DomainBeanConfiguration`.
 - Aggregates: `Client` (`sealed`, `permits Person, Company`) and `Contract`. A contract references its client by id.
 - Repository interfaces (ports) live in the domain; their JPA implementations live in `infrastructure`.
 
 ### Use cases (`features/`)
 - One interface per use case containing its `Command`/`Query` record, its `execute` method and its `Handler`.
 - The `Command`/`Query` validates itself: its constructor checks the application rules no Value Object covers (e.g. pagination bounds through `PageBounds`, `InvalidPageRequestException` → 400). The use case never relies on a controller to protect it; controllers only convert (ADR-002, ADR-018).
-- The handler is annotated `@UseCase` and declares `@Transactional` or `@Transactional(readOnly = true)` explicitly.
+- The handler is annotated `@UseCase` (read-write transaction) or `@QueryUseCase` (read-only transaction): both carry `@Transactional` as a meta-annotation, so a handler never runs without a transaction. Never add `@Transactional` on a handler.
 - Handlers orchestrate: they load aggregates and check existence through the ports (`getById`, `ensureExists`), delegate rules to domain objects and domain services, and call ports. No business rule in a handler.
 - A domain service holds a business rule that no single aggregate can check on its own (e.g. `CompanyIdentifierUniqueness`). Data access helpers ("find or throw", "exists or throw") belong to the port, not to a domain service.
 

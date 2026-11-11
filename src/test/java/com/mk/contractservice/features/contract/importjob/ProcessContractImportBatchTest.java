@@ -5,7 +5,9 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
@@ -46,6 +48,7 @@ class ProcessContractImportBatchTest {
     private static final UUID JOB_ID = UUID.randomUUID();
     private static final UUID CLIENT_ID = UUID.randomUUID();
     private static final UUID UNKNOWN_CLIENT_ID = UUID.randomUUID();
+    private static final UUID COMPANY_ID = UUID.randomUUID();
 
     @Mock
     private ClientRepository clientRepository;
@@ -62,7 +65,11 @@ class ProcessContractImportBatchTest {
 
     @BeforeEach
     void setUp() {
-        handler = new ProcessContractImportBatch.Handler(clientRepository, contractRepository, jobRepository, CLOCK);
+        handler = new ProcessContractImportBatch.Handler(clientRepository,
+                contractRepository,
+                new ContractOverlapPolicy(contractRepository),
+                jobRepository,
+                CLOCK);
     }
 
     private ContractImportJob runningJob(final int totalLines) {
@@ -70,7 +77,11 @@ class ProcessContractImportBatchTest {
     }
 
     private Contract persisted(final UUID id) {
-        return ContractFixtures.existingContract(id, CLIENT_ID, NOW, null, new BigDecimal("100.00"), NOW);
+        return persisted(id, CLIENT_ID);
+    }
+
+    private Contract persisted(final UUID id, final UUID clientId) {
+        return ContractFixtures.existingContract(id, clientId, NOW, null, new BigDecimal("100.00"), NOW);
     }
 
     private static Tuple outcomeOf(final ContractImportJobLine line) {
@@ -126,17 +137,17 @@ class ProcessContractImportBatchTest {
         final UUID firstContractId = UUID.randomUUID();
         final UUID secondContractId = UUID.randomUUID();
         when(jobRepository.getById(JOB_ID)).thenReturn(runningJob(3));
-        when(clientRepository.lockExistingIds(Set.of(CLIENT_ID))).thenReturn(Set.of(CLIENT_ID));
-        when(clientRepository.findAllByIds(Set.of(CLIENT_ID))).thenReturn(List.of(ClientFixtures.existingPerson(
-                CLIENT_ID)));
-        when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(firstContractId),
-                persisted(secondContractId)));
+        when(clientRepository.lockExistingIds(Set.of(COMPANY_ID))).thenReturn(Set.of(COMPANY_ID));
+        when(clientRepository.findAllByIds(Set.of(COMPANY_ID))).thenReturn(List.of(ClientFixtures.existingCompany(
+                COMPANY_ID)));
+        when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(firstContractId, COMPANY_ID),
+                persisted(secondContractId, COMPANY_ID)));
 
         handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
                 List.of(
-                        new RawLine(2, CLIENT_ID + ";LAMAL;;;100.00"),
-                        new RawLine(3, CLIENT_ID + ";LAMAL;;;-1"),
-                        new RawLine(4, CLIENT_ID + ";LAMAL;;;200.00")
+                        new RawLine(2, COMPANY_ID + ";LAA;;;100.00"),
+                        new RawLine(3, COMPANY_ID + ";LAA;;;-1"),
+                        new RawLine(4, COMPANY_ID + ";LAA;;;200.00")
                 )));
 
         verify(jobRepository).saveLines(linesCaptor.capture());
@@ -144,8 +155,46 @@ class ProcessContractImportBatchTest {
                 .filteredOn(ContractImportJobLine.Imported.class::isInstance)
                 .extracting(ProcessContractImportBatchTest::outcomeOf)
                 .containsExactlyInAnyOrder(
-                        tuple(2, CLIENT_ID, firstContractId),
-                        tuple(4, CLIENT_ID, secondContractId)
+                        tuple(2, COMPANY_ID, firstContractId),
+                        tuple(4, COMPANY_ID, secondContractId)
+                );
+    }
+
+    @Test
+    @DisplayName("GIVEN LAMal lines overlapping a stored LAMal or a previous line WHEN processing THEN they are rejected for the overlap")
+    void shouldRejectOverlappingLamalLines() {
+        final UUID otherPersonId = UUID.randomUUID();
+        when(jobRepository.getById(JOB_ID)).thenReturn(runningJob(3));
+        when(clientRepository.lockExistingIds(Set.of(CLIENT_ID, otherPersonId)))
+                .thenReturn(Set.of(CLIENT_ID, otherPersonId));
+        when(clientRepository.findAllByIds(Set.of(CLIENT_ID, otherPersonId)))
+                .thenReturn(List.of(ClientFixtures.existingPerson(CLIENT_ID),
+                        ClientFixtures.existingPerson(otherPersonId)));
+        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(CLIENT_ID, otherPersonId),
+                Set.of(ContractType.LAMAL)))
+                .thenReturn(List.of(ContractFixtures.existingContract(UUID.randomUUID(),
+                        CLIENT_ID,
+                        NOW.minusYears(1),
+                        null,
+                        new BigDecimal("100.00"),
+                        NOW)));
+        final UUID contractId = UUID.randomUUID();
+        when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(contractId, otherPersonId)));
+
+        handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
+                List.of(
+                        new RawLine(2, CLIENT_ID + ";LAMAL;;;100.00"),
+                        new RawLine(3, otherPersonId + ";LAMAL;;;100.00"),
+                        new RawLine(4, otherPersonId + ";LAMAL;2030-01-01T00:00:00;;100.00")
+                )));
+
+        verify(jobRepository).saveLines(linesCaptor.capture());
+        assertThat(linesCaptor.getValue())
+                .extracting(ProcessContractImportBatchTest::outcomeOf)
+                .containsExactlyInAnyOrder(
+                        tuple(2, CLIENT_ID, ContractImportRejectionReason.OVERLAPPING_CONTRACT),
+                        tuple(3, otherPersonId, contractId),
+                        tuple(4, otherPersonId, ContractImportRejectionReason.OVERLAPPING_CONTRACT)
                 );
     }
 

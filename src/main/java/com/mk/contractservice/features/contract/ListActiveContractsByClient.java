@@ -4,15 +4,14 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
-import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.PageBounds;
+import com.mk.contractservice.features.shared.QueryUseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -44,8 +43,7 @@ public interface ListActiveContractsByClient {
 
     Page<Contract> execute(Query query);
 
-    @UseCase
-    @Transactional(readOnly = true)
+    @QueryUseCase
     @RequiredArgsConstructor
     class Handler implements ListActiveContractsByClient {
 

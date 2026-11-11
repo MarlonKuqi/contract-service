@@ -2,9 +2,8 @@ package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.ClientDetails;
 import com.mk.contractservice.domain.client.ClientQueryPort;
-import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.features.shared.QueryUseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -19,8 +18,7 @@ public interface GetClientById {
 
     ClientDetails execute(Query query);
 
-    @UseCase
-    @Transactional(readOnly = true)
+    @QueryUseCase
     @RequiredArgsConstructor
     class Handler implements GetClientById {
 
@@ -32,4 +30,3 @@ public interface GetClientById {
         }
     }
 }
-

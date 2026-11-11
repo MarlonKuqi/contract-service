@@ -69,13 +69,13 @@ class ClientDeletionAcceptanceTest {
 
         String clientPayload = """
                 {
-                    "type": "PERSON",
+                    "type": "COMPANY",
                     "name": "Client ToDelete",
                     "email": "client.delete.%s@example.com",
                     "phone": "%s",
-                    "birthDate": "1990-05-15"
+                    "companyIdentifier": "%s"
                 }
-                """.formatted(uniqueId, phoneNumber);
+                """.formatted(uniqueId, phoneNumber, TestDataHelper.uniqueCompanyIdentifier("CHE"));
 
         String clientId = given()
                 .body(clientPayload)
@@ -92,7 +92,7 @@ class ClientDeletionAcceptanceTest {
         String contract1Payload = String.format("""
                 {
                     "clientId": "%s",
-                    "type": "LAMAL",
+                    "type": "LAA",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": null,
                     "costAmount": "1000.00"
@@ -112,7 +112,7 @@ class ClientDeletionAcceptanceTest {
         String contract2Payload = String.format("""
                 {
                     "clientId": "%s",
-                    "type": "LAMAL",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "2000.00"
@@ -132,7 +132,7 @@ class ClientDeletionAcceptanceTest {
         String contract3Payload = String.format("""
                 {
                     "clientId": "%s",
-                    "type": "LAMAL",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "3000.00"
@@ -301,7 +301,7 @@ class ClientDeletionAcceptanceTest {
                     "endDate": "%s",
                     "costAmount": "2000.00"
                 }
-                """, clientId, now.minusMonths(12), expiredEndDate2);
+                """, clientId, expiredEndDate1, expiredEndDate2);
 
         String contract1Id = given().body(expiredContract1)
                 .post(ContractEndpoints.CONTRACTS_BASE)

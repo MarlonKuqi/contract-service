@@ -4,20 +4,20 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
-import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.ContractImportCsv.MalformedLineException;
 import com.mk.contractservice.features.shared.ContractImportCsv.ParsedLine;
 import com.mk.contractservice.features.shared.ContractImportCsv.RawLine;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Accepted;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Rejected;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -50,12 +50,12 @@ public interface ProcessContractImportBatch {
     void execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements ProcessContractImportBatch {
 
         private final ClientRepository clientRepository;
         private final ContractRepository contractRepository;
+        private final ContractOverlapPolicy contractOverlapPolicy;
         private final ContractImportJobRepository jobRepository;
         private final Clock clock;
 
@@ -74,13 +74,15 @@ public interface ProcessContractImportBatch {
             final LocalDateTime now = LocalDateTime.ofInstant(instant, clock.getZone());
             final UUID jobId = command.jobId();
             final ContractImportJob job = jobRepository.getById(jobId);
+            final Set<UUID> lockedClientIds = clientRepository.lockExistingIds(command.clientIds());
             final Map<UUID, Client> clientsById = ContractImportLineEvaluator.indexById(
-                    clientRepository.findAllByIds(clientRepository.lockExistingIds(command.clientIds())));
+                    clientRepository.findAllByIds(lockedClientIds));
+            final ContractOverlapPolicy.Batch overlapBatch = contractOverlapPolicy.startBatch(lockedClientIds, now);
 
             final List<ImportedLine> imported = new ArrayList<>();
             final List<ContractImportJobLine> lines = new ArrayList<>(command.lines().size());
             for (final RawLine line : command.lines()) {
-                switch (evaluate(jobId, line, clientsById, now)) {
+                switch (evaluate(jobId, line, clientsById, overlapBatch, now)) {
                     case ImportedLine importedLine -> imported.add(importedLine);
                     case RejectedLine(ContractImportJobLine rejectedLine) -> lines.add(rejectedLine);
                 }
@@ -106,6 +108,7 @@ public interface ProcessContractImportBatch {
                 final UUID jobId,
                 final RawLine line,
                 final Map<UUID, Client> clientsById,
+                final ContractOverlapPolicy.Batch overlapBatch,
                 final LocalDateTime now
         ) {
             final int number = line.lineNumber();
@@ -126,6 +129,7 @@ public interface ProcessContractImportBatch {
                     parsed.endDate(),
                     parsed.costAmount(),
                     clientsById,
+                    overlapBatch,
                     now)) {
                 case Accepted(Contract contract) -> new ImportedLine(number, contract);
                 case Rejected(ContractImportRejectionReason reason, String message) -> rejected(jobId,

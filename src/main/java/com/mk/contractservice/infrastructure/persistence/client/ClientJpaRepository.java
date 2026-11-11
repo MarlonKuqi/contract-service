@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public interface ClientJpaRepository extends JpaRepository<ClientJpaEntity, UUID> {
 
-    @Query(value = "select id from contracts.client where id in (:ids) and deleted_at is null for share",
+    @Query(value = "select id from contracts.client where id in (:ids) and deleted_at is null order by id for update",
             nativeQuery = true)
     Set<UUID> lockExistingIds(@Param("ids") Set<UUID> ids);
 }

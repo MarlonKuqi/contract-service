@@ -107,6 +107,25 @@ class UpdateContractPeriodAcceptanceTest {
     }
 
     @Test
+    @DisplayName("SCENARIO: A LAMal cannot be extended over the next LAMal of the same person")
+    void shouldRefusePeriodOverlappingAnotherLamal() {
+        Contract current = givenContract(today.minusMonths(6), today.plusMonths(6));
+        givenContract(today.plusMonths(6), null);
+
+        putPeriod(current, """
+                { "startDate": "%s", "endDate": "%s" }
+                """.formatted(iso(today.minusMonths(6)), iso(today.plusYears(1))))
+                .statusCode(409)
+                .body("code", equalTo("contractOverlap"));
+
+        given()
+                .get(ContractEndpoints.CONTRACT_BY_ID, current.id())
+                .then()
+                .statusCode(200)
+                .body("endDate", equalTo(iso(today.plusMonths(6))));
+    }
+
+    @Test
     @DisplayName("SCENARIO: A null end date makes the contract open-ended")
     void shouldRemoveEndDate() {
         Contract contract = givenContract(today.minusMonths(6), today.plusMonths(6));

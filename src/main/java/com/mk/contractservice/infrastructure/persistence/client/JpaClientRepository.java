@@ -9,6 +9,8 @@ import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import com.mk.contractservice.infrastructure.persistence.client.entities.ClientJpaEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -71,11 +73,13 @@ public class JpaClientRepository implements ClientRepository {
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public Set<UUID> lockExistingIds(final Set<UUID> ids) {
         return ids.isEmpty() ? Set.of() : jpa.lockExistingIds(ids);
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void ensureVersion(final UUID id, final long expectedVersion) {
         final ClientJpaEntity entity = jpa.findById(id).orElseThrow(() -> ClientNotFoundException.forId(id));
         if (entity.getVersion() != expectedVersion) {

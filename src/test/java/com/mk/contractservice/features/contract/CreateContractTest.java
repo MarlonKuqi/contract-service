@@ -4,10 +4,12 @@ import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
+import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
+import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +24,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,7 +55,10 @@ class CreateContractTest {
 
     @BeforeEach
     void setUp() {
-        createContractHandler = new CreateContract.Handler(clientRepository, contractRepository, clock);
+        createContractHandler = new CreateContract.Handler(clientRepository,
+                contractRepository,
+                new ContractOverlapPolicy(contractRepository),
+                clock);
     }
 
     private CreateContract.Command commandOf(final ContractType type, final BigDecimal cost) {
@@ -89,6 +96,42 @@ class CreateContractTest {
         Contract result = createContractHandler.execute(commandOf(ContractType.LPP, COST));
 
         assertThat(result.type()).isEqualTo(ContractType.LPP);
+    }
+
+    @Test
+    @DisplayName("GIVEN une personne avec une LAMal qui couvre la période WHEN elle souscrit une LAMal THEN refuse sans créer de contrat")
+    void shouldRefuseLamalOverlappingExistingOne() {
+        when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId));
+        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
+                .thenReturn(List.of(ContractFixtures.existingContract(UUID.randomUUID(),
+                        clientId,
+                        now.minusMonths(1),
+                        null,
+                        COST,
+                        now)));
+        CreateContract.Command command = commandOf(ContractType.LAMAL, COST);
+
+        assertThatThrownBy(() -> createContractHandler.execute(command))
+                .isInstanceOf(OverlappingContractException.class);
+        verify(contractRepository, never()).save(any(Contract.class));
+    }
+
+    @Test
+    @DisplayName("GIVEN une personne avec une LAMal qui finit au début de la nouvelle WHEN elle souscrit une LAMal THEN crée le contrat")
+    void shouldCreateLamalStartingWhenPreviousOneEnds() {
+        when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId));
+        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
+                .thenReturn(List.of(ContractFixtures.existingContract(UUID.randomUUID(),
+                        clientId,
+                        now.minusYears(1),
+                        now,
+                        COST,
+                        now)));
+        when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Contract result = createContractHandler.execute(commandOf(ContractType.LAMAL, COST));
+
+        assertThat(result.period().startDate()).isEqualTo(now);
     }
 
     @Test

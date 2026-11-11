@@ -4,13 +4,13 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractCost;
+import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
-import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -37,12 +37,12 @@ public interface CreateContract {
     Contract execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements CreateContract {
 
         private final ClientRepository clientRepository;
         private final ContractRepository contractRepository;
+        private final ContractOverlapPolicy contractOverlapPolicy;
         private final Clock clock;
 
         @Override
@@ -53,7 +53,9 @@ public interface CreateContract {
 
             final Client client = clientRepository.getById(command.clientId());
 
-            return contractRepository.save(Contract.of(client.id(), client.kind(), command.type(), period, cost, now));
+            final Contract contract = Contract.of(client.id(), client.kind(), command.type(), period, cost, now);
+            contractOverlapPolicy.ensureNoOverlap(contract, now);
+            return contractRepository.save(contract);
         }
     }
 }

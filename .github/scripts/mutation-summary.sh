@@ -24,7 +24,7 @@ if [ -n "${DIFF_RANGE:-}" ]; then
   ' > "$changed_lines"
 fi
 
-MAX_ROWS="$max_rows" CHANGED_LINES="$changed_lines" perl -0777 -ne '
+MAX_ROWS="$max_rows" CHANGED_LINES="$changed_lines" UNDETECTED_FILE="${BRANCH_UNDETECTED_FILE:-}" perl -0777 -ne '
   my $max = $ENV{MAX_ROWS};
   my %changed;
   my $scoped = $ENV{CHANGED_LINES} ne "";
@@ -98,6 +98,12 @@ MAX_ROWS="$max_rows" CHANGED_LINES="$changed_lines" perl -0777 -ne '
     print "\n<details><summary>Undetected mutants (" . scalar(@undetected) . ")</summary>\n\n";
     print_mutants(@undetected);
     print "\n</details>\n";
+  }
+
+  if ($ENV{UNDETECTED_FILE} ne "") {
+    open my $out, ">", $ENV{UNDETECTED_FILE} or die "Cannot write $ENV{UNDETECTED_FILE}: $!";
+    print $out scalar(@branch_undetected), "\n";
+    close $out;
   }
 
   if ($scoped) {

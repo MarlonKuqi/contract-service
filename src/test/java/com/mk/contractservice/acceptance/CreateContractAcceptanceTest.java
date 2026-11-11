@@ -342,51 +342,115 @@ class CreateContractAcceptanceTest {
     }
 
     @Test
-    @DisplayName("SCENARIO: Create multiple contracts for same client succeeds")
+    @DisplayName("SCENARIO: A company takes out several overlapping employer contracts")
     void shouldCreateMultipleContractsForSameClient() {
         LocalDateTime now = LocalDateTime.now(clock);
+        Client company = aCompany();
 
-        String contract1 = String.format("""
-                {
-                    "clientId": "%s",
-                    "type": "LAMAL",
-                    "startDate": "%s",
-                    "endDate": null,
-                    "costAmount": "1000.00"
-                }
-                """, testClient.id(), now.minusDays(10));
+        given().body(contractOf(company, "LAA", now.minusDays(10), null))
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+        given().body(contractOf(company, "LAA", now.minusDays(5), now.plusMonths(6)))
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+        given().body(contractOf(company, "LPP", now.minusDays(3), now.plusMonths(3)))
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
 
-        String contract2 = String.format("""
-                {
-                    "clientId": "%s",
-                    "type": "LAMAL",
-                    "startDate": "%s",
-                    "endDate": "%s",
-                    "costAmount": "2500.00"
-                }
-                """, testClient.id(), now.minusDays(5), now.plusMonths(6));
+        given()
+                .when()
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", company.id())
+                .then()
+                .statusCode(200)
+                .body("content.size()", equalTo(3));
+    }
 
-        String contract3 = String.format("""
-                {
-                    "clientId": "%s",
-                    "type": "LAMAL",
-                    "startDate": "%s",
-                    "endDate": "%s",
-                    "costAmount": "750.50"
-                }
-                """, testClient.id(), now.minusDays(3), now.plusMonths(3));
+    @Test
+    @DisplayName("SCENARIO: A person cannot take out a LAMal overlapping one already held")
+    void shouldRefuseOverlappingLamal() {
+        LocalDateTime nextYear = LocalDateTime.now(clock).plusYears(1).withDayOfYear(1).toLocalDate().atStartOfDay();
+        given().body(contractOf(testClient, "LAMAL", nextYear, nextYear.plusYears(1)))
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
 
-        given().body(contract1).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
-        given().body(contract2).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
-        given().body(contract3).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
+        given()
+                .body(contractOf(testClient, "LAMAL", nextYear.plusMonths(6), null))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(409)
+                .contentType("application/problem+json")
+                .body("code", equalTo("contractOverlap"))
+                .body("detail", containsString(testClient.id().toString()))
+                .body("detail", containsString(nextYear.toString()));
 
-        // Verify all contracts are created
         given()
                 .when()
                 .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                 .then()
                 .statusCode(200)
-                .body("content.size()", equalTo(3));
+                .body("content.size()", equalTo(1));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: A person takes out next year's LAMal while the current one is still running")
+    void shouldCreateLamalStartingWhenCurrentOneEnds() {
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime nextYear = now.plusYears(1).withDayOfYear(1).toLocalDate().atStartOfDay();
+        given().body(contractOf(testClient, "LAMAL", now.minusMonths(3), nextYear))
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+
+        given()
+                .body(contractOf(testClient, "LAMAL", nextYear, null))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+
+        given()
+                .when()
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
+                .then()
+                .statusCode(200)
+                .body("content.size()", equalTo(2));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: A LAMal starting when the previous one ends is accepted even when the end has nanoseconds")
+    void shouldCreateLamalStartingWhenPreviousOneEndsWithNanoseconds() {
+        LocalDateTime handover = LocalDateTime.now(clock).plusYears(1).withNano(123_456_789);
+        given().body(contractOf(testClient, "LAMAL", handover.minusYears(1), handover))
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+
+        given()
+                .body(contractOf(testClient, "LAMAL", handover, null))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+    }
+
+    private static String contractOf(final Client client,
+            final String type,
+            final LocalDateTime startDate,
+            final LocalDateTime endDate) {
+        return """
+                {
+                    "clientId": "%s",
+                    "type": "%s",
+                    "startDate": "%s",
+                    "endDate": %s,
+                    "costAmount": "1200.00"
+                }
+                """.formatted(client.id(), type, startDate, endDate == null ? "null" : "\"" + endDate + "\"");
     }
 
     private Client aCompany() {

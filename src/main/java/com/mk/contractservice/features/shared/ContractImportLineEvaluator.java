@@ -4,12 +4,14 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractCost;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.ContractValidationException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
+import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -49,6 +51,7 @@ public final class ContractImportLineEvaluator {
             @Nullable final LocalDateTime endDate,
             final BigDecimal costAmount,
             final Map<UUID, Client> clientsById,
+            final ContractOverlapPolicy.Batch overlapBatch,
             final LocalDateTime now
     ) {
         final Client client = clientsById.get(clientId);
@@ -57,16 +60,20 @@ public final class ContractImportLineEvaluator {
                     ClientNotFoundException.messageFor(clientId));
         }
         try {
-            return new Accepted(Contract.of(
+            final Contract contract = Contract.of(
                     clientId,
                     client.kind(),
                     type,
                     ContractPeriod.of(startDate, endDate, now),
                     ContractCost.of(costAmount),
                     now
-            ));
+            );
+            overlapBatch.admit(contract);
+            return new Accepted(contract);
         } catch (final ContractValidationException ex) {
             return new Rejected(reasonOf(ex), ex.getMessage());
+        } catch (final OverlappingContractException ex) {
+            return new Rejected(ContractImportRejectionReason.OVERLAPPING_CONTRACT, ex.getMessage());
         }
     }
 

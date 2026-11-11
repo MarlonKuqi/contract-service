@@ -95,7 +95,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts"]
         },
-        "description": "Create a contract with default dates. If not provided, startDate defaults to current date and endDate is null (open-ended contract)."
+        "description": "Create a contract with default dates. If not provided, startDate defaults to current date and endDate is null (open-ended contract). A person holds at most one LAMAL at a time: 409 contractOverlap if the period overlaps an active LAMAL of that person, future ones included (the end date is exclusive; ended or closed LAMAL do not count)."
       }
     },
     {
@@ -278,7 +278,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts", "imports"]
         },
-        "description": "Import up to 1000 contracts, all or nothing (ADR-021). 201: {importedCount, contractIds} in the order of the lines; do not send it again, the contracts would be created twice. 422 contractImportRejected: nothing was created, the rejections property lists each problem with its zero-based index, clientId, code (invalidContractCost, invalidContractPeriod, clientNotFound, contractTypeNotAllowed) and message; fix the lines and send the whole import again. 422 invalidImportSize: no line or more than 1000. 422 validationError: missing or wrongly typed field, named contracts[n].field."
+        "description": "Import up to 1000 contracts, all or nothing (ADR-021). 201: {importedCount, contractIds} in the order of the lines; do not send it again, the contracts would be created twice. 422 contractImportRejected: nothing was created, the rejections property lists each problem with its zero-based index, clientId, code (invalidContractCost, invalidContractPeriod, clientNotFound, contractTypeNotAllowed, contractOverlap) and message; fix the lines and send the whole import again. 422 invalidImportSize: no line or more than 1000. 422 validationError: missing or wrongly typed field, named contracts[n].field."
       }
     },
     {
@@ -350,7 +350,7 @@
             { "key": "size", "value": "20" }
           ]
         },
-        "description": "List the lines rejected so far, ordered by line number (ADR-022). lineNumber is the line in the file, the header being line 1. Codes: invalidLineFormat, invalidContractCost, invalidContractPeriod, clientNotFound, contractTypeNotAllowed. size: at most 100, otherwise 400 invalidParameter. 404 contractImportJobNotFound: unknown job."
+        "description": "List the lines rejected so far, ordered by line number (ADR-022). lineNumber is the line in the file, the header being line 1. Codes: invalidLineFormat, invalidContractCost, invalidContractPeriod, clientNotFound, contractTypeNotAllowed, contractOverlap. size: at most 100, otherwise 400 invalidParameter. 404 contractImportJobNotFound: unknown job."
       }
     },
     {
@@ -459,7 +459,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts", "{{contractId}}", "period"]
         },
-        "description": "Replace the period of a contract: send both dates as they must be after the change. startDate is required (422 validationError when missing or null); a missing or null endDate makes the contract open-ended. Only active (non-expired) contracts can be changed: an expired contract returns 409 (contractExpired). The start date may be moved into the past; the end date cannot be in the past and must be after the start date, otherwise 422 (invalidContractPeriod). A change updates the internal last modification date (updatedSince filter); sending the current period is a no-op. Requires If-Match with the ETag of the contract ({{contractETag}} is filled by Get Contract By ID): missing or * returns 428 (preconditionRequired), a stale ETag returns 412 (preconditionFailed)."
+        "description": "Replace the period of a contract: send both dates as they must be after the change. startDate is required (422 validationError when missing or null); a missing or null endDate makes the contract open-ended. Only active (non-expired) contracts can be changed: an expired contract returns 409 (contractExpired). The new period of a LAMAL must not overlap another active LAMAL of the same person: 409 (contractOverlap). The start date may be moved into the past; the end date cannot be in the past and must be after the start date, otherwise 422 (invalidContractPeriod). A change updates the internal last modification date (updatedSince filter); sending the current period is a no-op. Requires If-Match with the ETag of the contract ({{contractETag}} is filled by Get Contract By ID): missing or * returns 428 (preconditionRequired), a stale ETag returns 412 (preconditionFailed)."
       }
     },
     {

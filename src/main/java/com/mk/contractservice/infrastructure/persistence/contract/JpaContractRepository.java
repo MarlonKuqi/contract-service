@@ -3,8 +3,10 @@ package com.mk.contractservice.infrastructure.persistence.contract;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
+import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractNotFoundException;
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
+import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.importjob.ContractImportJobLineJpaEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -19,9 +21,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -29,6 +34,7 @@ import java.util.UUID;
 public class JpaContractRepository implements ContractRepository {
 
     private final ContractJpaRepository contractJpaRepository;
+    private final ClientJpaRepository clientJpaRepository;
     private final EntityManager entityManager;
 
     @Override
@@ -62,6 +68,7 @@ public class JpaContractRepository implements ContractRepository {
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
     public void ensureVersion(final UUID contractId, final long expectedVersion) {
         final ContractJpaEntity entity = contractJpaRepository.findById(contractId)
                 .orElseThrow(() -> new ContractNotFoundException(contractId));
@@ -87,6 +94,19 @@ public class JpaContractRepository implements ContractRepository {
                         .sortBy(Sort.by(ContractSpecifications.FIELD_ID))
                         .limit(limit)
                         .all())
+                .stream()
+                .map(ContractJpaMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<Contract> lockAndFindAllByClientIdsAndTypes(final Set<UUID> clientIds, final Set<ContractType> types) {
+        if (clientIds.isEmpty() || types.isEmpty()) {
+            return List.of();
+        }
+        clientJpaRepository.lockExistingIds(clientIds);
+        return contractJpaRepository.findAllByClientIdInAndTypeIn(clientIds, types)
                 .stream()
                 .map(ContractJpaMapper::toDomain)
                 .toList();

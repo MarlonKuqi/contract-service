@@ -8,9 +8,8 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.CompanyIdentifier;
 import com.mk.contractservice.domain.client.CompanyIdentifierUniqueness;
-import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
@@ -33,7 +32,6 @@ public interface CreateCompany {
     Client execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements CreateCompany {
 

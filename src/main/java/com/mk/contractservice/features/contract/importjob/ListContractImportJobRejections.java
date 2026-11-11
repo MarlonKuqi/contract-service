@@ -3,13 +3,12 @@ package com.mk.contractservice.features.contract.importjob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobQueryPort;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.contract.importjob.ContractImportRejection;
-import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.PageBounds;
+import com.mk.contractservice.features.shared.QueryUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -32,8 +31,7 @@ public interface ListContractImportJobRejections {
 
     Page<ContractImportRejection> execute(Query query);
 
-    @UseCase
-    @Transactional(readOnly = true)
+    @QueryUseCase
     @RequiredArgsConstructor
     class Handler implements ListContractImportJobRejections {
 

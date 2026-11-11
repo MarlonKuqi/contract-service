@@ -4,18 +4,18 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException.LineRejection;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
-import com.mk.contractservice.domain.shared.UseCase;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Accepted;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Rejected;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -67,12 +67,12 @@ public interface ImportContracts {
     List<Contract> execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements ImportContracts {
 
         private final ClientRepository clientRepository;
         private final ContractRepository contractRepository;
+        private final ContractOverlapPolicy contractOverlapPolicy;
         private final Clock clock;
 
         private record LineProcessResult(List<Contract> contracts, List<LineRejection> rejections) {
@@ -99,6 +99,8 @@ public interface ImportContracts {
 
             final Map<UUID, Client> clientsById = ContractImportLineEvaluator.indexById(
                     clientRepository.findAllByIds(command.clientIds()));
+            final ContractOverlapPolicy.Batch overlapBatch = contractOverlapPolicy.startBatch(clientsById.keySet(),
+                    now);
 
             for (int index = 0; index < command.lines().size(); index++) {
                 final Line line = command.lines().get(index);
@@ -108,6 +110,7 @@ public interface ImportContracts {
                         line.endDate(),
                         line.costAmount(),
                         clientsById,
+                        overlapBatch,
                         now)) {
                     case Accepted(Contract contract) -> contracts.add(contract);
                     case Rejected(ContractImportRejectionReason reason, String message) -> rejections.add(
