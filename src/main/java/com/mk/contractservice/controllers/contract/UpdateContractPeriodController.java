@@ -49,7 +49,7 @@ public class UpdateContractPeriodController {
     )
     @ApiResponse(
             responseCode = "409",
-            description = "Contract is expired and cannot be modified (code contractExpired)",
+            description = "Contract is expired and cannot be modified (code contractExpired), or the new period of a LAMAL overlaps another active LAMAL of the same person (code contractOverlap)",
             content = @Content(mediaType = "application/problem+json", schema = @Schema(
                     implementation = ProblemDetail.class))
     )

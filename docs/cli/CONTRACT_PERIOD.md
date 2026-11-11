@@ -24,6 +24,7 @@ Réponse `204`, sans ETag : relire le contrat avant une autre modification.
 - La date de début peut être déplacée, y compris dans le passé.
 - La date de fin ne peut pas être dans le passé (heure du serveur, `Europe/Zurich`). Pour résilier immédiatement, envoyer une date légèrement future, par exemple la fin de la journée.
 - La date de fin doit rester après la date de début ; années entre 1 et 9999.
+- Pour une LAMal, la nouvelle période ne doit chevaucher aucune autre LAMal active de la même personne (voir [CONTRACT_TYPES.md](CONTRACT_TYPES.md)). Sa propre période précédente ne compte pas. Pour prolonger une LAMal suivie d'une autre, raccourcir d'abord la suivante.
 - Une modification met à jour la date de dernière modification interne, utilisée par le filtre `updatedSince` de la liste.
 
 ## Erreurs
@@ -36,3 +37,4 @@ Réponse `204`, sans ETag : relire le contrat avant une autre modification.
 | `startDate` absent ou `null`, date illisible, corps absent | 422 | `validationError` |
 | Fin dans le passé, fin pas après le début, année hors limites | 422 | `invalidContractPeriod` |
 | Contrat expiré | 409 | `contractExpired` |
+| Nouvelle période d'une LAMal qui chevauche une autre LAMal active de la personne | 409 | `contractOverlap` |

@@ -2,9 +2,11 @@ package com.mk.contractservice.features.shared;
 
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientFixtures;
-import com.mk.contractservice.domain.contract.ContractCoverage;
+import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
+import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Accepted;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Outcome;
@@ -16,9 +18,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @DisplayName("ContractImportLineEvaluator")
 class ContractImportLineEvaluatorTest {
@@ -32,6 +38,12 @@ class ContractImportLineEvaluatorTest {
     private static final BigDecimal VALID_COST = new BigDecimal("100.00");
     private static final BigDecimal NEGATIVE_COST = new BigDecimal("-1.00");
 
+    private static ContractOverlapPolicy.Batch overlapBatchOf(final Contract... existingContracts) {
+        final ContractRepository contractRepository = mock(ContractRepository.class);
+        when(contractRepository.findAllByClientIdsAndTypes(anySet(), anySet())).thenReturn(List.of(existingContracts));
+        return new ContractOverlapPolicy(contractRepository).startBatch(Set.of(CLIENT_ID, COMPANY_ID), NOW);
+    }
+
     private static Outcome evaluate(final UUID clientId,
             final LocalDateTime startDate,
             final LocalDateTime endDate,
@@ -44,7 +56,7 @@ class ContractImportLineEvaluatorTest {
             final LocalDateTime startDate,
             final LocalDateTime endDate,
             final BigDecimal cost) {
-        return evaluate(clientId, type, startDate, endDate, cost, ContractCoverage.of(List.of(), NOW));
+        return evaluate(clientId, type, startDate, endDate, cost, overlapBatchOf());
     }
 
     private static Outcome evaluate(final UUID clientId,
@@ -52,29 +64,29 @@ class ContractImportLineEvaluatorTest {
             final LocalDateTime startDate,
             final LocalDateTime endDate,
             final BigDecimal cost,
-            final ContractCoverage coverage) {
+            final ContractOverlapPolicy.Batch overlapBatch) {
         return ContractImportLineEvaluator.evaluate(clientId,
                 type,
                 startDate,
                 endDate,
                 cost,
                 EXISTING_CLIENTS,
-                coverage,
+                overlapBatch,
                 NOW);
     }
 
     @Test
     @DisplayName("GIVEN a LAMal of the client covering the period WHEN evaluating a LAMal THEN the line is rejected for the overlap")
     void shouldRejectLamalOverlappingExistingOne() {
-        final ContractCoverage coverage = ContractCoverage.of(List.of(ContractFixtures.existingContract(
+        final ContractOverlapPolicy.Batch overlapBatch = overlapBatchOf(ContractFixtures.existingContract(
                 UUID.randomUUID(),
                 CLIENT_ID,
                 NOW.minusYears(1),
                 null,
                 VALID_COST,
-                NOW)), NOW);
+                NOW));
 
-        final Outcome outcome = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, VALID_COST, coverage);
+        final Outcome outcome = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, VALID_COST, overlapBatch);
 
         assertThat(outcome).isInstanceOfSatisfying(Rejected.class, rejected -> {
             assertThat(rejected.reason()).isEqualTo(ContractImportRejectionReason.OVERLAPPING_CONTRACT);
@@ -83,12 +95,17 @@ class ContractImportLineEvaluatorTest {
     }
 
     @Test
-    @DisplayName("GIVEN an accepted LAMal line WHEN evaluating an overlapping LAMal line with the same coverage THEN the second one is rejected")
+    @DisplayName("GIVEN an accepted LAMal line WHEN evaluating an overlapping LAMal line in the same import THEN the second one is rejected")
     void shouldRejectLineOverlappingAPreviouslyAcceptedOne() {
-        final ContractCoverage coverage = ContractCoverage.of(List.of(), NOW);
+        final ContractOverlapPolicy.Batch overlapBatch = overlapBatchOf();
 
-        final Outcome first = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, VALID_COST, coverage);
-        final Outcome second = evaluate(CLIENT_ID, ContractType.LAMAL, NOW.plusYears(1), null, VALID_COST, coverage);
+        final Outcome first = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, VALID_COST, overlapBatch);
+        final Outcome second = evaluate(CLIENT_ID,
+                ContractType.LAMAL,
+                NOW.plusYears(1),
+                null,
+                VALID_COST,
+                overlapBatch);
 
         assertThat(first).isInstanceOf(Accepted.class);
         assertThat(second).isInstanceOfSatisfying(Rejected.class,
@@ -99,10 +116,10 @@ class ContractImportLineEvaluatorTest {
     @Test
     @DisplayName("GIVEN a rejected line WHEN evaluating a line overlapping only the rejected one THEN it is accepted")
     void shouldNotCoverWithRejectedLine() {
-        final ContractCoverage coverage = ContractCoverage.of(List.of(), NOW);
+        final ContractOverlapPolicy.Batch overlapBatch = overlapBatchOf();
 
-        final Outcome rejected = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, NEGATIVE_COST, coverage);
-        final Outcome accepted = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, VALID_COST, coverage);
+        final Outcome rejected = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, NEGATIVE_COST, overlapBatch);
+        final Outcome accepted = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, VALID_COST, overlapBatch);
 
         assertThat(rejected).isInstanceOf(Rejected.class);
         assertThat(accepted).isInstanceOf(Accepted.class);

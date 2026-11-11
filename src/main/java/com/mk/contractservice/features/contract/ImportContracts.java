@@ -3,7 +3,6 @@ package com.mk.contractservice.features.contract;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractCoverage;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
@@ -102,7 +101,8 @@ public interface ImportContracts {
 
             final Map<UUID, Client> clientsById = ContractImportLineEvaluator.indexById(
                     clientRepository.findAllByIds(command.clientIds()));
-            final ContractCoverage coverage = contractOverlapPolicy.coverageOf(clientsById.keySet(), now);
+            final ContractOverlapPolicy.Batch overlapBatch = contractOverlapPolicy.startBatch(clientsById.keySet(),
+                    now);
 
             for (int index = 0; index < command.lines().size(); index++) {
                 final Line line = command.lines().get(index);
@@ -112,7 +112,7 @@ public interface ImportContracts {
                         line.endDate(),
                         line.costAmount(),
                         clientsById,
-                        coverage,
+                        overlapBatch,
                         now)) {
                     case Accepted(Contract contract) -> contracts.add(contract);
                     case Rejected(ContractImportRejectionReason reason, String message) -> rejections.add(

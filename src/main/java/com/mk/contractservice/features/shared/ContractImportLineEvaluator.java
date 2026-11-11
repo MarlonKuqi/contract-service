@@ -3,8 +3,8 @@ package com.mk.contractservice.features.shared;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractCost;
-import com.mk.contractservice.domain.contract.ContractCoverage;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
+import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
@@ -51,7 +51,7 @@ public final class ContractImportLineEvaluator {
             @Nullable final LocalDateTime endDate,
             final BigDecimal costAmount,
             final Map<UUID, Client> clientsById,
-            final ContractCoverage coverage,
+            final ContractOverlapPolicy.Batch overlapBatch,
             final LocalDateTime now
     ) {
         final Client client = clientsById.get(clientId);
@@ -68,7 +68,7 @@ public final class ContractImportLineEvaluator {
                     ContractCost.of(costAmount),
                     now
             );
-            coverage.add(contract);
+            overlapBatch.admit(contract);
             return new Accepted(contract);
         } catch (final ContractValidationException ex) {
             return new Rejected(reasonOf(ex), ex.getMessage());
