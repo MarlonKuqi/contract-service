@@ -34,9 +34,7 @@ public interface ContractRepository {
 
     List<Contract> findActiveAfter(LocalDateTime activeAt, @Nullable UUID afterId, int limit);
 
-    void lockCoverageOf(Set<UUID> clientIds);
-
-    List<Contract> findAllByClientIdsAndTypes(Set<UUID> clientIds, Set<ContractType> types);
+    List<Contract> lockAndFindAllByClientIdsAndTypes(Set<UUID> clientIds, Set<ContractType> types);
 
     int closeAllActiveByClientId(UUID clientId, LocalDateTime closureDate);
 

@@ -102,7 +102,7 @@ class CreateContractTest {
     @DisplayName("GIVEN une personne avec une LAMal qui couvre la période WHEN elle souscrit une LAMal THEN refuse sans créer de contrat")
     void shouldRefuseLamalOverlappingExistingOne() {
         when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId));
-        when(contractRepository.findAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
+        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
                 .thenReturn(List.of(ContractFixtures.existingContract(UUID.randomUUID(),
                         clientId,
                         now.minusMonths(1),
@@ -120,7 +120,7 @@ class CreateContractTest {
     @DisplayName("GIVEN une personne avec une LAMal qui finit au début de la nouvelle WHEN elle souscrit une LAMal THEN crée le contrat")
     void shouldCreateLamalStartingWhenPreviousOneEnds() {
         when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId));
-        when(contractRepository.findAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
+        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
                 .thenReturn(List.of(ContractFixtures.existingContract(UUID.randomUUID(),
                         clientId,
                         now.minusYears(1),

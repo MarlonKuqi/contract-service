@@ -101,17 +101,11 @@ public class JpaContractRepository implements ContractRepository {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
-    public void lockCoverageOf(final Set<UUID> clientIds) {
-        if (!clientIds.isEmpty()) {
-            clientJpaRepository.lockExistingIds(clientIds);
-        }
-    }
-
-    @Override
-    public List<Contract> findAllByClientIdsAndTypes(final Set<UUID> clientIds, final Set<ContractType> types) {
+    public List<Contract> lockAndFindAllByClientIdsAndTypes(final Set<UUID> clientIds, final Set<ContractType> types) {
         if (clientIds.isEmpty() || types.isEmpty()) {
             return List.of();
         }
+        clientJpaRepository.lockExistingIds(clientIds);
         return contractJpaRepository.findAllByClientIdInAndTypeIn(clientIds, types)
                 .stream()
                 .map(ContractJpaMapper::toDomain)

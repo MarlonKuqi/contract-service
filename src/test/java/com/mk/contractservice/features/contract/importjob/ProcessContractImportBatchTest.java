@@ -170,7 +170,7 @@ class ProcessContractImportBatchTest {
         when(clientRepository.findAllByIds(Set.of(CLIENT_ID, otherPersonId)))
                 .thenReturn(List.of(ClientFixtures.existingPerson(CLIENT_ID),
                         ClientFixtures.existingPerson(otherPersonId)));
-        when(contractRepository.findAllByClientIdsAndTypes(Set.of(CLIENT_ID, otherPersonId),
+        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(CLIENT_ID, otherPersonId),
                 Set.of(ContractType.LAMAL)))
                 .thenReturn(List.of(ContractFixtures.existingContract(UUID.randomUUID(),
                         CLIENT_ID,

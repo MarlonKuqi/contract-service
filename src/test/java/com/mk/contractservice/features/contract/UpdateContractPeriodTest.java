@@ -105,7 +105,7 @@ class UpdateContractPeriodTest {
                 null,
                 new BigDecimal("500.00"),
                 CURRENT_START);
-        when(contractRepository.findAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
+        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
                 .thenReturn(List.of(loaded, next));
         UpdateContractPeriod.Command command = command(CURRENT_START, CURRENT_END.plusMonths(1));
 
@@ -117,7 +117,7 @@ class UpdateContractPeriodTest {
     @DisplayName("GIVEN a LAMal WHEN its new period runs over its own previous period THEN saves it, the contract not overlapping itself")
     void shouldNotCompareTheContractWithItself() {
         Contract loaded = givenContract(CURRENT_START, CURRENT_END);
-        when(contractRepository.findAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
+        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
                 .thenReturn(List.of(loaded));
         givenSaveReturnsArgument();
 

@@ -28,9 +28,6 @@ public class ContractOverlapPolicy {
     }
 
     public void ensureNoOverlap(final Contract contract, final LocalDateTime now) {
-        if (!contract.type().forbidsOverlap()) {
-            return;
-        }
         final List<Contract> others = lockAndLoad(Set.of(Objects.requireNonNull(contract.clientId()))).stream()
                 .filter(other -> isAnotherContract(other, contract))
                 .toList();
@@ -38,8 +35,7 @@ public class ContractOverlapPolicy {
     }
 
     private List<Contract> lockAndLoad(final Set<UUID> clientIds) {
-        contractRepository.lockCoverageOf(clientIds);
-        return contractRepository.findAllByClientIdsAndTypes(clientIds, ContractType.forbiddingOverlap());
+        return contractRepository.lockAndFindAllByClientIdsAndTypes(clientIds, ContractType.forbiddingOverlap());
     }
 
     private static boolean isAnotherContract(final Contract other, final Contract contract) {

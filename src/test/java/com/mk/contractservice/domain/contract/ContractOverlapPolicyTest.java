@@ -73,7 +73,7 @@ class ContractOverlapPolicyTest {
     }
 
     private void givenExisting(final Contract... contracts) {
-        when(contractRepository.findAllByClientIdsAndTypes(anySet(), anySet())).thenReturn(List.of(contracts));
+        when(contractRepository.lockAndFindAllByClientIdsAndTypes(anySet(), anySet())).thenReturn(List.of(contracts));
     }
 
     @Nested

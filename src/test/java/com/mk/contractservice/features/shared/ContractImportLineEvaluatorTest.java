@@ -40,7 +40,8 @@ class ContractImportLineEvaluatorTest {
 
     private static ContractOverlapPolicy.Batch overlapBatchOf(final Contract... existingContracts) {
         final ContractRepository contractRepository = mock(ContractRepository.class);
-        when(contractRepository.findAllByClientIdsAndTypes(anySet(), anySet())).thenReturn(List.of(existingContracts));
+        when(contractRepository.lockAndFindAllByClientIdsAndTypes(anySet(), anySet())).thenReturn(List.of(
+                existingContracts));
         return new ContractOverlapPolicy(contractRepository).startBatch(Set.of(CLIENT_ID, COMPANY_ID), NOW);
     }
 

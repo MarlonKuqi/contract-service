@@ -235,7 +235,7 @@ class ImportContractsTest {
         void shouldRejectLineOverlappingExistingContract() {
             when(clientRepository.findAllByIds(Set.of(clientId)))
                     .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
-            when(contractRepository.findAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
+            when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
                     .thenReturn(List.of(ContractFixtures.existingContract(UUID.randomUUID(),
                             clientId,
                             now.minusYears(1),
