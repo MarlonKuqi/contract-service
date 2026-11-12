@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -126,6 +127,24 @@ class SecurityAcceptanceTest {
                         """)
                 .when()
                 .post(ContractEndpoints.CONTRACT_IMPORTS)
+                .then()
+                .statusCode(403)
+                .body("code", equalTo("accessDenied"));
+    }
+
+    @Test
+    @DisplayName("GIVEN a user without the counselor role WHEN submitting a contract import file THEN 403 accessDenied")
+    void shouldRefuseImportFileWithoutCounselorRole() {
+        given()
+                .auth()
+                .oauth2(TestTokens.builder().realmRoles("offline_access").build())
+                .contentType("multipart/form-data")
+                .multiPart("file",
+                        "contracts.csv",
+                        ("clientId;type;startDate;endDate;costAmount\n" + UUID.randomUUID() + ";LAA;;;100.00\n")
+                                .getBytes(StandardCharsets.UTF_8))
+                .when()
+                .post(ContractEndpoints.CONTRACT_IMPORT_JOBS)
                 .then()
                 .statusCode(403)
                 .body("code", equalTo("accessDenied"));
