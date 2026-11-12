@@ -1,9 +1,8 @@
 package com.mk.contractservice.domain.contract;
 
-import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
-import com.mk.contractservice.domain.shared.ClientKind;
+import com.mk.contractservice.domain.shared.PolicyHolder;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -11,6 +10,7 @@ import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.mk.contractservice.domain.shared.Assert.notNull;
@@ -21,7 +21,7 @@ public class Contract {
 
     private final @Nullable UUID id;
     private final @Nullable UUID clientId;
-    private final ContractType type;
+    private final ContractCoverage coverage;
     private final ContractPeriod period;
     private final ContractCost costAmount;
     private final LocalDateTime lastModified;
@@ -30,14 +30,14 @@ public class Contract {
     private Contract(
             @Nullable final UUID id,
             @Nullable final UUID clientId,
-            @Nullable final ContractType type,
+            @Nullable final ContractCoverage coverage,
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount,
             @Nullable final LocalDateTime lastModified
     ) {
         this.id = id;
         this.clientId = notNull(clientId);
-        this.type = notNull(type);
+        this.coverage = notNull(coverage);
         this.period = notNull(period);
         this.costAmount = notNull(costAmount);
         this.lastModified = notNull(lastModified);
@@ -45,21 +45,19 @@ public class Contract {
 
     public static Contract of(
             @Nullable final UUID clientId,
-            @Nullable final ClientKind clientKind,
-            @Nullable final ContractType type,
+            @Nullable final PolicyHolder policyHolder,
+            @Nullable final ContractCoverage coverage,
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount,
             @Nullable final LocalDateTime now
     ) {
-        final ClientKind ownerKind = notNull(clientKind);
-        final ContractType contractType = notNull(type);
-        if (contractType.isClosedTo(ownerKind)) {
-            throw new ContractTypeNotAllowedException(contractType, ownerKind);
-        }
+        final ContractCoverage contractCoverage = notNull(coverage);
+        final ContractPeriod contractPeriod = notNull(period);
+        contractCoverage.ensureAllowedFor(notNull(policyHolder), contractPeriod);
         return builder()
                 .clientId(notNull(clientId))
-                .type(contractType)
-                .period(notNull(period))
+                .coverage(contractCoverage)
+                .period(contractPeriod)
                 .costAmount(notNull(costAmount))
                 .lastModified(notNull(now))
                 .build();
@@ -68,7 +66,7 @@ public class Contract {
     public static Contract reconstituteFromDatabase(
             @Nullable final UUID id,
             @Nullable final UUID clientId,
-            @Nullable final ContractType type,
+            @Nullable final ContractCoverage coverage,
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount,
             @Nullable final LocalDateTime lastModified
@@ -76,11 +74,22 @@ public class Contract {
         return builder()
                 .id(notNull(id))
                 .clientId(notNull(clientId))
-                .type(notNull(type))
+                .coverage(notNull(coverage))
                 .period(notNull(period))
                 .costAmount(notNull(costAmount))
                 .lastModified(notNull(lastModified))
                 .build();
+    }
+
+    public ContractType type() {
+        return coverage.type();
+    }
+
+    public Optional<LamalFranchise> franchise() {
+        return switch (coverage) {
+            case ContractCoverage.Lamal lamal -> Optional.of(lamal.franchise());
+            case ContractCoverage.Laa _,ContractCoverage.Lpp _ -> Optional.empty();
+        };
     }
 
     public boolean isActiveAt(final LocalDateTime referenceDate) {
@@ -103,7 +112,11 @@ public class Contract {
                 .build();
     }
 
-    public Contract changePeriod(@Nullable final ContractPeriod newPeriod, final LocalDateTime now) {
+    public Contract changePeriod(
+            @Nullable final ContractPeriod newPeriod,
+            @Nullable final PolicyHolder policyHolder,
+            final LocalDateTime now
+    ) {
         final ContractPeriod changedPeriod = notNull(newPeriod);
         assertModifiableAt(now);
         if (period.equals(changedPeriod)) {
@@ -114,6 +127,7 @@ public class Contract {
                     "Contract end date cannot be in the past. End: " + changedPeriod.endDate() + ", now: " + now
             );
         }
+        coverage.ensureAllowedFor(notNull(policyHolder), changedPeriod);
         return toBuilder()
                 .period(changedPeriod)
                 .lastModified(now)

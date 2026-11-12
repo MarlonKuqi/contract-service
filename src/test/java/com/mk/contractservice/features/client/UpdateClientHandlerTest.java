@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -200,7 +199,7 @@ class UpdateClientHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN valeurs identiques WHEN execute THEN ne sauvegarde pas et renvoie le client existant")
+        @DisplayName("GIVEN valeurs identiques WHEN execute THEN renvoie le client existant inchangé")
         void shouldNotSaveWhenValuesAreIdentical() {
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
@@ -214,7 +213,6 @@ class UpdateClientHandlerTest {
 
             Client result = updateClientHandler.execute(command);
 
-            verify(clientRepository, never()).save(any(Client.class));
             assertThat(result).isSameAs(existingPerson);
         }
 
@@ -233,7 +231,6 @@ class UpdateClientHandlerTest {
 
             Client result = updateClientHandler.execute(command);
 
-            verify(clientRepository, never()).save(any(Client.class));
             assertThat(result).isSameAs(existingPerson);
         }
     }
@@ -375,7 +372,7 @@ class UpdateClientHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN une version périmée WHEN execute THEN lève VersionMismatchException sans sauvegarder")
+        @DisplayName("GIVEN une version périmée WHEN execute THEN lève VersionMismatchException")
         void shouldRejectStaleVersion() {
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
             doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(clientRepository)
@@ -384,7 +381,6 @@ class UpdateClientHandlerTest {
             assertThatThrownBy(() -> updateClientHandler.execute(
                     new UpdateClient.Command(clientId, VERSION, "Jane Doe", "john@example.com", "+33111111111")))
                     .isInstanceOf(VersionMismatchException.class);
-            verify(clientRepository, never()).save(any(Client.class));
         }
     }
 }

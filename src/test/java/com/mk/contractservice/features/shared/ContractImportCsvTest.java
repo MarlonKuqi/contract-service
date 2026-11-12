@@ -1,5 +1,6 @@
 package com.mk.contractservice.features.shared;
 
+import com.mk.contractservice.domain.contract.ContractType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -16,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("ContractImportCsv")
 class ContractImportCsvTest {
 
-    private static final String HEADER = "clientId;type;startDate;endDate;costAmount\n";
+    private static final String HEADER = "clientId;type;franchise;startDate;endDate;costAmount\n";
     private static final UUID CLIENT_ID = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
 
     private static byte[] bytes(final String content) {
@@ -32,7 +33,7 @@ class ContractImportCsvTest {
     @Test
     @DisplayName("GIVEN a BOM and CRLF line endings WHEN counting THEN the file is accepted")
     void shouldAcceptBomAndCrlf() {
-        final byte[] content = bytes("\uFEFFclientId;type;startDate;endDate;costAmount\r\na\r\n");
+        final byte[] content = bytes("\uFEFFclientId;type;franchise;startDate;endDate;costAmount\r\na\r\n");
 
         assertThat(ContractImportCsv.requireValidAndCountLines(content)).isEqualTo(1);
     }
@@ -40,7 +41,8 @@ class ContractImportCsvTest {
     @ParameterizedTest
     @ValueSource(
             strings = {"", "clientId,startDate,endDate,costAmount\na\n", "wrong\na\n",
-                    "clientId;type;startDate;endDate;costAmount\n", "clientId;type;startDate;endDate;costAmount\n\n"})
+                    "clientId;type;franchise;startDate;endDate;costAmount\n",
+                    "clientId;type;franchise;startDate;endDate;costAmount\n\n"})
     @DisplayName("GIVEN no data or a wrong header WHEN counting THEN the file is rejected")
     void shouldRejectInvalidFiles(final String content) {
         assertThatThrownBy(() -> ContractImportCsv.requireValidAndCountLines(bytes(content)))
@@ -61,9 +63,11 @@ class ContractImportCsvTest {
     void shouldParseFullLine() {
         final ContractImportCsv.ParsedLine parsed = new ContractImportCsv.RawLine(
                 2,
-                CLIENT_ID + ";LAMAL;2026-01-01T00:00:00;2027-01-01T00:00:00;1500.50").parse();
+                CLIENT_ID + ";LAMAL;300;2026-01-01T00:00:00;2027-01-01T00:00:00;1500.50").parse();
 
         assertThat(parsed.clientId()).isEqualTo(CLIENT_ID);
+        assertThat(parsed.type()).isEqualTo(ContractType.LAMAL);
+        assertThat(parsed.franchise()).isEqualTo(300);
         assertThat(parsed.startDate()).isEqualTo(LocalDateTime.of(2026, 1, 1, 0, 0));
         assertThat(parsed.endDate()).isEqualTo(LocalDateTime.of(2027, 1, 1, 0, 0));
         assertThat(parsed.costAmount()).isEqualByComparingTo(new BigDecimal("1500.50"));
@@ -72,26 +76,36 @@ class ContractImportCsvTest {
     @Test
     @DisplayName("GIVEN empty dates WHEN parsing THEN they are null")
     void shouldParseEmptyDatesAsNull() {
-        final ContractImportCsv.ParsedLine parsed = new ContractImportCsv.RawLine(2, CLIENT_ID + ";LAMAL;;;100")
+        final ContractImportCsv.ParsedLine parsed = new ContractImportCsv.RawLine(2, CLIENT_ID + ";LAMAL;300;;;100")
                 .parse();
 
         assertThat(parsed.startDate()).isNull();
         assertThat(parsed.endDate()).isNull();
     }
 
+    @Test
+    @DisplayName("GIVEN an empty franchise WHEN parsing THEN it is null")
+    void shouldParseEmptyFranchiseAsNull() {
+        final ContractImportCsv.ParsedLine parsed = new ContractImportCsv.RawLine(2, CLIENT_ID + ";LAA;;;;100").parse();
+
+        assertThat(parsed.franchise()).isNull();
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
-            "not-a-uuid;LAMAL;;;100",
-            ";LAMAL;;;100",
-            "550e8400-e29b-41d4-a716-446655440000;LAMAL;;;",
-            "550e8400-e29b-41d4-a716-446655440000;LAMAL;;;abc",
-            "550e8400-e29b-41d4-a716-446655440000;LAMAL;;;100,50",
-            "550e8400-e29b-41d4-a716-446655440000;LAMAL;yesterday;;100",
-            "550e8400-e29b-41d4-a716-446655440000;LAMAL;;tomorrow;100",
+            "not-a-uuid;LAMAL;300;;;100",
+            "550e8400-e29b-41d4-a716-446655440000;LAMAL;abc;;;100",
+            "550e8400-e29b-41d4-a716-446655440000;LAMAL;300.50;;;100",
+            ";LAMAL;300;;;100",
+            "550e8400-e29b-41d4-a716-446655440000;LAMAL;300;;;",
+            "550e8400-e29b-41d4-a716-446655440000;LAMAL;300;;;abc",
+            "550e8400-e29b-41d4-a716-446655440000;LAMAL;300;;;100,50",
+            "550e8400-e29b-41d4-a716-446655440000;LAMAL;300;yesterday;;100",
+            "550e8400-e29b-41d4-a716-446655440000;LAMAL;300;;tomorrow;100",
             "550e8400-e29b-41d4-a716-446655440000;;;;100",
-            "550e8400-e29b-41d4-a716-446655440000;CASCO;;;100",
-            "550e8400-e29b-41d4-a716-446655440000;LAMAL;;100",
-            "550e8400-e29b-41d4-a716-446655440000;LAMAL;;;100;extra"
+            "550e8400-e29b-41d4-a716-446655440000;CASCO;;;;100",
+            "550e8400-e29b-41d4-a716-446655440000;LAMAL;300;;100",
+            "550e8400-e29b-41d4-a716-446655440000;LAMAL;300;;;100;extra"
     })
     @DisplayName("GIVEN a malformed line WHEN parsing THEN it fails")
     void shouldRejectMalformedLines(final String raw) {
@@ -123,8 +137,8 @@ class ContractImportCsvTest {
     @Test
     @DisplayName("GIVEN a malformed line with a readable client WHEN parsing fails THEN the client is known")
     void shouldKeepClientIdOfMalformedLine() {
-        assertThat(new ContractImportCsv.RawLine(2, CLIENT_ID + ";LAMAL;;;abc").clientIdIfReadable()).contains(
+        assertThat(new ContractImportCsv.RawLine(2, CLIENT_ID + ";LAMAL;300;;;abc").clientIdIfReadable()).contains(
                 CLIENT_ID);
-        assertThat(new ContractImportCsv.RawLine(2, "not-a-uuid;LAMAL;;;abc").clientIdIfReadable()).isEmpty();
+        assertThat(new ContractImportCsv.RawLine(2, "not-a-uuid;LAMAL;300;;;abc").clientIdIfReadable()).isEmpty();
     }
 }

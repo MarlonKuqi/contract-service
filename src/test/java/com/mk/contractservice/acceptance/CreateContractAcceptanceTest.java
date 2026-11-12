@@ -85,6 +85,7 @@ class CreateContractAcceptanceTest {
                 {
                     "clientId": "%s",
                     "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "5000.00"
@@ -125,6 +126,7 @@ class CreateContractAcceptanceTest {
                 {
                     "clientId": "%s",
                     "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "1000.00"
@@ -162,6 +164,7 @@ class CreateContractAcceptanceTest {
                 {
                     "clientId": "%s",
                     "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "999999.99"
@@ -186,6 +189,7 @@ class CreateContractAcceptanceTest {
                 {
                     "clientId": "%s",
                     "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "10000000000.00"
@@ -208,6 +212,7 @@ class CreateContractAcceptanceTest {
                 {
                     "clientId": "%s",
                     "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "0.00"
@@ -243,6 +248,7 @@ class CreateContractAcceptanceTest {
                 {
                     "clientId": "%s",
                     "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "1000.00"
@@ -265,6 +271,7 @@ class CreateContractAcceptanceTest {
                 {
                     "clientId": "%s",
                     "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "-100.00"
@@ -288,6 +295,7 @@ class CreateContractAcceptanceTest {
                 {
                     "clientId": "%s",
                     "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "1000.00"
@@ -328,6 +336,7 @@ class CreateContractAcceptanceTest {
                 {
                     "clientId": "%s",
                     "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s"
                 }
@@ -446,11 +455,16 @@ class CreateContractAcceptanceTest {
                 {
                     "clientId": "%s",
                     "type": "%s",
+                    "franchise": %s,
                     "startDate": "%s",
                     "endDate": %s,
                     "costAmount": "1200.00"
                 }
-                """.formatted(client.id(), type, startDate, endDate == null ? "null" : "\"" + endDate + "\"");
+                """.formatted(client.id(),
+                type,
+                franchiseOf(type),
+                startDate,
+                endDate == null ? "null" : "\"" + endDate + "\"");
     }
 
     private Client aCompany() {
@@ -461,14 +475,19 @@ class CreateContractAcceptanceTest {
                 TestDataHelper.uniqueCompanyIdentifier("CHE")));
     }
 
+    private static String franchiseOf(final String type) {
+        return "LAMAL".equals(type) ? "300" : "null";
+    }
+
     private static String contractOf(final Client client, final String type) {
         return """
                 {
                     "clientId": "%s",
                     "type": "%s",
+                    "franchise": %s,
                     "costAmount": "1200.00"
                 }
-                """.formatted(client.id(), type);
+                """.formatted(client.id(), type, franchiseOf(type));
     }
 
     private void assertHasNoContract(final Client client) {

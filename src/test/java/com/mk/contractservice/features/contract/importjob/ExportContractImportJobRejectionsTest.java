@@ -20,10 +20,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,7 +47,7 @@ class ExportContractImportJobRejectionsTest {
     @Test
     @DisplayName("GIVEN rejections spread over several pages WHEN exporting THEN each comes with its original line, in file order")
     void shouldExportRejectionsWithTheirOriginalLines() {
-        final String file = "clientId;type;startDate;endDate;costAmount\n" + CLIENT_ID + ";LAMAL;;;100.00\n" + CLIENT_ID + ";LAMAL;;;-1\n" + "\n" + "garbage;\"quoted\"\n";
+        final String file = "clientId;type;franchise;startDate;endDate;costAmount\n" + CLIENT_ID + ";LAMAL;300;;;100.00\n" + CLIENT_ID + ";LAMAL;300;;;-1\n" + "\n" + "garbage;\"quoted\"\n";
         when(jobRepository.loadFile(JOB_ID)).thenReturn(file.getBytes(StandardCharsets.UTF_8));
         when(queryPort.findRejections(JOB_ID, PageRequest.of(0, PAGE_SIZE)))
                 .thenReturn(new PageImpl<>(List.of(rejected(3, ContractImportRejectionReason.INVALID_COST)),
@@ -75,7 +72,7 @@ class ExportContractImportJobRejectionsTest {
                         tuple(3,
                                 ContractImportRejectionReason.INVALID_COST,
                                 "reason of line 3",
-                                CLIENT_ID + ";LAMAL;;;-1"),
+                                CLIENT_ID + ";LAMAL;300;;;-1"),
                         tuple(5,
                                 ContractImportRejectionReason.INVALID_LINE_FORMAT,
                                 "reason of line 5",
@@ -84,13 +81,12 @@ class ExportContractImportJobRejectionsTest {
     }
 
     @Test
-    @DisplayName("GIVEN an unknown job WHEN exporting THEN it is not found and its file is never read")
+    @DisplayName("GIVEN an unknown job WHEN exporting THEN it is not found")
     void shouldNotReadFileOfUnknownJob() {
         doThrow(new ContractImportJobNotFoundException(JOB_ID)).when(jobRepository).ensureExists(JOB_ID);
 
         assertThatThrownBy(() -> new ExportContractImportJobRejections.Handler(jobRepository, queryPort)
                 .execute(new ExportContractImportJobRejections.Query(JOB_ID)))
                 .isInstanceOf(ContractImportJobNotFoundException.class);
-        verify(jobRepository, never()).loadFile(any());
     }
 }

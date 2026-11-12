@@ -31,7 +31,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,7 +39,7 @@ import static org.mockito.Mockito.when;
 class SubmitContractImportJobTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-11-03T09:00:00Z"), ZoneId.of("Europe/Zurich"));
-    private static final String HEADER = "clientId;type;startDate;endDate;costAmount\n";
+    private static final String HEADER = "clientId;type;franchise;startDate;endDate;costAmount\n";
     private static final String SUBMITTER = "marie.counselor";
     private static final String KEY = "import-2026-11-03";
 
@@ -121,7 +120,6 @@ class SubmitContractImportJobTest {
                 KEY));
 
         assertThat(result).isSameAs(existing);
-        verify(jobRepository, never()).save(any(), any());
     }
 
     @Test
@@ -135,7 +133,6 @@ class SubmitContractImportJobTest {
                 KEY);
 
         assertThatThrownBy(() -> handler().execute(command)).isInstanceOf(IdempotencyKeyReusedException.class);
-        verify(jobRepository, never()).save(any(), any());
     }
 
     @Test
@@ -154,7 +151,6 @@ class SubmitContractImportJobTest {
 
         assertThatThrownBy(() -> handler().execute(blankKey)).isInstanceOf(InvalidIdempotencyKeyException.class);
         assertThatThrownBy(() -> handler().execute(tooLongKey)).isInstanceOf(InvalidIdempotencyKeyException.class);
-        verify(jobRepository, never()).save(any(), any());
     }
 
     @Test

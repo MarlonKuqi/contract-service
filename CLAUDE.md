@@ -43,6 +43,7 @@ The end date is exclusive. A contract whose `startDate` is in the future **is ac
 **Other rules**
 - A contract has a mandatory, immutable `type` (`ContractType`): `LAMAL` is reserved to persons, `LAA` and `LPP` to companies. `Contract.of` enforces it from the client's `ClientKind` (`domain/shared`), never from the `Client` itself: the two aggregates stay independent (ADR-024, `ContractTypeNotAllowedException` → 422 `contractTypeNotAllowed`).
 - A new LAMAL never overlaps an active LAMAL of the same person (active as in ADR-004, future ones included; ended or closed ones, such as those closed by a cancellation, no longer count; end exclusive: one may start when the previous one ends). `ContractOverlapPolicy` holds the rule: `startBatch` loads the existing contracts in one query for all clients of an import and returns a `Batch` whose `admit` refuses each overlapping contract and keeps the admitted ones (lines of the same import included), `ensureNoOverlap` checks a single contract; the policy reads them through `ContractRepository.lockAndFindAllByClientIdsAndTypes`, which locks the client rows first (`FOR UPDATE … ORDER BY id`), so concurrent creations are serialized and the policy cannot read without locking; the lock adapters (`lockAndFindAllByClientIdsAndTypes`, `lockExistingIds`) are `@Transactional(propagation = MANDATORY)`, so the policy fails outside a transaction, even for an empty batch, instead of locking for nothing (ADR-024, `OverlappingContractException` → 409 `contractOverlap`). A person may hold several active LAMAL (2026, 2027, 2028) as long as they do not overlap; tests that need overlapping contracts for one client use a company with `LAA`/`LPP`.
+- The type lives in a `sealed` `ContractCoverage` (`Lamal(LamalFranchise)`, `Laa`, `Lpp`); `Contract.type()` derives from it. A LAMAL requires a franchise from the legal scale (adult 300/500/1000/1500/2000/2500, child 0–600 by 100), LAA and LPP have none. The age category comes from the birth year at the contract start (adult from January 1st of the year they turn 19), and a child LAMAL must end at the latest on that date. `Contract.of` and `changePeriod` receive a `PolicyHolder` (`domain/shared`, from `Client.policyHolder()` or `ClientRepository.getPolicyHolderIncludingDeleted`) and check both rules through `ContractCoverage.ensureAllowedFor` (ADR-024 increment 3, `InvalidContractFranchiseException` → 422 `invalidContractFranchise`). The franchise is immutable for now.
 - Only active contracts can be modified (`ExpiredContractException`).
 - Updating the cost updates `lastModified`; the same amount (scale-insensitive) is a no-op. Replacing the period (`PUT /v2/contracts/{id}/period`, ADR-025) updates it too; the end date cannot be set in the past. `lastModified` is never exposed by the API (ADR-005).
 - `birthDate` and `companyIdentifier` are immutable.
@@ -125,6 +126,7 @@ No domain object can exist in an invalid state.
 - Tests never call `now()` without a clock: acceptance tests inject the application `Clock` bean, unit tests use fixed dates or `Clock.fixed`.
 - Concurrency bugs are reproduced with two real transactions (`TransactionTemplate` + `PROPAGATION_REQUIRES_NEW`).
 - A regression test must fail without the fix: check it before delivering.
+- Handler tests assert outcomes, not missing calls (ADR-014): no `verify(port, never())` after an exception (the exception proves the refusal, the use case transaction rolls back any write). Check the order of validations by making the other error possible (`lenient()` stub that throws) and asserting which one wins. A no-op update is asserted with `isSameAs(loaded)` in the unit test and an unchanged ETag in an acceptance test. Only a `void` handler whose sole output is a port call keeps `verify`.
 - Value Objects are tested through the entities' `of` (via the test fixtures) and the REST API. A dedicated VO test exists only when the VO is shared across aggregates or carries logic not observable through an entity.
 - Required for each entity:
     - `of()` with valid data, and with null or invalid fields;
@@ -183,3 +185,17 @@ If the request is unclear, ask questions.
 ## Environment notes
 - Development machine: Windows, Git Bash and PowerShell. Python is NOT installed; use the editing tools or `perl` for scripted edits.
 - Source files use CRLF line endings: multi-line text replacements must tolerate `\r\n`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues (`MarlonKuqi/contract-service`) through the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `docs/sujet.txt`, `GLOSSARY.md` (created lazily), and the ADRs in the single file `docs/ADR.md`. See `docs/agents/domain.md`.

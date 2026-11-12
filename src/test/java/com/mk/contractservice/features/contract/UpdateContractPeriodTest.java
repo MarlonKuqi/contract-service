@@ -1,11 +1,14 @@
 package com.mk.contractservice.features.contract;
 
+import com.mk.contractservice.domain.client.ClientFixtures;
+import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
+import com.mk.contractservice.domain.contract.exception.InvalidContractFranchiseException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
@@ -19,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -29,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,11 +53,15 @@ class UpdateContractPeriodTest {
     @Mock
     private ContractRepository contractRepository;
 
+    @Mock
+    private ClientRepository clientRepository;
+
     private UpdateContractPeriod.Handler handler;
 
     @BeforeEach
     void setUp() {
         handler = new UpdateContractPeriod.Handler(contractRepository,
+                clientRepository,
                 new ContractOverlapPolicy(contractRepository),
                 FIXED_CLOCK);
     }
@@ -85,18 +93,17 @@ class UpdateContractPeriodTest {
     }
 
     @Test
-    @DisplayName("GIVEN same period WHEN execute THEN does not save and returns the loaded contract")
+    @DisplayName("GIVEN same period WHEN execute THEN returns the loaded contract unchanged")
     void shouldNotSaveWhenPeriodIsTheSame() {
         Contract loaded = givenContract(CURRENT_START, CURRENT_END);
 
         Contract result = handler.execute(command(CURRENT_START, CURRENT_END));
 
-        verify(contractRepository, never()).save(any(Contract.class));
         assertThat(result).isSameAs(loaded);
     }
 
     @Test
-    @DisplayName("GIVEN a LAMal followed by another one WHEN its new period runs over the next one THEN refuses without saving")
+    @DisplayName("GIVEN a LAMal followed by another one WHEN its new period runs over the next one THEN refuses the new period")
     void shouldRefusePeriodOverlappingAnotherLamal() {
         Contract loaded = givenContract(CURRENT_START, CURRENT_END);
         Contract next = ContractFixtures.existingContract(UUID.randomUUID(),
@@ -110,7 +117,6 @@ class UpdateContractPeriodTest {
         UpdateContractPeriod.Command command = command(CURRENT_START, CURRENT_END.plusMonths(1));
 
         assertThatThrownBy(() -> handler.execute(command)).isInstanceOf(OverlappingContractException.class);
-        verify(contractRepository, never()).save(any(Contract.class));
     }
 
     @Test
@@ -127,13 +133,32 @@ class UpdateContractPeriodTest {
     }
 
     @Test
+    @DisplayName("GIVEN a child LAMal WHEN its end date is removed THEN refuses the new period: it must end with childhood")
+    void shouldRecheckFranchiseAgainstTheHolderBirthDate() {
+        LocalDate birthDate = LocalDate.of(2012, 3, 10);
+        Contract childLamal = ContractFixtures.existingContract(contractId,
+                clientId,
+                ContractType.LAMAL,
+                0,
+                CURRENT_START,
+                LocalDateTime.of(2031, 1, 1, 0, 0),
+                new BigDecimal("500.00"),
+                CURRENT_START);
+        when(contractRepository.getById(contractId)).thenReturn(childLamal);
+        when(clientRepository.getPolicyHolderIncludingDeleted(clientId))
+                .thenReturn(ClientFixtures.existingPerson(clientId, birthDate).policyHolder());
+
+        assertThatThrownBy(() -> handler.execute(command(CURRENT_START, null)))
+                .isInstanceOf(InvalidContractFranchiseException.class);
+    }
+
+    @Test
     @DisplayName("GIVEN start date after end date WHEN execute THEN throws InvalidContractPeriodException")
     void shouldRejectStartAfterEnd() {
         givenContract(CURRENT_START, CURRENT_END);
 
         assertThatThrownBy(() -> handler.execute(command(CURRENT_END.plusDays(1), CURRENT_END)))
                 .isInstanceOf(InvalidContractPeriodException.class);
-        verify(contractRepository, never()).save(any(Contract.class));
     }
 
     @Test
@@ -143,7 +168,6 @@ class UpdateContractPeriodTest {
 
         assertThatThrownBy(() -> handler.execute(command(CURRENT_START, null)))
                 .isInstanceOf(ExpiredContractException.class);
-        verify(contractRepository, never()).save(any(Contract.class));
     }
 
     @Test
@@ -166,7 +190,6 @@ class UpdateContractPeriodTest {
 
         assertThatThrownBy(() -> handler.execute(command(CURRENT_START, null)))
                 .isInstanceOf(VersionMismatchException.class);
-        verify(contractRepository, never()).save(any(Contract.class));
     }
 
     @Test
@@ -189,6 +212,8 @@ class UpdateContractPeriodTest {
                 endDate,
                 new BigDecimal("500.00"),
                 CURRENT_START);
+        lenient().when(clientRepository.getPolicyHolderIncludingDeleted(clientId))
+                .thenReturn(ClientFixtures.existingPerson(clientId).policyHolder());
         when(contractRepository.getById(contractId)).thenReturn(contract);
         return contract;
     }

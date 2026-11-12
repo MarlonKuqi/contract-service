@@ -78,7 +78,7 @@ class ContractImportJobShutdownAcceptanceTest {
         final UUID clientId;
         try (ConfigurableApplicationContext firstInstance = startInstance()) {
             clientId = createClient(firstInstance);
-            final String file = "clientId;type;startDate;endDate;costAmount\n" + (clientId + ";LAA;;;100.00\n")
+            final String file = "clientId;type;franchise;startDate;endDate;costAmount\n" + (clientId + ";LAA;;;;100.00\n")
                     .repeat(LINES);
             jobId = firstInstance.getBean(SubmitContractImportJob.class)
                     .execute(new SubmitContractImportJob.Command("contracts.csv",

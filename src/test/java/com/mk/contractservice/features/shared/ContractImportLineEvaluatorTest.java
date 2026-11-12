@@ -68,6 +68,7 @@ class ContractImportLineEvaluatorTest {
             final ContractOverlapPolicy.Batch overlapBatch) {
         return ContractImportLineEvaluator.evaluate(clientId,
                 type,
+                ContractFixtures.defaultFranchise(type),
                 startDate,
                 endDate,
                 cost,
@@ -155,6 +156,42 @@ class ContractImportLineEvaluatorTest {
     @DisplayName("GIVEN an invalid cost WHEN evaluating THEN the line is rejected for its cost")
     void shouldRejectInvalidCost() {
         final Outcome outcome = evaluate(CLIENT_ID, null, null, NEGATIVE_COST);
+
+        assertThat(outcome).isInstanceOfSatisfying(Rejected.class,
+                rejected -> assertThat(rejected.reason()).isEqualTo(ContractImportRejectionReason.INVALID_COST));
+    }
+
+    @Test
+    @DisplayName("GIVEN a LAMal line with a franchise outside the legal amounts WHEN evaluating THEN the line is rejected for its franchise")
+    void shouldRejectInvalidFranchise() {
+        final Outcome outcome = ContractImportLineEvaluator.evaluate(CLIENT_ID,
+                ContractType.LAMAL,
+                250,
+                null,
+                null,
+                VALID_COST,
+                EXISTING_CLIENTS,
+                overlapBatchOf(),
+                NOW);
+
+        assertThat(outcome).isInstanceOfSatisfying(Rejected.class, rejected -> {
+            assertThat(rejected.reason()).isEqualTo(ContractImportRejectionReason.INVALID_FRANCHISE);
+            assertThat(rejected.message()).contains("250");
+        });
+    }
+
+    @Test
+    @DisplayName("GIVEN an invalid cost and a missing franchise WHEN evaluating THEN only the cost is reported")
+    void shouldReportCostBeforeFranchise() {
+        final Outcome outcome = ContractImportLineEvaluator.evaluate(CLIENT_ID,
+                ContractType.LAMAL,
+                null,
+                null,
+                null,
+                NEGATIVE_COST,
+                EXISTING_CLIENTS,
+                overlapBatchOf(),
+                NOW);
 
         assertThat(outcome).isInstanceOfSatisfying(Rejected.class,
                 rejected -> assertThat(rejected.reason()).isEqualTo(ContractImportRejectionReason.INVALID_COST));

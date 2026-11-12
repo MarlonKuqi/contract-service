@@ -39,12 +39,14 @@ public class ContractImportJobRunner {
                 .toJobParameters();
         final JobExecution last = jobRepository.getLastJobExecution(ContractImportBatchConfiguration.JOB_NAME,
                 parameters);
-        if (last != null && last.getStatus() == BatchStatus.COMPLETED) {
-            finishContractImportJob.execute(new FinishContractImportJob.Command(jobId));
-            return;
-        }
-        if (last != null && last.isRunning()) {
-            jobOperator.recover(last);
+        if (last != null) {
+            if (last.getStatus() == BatchStatus.COMPLETED) {
+                finishContractImportJob.execute(new FinishContractImportJob.Command(jobId));
+                return;
+            }
+            if (last.isRunning()) {
+                jobOperator.recover(last);
+            }
         }
         if (failedAttemptsOf(parameters) >= MAX_ATTEMPTS) {
             log.error("Import job {} gave up after {} failed attempts", jobId, MAX_ATTEMPTS);

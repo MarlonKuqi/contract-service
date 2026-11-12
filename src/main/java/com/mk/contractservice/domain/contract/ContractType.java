@@ -19,6 +19,10 @@ public enum ContractType {
         return this == LAMAL;
     }
 
+    public boolean isNotLAMAL() {
+        return this != LAMAL;
+    }
+
     public boolean isClosedTo(final ClientKind clientKind) {
         return switch (clientKind) {
             case PERSON -> this != LAMAL;

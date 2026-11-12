@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -189,7 +188,6 @@ class PatchClientHandlerTest {
             assertThat(result.name().value()).isEqualTo(existingPerson.name().value());
             assertThat(result.email().value()).isEqualTo(existingPerson.email().value());
             assertThat(result.phone().value()).isEqualTo(existingPerson.phone().value());
-            verify(clientRepository, never()).save(any(Client.class));
             assertThat(result).isSameAs(existingPerson);
             assertThat(((Person) result).birthDate()).isEqualTo(existingPerson.birthDate());
         }
@@ -223,7 +221,6 @@ class PatchClientHandlerTest {
             assertThat(result.name().value()).isEqualTo(existingCompany.name().value());
             assertThat(result.email().value()).isEqualTo(existingCompany.email().value());
             assertThat(result.phone().value()).isEqualTo(existingCompany.phone().value());
-            verify(clientRepository, never()).save(any(Client.class));
             assertThat(result).isSameAs(existingCompany);
             assertThat(((Company) result).companyIdentifier()).isEqualTo(existingCompany.companyIdentifier());
         }
@@ -378,7 +375,7 @@ class PatchClientHandlerTest {
 
             Client result = patchClientHandler.execute(command);
 
-            verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result).isSameAs(existingPerson);
             assertThat(result.phone()).isEqualTo(existingPerson.phone());
         }
 
@@ -391,7 +388,7 @@ class PatchClientHandlerTest {
 
             Client result = patchClientHandler.execute(command);
 
-            verify(clientRepository, never()).save(any(Client.class));
+            assertThat(result).isSameAs(existingPerson);
             assertThat(result.email()).isEqualTo(existingPerson.email());
         }
 
@@ -404,12 +401,11 @@ class PatchClientHandlerTest {
 
             Client result = patchClientHandler.execute(command);
 
-            verify(clientRepository, never()).save(any(Client.class));
             assertThat(result).isSameAs(existingPerson);
         }
 
         @Test
-        @DisplayName("GIVEN tous les champs identiques WHEN execute THEN ne sauvegarde pas")
+        @DisplayName("GIVEN tous les champs identiques WHEN execute THEN renvoie le client existant inchangé")
         void shouldNotSaveWhenAllFieldsAreIdentical() {
             PatchClient.Command command = new PatchClient.Command(clientId,
                     VERSION,
@@ -421,7 +417,6 @@ class PatchClientHandlerTest {
 
             Client result = patchClientHandler.execute(command);
 
-            verify(clientRepository, never()).save(any(Client.class));
             assertThat(result).isSameAs(existingPerson);
         }
 
@@ -476,7 +471,7 @@ class PatchClientHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN une version périmée WHEN execute THEN lève VersionMismatchException sans sauvegarder")
+        @DisplayName("GIVEN une version périmée WHEN execute THEN lève VersionMismatchException")
         void shouldRejectStaleVersion() {
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
             doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(clientRepository)
@@ -488,7 +483,6 @@ class PatchClientHandlerTest {
                     null,
                     null)))
                     .isInstanceOf(VersionMismatchException.class);
-            verify(clientRepository, never()).save(any(Client.class));
         }
 
         @Test

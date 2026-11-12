@@ -13,6 +13,7 @@ import com.mk.contractservice.domain.contract.exception.ContractNotFoundExceptio
 import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
+import com.mk.contractservice.domain.contract.exception.InvalidContractFranchiseException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
 import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
@@ -270,6 +271,15 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
                 "invalidContractPeriod");
         problemDetail.setProperty(CONTEXT, "Contract period validation failed");
         return respond(problemDetail);
+    }
+
+    @ExceptionHandler(InvalidContractFranchiseException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidContractFranchise(InvalidContractFranchiseException ex) {
+        log.warn("Invalid contract franchise: {}", ex.getMessage());
+        return respond(problem(HttpStatus.UNPROCESSABLE_CONTENT,
+                "Invalid Contract Franchise",
+                ex.getMessage(),
+                "invalidContractFranchise"));
     }
 
     @ExceptionHandler(ContractTypeNotAllowedException.class)

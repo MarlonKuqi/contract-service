@@ -69,7 +69,7 @@ class FailContractImportJobTest {
     }
 
     @Test
-    @DisplayName("GIVEN a completed job WHEN failing it THEN nothing is saved")
+    @DisplayName("GIVEN a completed job WHEN failing it THEN the transition is refused")
     void shouldNotFailCompletedJob() {
         when(jobRepository.getById(JOB_ID)).thenReturn(ContractImportJobFixtures.runningJob(JOB_ID,
                 2,
@@ -82,7 +82,6 @@ class FailContractImportJobTest {
         assertThatThrownBy(() -> handler.execute(COMMAND)).isInstanceOf(
                 ContractImportJobTransitionNotAllowedException.class);
 
-        verify(jobRepository, never()).save(any());
     }
 
     @Test

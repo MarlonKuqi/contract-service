@@ -255,6 +255,7 @@ class SecurityAcceptanceTest {
                         {
                             "clientId": "%s",
                             "type": "LAMAL",
+                            "franchise": 300,
                             "endDate": "2100-01-01T00:00:00",
                             "costAmount": "1000.00"
                         }
@@ -270,7 +271,7 @@ class SecurityAcceptanceTest {
 
         given()
                 .body("""
-                        { "contracts": [{ "clientId": "%s", "type": "LAMAL", "startDate": "2100-01-01T00:00:00", "costAmount": "500.00" }] }
+                        { "contracts": [{ "clientId": "%s", "type": "LAMAL", "franchise": 300, "startDate": "2100-01-01T00:00:00", "costAmount": "500.00" }] }
                         """
                         .formatted(clientId))
                 .when()

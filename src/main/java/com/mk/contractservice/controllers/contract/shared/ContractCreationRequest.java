@@ -5,6 +5,7 @@ import com.mk.contractservice.domain.contract.ContractType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,6 +21,9 @@ public record ContractCreationRequest(
                 description = "Contract type. LAMAL (health insurance) is reserved to persons, LAA (accident insurance) and LPP (occupational pension) to companies",
                 example = "LAMAL",
                 requiredMode = Schema.RequiredMode.REQUIRED) ContractType type,
+
+        @Schema(description = "LAMal franchise in CHF, required for LAMAL and forbidden for LAA and LPP. Adult: 300, 500, 1000, 1500, 2000 or 2500. Child (until December 31st of the year they turn 18): 0 to 600 by steps of 100, the contract ending at the latest on January 1st of the year they turn 19",
+                example = "300") @Nullable Integer franchise,
 
         @Schema(description = "Contract start date (defaults to now if not provided)",
                 example = "2025-01-01T00:00:00",

@@ -88,14 +88,14 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"type\": \"LAMAL\",\n  \"costAmount\": 1500.50\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"type\": \"LAMAL\",\n  \"franchise\": 300,\n  \"costAmount\": 1500.50\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/v2/contracts",
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts"]
         },
-        "description": "Create a contract with default dates. If not provided, startDate defaults to current date and endDate is null (open-ended contract). A person holds at most one LAMAL at a time: 409 contractOverlap if the period overlaps an active LAMAL of that person, future ones included (the end date is exclusive; ended or closed LAMAL do not count)."
+        "description": "Create a contract with default dates. If not provided, startDate defaults to current date and endDate is null (open-ended contract). A person holds at most one LAMAL at a time: 409 contractOverlap if the period overlaps an active LAMAL of that person, future ones included (the end date is exclusive; ended or closed LAMAL do not count). A LAMAL requires a franchise in CHF (adult: 300, 500, 1000, 1500, 2000 or 2500; child until December 31st of the year they turn 18: 0 to 600 by steps of 100, the contract ending at the latest on January 1st of the year they turn 19); LAA and LPP have none: 422 invalidContractFranchise otherwise."
       }
     },
     {
@@ -110,7 +110,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"type\": \"LAMAL\",\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2025-12-31T23:59:59\",\n  \"costAmount\": 2500.00\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"type\": \"LAMAL\",\n  \"franchise\": 300,\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2025-12-31T23:59:59\",\n  \"costAmount\": 2500.00\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/v2/contracts",
@@ -132,7 +132,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"type\": \"LAMAL\",\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"type\": \"LAMAL\",\n  \"franchise\": 300,\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/v2/contracts",
@@ -271,7 +271,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"contracts\": [\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"type\": \"LAMAL\",\n      \"costAmount\": 1500.50\n    },\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"type\": \"LAMAL\",\n      \"startDate\": \"2027-01-01T00:00:00\",\n      \"endDate\": \"2028-01-01T00:00:00\",\n      \"costAmount\": 900.00\n    }\n  ]\n}"
+          "raw": "{\n  \"contracts\": [\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"type\": \"LAMAL\",\n      \"franchise\": 300,\n      \"costAmount\": 1500.50\n    },\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"type\": \"LAMAL\",\n      \"franchise\": 300,\n      \"startDate\": \"2027-01-01T00:00:00\",\n      \"endDate\": \"2028-01-01T00:00:00\",\n      \"costAmount\": 900.00\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/v2/contracts/imports",
@@ -307,7 +307,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts", "import-jobs"]
         },
-        "description": "Submit a CSV file for asynchronous, partial import (ADR-022). UTF-8, separator ';', first line clientId;type;startDate;endDate;costAmount (type: LAMAL, LAA or LPP), at most 500000 contracts and 50 MB. 202: Location header and job state; valid lines create their contract, the others are reported, so send only the rejected lines again. Idempotency-Key (optional, at most 255 characters, unique per counselor): the same key with the same file returns the first job; with another file, 422 idempotencyKeyReused; blank or too long, 400 invalidIdempotencyKey. 400 missingParameter: no file part. 413 importFileTooLarge: over 50 MB. 422 invalidImportFile: no data, wrong header, encoding other than UTF-8 or too many lines; nothing is stored."
+        "description": "Submit a CSV file for asynchronous, partial import (ADR-022). UTF-8, separator ';', first line clientId;type;franchise;startDate;endDate;costAmount (type: LAMAL, LAA or LPP; franchise in CHF, required for LAMAL and empty for LAA and LPP), at most 500000 contracts and 50 MB. 202: Location header and job state; valid lines create their contract, the others are reported, so send only the rejected lines again. Idempotency-Key (optional, at most 255 characters, unique per counselor): the same key with the same file returns the first job; with another file, 422 idempotencyKeyReused; blank or too long, 400 invalidIdempotencyKey. 400 missingParameter: no file part. 413 importFileTooLarge: over 50 MB. 422 invalidImportFile: no data, wrong header, encoding other than UTF-8 or too many lines; nothing is stored."
       },
       "event": [
         {
@@ -459,7 +459,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts", "{{contractId}}", "period"]
         },
-        "description": "Replace the period of a contract: send both dates as they must be after the change. startDate is required (422 validationError when missing or null); a missing or null endDate makes the contract open-ended. Only active (non-expired) contracts can be changed: an expired contract returns 409 (contractExpired). The new period of a LAMAL must not overlap another active LAMAL of the same person: 409 (contractOverlap). The start date may be moved into the past; the end date cannot be in the past and must be after the start date, otherwise 422 (invalidContractPeriod). A change updates the internal last modification date (updatedSince filter); sending the current period is a no-op. Requires If-Match with the ETag of the contract ({{contractETag}} is filled by Get Contract By ID): missing or * returns 428 (preconditionRequired), a stale ETag returns 412 (preconditionFailed)."
+        "description": "Replace the period of a contract: send both dates as they must be after the change. startDate is required (422 validationError when missing or null); a missing or null endDate makes the contract open-ended. Only active (non-expired) contracts can be changed: an expired contract returns 409 (contractExpired). The new period of a LAMAL must not overlap another active LAMAL of the same person: 409 (contractOverlap). The start date may be moved into the past; the end date cannot be in the past and must be after the start date, otherwise 422 (invalidContractPeriod). For a child LAMAL, the new end date must stay on or before January 1st of the year they turn 19, and a start moved into another age category must suit the franchise: 422 (invalidContractFranchise). A change updates the internal last modification date (updatedSince filter); sending the current period is a no-op. Requires If-Match with the ETag of the contract ({{contractETag}} is filled by Get Contract By ID): missing or * returns 428 (preconditionRequired), a stale ETag returns 412 (preconditionFailed)."
       }
     },
     {

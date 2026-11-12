@@ -45,6 +45,10 @@ public class ContractJpaEntity {
     @Column(name = "type", nullable = false, updatable = false, length = 16)
     private ContractType type;
 
+    @Nullable
+    @Column(name = "franchise", updatable = false)
+    private Integer franchise;
+
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 
@@ -65,6 +69,7 @@ public class ContractJpaEntity {
     public ContractJpaEntity(
             @Nullable final UUID clientId,
             final ContractType type,
+            @Nullable final Integer franchise,
             final LocalDateTime startDate,
             @Nullable final LocalDateTime endDate,
             final BigDecimal costAmount,
@@ -72,6 +77,7 @@ public class ContractJpaEntity {
     ) {
         this.clientId = clientId;
         this.type = type;
+        this.franchise = franchise;
         this.startDate = startDate;
         this.endDate = endDate;
         this.costAmount = costAmount;

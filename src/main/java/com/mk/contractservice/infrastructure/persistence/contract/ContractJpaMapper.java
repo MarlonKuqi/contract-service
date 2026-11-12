@@ -2,7 +2,9 @@ package com.mk.contractservice.infrastructure.persistence.contract;
 
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractCost;
+import com.mk.contractservice.domain.contract.ContractCoverage;
 import com.mk.contractservice.domain.contract.ContractPeriod;
+import com.mk.contractservice.domain.contract.LamalFranchise;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -13,7 +15,7 @@ public final class ContractJpaMapper {
         return Contract.reconstituteFromDatabase(
                 entity.getId(),
                 entity.getClientId(),
-                entity.getType(),
+                ContractCoverage.reconstituteFromDatabase(entity.getType(), entity.getFranchise()),
                 ContractPeriod.reconstituteFromDatabase(entity.getStartDate(), entity.getEndDate()),
                 ContractCost.reconstituteFromDatabase(entity.getCostAmount()),
                 entity.getLastModified()
@@ -24,6 +26,7 @@ public final class ContractJpaMapper {
         return new ContractJpaEntity(
                 domain.clientId(),
                 domain.type(),
+                domain.franchise().map(LamalFranchise::value).orElse(null),
                 domain.period().startDate(),
                 domain.period().endDate(),
                 domain.costAmount().value(),

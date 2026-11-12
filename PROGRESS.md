@@ -36,6 +36,7 @@ Suivi des sujets en cours. Les décisions sont détaillées dans [ADR.md](docs/A
 - [ ] **Docs utilisateur**
   - Release notes 2.0.0 : à écrire dans `docs/cli/RELEASE_NOTES_2.0.0.md` (fichier absent de toutes les branches) :
     - `type` obligatoire sur les contrats (`POST /v2/contracts`, imports JSON et CSV), éligibilité selon la nature du client (ADR-024) ;
+    - `franchise` obligatoire sur une LAMal, selon le barème légal et l'âge de l'assuré, LAMal d'enfant à durée limitée, nouvel en-tête CSV (ADR-024, incrément 3) ;
     - plus de 409 sur email / téléphone ;
     - `DELETE` d'un client inconnu ou déjà supprimé : 404 ;
     - soft delete ;
@@ -100,15 +101,18 @@ Non exigé par `docs/sujet.txt`, livré par incréments. Chaque incrément a sa 
   - `ContractOverlapPolicy` (service de domaine) porte la règle : `ensureNoOverlap` vérifie un contrat (création, changement de période en écartant le contrat lui-même), `startBatch` charge en une requête les LAMal de tous les clients d’un import et renvoie un `Batch` dont `admit` refuse ou retient chaque ligne. `409 contractOverlap` à la création et au changement de période, rejet `OVERLAPPING_CONTRACT` / `contractOverlap` dans les imports, y compris entre lignes d'un même import.
   - Concurrence : `ContractOverlapPolicy` verrouille les clients (`FOR UPDATE … ORDER BY id`) avant de lire leurs LAMal ; le verrou de chunk de l'import par fichier passe de `FOR SHARE` à `FOR UPDATE` trié. Contrainte d'exclusion PostgreSQL envisagée puis écartée (ADR-024). Test avec deux vraies transactions sur deux threads.
   - Clôture d'un contrat et suppression d'un client : sans effet sur la règle (une fin plus tôt ne crée pas de chevauchement).
-- [ ] **Incrément 3 : franchise LAMal.**
-  - Hiérarchie `sealed` dans le domaine (`LamalContract` porte la franchise), une seule table : colonne `franchise` nullable, `CHECK` liée au type, lectures sans jointure.
-  - Value Object validé contre les paliers légaux : adulte 300, 500, 1000, 1500, 2000, 2500 CHF ; enfant de 0 à 600 CHF par paliers de 100.
-  - L'âge vient de la date de naissance du client, transmise par le use case à `Contract.of` (comme `ClientKind`, sans dépendance à l'agrégat client).
-  - Changement de franchise : à étudier (en pratique au 1er janvier), méthode `changeFranchise` avec sa règle de date.
+- [x] **Incrément 3 : franchise LAMal** (non commité, travail sur `develop`).
+  - Couverture `sealed` `ContractCoverage` (`Lamal(LamalFranchise)`, `Laa`, `Lpp`) à la place du champ `type`, plutôt qu'un agrégat `sealed` : une seule donnée propre au type ne justifie pas de dupliquer le builder, les `change*` et les mappers. Une seule table : colonne `franchise` nullable, `CHECK` liée au type, migration `V2.0.0.11` sans reprise de données (aucune LAMal attendue en base avant elle).
+  - Barème légal (`LamalFranchise`) : adulte 300, 500, 1000, 1500, 2000, 2500 CHF ; enfant de 0 à 600 CHF par paliers de 100. Catégorie selon l'année de naissance, évaluée au début du contrat.
+  - LAMal d'enfant : fin obligatoire au plus tard le 1er janvier de l'année des 19 ans, vérifiée aussi au changement de période.
+  - `PolicyHolder` (`domain/shared`) remplace `ClientKind` dans `Contract.of` et entre dans `changePeriod` ; `ClientRepository.getPolicyHolderIncludingDeleted` pour `UpdateContractPeriod` (un client supprimé laisse `409 contractExpired`, pas 404).
+  - `franchise` obligatoire pour une LAMal, interdite sinon (`422 invalidContractFranchise`, rejet `INVALID_FRANCHISE`) ; en-tête CSV `clientId;type;franchise;startDate;endDate;costAmount`.
+  - Franchise immuable : `changeFranchise` (au 1er janvier) reporté à l'incrément 4.
 - [ ] **Incrément 4 : droit d'option des frontaliers.**
   - Notion de résidence sur le client (Suisse ou pays frontalier) : migration sur les tables client et API client.
   - Un frontalier peut choisir l'assurance-maladie de son pays de résidence au lieu de la LAMal, dans un délai après le début de son emploi en Suisse. Règle détaillée à définir avant de modéliser.
-  - Créer l'agrégat `AssuranceMaladie` (table `lamal`, une racine par personne avec sa `version`) qui porte le droit d'option, et y déplacer la règle de non-chevauchement : verrouillage optimiste forcé sur la racine à la place du verrou `FOR UPDATE` sur le client (ADR-024, « Suite prévue »). Au plus tard ici ; à reconsidérer dès l'incrément 3 si la franchise ajoute des règles propres à la couverture.
+  - Créer l'agrégat `AssuranceMaladie` (table `lamal`, une racine par personne avec sa `version`) qui porte le droit d'option, et y déplacer la règle de non-chevauchement : verrouillage optimiste forcé sur la racine à la place du verrou `FOR UPDATE` sur le client (ADR-024, « Suite prévue »).
+  - Décider alors du changement de franchise : `changeFranchise` effectif au 1er janvier (franchise à venir sur l'échéance, ou nouvelle échéance créée par la racine). Délais légaux à trancher : hausse jusqu'au 31 décembre, baisse avant le 30 novembre.
 
 ## Pour aller plus loin (entraînement)
 

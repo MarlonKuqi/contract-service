@@ -48,6 +48,10 @@ public final class ClientFixtures {
                 LocalDate.of(1990, 5, 14));
     }
 
+    public static Person existingPerson(final UUID id, final LocalDate birthDate) {
+        return existingPerson(id, "Alice Martin", "alice.martin@example.com", "+41791234567", birthDate);
+    }
+
     public static Company existingCompany(final UUID id) {
         return existingCompany(id, "Acme SA", "contact@acme.example.com", "+41223456789", "CHE-123.456.789");
     }

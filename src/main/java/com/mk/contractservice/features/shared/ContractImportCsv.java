@@ -28,19 +28,20 @@ import java.util.UUID;
 public final class ContractImportCsv {
 
     public static final String SEPARATOR = ";";
-    public static final String HEADER = "clientId" + SEPARATOR + "type" + SEPARATOR + "startDate" + SEPARATOR + "endDate" + SEPARATOR + "costAmount";
+    public static final String HEADER = "clientId" + SEPARATOR + "type" + SEPARATOR + "franchise" + SEPARATOR + "startDate" + SEPARATOR + "endDate" + SEPARATOR + "costAmount";
 
     private static final String BYTE_ORDER_MARK = "\uFEFF";
-    private static final int COLUMNS = 5;
+    private static final int COLUMNS = 6;
     private static final char NUL = '\0';
 
     public record RawLine(int lineNumber, String raw) {
 
         private static final int CLIENT_ID = 0;
         private static final int TYPE = 1;
-        private static final int START_DATE = 2;
-        private static final int END_DATE = 3;
-        private static final int COST_AMOUNT = 4;
+        private static final int FRANCHISE = 2;
+        private static final int START_DATE = 3;
+        private static final int END_DATE = 4;
+        private static final int COST_AMOUNT = 5;
 
         public Optional<UUID> clientIdIfReadable() {
             try {
@@ -56,6 +57,7 @@ public final class ContractImportCsv {
                 return new ParsedLine(
                         UUID.fromString(columns[CLIENT_ID]),
                         typeOf(columns[TYPE]),
+                        optionalInteger(columns[FRANCHISE]),
                         optionalDate(columns[START_DATE]),
                         optionalDate(columns[END_DATE]),
                         new BigDecimal(columns[COST_AMOUNT])
@@ -90,6 +92,10 @@ public final class ContractImportCsv {
             }
         }
 
+        private static @Nullable Integer optionalInteger(final String value) {
+            return value.isEmpty() ? null : Integer.valueOf(value);
+        }
+
         private static @Nullable LocalDateTime optionalDate(final String value) {
             return value.isEmpty() ? null : LocalDateTime.parse(value);
         }
@@ -98,6 +104,7 @@ public final class ContractImportCsv {
     public record ParsedLine(
             UUID clientId,
             ContractType type,
+            @Nullable Integer franchise,
             @Nullable LocalDateTime startDate,
             @Nullable LocalDateTime endDate,
             BigDecimal costAmount

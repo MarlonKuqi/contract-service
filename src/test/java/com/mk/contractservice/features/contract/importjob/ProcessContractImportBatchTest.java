@@ -107,13 +107,13 @@ class ProcessContractImportBatchTest {
 
         handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
                 List.of(
-                        new RawLine(2, CLIENT_ID + ";LAMAL;;;100.00"),
-                        new RawLine(3, CLIENT_ID + ";LAMAL;;;-1"),
-                        new RawLine(4, UNKNOWN_CLIENT_ID + ";LAMAL;;;100.00"),
+                        new RawLine(2, CLIENT_ID + ";LAMAL;300;;;100.00"),
+                        new RawLine(3, CLIENT_ID + ";LAMAL;300;;;-1"),
+                        new RawLine(4, UNKNOWN_CLIENT_ID + ";LAMAL;300;;;100.00"),
                         new RawLine(5, "garbage"),
-                        new RawLine(6, CLIENT_ID + ";LAMAL;2026-01-01T00:00:00;2025-01-01T00:00:00;100.00"),
-                        new RawLine(7, CLIENT_ID + ";LAA;;;100.00"),
-                        new RawLine(8, CLIENT_ID + ";CASCO;;;100.00")
+                        new RawLine(6, CLIENT_ID + ";LAMAL;300;2026-01-01T00:00:00;2025-01-01T00:00:00;100.00"),
+                        new RawLine(7, CLIENT_ID + ";LAA;;;;100.00"),
+                        new RawLine(8, CLIENT_ID + ";CASCO;;;;100.00")
                 )));
 
         verify(jobRepository).saveLines(linesCaptor.capture());
@@ -145,9 +145,9 @@ class ProcessContractImportBatchTest {
 
         handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
                 List.of(
-                        new RawLine(2, COMPANY_ID + ";LAA;;;100.00"),
-                        new RawLine(3, COMPANY_ID + ";LAA;;;-1"),
-                        new RawLine(4, COMPANY_ID + ";LAA;;;200.00")
+                        new RawLine(2, COMPANY_ID + ";LAA;;;;100.00"),
+                        new RawLine(3, COMPANY_ID + ";LAA;;;;-1"),
+                        new RawLine(4, COMPANY_ID + ";LAA;;;;200.00")
                 )));
 
         verify(jobRepository).saveLines(linesCaptor.capture());
@@ -183,9 +183,9 @@ class ProcessContractImportBatchTest {
 
         handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
                 List.of(
-                        new RawLine(2, CLIENT_ID + ";LAMAL;;;100.00"),
-                        new RawLine(3, otherPersonId + ";LAMAL;;;100.00"),
-                        new RawLine(4, otherPersonId + ";LAMAL;2030-01-01T00:00:00;;100.00")
+                        new RawLine(2, CLIENT_ID + ";LAMAL;300;;;100.00"),
+                        new RawLine(3, otherPersonId + ";LAMAL;300;;;100.00"),
+                        new RawLine(4, otherPersonId + ";LAMAL;300;2030-01-01T00:00:00;;100.00")
                 )));
 
         verify(jobRepository).saveLines(linesCaptor.capture());
@@ -209,8 +209,8 @@ class ProcessContractImportBatchTest {
 
         handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
                 List.of(
-                        new RawLine(2, CLIENT_ID + ";LAMAL;;;100.00"),
-                        new RawLine(3, CLIENT_ID + ";LAMAL;;;-1")
+                        new RawLine(2, CLIENT_ID + ";LAMAL;300;;;100.00"),
+                        new RawLine(3, CLIENT_ID + ";LAMAL;300;;;-1")
                 )));
 
         verify(jobRepository).save(jobCaptor.capture());

@@ -35,6 +35,7 @@ public interface ImportContracts {
     record Line(
             UUID clientId,
             ContractType type,
+            @Nullable Integer franchise,
             @Nullable LocalDateTime startDate,
             @Nullable LocalDateTime endDate,
             BigDecimal costAmount
@@ -106,6 +107,7 @@ public interface ImportContracts {
                 final Line line = command.lines().get(index);
                 switch (ContractImportLineEvaluator.evaluate(line.clientId(),
                         line.type(),
+                        line.franchise(),
                         line.startDate(),
                         line.endDate(),
                         line.costAmount(),

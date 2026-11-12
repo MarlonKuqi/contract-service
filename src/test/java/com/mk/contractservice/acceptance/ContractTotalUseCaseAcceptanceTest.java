@@ -442,6 +442,7 @@ class ContractTotalUseCaseAcceptanceTest {
                     {
                         "clientId": "%s",
                         "type": "LAMAL",
+                        "franchise": 300,
                         "startDate": "%s",
                         "endDate": null,
                         "costAmount": "1000.00"

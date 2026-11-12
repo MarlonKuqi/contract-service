@@ -10,6 +10,7 @@ public record ContractDetails(
         UUID id,
         @Nullable UUID clientId,
         ContractType type,
+        @Nullable Integer franchise,
         LocalDateTime startDate,
         @Nullable LocalDateTime endDate,
         boolean active,

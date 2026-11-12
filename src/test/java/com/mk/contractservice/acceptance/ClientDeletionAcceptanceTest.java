@@ -287,6 +287,7 @@ class ClientDeletionAcceptanceTest {
                 {
                     "clientId": "%s",
                     "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "1000.00"
@@ -297,6 +298,7 @@ class ClientDeletionAcceptanceTest {
                 {
                     "clientId": "%s",
                     "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "2000.00"
@@ -506,6 +508,7 @@ class ClientDeletionAcceptanceTest {
                         {
                             "clientId": "%s",
                             "type": "LAMAL",
+                            "franchise": 300,
                             "costAmount": "100.00"
                         }
                         """.formatted(clientId))
@@ -579,6 +582,7 @@ class ClientDeletionAcceptanceTest {
                         {
                             "clientId": "%s",
                             "type": "LAMAL",
+                            "franchise": 300,
                             "startDate": "%s",
                             "costAmount": "100.00"
                         }

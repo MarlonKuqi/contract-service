@@ -15,6 +15,7 @@ public final class ContractImportCodes {
             case INVALID_PERIOD -> "invalidContractPeriod";
             case CLIENT_NOT_FOUND -> "clientNotFound";
             case TYPE_NOT_ALLOWED -> "contractTypeNotAllowed";
+            case INVALID_FRANCHISE -> "invalidContractFranchise";
             case OVERLAPPING_CONTRACT -> "contractOverlap";
         };
     }

@@ -20,6 +20,9 @@ public record ContractResponse(
         @JsonProperty("type") @Schema(description = "Contract type",
                 example = "LAMAL") ContractType type,
 
+        @JsonProperty("franchise") @Schema(description = "LAMal franchise in CHF (null for LAA and LPP)",
+                example = "300", nullable = true) @Nullable Integer franchise,
+
         @JsonProperty("startDate") @Schema(description = "Contract start date",
                 example = "2024-01-01T00:00:00") LocalDateTime startDate,
 

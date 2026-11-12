@@ -73,6 +73,7 @@ class LamalOverlapConcurrencyAcceptanceTest {
         ));
         CreateContract.Command lamal2027 = new CreateContract.Command(person.id(),
                 ContractType.LAMAL,
+                300,
                 now.plusYears(1),
                 now.plusYears(2),
                 new BigDecimal("300.00"));

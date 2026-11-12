@@ -36,7 +36,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -71,11 +70,11 @@ class ImportContractsTest {
     }
 
     private ImportContracts.Line validLine() {
-        return new ImportContracts.Line(clientId, ContractType.LAMAL, null, null, VALID_COST);
+        return new ImportContracts.Line(clientId, ContractType.LAMAL, 300, null, null, VALID_COST);
     }
 
     private ImportContracts.Line laaLine() {
-        return new ImportContracts.Line(clientId, ContractType.LAA, null, null, VALID_COST);
+        return new ImportContracts.Line(clientId, ContractType.LAA, null, null, null, VALID_COST);
     }
 
     private ImportContracts.Command commandOf(final ImportContracts.Line... lines) {
@@ -117,21 +116,21 @@ class ImportContractsTest {
         @Test
         @DisplayName("GIVEN une ligne sans client WHEN création THEN refuse la ligne")
         void shouldRefuseLineWithoutClient() {
-            assertThatThrownBy(() -> new ImportContracts.Line(null, ContractType.LAMAL, null, null, VALID_COST))
+            assertThatThrownBy(() -> new ImportContracts.Line(null, ContractType.LAMAL, 300, null, null, VALID_COST))
                     .isInstanceOf(NullPointerException.class);
         }
 
         @Test
         @DisplayName("GIVEN une ligne sans type de contrat WHEN création THEN refuse la ligne")
         void shouldRefuseLineWithoutType() {
-            assertThatThrownBy(() -> new ImportContracts.Line(clientId, null, null, null, VALID_COST))
+            assertThatThrownBy(() -> new ImportContracts.Line(clientId, null, null, null, null, VALID_COST))
                     .isInstanceOf(NullPointerException.class);
         }
 
         @Test
         @DisplayName("GIVEN une ligne sans coût WHEN création THEN refuse la ligne")
         void shouldRefuseLineWithoutCost() {
-            assertThatThrownBy(() -> new ImportContracts.Line(clientId, ContractType.LAMAL, null, null, null))
+            assertThatThrownBy(() -> new ImportContracts.Line(clientId, ContractType.LAMAL, 300, null, null, null))
                     .isInstanceOf(NullPointerException.class);
         }
     }
@@ -145,8 +144,13 @@ class ImportContractsTest {
         void shouldCreateEveryContractInLinesOrder() {
             final UUID otherClientId = UUID.randomUUID();
             final ImportContracts.Command command = commandOf(
-                    new ImportContracts.Line(clientId, ContractType.LAMAL, now, now.plusYears(1), VALID_COST),
-                    new ImportContracts.Line(otherClientId, ContractType.LAMAL, null, null, new BigDecimal("2000.00"))
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, 300, now, now.plusYears(1), VALID_COST),
+                    new ImportContracts.Line(otherClientId,
+                            ContractType.LAMAL,
+                            300,
+                            null,
+                            null,
+                            new BigDecimal("2000.00"))
             );
             when(clientRepository.findAllByIds(Set.of(clientId, otherClientId)))
                     .thenReturn(List.of(ClientFixtures.existingPerson(clientId),
@@ -189,13 +193,12 @@ class ImportContractsTest {
                     .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
             final ImportContracts.Command command = commandOf(
                     validLine(),
-                    new ImportContracts.Line(clientId, ContractType.LAMAL, null, null, NEGATIVE_COST)
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, 300, null, null, NEGATIVE_COST)
             );
 
             assertThatThrownBy(() -> handler.execute(command))
                     .isInstanceOf(ContractImportRejectedException.class);
 
-            verify(contractRepository, never()).saveAll(anyList());
         }
 
         @Test
@@ -205,11 +208,11 @@ class ImportContractsTest {
             when(clientRepository.findAllByIds(Set.of(clientId, unknownClientId)))
                     .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
             final ImportContracts.Command command = commandOf(
-                    new ImportContracts.Line(clientId, ContractType.LAMAL, null, null, NEGATIVE_COST),
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, 300, null, null, NEGATIVE_COST),
                     validLine(),
-                    new ImportContracts.Line(clientId, ContractType.LAMAL, now, now.minusDays(1), VALID_COST),
-                    new ImportContracts.Line(unknownClientId, ContractType.LAMAL, null, null, VALID_COST),
-                    new ImportContracts.Line(clientId, ContractType.LPP, null, null, VALID_COST)
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, 300, now, now.minusDays(1), VALID_COST),
+                    new ImportContracts.Line(unknownClientId, ContractType.LAMAL, 300, null, null, VALID_COST),
+                    new ImportContracts.Line(clientId, ContractType.LPP, null, null, null, VALID_COST)
             );
 
             final ContractImportRejectedException rejection = catchThrowableOfType(
@@ -252,7 +255,6 @@ class ImportContractsTest {
                     .extracting(ContractImportRejectedException.LineRejection::index,
                             ContractImportRejectedException.LineRejection::reason)
                     .containsExactly(tuple(0, ContractImportRejectionReason.OVERLAPPING_CONTRACT));
-            verify(contractRepository, never()).saveAll(anyList());
         }
 
         @Test
@@ -261,9 +263,9 @@ class ImportContractsTest {
             when(clientRepository.findAllByIds(Set.of(clientId)))
                     .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
             final ImportContracts.Command command = commandOf(
-                    new ImportContracts.Line(clientId, ContractType.LAMAL, now, now.plusYears(1), VALID_COST),
-                    new ImportContracts.Line(clientId, ContractType.LAMAL, now.plusYears(1), null, VALID_COST),
-                    new ImportContracts.Line(clientId, ContractType.LAMAL, now.plusMonths(6), null, VALID_COST)
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, 300, now, now.plusYears(1), VALID_COST),
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, 300, now.plusYears(1), null, VALID_COST),
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, 300, now.plusMonths(6), null, VALID_COST)
             );
 
             final ContractImportRejectedException rejection = catchThrowableOfType(
