@@ -968,7 +968,7 @@ Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des 
 - l'invariant devient interne : ajouter une échéance charge la racine, vérifie le chevauchement et incrémente sa version même sans autre changement (`OPTIMISTIC_FORCE_INCREMENT`). Deux créations simultanées entrent en conflit de version (ADR-011) : plus de verrou sur la ligne client, et la modification d'un client ne bloque plus la création d'une LAMal ;
 - la racine est créée avec la personne, ou à la première LAMal (`INSERT … ON CONFLICT (person_id) DO NOTHING`) ; l'unicité de `person_id` règle la course ;
 - seuls les chemins qui peuvent créer un chevauchement passent par la racine : création unitaire, changement de période (ADR-025) et imports. Changer le coût ou fermer un contrat ne fait que garder ou raccourcir une période ;
-- reportée parce qu'aujourd'hui la racine ne porterait qu'un identifiant et une version, ce que fait déjà le verrou sans table. À créer au plus tard à l'incrément 4 : le droit d'option du frontalier est une donnée de la couverture, pas d'une échéance. La franchise (incrément 3) reste sur chaque échéance, dans sa couverture `ContractCoverage.Lamal`.
+- reportée parce qu'aujourd'hui la racine ne porterait qu'un identifiant et une version, ce que fait déjà le verrou sans table. Créée à l'incrément 4a (voir « Incrément 4 » ci-dessous) : le droit d'option du frontalier est une donnée de la couverture, pas d'une échéance. La franchise (incrément 3) reste sur chaque échéance, dans sa couverture `ContractCoverage.Lamal`.
 
 **Conséquences.**
 - `POST /v2/contracts` peut répondre `409 contractOverlap` ; nouveau code de rejet dans les imports.
@@ -986,8 +986,8 @@ Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des 
 - **Barème** (`LamalFranchise`) : adulte 300, 500, 1000, 1500, 2000 ou 2500 CHF ; enfant de 0 à 600 CHF par paliers de 100. `ContractCoverage.of(type, franchise)` refuse une LAMal sans franchise, une franchise sur une LAA ou une LPP, et un montant hors des deux barèmes.
 - **Catégorie d'âge selon l'année de naissance**, comme dans l'OAMal : enfant jusqu'au 31 décembre de l'année des 18 ans, adulte dès le 1er janvier de l'année des 19 ans. Elle est évaluée à la date de début du contrat.
 - **La LAMal d'un enfant finit au plus tard le 1er janvier de l'année de ses 19 ans.** Le contrat reste valide toute sa durée (ADR-002) : une franchise d'enfant ne s'applique jamais à un adulte. L'adulte souscrit ensuite une nouvelle LAMal, que l'incrément 2 autorise déjà.
-- **Souscripteur `PolicyHolder`** (`domain/shared` : `Person(birthDate)`, `Company`). Il remplace `ClientKind` dans `Contract.of`. `ContractCoverage.ensureAllowedFor(holder, period)` vérifie l'éligibilité du type, puis la franchise selon l'âge, à la création et à chaque `changePeriod` : déplacer le début peut changer la catégorie d'âge, prolonger peut dépasser la fin de l'enfance. `Client.policyHolder()` le fournit, et `domain.contract` ne dépend toujours pas de `domain.client`.
-- **Changement de période** : `UpdateContractPeriod` lit le souscripteur par `ClientRepository.getPolicyHolderIncludingDeleted`. La nature et la date de naissance sont immuables, et le contrat d'un client supprimé doit continuer à répondre `409 contractExpired`, pas 404.
+- **Titulaire `ContractHolder`** (`domain/shared` : `Person(birthDate)`, `Company`). C'est un Value Object du noyau partagé : le client tel que les règles de couverture le voient, copie immuable du strict nécessaire passée par le use case, car un agrégat ne référence l'autre que par son identifiant. `Client` ne le contient pas, il le calcule. Il est nommé « titulaire » et non « preneur d'assurance » (`PolicyHolder`) : le client d'une LAMal est l'assuré, celui d'une LAA ou d'une LPP est le preneur, et le preneur d'une LAMal d'enfant peut être un parent (ADR-026). Il remplace `ClientKind` dans `Contract.of`. `ContractCoverage.ensureAllowedFor(holder, period)` vérifie l'éligibilité du type, puis la franchise selon l'âge, à la création et à chaque `changePeriod` : déplacer le début peut changer la catégorie d'âge, prolonger peut dépasser la fin de l'enfance. `Client.contractHolder()` le fournit, et `domain.contract` ne dépend toujours pas de `domain.client`.
+- **Changement de période** : `UpdateContractPeriod` lit le titulaire par `ClientRepository.getContractHolderIncludingDeleted`. La nature et la date de naissance sont immuables, et le contrat d'un client supprimé doit continuer à répondre `409 contractExpired`, pas 404.
 - **Franchise immuable dans cet incrément** (`updatable = false`, aucune méthode `change*`). Pour en changer, on ferme la LAMal au 31 décembre et on crée celle de l'année suivante. Un `changeFranchise` effectif au 1er janvier sera tranché avec l'agrégat `AssuranceMaladie` (incrément 4, « Suite prévue »).
 - **Refus** : `InvalidContractFranchiseException` (une `ContractValidationException`), traduite en `422 invalidContractFranchise` et en rejet de ligne `INVALID_FRANCHISE` (code `invalidContractFranchise`). La forme (présence, barème) est vérifiée avant le chargement du client, comme le coût. L'âge est vérifié après l'éligibilité du type. Dans les imports : client, période, coût, forme de la franchise, type, franchise selon l'âge, chevauchement.
 - **API.** `franchise` (entier, en CHF) dans `POST /v2/contracts`, dans les lignes de `POST /v2/contracts/imports` et dans toutes les lectures de contrats (`null` pour une LAA ou une LPP). L'en-tête CSV devient `clientId;type;franchise;startDate;endDate;costAmount` ; la franchise est vide pour une LAA ou une LPP, et une valeur illisible donne `invalidLineFormat`.
@@ -999,7 +999,7 @@ Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des 
 - **Contrôle de l'âge au seul début du contrat** : une LAMal d'enfant sans fin garderait une franchise d'enfant à l'âge adulte.
 - **Bascule automatique au 1er janvier** (job qui passe la franchise en barème adulte) : réaliste, mais il faut un job planifié, ShedLock et une règle pour choisir la nouvelle franchise. Rien ne le justifie tant que la fin imposée suffit.
 - **Franchise par défaut dans l'API** (300 pour un adulte, 0 pour un enfant) : une valeur implicite dans un contrat d'assurance, alors que c'est un choix de l'assuré.
-- **Lire le souscripteur par `ClientRepository.getById`** au changement de période : le contrat d'un client supprimé répondrait 404 au lieu de `409 contractExpired`.
+- **Lire le titulaire par `ClientRepository.getById`** au changement de période : le contrat d'un client supprimé répondrait 404 au lieu de `409 contractExpired`.
 - **Franchise ordinaire pour les LAMal existantes** (300 CHF pour un adulte, 0 CHF pour un enfant, calculée en SQL dans la migration) : la règle d'âge du domaine serait recopiée en SQL et ne suivrait pas ses évolutions, et la franchise serait choisie à la place de l'assuré. Implémentée puis retirée avant le commit.
 
 **Conséquences.**
@@ -1007,6 +1007,25 @@ Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des 
 - La LAMal d'un enfant a toujours une date de fin.
 
 **Statut.** Acceptée.
+
+### Incrément 4 : droit d'option des frontaliers (hypothèses)
+
+**Contexte.** Un frontalier soumis à la LAMal peut demander à en être exempté pour s'assurer dans son pays de résidence. Le métier n'est pas joignable : les hypothèses ci-dessous reprennent le droit tel que compris et ont été validées le 12/11/2026. Elles cadrent les deux sous-incréments avant tout code.
+
+**Hypothèses retenues.**
+- **Frontalier = client résidant dans un pays frontalier** (France, Allemagne, Italie, Autriche). En droit, c'est l'activité en Suisse qui soumet le frontalier à la LAMal ; ici elle est implicite (les clients vivent en Suisse ou sont frontaliers). L'emploi n'est pas modélisé, l'ancien frontalier sans activité en Suisse est hors périmètre.
+- **Pas de date de début d'emploi.** Le délai de 3 mois pour demander l'exemption est contrôlé par l'autorité cantonale du lieu de travail, pas par l'assureur : on n'en garde pas la donnée.
+- **L'exemption est une décision cantonale enregistrée** par le conseiller, avec sa date d'effet (rétroactive possible au début de l'emploi). Elle n'est possible que pour un frontalier, et une LAMal qui couvre une période d'exemption est refusée. Sans exemption, le frontalier est soumis à la LAMal comme un résident ; on ne contrôle pas qu'il en a une (continuité, voir ci-dessous).
+- **La résidence est modifiable**, sans historique (résidence actuelle seulement). Elle ne change pas le type de contrat (LAMal pour une personne, LAA et LPP pour une entreprise) mais seulement le droit à l'exemption. Passer la résidence en Suisse pendant une exemption en cours est refusé tant que l'exemption n'est pas close : plus simple et plus explicite qu'une clôture implicite.
+- **`ContractHolder.Person` portera `residence`** à côté de `birthDate` : c'est le titulaire qui transmet aux règles de couverture ce qu'elles doivent savoir du client.
+- **L'affiliation LAMal est continue, ses paramètres sont annuels.** L'affiliation à l'assureur n'a pas de fin (on en sort en changeant d'assureur au 1er janvier, en partant à l'étranger ou par exemption) ; la prime et la franchise valent pour une année civile. `AssuranceMaladie` est la racine continue, les contrats `LAMAL` en sont les échéances. La fin imposée à la LAMal d'un enfant (incrément 3) reste juste : les 19 ans tombent un 1er janvier, une limite d'échéance comme une autre. Ce qui manque est la continuité (pas de trou entre deux échéances, reconduction annuelle), à traiter dans la racine après l'incrément 4a.
+- **Hors périmètre** : membres de la famille (l'exemption ne s'étend pas aux enfants ici), règles propres à chaque pays.
+
+**Découpage.**
+- **Incrément 4a, refactoring sans changement de comportement** : créer l'agrégat `AssuranceMaladie` (« Suite prévue » ci-dessus, migration de la table `lamal`, racine créée à la première LAMal sans reprise de données) et y déplacer la règle de non-chevauchement, verrouillage optimiste forcé à la place du `FOR UPDATE` sur le client. Les tests d'acceptation restent inchangés.
+- **Incrément 4b, droit d'option** : résidence sur le client (migration, API client), `residence` dans `ContractHolder`, exemption dans `AssuranceMaladie`, refus d'une LAMal pendant une exemption.
+
+**Statut.** Proposée.
 
 ---
 
