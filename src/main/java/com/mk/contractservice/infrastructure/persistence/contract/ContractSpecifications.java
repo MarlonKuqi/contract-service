@@ -13,6 +13,7 @@ import java.util.UUID;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ContractSpecifications {
 
+    public static final String FIELD_ID = "id";
     private static final String FIELD_END_DATE = "endDate";
     private static final String FIELD_CLIENT_ID = "clientId";
     private static final String FIELD_LAST_MODIFIED = "lastModified";
@@ -59,5 +60,9 @@ public final class ContractSpecifications {
 
     public static Specification<ContractJpaEntity> updatedAfter(final LocalDateTime updatedSince) {
         return (contract, query, cb) -> updatedAfterPredicate(contract, cb, updatedSince);
+    }
+
+    public static Specification<ContractJpaEntity> idGreaterThan(final UUID afterId) {
+        return (contract, query, cb) -> cb.greaterThan(contract.<UUID>get(FIELD_ID), afterId);
     }
 }

@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.client;
 
+import com.mk.contractservice.domain.shared.ContractHolder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -58,6 +59,11 @@ public final class Company extends Client {
     }
 
     @Override
+    public ContractHolder contractHolder() {
+        return ContractHolder.company();
+    }
+
+    @Override
     public Company changeCoreFields(
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
@@ -95,7 +101,7 @@ public final class Company extends Client {
     }
 
     @Override
-    public Company changePhone(@Nullable ClientPhoneNumber phoneNumber) {
+    public Company changePhone(@Nullable final ClientPhoneNumber phoneNumber) {
         final ClientPhoneNumber newPhone = notNull(phoneNumber);
         if (hasPhone(newPhone)) {
             return this;
@@ -109,11 +115,11 @@ public final class Company extends Client {
 
     private CompanyBuilder toBuilder() {
         return builder()
-                .id(getId())
-                .name(getName())
-                .email(getEmail())
-                .phone(getPhone())
-                .companyIdentifier(getCompanyIdentifier());
+                .id(id())
+                .name(name())
+                .email(email())
+                .phone(phone())
+                .companyIdentifier(companyIdentifier());
     }
 
     @NoArgsConstructor
@@ -125,34 +131,33 @@ public final class Company extends Client {
         private ClientPhoneNumber phone;
         private CompanyIdentifier companyIdentifier;
 
-        public CompanyBuilder id(final UUID id) {
+        CompanyBuilder id(final UUID id) {
             this.id = id;
             return this;
         }
 
-        public CompanyBuilder name(final ClientName name) {
+        CompanyBuilder name(final ClientName name) {
             this.name = name;
             return this;
         }
 
-        public CompanyBuilder email(final ClientEmail email) {
+        CompanyBuilder email(final ClientEmail email) {
             this.email = email;
             return this;
         }
 
-        public CompanyBuilder phone(final ClientPhoneNumber phone) {
+        CompanyBuilder phone(final ClientPhoneNumber phone) {
             this.phone = phone;
             return this;
         }
 
-        public CompanyBuilder companyIdentifier(final CompanyIdentifier companyIdentifier) {
+        CompanyBuilder companyIdentifier(final CompanyIdentifier companyIdentifier) {
             this.companyIdentifier = companyIdentifier;
             return this;
         }
 
-        public Company build() {
+        Company build() {
             return new Company(id, name, email, phone, companyIdentifier);
         }
     }
 }
-

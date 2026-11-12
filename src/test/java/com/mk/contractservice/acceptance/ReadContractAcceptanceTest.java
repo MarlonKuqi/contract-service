@@ -12,7 +12,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
@@ -94,17 +94,21 @@ class ReadContractAcceptanceTest {
     @DisplayName("SCENARIO: Read contract with all fields returns correct data")
     void shouldReadContractWithAllFields() {
         LocalDateTime now = LocalDateTime.now(clock);
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("5000.00"), LocalDateTime.now(clock));
+        Contract contract = ContractFixtures.newContract(testClient.id(),
+                now,
+                now.plusMonths(12),
+                new BigDecimal("5000.00"),
+                LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId())
+                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.id())
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("fr-CH"))
-                .body("id", equalTo(savedContract.getId().toString()))
-                .body("clientId", equalTo(testClient.getId().toString()))
+                .body("id", equalTo(savedContract.id().toString()))
+                .body("clientId", equalTo(testClient.id().toString()))
                 .body("costAmount", equalTo(5000.00f))
                 .body("startDate", notNullValue())
                 .body("endDate", notNullValue())
@@ -115,15 +119,19 @@ class ReadContractAcceptanceTest {
     @DisplayName("SCENARIO: Read open-ended contract returns null endDate")
     void shouldReadOpenEndedContract() {
         LocalDateTime now = LocalDateTime.now(clock);
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, null, new BigDecimal("1000.00"), LocalDateTime.now(clock));
+        Contract contract = ContractFixtures.newContract(testClient.id(),
+                now,
+                null,
+                new BigDecimal("1000.00"),
+                LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId())
+                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.id())
                 .then()
                 .statusCode(200)
-                .body("id", equalTo(savedContract.getId().toString()))
+                .body("id", equalTo(savedContract.id().toString()))
                 .body("endDate", equalTo(null))
                 .body("active", equalTo(true));
     }
@@ -132,15 +140,19 @@ class ReadContractAcceptanceTest {
     @DisplayName("SCENARIO: Read expired contract returns active false")
     void shouldReadExpiredContract() {
         LocalDateTime now = LocalDateTime.now(clock);
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now.minusMonths(12), now.minusDays(1), new BigDecimal("1000.00"), LocalDateTime.now(clock));
+        Contract contract = ContractFixtures.newContract(testClient.id(),
+                now.minusMonths(12),
+                now.minusDays(1),
+                new BigDecimal("1000.00"),
+                LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId())
+                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.id())
                 .then()
                 .statusCode(200)
-                .body("id", equalTo(savedContract.getId().toString()))
+                .body("id", equalTo(savedContract.id().toString()))
                 .body("active", equalTo(false));
     }
 
@@ -155,16 +167,19 @@ class ReadContractAcceptanceTest {
                 .body(String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAMAL",
+                            "franchise": 300,
                             "startDate": "%s",
                             "endDate": "%s",
                             "costAmount": "1000.00"
                         }
-                        """, testClient.getId(), summerStartDate, winterEndDate))
+                        """, testClient.id(), summerStartDate, winterEndDate))
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Tokyo"));
         ExtractableResponse<Response> response = given()

@@ -28,8 +28,7 @@ public class DeleteClientController {
 
     @Operation(
             summary = "Delete a client",
-            description = "Deletes a client and closes their active contracts with endDate set to the deletion date. "
-                    + "The client is no longer returned by the API; its data and contract history are kept."
+            description = "Deletes a client and closes their active contracts with endDate set to the deletion date. " + "The client is no longer returned by the API; its data and contract history are kept."
     )
     @ApiResponse(
             responseCode = "204",
@@ -43,7 +42,7 @@ public class DeleteClientController {
     )
     @ApiResponse(
             responseCode = "409",
-            description = "Client was still modified concurrently by another user after several retries (code optimisticLockFailure)",
+            description = "Client was still modified concurrently by another user after several retries (code optimisticLockFailure), or is held by a contract import batch for longer than the lock timeout (code resourceBusy, retry in a few seconds)",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
@@ -59,4 +58,3 @@ public class DeleteClientController {
         return ResponseEntity.noContent().build();
     }
 }
-

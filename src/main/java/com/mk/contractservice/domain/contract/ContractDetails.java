@@ -1,0 +1,20 @@
+package com.mk.contractservice.domain.contract;
+
+import org.jspecify.annotations.Nullable;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+public record ContractDetails(
+        UUID id,
+        @Nullable UUID clientId,
+        ContractType type,
+        @Nullable Integer franchise,
+        LocalDateTime startDate,
+        @Nullable LocalDateTime endDate,
+        boolean active,
+        BigDecimal costAmount,
+        long version
+) {
+}

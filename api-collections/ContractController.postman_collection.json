@@ -16,7 +16,25 @@
       { "key": "tokenName", "value": "contract-service", "type": "string" }
     ]
   },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.response.headers.has('ETag')) {",
+          "    pm.collectionVariables.set('contractETag', pm.response.headers.get('ETag'));",
+          "}"
+        ]
+      }
+    }
+  ],
   "variable": [
+    {
+      "key": "contractETag",
+      "value": "",
+      "type": "string"
+    },
     {
       "key": "keycloakUrl",
       "value": "http://localhost:8081",
@@ -46,6 +64,15 @@
       "key": "contractId",
       "value": "REPLACE_WITH_CONTRACT_UUID",
       "type": "string"
+    },
+    {
+      "key": "exportCursor",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "importJobId",
+      "value": ""
     }
   ],
   "item": [
@@ -61,14 +88,14 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"costAmount\": 1500.50\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"type\": \"LAMAL\",\n  \"franchise\": 300,\n  \"costAmount\": 1500.50\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/v2/contracts",
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts"]
         },
-        "description": "Create a contract with default dates. If not provided, startDate defaults to current date and endDate is null (open-ended contract)."
+        "description": "Create a contract with default dates. If not provided, startDate defaults to current date and endDate is null (open-ended contract). A person holds at most one LAMAL at a time: 409 contractOverlap if the period overlaps an active LAMAL of that person, future ones included (the end date is exclusive; ended or closed LAMAL do not count). A LAMAL requires a franchise in CHF (adult: 300, 500, 1000, 1500, 2000 or 2500; child until December 31st of the year they turn 18: 0 to 600 by steps of 100, the contract ending at the latest on January 1st of the year they turn 19); LAA and LPP have none: 422 invalidContractFranchise otherwise."
       }
     },
     {
@@ -83,7 +110,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2025-12-31T23:59:59\",\n  \"costAmount\": 2500.00\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"type\": \"LAMAL\",\n  \"franchise\": 300,\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2025-12-31T23:59:59\",\n  \"costAmount\": 2500.00\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/v2/contracts",
@@ -105,7 +132,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"type\": \"LAMAL\",\n  \"franchise\": 300,\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": null,\n  \"costAmount\": 3500.75\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/v2/contracts",
@@ -121,7 +148,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&page=0&size=20&sort=lastModified,desc",
+          "raw": "{{baseUrl}}/v2/contracts?clientId={{clientId}}&page=0&size=20",
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts"],
           "query": [
@@ -138,16 +165,11 @@
             {
               "key": "size",
               "value": "20",
-              "description": "Number of items per page (default: 20)"
-            },
-            {
-              "key": "sort",
-              "value": "lastModified,desc",
-              "description": "Sort order (field,direction)"
+              "description": "Number of items per page (default: 20, min: 1, max: 100)"
             }
           ]
         },
-        "description": "Get all active contracts for a client (paginated). Returns only contracts where current date < end date (or endDate is null). Default page size is 20. Response format: {content: [...], pageNumber, pageSize, totalElements, totalPages, first, last}"
+        "description": "Get all active contracts for a client (paginated). Returns only contracts where current date < end date (or endDate is null). Default page size is 20, max is 100. Results are always sorted by last modification, most recent first; a sort parameter is ignored. Response format: {content: [...], pageNumber, pageSize, totalElements, totalPages, first, last}"
       }
     },
     {
@@ -186,6 +208,196 @@
       }
     },
     {
+      "name": "Export Active Contracts",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('exportCursor')) {",
+              "    pm.request.url.query.remove('cursor');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const nextCursor = pm.response.json().nextCursor;",
+              "if (nextCursor) {",
+              "    pm.collectionVariables.set('exportCursor', nextCursor);",
+              "} else {",
+              "    pm.collectionVariables.unset('exportCursor');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/export?size=100&cursor={{exportCursor}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "export"],
+          "query": [
+            {
+              "key": "size",
+              "value": "100",
+              "description": "Number of contracts per page (default: 100, min: 1, max: 1000)"
+            },
+            {
+              "key": "cursor",
+              "value": "{{exportCursor}}",
+              "description": "Opaque cursor: the nextCursor of the previous page, unchanged. Removed automatically when exportCursor is empty (first page)."
+            }
+          ]
+        },
+        "description": "Export the contracts active at request time, of all clients, ordered by id (keyset pagination, ADR-019). Send the request repeatedly: the first call has no cursor, the test script stores each nextCursor in the exportCursor variable and clears it on the last page (nextCursor null), so the next call starts a new export. A contract whose cost changes during the export is neither skipped nor exported twice. An invalid cursor returns 400 with code invalidCursor; a size outside 1..1000 returns 400 with code invalidParameter. Response format: {items: [...], nextCursor}"
+      }
+    },
+    {
+      "name": "Import Contracts",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contracts\": [\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"type\": \"LAMAL\",\n      \"franchise\": 300,\n      \"costAmount\": 1500.50\n    },\n    {\n      \"clientId\": \"{{clientId}}\",\n      \"type\": \"LAMAL\",\n      \"franchise\": 300,\n      \"startDate\": \"2027-01-01T00:00:00\",\n      \"endDate\": \"2028-01-01T00:00:00\",\n      \"costAmount\": 900.00\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/imports",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "imports"]
+        },
+        "description": "Import up to 1000 contracts, all or nothing (ADR-021). 201: {importedCount, contractIds} in the order of the lines; do not send it again, the contracts would be created twice. 422 contractImportRejected: nothing was created, the rejections property lists each problem with its zero-based index, clientId, code (invalidContractCost, invalidContractPeriod, clientNotFound, contractTypeNotAllowed, contractOverlap) and message; fix the lines and send the whole import again. 422 invalidImportSize: no line or more than 1000. 422 validationError: missing or wrongly typed field, named contracts[n].field."
+      }
+    },
+    {
+      "name": "Submit Contract Import Job",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Idempotency-Key",
+            "value": "contracts-2026-11-001",
+            "description": "Optional. Send the same value again with the same file after a timeout: the first job is returned instead of importing twice. Use a new value for a new file."
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "contracts.csv"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs"]
+        },
+        "description": "Submit a CSV file for asynchronous, partial import (ADR-022). UTF-8, separator ';', first line clientId;type;franchise;startDate;endDate;costAmount (type: LAMAL, LAA or LPP; franchise in CHF, required for LAMAL and empty for LAA and LPP), at most 500000 contracts and 50 MB. 202: Location header and job state; valid lines create their contract, the others are reported, so send only the rejected lines again. Idempotency-Key (optional, at most 255 characters, unique per counselor): the same key with the same file returns the first job; with another file, 422 idempotencyKeyReused; blank or too long, 400 invalidIdempotencyKey. 400 missingParameter: no file part. 413 importFileTooLarge: over 50 MB. 422 invalidImportFile: no data, wrong header, encoding other than UTF-8 or too many lines; nothing is stored."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 202) {",
+              "    pm.collectionVariables.set('importJobId', pm.response.json().jobId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Contract Import Job",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs/{{importJobId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs", "{{importJobId}}"]
+        },
+        "description": "Follow an import job (ADR-022): status (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED), totalLines, processedLines, importedCount, rejectedCount, createdAt, finishedAt, failureCode (unexpectedError, incompleteProcessing, tooManyAttempts, null unless FAILED), submittedBy, cancelledAt and cancelledBy. A COMPLETED job can contain rejected lines. After FAILED, lines already processed stay imported. 404 contractImportJobNotFound: unknown job."
+      }
+    },
+    {
+      "name": "List Contract Import Job Rejections",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs/{{importJobId}}/rejections?page=0&size=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs", "{{importJobId}}", "rejections"],
+          "query": [
+            { "key": "page", "value": "0" },
+            { "key": "size", "value": "20" }
+          ]
+        },
+        "description": "List the lines rejected so far, ordered by line number (ADR-022). lineNumber is the line in the file, the header being line 1. Codes: invalidLineFormat, invalidContractCost, invalidContractPeriod, clientNotFound, contractTypeNotAllowed, contractOverlap. size: at most 100, otherwise 400 invalidParameter. 404 contractImportJobNotFound: unknown job."
+      }
+    },
+    {
+      "name": "Export Contract Import Job Rejections",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs/{{importJobId}}/rejections/export",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs", "{{importJobId}}", "rejections", "export"]
+        },
+        "description": "Download the rejected lines as CSV (text/csv, attachment): lineNumber;rejectionCode;rejectionMessage;line, ordered by line number. The line column is the original line of the file: fix it and copy it into a new file to submit. Text columns are quoted, inner quotes doubled. A text value starting with =, +, -, @, a tab or a carriage return is prefixed with an apostrophe so that a spreadsheet shows it as text (CSV injection): remove it before copying the line. 404 contractImportJobNotFound: unknown job."
+      }
+    },
+    {
+      "name": "List Contract Import Jobs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs?page=0&size=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs"],
+          "query": [
+            { "key": "submittedBy", "value": "counselor.demo", "disabled": true, "description": "Only the jobs of this counselor (username)" },
+            { "key": "page", "value": "0" },
+            { "key": "size", "value": "20" }
+          ]
+        },
+        "description": "List the import jobs of every counselor, newest first, with the username of the counselor who submitted each one. submittedBy narrows the list to one counselor. size: at most 100, otherwise 400 invalidParameter."
+      }
+    },
+    {
+      "name": "Cancel Contract Import Job",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/import-jobs/{{importJobId}}/cancellation",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "import-jobs", "{{importJobId}}", "cancellation"]
+        },
+        "description": "Cancel a job in any state and close the contracts it created that are still active (end date = cancellation date). A running job stops at its current chunk, a pending job never runs. 200: {job, closedContracts}. Cancelling again changes nothing (closedContracts 0). A fixed file can then be submitted without active duplicates. 404 contractImportJobNotFound: unknown job."
+      }
+    },
+    {
       "name": "Get Contract By ID",
       "request": {
         "method": "GET",
@@ -204,6 +416,10 @@
         "method": "PATCH",
         "header": [
           {
+            "key": "If-Match",
+            "value": "{{contractETag}}"
+          },
+          {
             "key": "Content-Type",
             "value": "application/json"
           }
@@ -217,7 +433,33 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts", "{{contractId}}", "cost"]
         },
-        "description": "Update the cost amount of a contract and its internal last modification date (used by the updatedSince filter). Only active (non-expired) contracts can be updated: an expired contract returns 409 with code contractExpired. A concurrent modification is retried by the server; if the conflict persists after several retries, it returns 409 with code optimisticLockFailure. An invalid amount returns 422. Sending the same amount (scale-insensitive, e.g. 100.0 = 100.00) is a no-op: the contract is not modified."
+        "description": "Update the cost amount of a contract and its internal last modification date (used by the updatedSince filter). Only active (non-expired) contracts can be updated: an expired contract returns 409 with code contractExpired. Requires If-Match with the ETag of the contract ({{contractETag}} is filled by Get Contract By ID); the response carries no ETag, run Get Contract By ID again before another change. Missing If-Match or If-Match: * returns 428 (preconditionRequired); an ETag that is no longer current, including after the contract was closed by a client deletion, returns 412 (preconditionFailed). An invalid amount returns 422. Sending the same amount (scale-insensitive, e.g. 100.0 = 100.00) is a no-op: the contract is not modified."
+      }
+    },
+    {
+      "name": "Update Contract Period",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "If-Match",
+            "value": "{{contractETag}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"startDate\": \"2025-01-01T00:00:00\",\n  \"endDate\": \"2027-12-31T00:00:00\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/contracts/{{contractId}}/period",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "contracts", "{{contractId}}", "period"]
+        },
+        "description": "Replace the period of a contract: send both dates as they must be after the change. startDate is required (422 validationError when missing or null); a missing or null endDate makes the contract open-ended. Only active (non-expired) contracts can be changed: an expired contract returns 409 (contractExpired). The new period of a LAMAL must not overlap another active LAMAL of the same person: 409 (contractOverlap). The start date may be moved into the past; the end date cannot be in the past and must be after the start date, otherwise 422 (invalidContractPeriod). For a child LAMAL, the new end date must stay on or before January 1st of the year they turn 19, and a start moved into another age category must suit the franchise: 422 (invalidContractFranchise). A change updates the internal last modification date (updatedSince filter); sending the current period is a no-op. Requires If-Match with the ETag of the contract ({{contractETag}} is filled by Get Contract By ID): missing or * returns 428 (preconditionRequired), a stale ETag returns 412 (preconditionFailed)."
       }
     },
     {

@@ -1,52 +1,31 @@
-## 📌 Description
+<!--
+PR title = squash commit message (Conventional Commits): feat | fix | refactor | chore | ci | test | docs, e.g. feat(contract): add import jobs
+Base branch (ADR-020): feat/* -> develop ; bugfix/* -> the branch it fixes (develop, release/x.y.z or master)
+-->
 
-**Describe what this Pull Request brings and why.**
+## Why
 
-Example: *Added JWT authentication (issue #12) to secure API endpoints. Users now need to provide a valid token to access protected resources.*
+<!-- The need or the bug, with the related issue: Closes #123 -->
 
----
+## What
 
-## ✅ Type of Change
+<!-- The change and the decisions taken. Remove the lines that do not apply below. -->
 
-**Check the type(s) that apply (no description needed here):**
+## Impacts
 
-- [ ] Feature (new functionality)
-- [ ] Bugfix (fixes an issue)
-- [ ] Refactor (change without functional impact)
-- [ ] Documentation only
-- [ ] Performance improvement
-- [ ] Technical debt reduction
+- [ ] Domain: ADR created or updated in `docs/ADR.md`
+- [ ] Database: new Flyway migration, no existing migration modified
+- [ ] API contract: controllers documentation and `api-collections` updated
+- [ ] Breaking change: `!` in the title and `BREAKING CHANGE:` footer (a relaxed rule goes in the release notes instead)
 
----
+## Checklist
 
-## 🧪 Testing Performed
+- [ ] Tests written first (TDD): unit tests for domain and handlers, acceptance tests for what an API user sees
+- [ ] Bugfix: the regression test fails without the fix
+- [ ] `./mvnw clean verify` passes locally
 
-Describe how you verified that it works:
-
-- [ ] Unit tests added / updated
-- [ ] Integration tests added / updated
-- [ ] Application starts correctly
-- [ ] Automated CI/CD tests passing
-
----
-
-## 📷 Screenshot (optional)
-
-_Add logs, Postman captures, screenshots, etc._
-
----
-
-## 🔗 Links
-
-- Related issue: Fixes #ISSUE_NUMBER or Closes #ISSUE_NUMBER
-- Related documentation / context
-
----
-
-## ✅ Final Checklist Before Merge
-
-- [ ] Lint / Format ok
-- [ ] No `TODO:` or unnecessary comments
-- [ ] Commit name follows convention (`feat:`, `fix:`…)
-- [ ] No dead code added
-
+<!--
+Merge method (ADR-020):
+- feat/* or bugfix/* into a major branch: Squash and merge
+- between develop, release/* and master: Create a merge commit, never squash or rebase
+-->

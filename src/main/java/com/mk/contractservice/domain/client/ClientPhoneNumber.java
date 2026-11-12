@@ -12,7 +12,6 @@ import lombok.Value;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -24,7 +23,6 @@ import static com.mk.contractservice.domain.shared.Assert.notNull;
 public class ClientPhoneNumber {
 
     private static final PhoneNumberUtil PHONE_UTIL = PhoneNumberUtil.getInstance();
-    private static final EnumSet<SupportedFormat> SUPPORTED_REGIONS = EnumSet.allOf(SupportedFormat.class);
 
     String value;
 
@@ -68,9 +66,8 @@ public class ClientPhoneNumber {
     private static boolean isNotSupportedE164(final String e164) {
         try {
             final Phonenumber.PhoneNumber parsed = PHONE_UTIL.parse(e164, null);
-            return !PHONE_UTIL.isValidNumber(parsed)
-                    || !SupportedFormat.supports(PHONE_UTIL.getRegionCodeForNumber(parsed))
-                    || !PHONE_UTIL.format(parsed, PhoneNumberUtil.PhoneNumberFormat.E164).equals(e164);
+            return !PHONE_UTIL.isValidNumber(parsed) || !SupportedFormat.supports(PHONE_UTIL.getRegionCodeForNumber(
+                    parsed)) || !PHONE_UTIL.format(parsed, PhoneNumberUtil.PhoneNumberFormat.E164).equals(e164);
         } catch (final NumberParseException _) {
             return true;
         }

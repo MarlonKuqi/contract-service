@@ -19,6 +19,9 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 - [ADR-003 — Le domaine reçoit le temps, il ne le lit jamais](#adr-003--le-domaine-reçoit-le-temps-il-ne-le-lit-jamais)
 - [ADR-004 — Définition d'un contrat actif](#adr-004--définition-dun-contrat-actif)
 - [ADR-005 — `lastModified` est une donnée du domaine](#adr-005--lastmodified-est-une-donnée-du-domaine)
+- [ADR-024 — Types de contrats : un type obligatoire qui porte l'éligibilité](#adr-024--types-de-contrats--un-type-obligatoire-qui-porte-léligibilité)
+- [ADR-025 — Modification de la période d'un contrat](#adr-025--modification-de-la-période-dun-contrat)
+- [ADR-026 — Contexte Facturation et paiements : cadrage](#adr-026--contexte-facturation-et-paiements--cadrage)
 
 **Persistance et données**
 - [ADR-006 — PostgreSQL + Flyway, migrations immuables](#adr-006--postgresql--flyway-migrations-immuables)
@@ -38,6 +41,14 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 **Sécurité**
 - [ADR-017 — Authentification des conseillers par Keycloak](#adr-017--authentification-des-conseillers-par-keycloak)
 
+**API**
+- [ADR-018 — Pagination par offset, bornes portées par le use case](#adr-018--pagination-par-offset-bornes-portées-par-le-use-case)
+- [ADR-019 — Export des contrats actifs : pagination par curseur sur l'identifiant](#adr-019--export-des-contrats-actifs--pagination-par-curseur-sur-lidentifiant)
+- [ADR-020 — Stratégie de merge entre branches majeures et mineures](#adr-020--stratégie-de-merge-entre-branches-majeures-et-mineures)
+- [ADR-021 — Import en masse de contrats : synchrone, tout ou rien](#adr-021--import-en-masse-de-contrats--synchrone-tout-ou-rien)
+- [ADR-023 — Analyse statique : Error Prone et NullAway](#adr-023--analyse-statique--error-prone-et-nullaway)
+- [ADR-022 — Import de gros volumes : fichier CSV traité en asynchrone, partiel](#adr-022--import-de-gros-volumes--fichier-csv-traité-en-asynchrone-partiel)
+
 ---
 
 ## ADR-001 — Vertical Slice + Clean Architecture
@@ -56,10 +67,10 @@ com.mk.contractservice
 └── infrastructure/    Adapters sortants : JPA, configuration (Clock, beans du domaine)
 ```
 
-- **Un cas d'usage = une interface** dans `features/` qui contient sa `Command`/`Query` (record), sa méthode `execute` et son `Handler` (`@UseCase`, `@Transactional` explicite). Exemple : `CreateContract`, `PatchContractCost`.
+- **Un cas d'usage = une interface** dans `features/` qui contient sa `Command`/`Query` (record), sa méthode `execute` et son `Handler` (`@UseCase` s’il écrit, `@QueryUseCase` s’il ne fait que lire). Exemple : `CreateContract`, `PatchContractCost`.
 - **Un endpoint = un controller** (`CreateClientController`, `DeleteClientController`…), sans logique métier.
 - **Sens des dépendances** : `controllers → features → domain ← infrastructure`. Le domaine définit les ports, l'infrastructure les implémente.
-- Les annotations `@UseCase`, `@DomainService`, `@RepositoryPort` sont définies dans `domain/shared` sans dépendance Spring ; `DomainBeanConfiguration` (infrastructure) les enregistre par component scan.
+- `@DomainService` et `@RepositoryPort` sont définies dans `domain/shared` sans dépendance Spring. `@UseCase` et `@QueryUseCase` sont dans `features/shared` et portent la transaction en méta-annotation (`@Transactional`, `@Transactional(readOnly = true)`) : un handler ne peut pas s’exécuter sans transaction, et le choix entre lecture et écriture reste visible, puisqu’on choisit l’annotation. `DomainBeanConfiguration` (infrastructure) les enregistre par component scan. Port de transaction (`TransactionRunner` exécuté par un `TransactionTemplate`) écarté : il garderait `features` sans Spring, ce que l’architecture n’exige pas (seul le domaine l’est), au prix d’un lambda dans chaque handler.
 - Les règles sont vérifiées par **ArchUnit** (`ArchitectureTest`) : le domaine ne dépend ni de l'infrastructure, ni des features, ni des controllers, ni de Spring.
 
 **Compromis documentés.**
@@ -85,20 +96,24 @@ com.mk.contractservice
 **Décision.**
 - **Agrégats** : `Client` (hiérarchie scellée `sealed Client permits Person, Company`) et `Contract`. Un contrat référence son client par identifiant, pas par objet.
 - **Value Objects immuables et auto-validants** : `ClientName`, `ClientEmail`, `ClientPhoneNumber` (normalisé en E.164 via libphonenumber), `PersonBirthDate`, `CompanyIdentifier`, `ContractCost`, `ContractPeriod`. Implémentés en classes Lombok `@Value` à constructeur privé (un record ne permet pas de masquer son constructeur canonique).
+- **Accesseurs fluent** (`lombok.accessors.fluent = true` dans `lombok.config` à la racine) : `contract.id()`, `email.value()`, comme les records des DTO et des read models. Une seule convention de lecture dans le code applicatif. Les entités JPA gardent les accesseurs JavaBean (`lombok.config` de `infrastructure/persistence` : `fluent = false`) : Hibernate reconnaît `getId()` comme accesseur d'identifiant et le sert sur un proxy lazy sans l'initialiser, ce qu'il ne fait pas avec `id()`.
 - **Entrées contrôlées** :
   - `of(...)` valide et normalise une donnée venant de l'extérieur ;
   - `reconstituteFromDatabase(...)` reconstruit sans re-valider une donnée déjà fiable ;
-  - les factories (`PersonFactory`, `CompanyFactory`, `ContractFactory`) exposent `createFromCommand(...)` et `buildFromDatabase(...)`.
+  - les agrégats reçoivent des Value Objects, jamais des valeurs brutes : l'appelant construit chaque VO via son propre `of` ou `reconstituteFromDatabase`. `PersonFactory`, `CompanyFactory` et `ContractFactory` ont été supprimées : elles ne portaient aucune règle et remplaçaient une signature typée par des `String` positionnels, où une inversion compilait. Les tests partent de valeurs brutes via `ClientFixtures` et `ContractFixtures`, dans `src/test`.
 - **Mutations par méthodes d'intention** qui renvoient une nouvelle instance : `changeName`, `changeEmail`, `changePhone`, `changeCoreFields`, `changeCost`. `birthDate` et `companyIdentifier` n'ont pas de méthode de modification.
-- **Méthodes de comparaison métier** : `hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs` (insensible à l'échelle : `100.0` = `100.00`). Une modification à valeur identique est un no-op : la règle vit dans l'agrégat, la méthode `change*` renvoie `this`. Les handlers ne sauvegardent que si l'objet renvoyé n'est pas l'instance chargée (`updated != loaded`).
+- **Méthodes de comparaison métier** : `hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs` (insensible à l'échelle : `100.0` = `100.00`). Une modification à valeur identique est un no-op : la règle vit dans l'agrégat, la méthode `change*` renvoie `this`. Les handlers ne sauvegardent que si l'objet renvoyé diffère de l'objet chargé (`!updated.equals(loaded)`, égalité de valeur via `@EqualsAndHashCode`). Pas de comparaison de références : Error Prone (`ReferenceEquality`) la signale sur un type qui définit `equals`.
+- **États exclusifs : une interface scellée, une variante par état.** Un objet qui est soit l'un, soit l'autre n'a pas de champs nullables à interpréter : `ContractImportTermination` est `Ended` ou `Failed(reason)`, `ContractImportJobLine` est `Imported(contractId)` ou `Rejected(reason, message)`. L'état d'un job d'import suit la même règle : `ContractImportJobState` est `Pending`, `Running(leaseUntil)`, `Completed(termination)`, `Failed(termination)` ou `Cancelled(cancellation, termination)`. Le statut (`ContractImportJobState.Status`, déclaré dans l'interface dont il est l'étiquette) n'est plus stocké à côté des données : chaque variante le renvoie, il sert à la persistance, à l'API et aux requêtes. Un job en cours a donc toujours un bail, et un job terminé n'en a jamais, sans contrôle à l'exécution. La traduction des colonnes nullables vers une variante (`ContractImportJobState.reconstituteFromDatabase`) refuse toute combinaison incohérente, et aucune valeur ne doit y être ignorée. Les variantes exposent ces données en lecture (`leaseUntil()`, `termination()`, `cancellation()`, nulles par défaut) pour les seuls adaptateurs (mapper JPA, réponse HTTP) ; le domaine, lui, décide par `switch` sur la variante. **Les variantes sont des records, par exception à la règle des Value Objects.** Elles ne normalisent rien et n'ont pas d'entrée « donnée fiable » distincte : leur constructeur compact valide chaque champ obligatoire, donc une instance créée hors des factories de l'interface reste valide. En échange, les lecteurs les déconstruisent dans un `switch` exhaustif (`case Failed(LocalDateTime _, ContractImportFailureReason reason)`). Cette exception ne vaut que pour une variante de type scellé sans normalisation. La persistance garde ses colonnes nullables : le mapper est le seul endroit qui traduit l'une en l'autre.
 - **Domain services réservés aux vraies règles métier** : un domain service porte une règle qu'aucun agrégat ne peut vérifier seul (`CompanyIdentifierUniqueness` : l'unicité demande de connaître les autres sociétés). « Charger ou lever 404 » et « vérifier l'existence » sont de l'accès aux données : ce sont des méthodes `default` du port (`ClientRepository.getById`, `ensureExists`), qui gardent la règle « introuvable → `ClientNotFoundException` » dans le domaine sans la dupliquer dans chaque adapter. `ClientService`, `ClientValidationService` et `ContractService`, qui ne portaient aucune règle, ont été supprimés.
 - Les entités JPA ne sortent jamais de l'infrastructure ; l'API n'expose que des DTO.
-- **Une seule définition d'une valeur valide : le Value Object.** Les DTO ne valident que la forme du contrat HTTP (présence, type, longueur maximale) et ne redéfinissent pas les règles de format. `@Email` a été retiré : ses règles différaient de `ClientEmail` (`a@b` passait le DTO puis échouait dans le domaine, `.a@x.ch` échouait dans le DTO avec un autre code d'erreur). Toute adresse au format invalide renvoie maintenant `EMAIL_INVALID`.
+- **Une seule définition d'une valeur valide : le Value Object.** Les DTO ne valident que la syntaxe du contrat HTTP (présence, type, longueur maximale, nombre de chiffres) et ne redéfinissent ni les règles de format ni les règles métier. `@Email` a été retiré : ses règles différaient de `ClientEmail` (`a@b` passait le DTO puis échouait dans le domaine, `.a@x.ch` échouait dans le DTO avec un autre code d'erreur). Toute adresse au format invalide renvoie maintenant `EMAIL_INVALID`. Même raisonnement pour le `@Pattern` du téléphone (`PHONE_INVALID`), `@Positive` sur le coût (`invalidContractCost`) et `@PastOrPresent` sur la date de naissance (`BIRTH_DATE_INVALID`) ; ce dernier lisait de plus l'horloge système au lieu de la `Clock` (ADR-003). Un `PATCH` applique les mêmes contraintes de syntaxe qu'un `PUT`, et un champ obligatoire envoyé à `null` y est refusé (`422 validationError`) au lieu d'être ignoré.
+- **Chaque point d'entrée a sa propre validation de syntaxe.** Elle dépend du format reçu : un point d'entrée JSON peut réutiliser un DTO JSON existant (l'import JSON de contrats, ADR-021, réutilise `ContractCreationRequest`), alors qu'un import par fichier a son propre validateur (ADR-022). Tous convergent vers les mêmes Value Objects, qui restent la dernière barrière.
+- **Le modèle d'entrée d'un use case se valide lui-même.** Une `Query` ou une `Command` ne peut pas exister dans un état invalide pour son cas d'usage : son constructeur vérifie les règles applicatives qui ne relèvent d'aucun Value Object (par exemple les bornes de pagination, ADR-018). Le use case ne dépend pas d'un adaptateur pour se protéger : un batch ou un consommateur de messages se heurterait aux mêmes règles. L'adaptateur ne fait que convertir (types, présence, valeurs par défaut) et ne duplique pas ces règles. Ce ne sont pas des règles métier : elles restent dans `features`, pas dans `domain`.
 - **Format de `ClientEmail`** : partie locale *dot-atom* RFC 5322 (64 caractères au plus, sans point en tête, en fin ni doublé, apostrophe et `+` acceptés), domaine à un ou plusieurs labels (63 caractères au plus, sans tiret en bordure), TLD alphabétique ou punycode, 254 caractères au total. Les formes entre guillemets, les adresses IP et les domaines IDN en Unicode sont refusés (le punycode est accepté). Pas de liste de TLD, qui vieillit mal. Le but est d'attraper les fautes de frappe sans jamais refuser une adresse réelle ; seul l'envoi d'un email prouverait qu'elle existe. Le message d'erreur ne reprend pas l'adresse (donnée personnelle, exposée dans le `detail` et les logs).
 
 **Conséquences.**
 - Aucun objet du domaine ne peut exister dans un état invalide.
-- Les Value Objects sont testés via les factories des entités et via l'API ; un test dédié n'existe que pour un VO partagé ou porteur d'une logique non observable autrement.
+- Les Value Objects sont testés via le `of` des entités (au travers des fixtures de test) et via l'API ; un test dédié n'existe que pour un VO partagé ou porteur d'une logique non observable autrement.
 - Les builders de `Person` et `Company` sont publics, et celui de `Contract` l'est aussi sur `develop`. Ils sont privés dans la cible (déjà fait pour `Contract` sur la branche `lastModified`), voir TODO.
 
 **Statut.** Acceptée.
@@ -143,7 +158,7 @@ com.mk.contractservice
 **Contexte.** Le sujet impose : « mettre à jour le coût met à jour la date de mise à jour », date interne non exposée par l'API mais utilisable comme filtre. Elle était posée par `@UpdateTimestamp` (Hibernate), et à la main dans la fermeture en masse : deux sources de vérité.
 
 **Décision.**
-- `Contract` porte `lastModified`, posé à la création (`Contract.of(..., now)`) et par `changeCost(cost, now)`.
+- `Contract` porte `lastModified`, posé à la création (`Contract.of(..., now)`) et par `changeCost(cost, now)` et `changePeriod(period, now)` (ADR-025).
 - Un changement de coût vers le même montant ne modifie ni le contrat ni `lastModified`.
 - `@UpdateTimestamp` est retiré de `ContractJpaEntity` ; le mapper lit et écrit le champ explicitement.
 - `ContractResponse` n'expose pas `lastModified`.
@@ -236,7 +251,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 - Les tests qui nettoient la base doivent supprimer les contrats avant les clients.
 - **Contrat annulé.** Un contrat actif fermé par la suppression de son client n'est pas expiré : il est **annulé**, qu'il ait déjà commencé ou non.
   - Un contrat dont la date de début est dans le futur est actif (ADR-004) : il est fermé à `deleted_at` comme les autres, ce qui donne `end_date <= start_date`.
-  - L'invariant « fin après début » de `ContractPeriod` n'est donc garanti qu'à la création (`ContractPeriod.of`). Il n'est **pas** vrai pour toutes les lignes en base : `ContractPeriod.reconstituteFromDatabase` ne doit jamais revalider la période, et aucune contrainte `CHECK (end_date > start_date)` ne doit être ajoutée, sinon ces contrats deviennent illisibles ou la suppression d'un client échoue. 
+  - L'invariant « fin après début » de `ContractPeriod` n'est donc garanti qu'à la création (`ContractPeriod.of`) et à la modification de la période (ADR-025). Il n'est **pas** vrai pour toutes les lignes en base : `ContractPeriod.reconstituteFromDatabase` ne doit jamais revalider la période, et aucune contrainte `CHECK (end_date > start_date)` ne doit être ajoutée, sinon ces contrats deviennent illisibles ou la suppression d'un client échoue. 
     - On part ici de l'idée qu'on est dans un contexte always-valid et qu'on ne peut pas se retrouver avec un contrat qui est censé être actif mais qui est invalide. Le domaine ne doit pas lever d'exception sur un contrat annulé, il doit juste le considérer comme inactif.
   - L'état « annulé » n'est pas modélisé : pas de statut, pas de règle dédiée. Aucun traitement n'est prévu sur un contrat annulé. Il est déjà exclu de tout traitement parce qu'il est inactif : absent de la liste et de la somme, non modifiable (`ExpiredContractException`).
   - Il reste lisible par `GET /contracts/{id}`, comme tout contrat inactif.
@@ -262,61 +277,57 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 
 ## ADR-011 — Optimistic locking
 
-**Contexte.** `@Version` existe sur `client` et `contract` (migration `V2.0.0.0`), et un conflit est traduit en `409 optimisticLockFailure` par `BaseControllerAdvice`. Mais `save()` recharge l'entité avant d'y recopier les valeurs du domaine : seuls les conflits entre deux transactions qui se chevauchent sont détectés, pas une modification basée sur une lecture périmée faite lors d'une requête HTTP précédente.
+**Contexte.** `@Version` existe sur `client` et `contract` (migration `V2.0.0.0`), et un conflit est traduit en `409 optimisticLockFailure` par `BaseControllerAdvice`. Mais `save()` recharge l'entité avant d'y recopier les valeurs du domaine : sans autre mécanisme, seuls les conflits entre deux transactions qui se chevauchent sont détectés, pas une modification basée sur une lecture périmée faite lors d'une requête HTTP précédente.
 
 **Décision.**
 1. **Correctif (fait)** : la fermeture en masse des contrats incrémente `version`. Sans cela, une modification du coût lancée avant la suppression du client pouvait rouvrir le contrat (`end_date` remis à `null`). Test : `ContractClosureConcurrencyAcceptanceTest`.
-2. **Différée** : protection entre deux requêtes HTTP par `ETag` / `If-Match`. Entre deux requêtes HTTP, on garde « le dernier gagne ».
-3. **Réessai côté serveur (fait : coût d'un contrat, `PATCH` et suppression d'un client)** : `PatchContractCost.Handler`, `PatchClient.Handler` et `DeleteClient.Handler` sont annotés `@Retryable` sur `OptimisticLockingFailureException` (3 nouveaux essais, `delay` 20 ms, `jitter` 10 ms), activé par `@EnableResilientMethods` (`ResilienceConfig`). Chaque essai ouvre une nouvelle transaction : il relit l'agrégat et revérifie les règles métier. Le `409 optimisticLockFailure` n'apparaît plus qu'après épuisement des essais. Tests : `ContractCostConflictAcceptanceTest`, `ClientConflictAcceptanceTest`.
+2. **Protection entre deux requêtes HTTP par `ETag` / `If-Match` (faite, après avoir été différée)** :
+   - seul le `GET` unitaire d'un client ou d'un contrat renvoie un ETag fort `"<version>"` ;
+   - `PUT`/`PATCH` d'un client et `PATCH` du coût d'un contrat et `PUT` de sa période (ADR-025) exigent `If-Match` :
+     - `428 preconditionRequired` si l'en-tête manque ou vaut `*` (le joker contournerait le verrou) ;
+     - `412 preconditionFailed` si la version a changé depuis la lecture, si l'ETag est faible (`If-Match` utilise la comparaison forte) ou s'il ne contient pas exactement un ETag ;
+   - les réponses de création et de modification ne portent pas d'ETag : le client relit la ressource avant une nouvelle modification. Pour le `PUT`, c'est de toute façon imposé par RFC 9110 §9.3.4, qui interdit un validateur dans la réponse quand la représentation stockée diffère de celle reçue (on normalise l'email et le téléphone) ;
+   - la suppression d'un client n'exige pas `If-Match` : la rejouer après une modification concurrente donne le résultat voulu ;
+   - un `GET` avec `If-None-Match` égal à l'ETag courant renvoie `304` (comportement standard de Spring MVC dès que la réponse porte un ETag).
+3. **Réessai côté serveur (fait : suppression d'un client uniquement)** : le handler est annoté `@Retryable` sur `OptimisticLockingFailureException` (3 nouveaux essais, `delay` 20 ms, `jitter` 10 ms), activé par `@EnableResilientMethods` (`ResilienceConfig`). Chaque essai ouvre une nouvelle transaction : il relit l'agrégat et revérifie les règles métier. Les endpoints protégés par `If-Match` ne sont pas réessayés.
 
-**Pourquoi différer l'étape 2.**
+**Conception de l'étape 2.**
+- La version est un détail de persistance, pas une donnée métier : le domaine ne décide rien à partir d'elle (contrairement à `lastModified`, ADR-005). Elle reste hors des agrégats et hors des types renvoyés par les ports d'écriture : `getById` et `save` renvoient `Client` et `Contract`.
+- **Lecture (CQRS)** : le `GET` passe par un read model, `ClientQueryPort.getDetails` (`PersonDetails` / `CompanyDetails`) et `ContractQueryPort.getDetails` (`ContractDetails`). Un read model n'est pas un agrégat : il peut porter la version, lue dans la même requête que les données. Les read models ne portent que des types simples. Le champ `active` de `ContractDetails` est calculé par l'adaptateur à l'instant fourni par le use case, en reconstituant `ContractPeriod` et en appelant `isEffectiveAt` : la règle de l'ADR-004 n'est pas dupliquée.
+- **Écriture** : la commande porte la version attendue (`expectedVersion`) ; le handler appelle `ensureVersion(id, expectedVersion)` sur le port juste après le chargement, sur le modèle de `ensureExists`. Dans la même transaction, l'adaptateur relit l'entité depuis le contexte de persistance, donc la version comparée est celle des données chargées. Cette garantie n’existe que dans une transaction : hors transaction, le `save` rechargerait une entité fraîche et écraserait sans erreur une écriture concurrente. Les adaptateurs déclarent donc `ensureVersion` en `@Transactional(propagation = MANDATORY)` : appelée sans transaction, elle lève `IllegalTransactionStateException`. Les verrous `@Lock` (jobs d’import) n’en ont pas besoin, Hibernate les refuse déjà hors transaction. Ordre des erreurs : `422 validationError` (syntaxe du DTO, ADR-002), `428` (`If-Match` absent), `404` (ressource absente), `412` (précondition), puis règles du domaine (`409 contractExpired`, `422`). Une précondition est évaluée avant d'appliquer le contenu (RFC 9110 §13.2.2).
+- **Quand exiger une version attendue** : seulement quand la commande traduit la décision d'un utilisateur prise sur un état qu'il a lu dans une requête précédente (`PUT`/`PATCH`). Pas pour une création, ni pour une opération dont le résultat ne dépend pas de l'état lu (suppression d'un client), ni pour un traitement qui lit et écrit dans la même transaction (fermeture en masse, futurs jobs) : `@Version` suffit. Un import qui met à jour des données existantes demandera une règle métier, le système source n'ayant pas d'ETag.
+- Le controller convertit l'en-tête (`EntityTags.requiredVersion`) et renvoie `428` sans appeler le use case quand il manque. La validation Bean Validation du corps a lieu avant : un corps invalide sans `If-Match` donne `422`.
+- Une modification concurrente qui se glisse entre la vérification de la version et le `flush` lève `OptimisticLockingFailureException`. `BaseControllerAdvice` répond `412` quand la requête porte `If-Match`, `409 optimisticLockFailure` sinon. Il n'y a pas de modification perdue, et pas de `409` sur les endpoints protégés par `If-Match`.
+- `ETag`, `Location` et `Content-Range` sont exposés en CORS (`exposedHeaders`), `If-Match` et `If-None-Match` autorisés (`allowedHeaders`).
+- Limite assumée : `If-Match` avec une liste de plusieurs ETags donne `412` même si l'un d'eux correspond. Un client n'envoie que l'ETag qu'il a reçu.
+
+**Première conception, abandonnée.** Les ports d'écriture renvoyaient une enveloppe `Versioned<Client>` / `Versioned<Contract>` depuis `getById` et `save`, et les réponses `POST`/`PATCH` portaient le nouvel ETag. Abandonnée avant merge : une préoccupation HTTP traversait les ports d'écriture et tous les handlers, `save` devait faire un `saveAndFlush` pour connaître la nouvelle version, et chaque nouvelle méta-donnée technique aurait de nouveau changé ces signatures. Séparer lecture et écriture garde le modèle d'écriture inchangé, au prix d'un `GET` avant chaque modification.
+
+**Pourquoi l'étape 2 avait été différée (17/10).**
 - Il y a au plus une dizaine de conseillers, qui gèrent chacun leur portefeuille. Deux modifications concurrentes du même client ou du même contrat, entre la lecture et l'envoi d'un formulaire, sont rares.
-- Le seul cas grave, rouvrir un contrat fermé, est couvert par l'étape 1. Le domaine rejette déjà toute modification d'un contrat expiré.
-- Ce qu'on peut encore perdre se rattrape : un nom, un email ou un téléphone écrasé. Pour un coût, la dernière décision est en général celle qu'on veut garder.
+- Le seul cas grave, rouvrir un contrat fermé, est couvert par l'étape 1.
+- Ce qu'on pouvait perdre se rattrape : un nom, un email ou un téléphone écrasé.
 - `docs/sujet.txt` n'exige rien sur la concurrence.
-- Le coût serait élevé :
-  - un breaking change de l'API, puisque `If-Match` devient obligatoire ;
-  - la version à faire transiter dans les ports, les commandes, les handlers et les controllers ;
-  - la reprise de tous les tests d'acceptance `PUT`/`PATCH`.
+- Le coût était élevé : breaking change, version à faire transiter dans les ports, les commandes, les handlers et les controllers, reprise des tests d'acceptance `PUT`/`PATCH`.
 
-**Pourquoi réessayer (étape 3).**
-- Le `PATCH` du coût remplace une valeur sans la calculer à partir de l'ancienne : « le dernier gagne » ne perd rien. Sans réessai, le résultat dépendait du timing : 204 si les transactions se suivent, 409 si elles se chevauchent (9 requêtes sur 10 en échec avec 10 conseillers simultanés).
-- Le réessai relit l'état : un contrat fermé entre la lecture et l'écriture est rejeté avec `409 contractExpired`, il n'est pas rouvert.
-- Le `PATCH` d'un client n'écrit que les champs envoyés : réessayé, il garde la modification concurrente d'un autre champ (un nom et un téléphone modifiés en même temps sont tous deux conservés). Un client supprimé entre-temps donne `404`.
-- La suppression d'un client ne dépend pas de l'état lu : la rejouer après une modification concurrente donne le résultat voulu.
-- Pas de réessai pour le `PUT` d'un client : il réécrit aussi les champs que l'utilisateur n'a pas touchés, avec les valeurs de son formulaire. Le réessayer écraserait sans bruit la modification concurrente, ce qui est exactement une modification perdue. Ici, le `409` est le bon signal.
-- Pas de réessai pour les créations : un `INSERT` n'a pas de version, donc pas de conflit optimiste.
-- Une dizaine de conseillers : pas de risque d'avalanche de réessais. Le `jitter` empêche les essais de repartir ensemble (avec 2 ms de `jitter` et 200 ms de `delay`, 6 requêtes concurrentes sur 10 échouaient encore).
+**Pourquoi la reprendre.** Les arguments ci-dessus restent vrais à l'échelle actuelle. L'étape 2 est reprise comme exercice, et parce qu'elle prépare les sujets prévus ensuite (`PROGRESS.md`, « Pour aller plus loin ») : l'import en masse fait écrire des automates en parallèle des conseillers, l'un des signaux qui justifiaient la reprise, et le handler connaît la version attendue, qu'il pourra transmettre aux événements d'une outbox.
+
+**Effet sur l'étape 3.** Avant `If-Match`, le réessai appliquait « le dernier gagne » : le coût réessayé écrasait le coût concurrent, le `PATCH` d'un client gardait aussi la modification concurrente d'un autre champ, et le `PUT` n'était pas réessayé parce qu'il aurait écrasé sans bruit les champs non touchés. Avec `If-Match`, un réessai ne peut plus réussir : la version attendue vient de l'en-tête et la version en base ne fait qu'augmenter, il aboutit donc toujours à `412` (ou `404` si la ressource a été supprimée). Il a d'abord été gardé pour traduire le conflit en `412`, puis retiré au profit de l'advice : `maxRetries`, le délai et le jitter laissaient croire qu'insister pouvait aider, pour une seule différence, une suppression concurrente répond `412` au lieu de `404` (le `GET` suivant donne `404`). Pour la suppression d'un client, sans `If-Match`, il garde son rôle d'origine : rejouer la suppression.
 
 **Contraintes du réessai.**
-- Il doit envelopper la transaction : l'exception survient au commit, dans l'intercepteur de transaction, et un réessai à l'intérieur relirait l'entité périmée du contexte de persistance. Spring place l'intercepteur `@Retryable` avant les intercepteurs existants (`beforeExistingAdvisors`), ce qui permet de garder `@Retryable` et `@Transactional` sur le même handler. `ContractCostConflictAcceptanceTest` vérifie cet ordre : il injecte une écriture concurrente entre la lecture et l'écriture, et attend deux lectures.
+- Il doit envelopper la transaction : un réessai à l'intérieur relirait l'entité périmée du contexte de persistance. Spring place l'intercepteur `@Retryable` avant les intercepteurs existants (`beforeExistingAdvisors`), ce qui permet de garder `@Retryable` et `@Transactional` sur le même handler. `ClientConflictAcceptanceTest` vérifie cet ordre : il injecte une écriture concurrente pendant la suppression et attend deux essais.
 - Sans `@EnableResilientMethods`, `@Retryable` est ignoré.
 - Un cas d'usage réessayable ne doit pas être appelé depuis une transaction existante : il la rejoindrait (`REQUIRED`) et le réessai serait sans effet.
 - Ses effets de bord doivent pouvoir être rejoués. Aujourd'hui, il n'écrit qu'en base ; une publication de message devra se faire après le commit.
 
-**Atténuation sans code.** Le front utilise `PATCH` plutôt que `PUT` : `PUT` réécrit aussi les champs que l'utilisateur n'a pas touchés, alors que `PATCH` n'écrit que les champs envoyés. Une perte n'est alors possible que si deux personnes modifient le même champ.
-
-**Signaux pour reprendre l'étape 2.**
-- Les clients modifient eux-mêmes leurs données (self-service).
-- Des intégrations ou des imports automatiques écrivent en parallèle des conseillers.
-- Le nombre d'utilisateurs augmente fortement, ou les portefeuilles deviennent partagés.
-- Un premier incident réel de modification perdue.
-
-**Pistes de conception pour la reprise.**
-- `GET` unitaire renvoie `ETag: "<version>"`. L'ETag doit être fort : `If-Match` utilise la comparaison forte, un ETag `W/` ne correspondrait jamais.
-- `PUT`/`PATCH` exigent `If-Match` :
-  - `428 Precondition Required` si l'en-tête manque ;
-  - `412 Precondition Failed` si la version a changé ;
-  - `*` refusé, car il contournerait le verrou.
-- La version est un détail de persistance : la garder hors des agrégats, par exemple dans une enveloppe `Versioned<T>` renvoyée par les ports. Elle doit être lue dans la même requête que les données.
-- Exposer `ETag` dans la configuration CORS (`exposedHeaders`), sinon un navigateur ne peut pas le lire.
-- L'ETag ne sélectionne pas une version : il empêche d'écrire sur la base d'une lecture périmée, et le client doit relire avant de réessayer.
-
 **Conséquences.**
-- Un conflit entre deux transactions qui se chevauchent reste détecté. Pour le coût d'un contrat, ainsi que pour le `PATCH` et la suppression d'un client, il est réessayé. Pour le `PUT` d'un client, il donne `409 optimisticLockFailure`.
-- Le test `UpdateClientAcceptanceTest` « last one wins » documente le comportement voulu.
+- Breaking change de l'API : un client qui modifie sans `If-Match` reçoit `428`. Les collections (`api-collections/`) capturent l'ETag et l'envoient automatiquement.
+- Une modification basée sur une lecture périmée, entre deux requêtes HTTP ou entre deux transactions qui se chevauchent, donne `412`. Un contrat fermé par la suppression de son client depuis la lecture donne aussi `412` (sa version a été incrémentée par l'étape 1), et il reste fermé.
+- `409 optimisticLockFailure` ne subsiste que pour la suppression d'un client, après épuisement des essais.
+- **Verrou pessimiste ponctuel (ADR-022).** L'import asynchrone verrouille les clients de chaque chunk (`FOR SHARE`) jusqu'à son commit, pour qu'un client supprimé ne reçoive pas de contrat actif. Un `PUT`, `PATCH` ou `DELETE` sur l'un de ces clients attend ce commit, quelques centaines de millisecondes ; au-delà de `lock_timeout` (5 s), il reçoit `409 resourceBusy` sans rien modifier. Le verrou optimiste reste la règle : ce verrou pessimiste ne couvre que ce cas. Test : `ClientBusyDuringImportBatchAcceptanceTest`.
+- Tests : `OptimisticLockingAcceptanceTest` (contrat HTTP), `ClientConflictAcceptanceTest` et `ContractCostConflictAcceptanceTest` (conflits entre transactions), et les tests des handlers.
 
-**Statut.** Étape 1 acceptée (branche `bugfix/contract-closure-lost-update`). Étape 2 différée. Étape 3 acceptée pour le coût d'un contrat, ainsi que pour le `PATCH` et la suppression d'un client.
+**Statut.** Étapes 1 et 3 acceptées. Étape 2 acceptée (branche `feat/etag-if-match`).
 
 ---
 
@@ -364,12 +375,15 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 ## ADR-014 — Stratégie de tests
 
 **Décision.**
-- **Tests unitaires** (Surefire, `mvn test`) : domaine et handlers, avec repositories mockés et `Clock.fixed`.
-- **Tests d'acceptance** (Failsafe, `*AcceptanceTest`, `mvn verify`) : API REST de bout en bout avec RestAssured, sur un vrai PostgreSQL via **Testcontainers**. Réservés aux fonctionnalités vues par un utilisateur de l'API. La JVM tourne en UTC (`-Duser.timezone=UTC`), comme un hôte sans fuseau configuré ; le temps se contrôle en remplaçant uniquement l'`InstantSource` par une `MutableInstantSource`, jamais le `Clock`.
+- **TDD en boucle rapide.** Red, green, refactor, un scénario métier à la fois. Un scénario est guidé et terminé dans la boucle rapide (Surefire, `mvn test`, quelques secondes) :
+  - **tests du domaine** : toutes les variantes d'une règle (bornes, barèmes, dates, valeurs nulles ou invalides), par les points d'entrée des agrégats ;
+  - **feature tests** : le test du handler (`features/<domaine>/<UseCase>Test`, ports mockés, `Clock.fixed`), un test par scénario, nommé en termes métier : ce qui est chargé, quelle règle s'applique, ce qui est sauvé, quelle erreur l'emporte.
+- **Tests d'acceptance** (Failsafe, `*AcceptanceTest`, `mvn verify`) : API REST de bout en bout avec RestAssured, sur un vrai PostgreSQL via **Testcontainers**. Ils confirment le câblage et restent peu nombreux : par fonctionnalité, le scénario nominal (avec relecture quand elle écrit) et les cas que seul le bout en bout peut montrer (nouvelle réponse HTTP avec un exemple représentatif, liaison JSON, sécurité, contraintes de la base, transactions, concurrence, reprise des jobs, no-op par ETag inchangé). Une variante de règle déjà prouvée dans la boucle rapide n'a pas de test d'acceptance. Ils s'écrivent une fois le scénario vert en feature test : un échec signale un problème de câblage, pas de règle. Mesure du 12/11/2026 : 647 tests unitaires en 10 s, 300 tests d'acceptance en 63 s, dont 23 s pour la reprise et l'arrêt des jobs d'import ; un scénario d'acceptance de plus coûte environ 50 ms une fois le contexte démarré, mais chaque règle testée seulement de bout en bout sort de la boucle rapide. La JVM tourne en UTC (`-Duser.timezone=UTC`), comme un hôte sans fuseau configuré ; le temps se contrôle en remplaçant uniquement l'`InstantSource` par une `MutableInstantSource`, jamais le `Clock`.
 - **Tests de concurrence** : deux transactions réelles (`TransactionTemplate` + `REQUIRES_NEW`) pour reproduire les courses.
 - **ArchUnit** pour les règles de dépendance (ADR-001).
-- **JaCoCo** avec seuil de couverture vérifié en CI.
-- Un test de non-régression sur un bug doit **échouer sans le correctif** ; on le vérifie avant de livrer.
+- **JaCoCo** en rapport de couverture, sans seuil : une ligne couverte n'est pas une ligne vérifiée. Le critère bloquant sur la qualité des tests est le score de mutation PIT (ADR-016).
+- Un test de non-régression sur un bug doit **échouer sans le correctif** ; on le vérifie avant de livrer. Il se place au niveau le plus bas qui reproduit le bug : un test d'acceptance seulement quand le bug vit dans le câblage (ex. liaison JSON).
+- **Les tests de handlers vérifient des résultats, pas des appels absents.** Pas de `verify(port, never())` après une exception : l'exception prouve le refus, et la transaction du use case annule toute écriture faite avant elle. Pour l'ordre des contrôles, on rend l'autre erreur possible (port qui lève une exception, `lenient`) et on vérifie que la bonne erreur sort. Une mise à jour sans changement (no-op) se vérifie par `isSameAs(loaded)` dans le test unitaire, et par un ETag inchangé dans un test d'acceptance : c'est ce que l'appelant observe. Exception : un handler `void` dont la seule sortie est un appel à un port (ex. jobs d'import annulés pendant leur exécution) garde `verify`, qui est alors son seul résultat observable.
 
 **Conséquences.**
 - Le conteneur Testcontainers est réutilisé (`withReuse(true)`) pour la rapidité en local. Mais en passant d'une branche à l'autre, sa base peut contenir des migrations que la branche ne connaît pas, et Flyway ignore sans rien dire une migration « future ». Il faut alors supprimer le conteneur (TODO : base par branche, ou pas de réutilisation en CI).
@@ -383,7 +397,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 **Décision.**
 - Build multi-étapes :
   1. dépendances Maven en cache ;
-  2. build avec Azul Zulu JDK 27, extraction des couches Spring Boot, puis JRE minimal construit par `jdeps` + `jlink` (`jdk.crypto.ec` ajouté explicitement) ;
+  2. build avec Azul Zulu JDK 27, extraction des couches Spring Boot, puis JRE minimal construit par `jdeps` + `jlink` (`jdk.crypto.ec`, `jdk.jfr` et `jdk.jcmd` ajoutés explicitement) ;
   3. exécution sur `debian:trixie-slim`.
 - Exécution sous un utilisateur non root, healthcheck sur `/actuator/health/liveness`, options JVM adaptées aux conteneurs (`MaxRAMPercentage=75`), profil `prod`.
 - `../docker-compose.yml` : PostgreSQL 18 avec healthcheck et volume persistant ; l'application dans le profil compose `full`.
@@ -391,6 +405,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 
 **Conséquences.**
 - Image réduite et surface d'attaque limitée.
+- JFR, `jcmd` et `jps` restent disponibles pour le diagnostic en production. JFR enregistre en continu dès le démarrage, avec une rétention limitée à 6 h et 500 Mo : les données les plus anciennes sont supprimées, et un `JFR.dump` récupère l'historique sans redémarrage.
 - Le fuseau est fixé dans l'image : `TZ=Europe/Zurich` (ADR-013).
 
 **Statut.** Acceptée.
@@ -411,6 +426,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 - On écrit des tests unitaires pour des comportements (agrégats, services de domaine, décisions d'orchestration des handlers), pas pour tuer des mutants. Un survivant sur une règle métier se tue par un test ; un mutant non couvert sur de la plomberie testée par l'acceptance ne justifie pas un test unitaire.
 - Hors du `clean verify` standard (environ 1 minute de plus), exécuté dans un job CI dédié `mutation-tests` ; rapport dans `target/pit-reports/index.html`.
 - Pas d'historique incrémental (`withHistory`) : avec PIT 1.30 il exige le plugin commercial Arcmutate.
+- **Aucun mutant non détecté sur les lignes modifiées par une pull request.** Le résumé de mutation (`.github/scripts/mutation-summary.sh`) croise le rapport PIT avec le diff de la PR (`HEAD^1..HEAD` sur le commit de fusion) ; la dernière étape du job `mutation-tests` échoue si un mutant `SURVIVED` ou `NO_COVERAGE` porte sur une ligne ajoutée ou modifiée. Les seuils globaux tolèrent quelques survivants anciens ; ce contrôle empêche d’en ajouter. Il porte sur les lignes, pas sur les classes : modifier une ligne qui portait déjà un mutant accepté le fait remonter, ce qui oblige à le traiter ou à le justifier. Un mutant équivalent se traite d’abord en simplifiant le code (une garde redondante supprimée, un verrou et une lecture fusionnés dans le port) ; si ce n’est pas possible, la PR documente le cas ici et l’échec est assumé à la revue. Sur un push, le contrôle ne s’applique pas : il n’y a pas de diff de référence.
 
 **Conséquences.**
 - Premier passage : 92 % de mutants tués. Les survivants ont révélé des trous réels : aucune vérification de la longueur maximale *acceptée* (nom 200, email 254), chemins nominaux de `CreateContract` et `CreateCompany` non testés en unitaire. Ils ont aussi révélé un « find or throw » écrit dans les handlers `GetContractById` et `PatchContractCost`, et des ports qui exposaient `findById`/`existsById` uniquement pour servir leurs propres méthodes par défaut `getById`/`ensureExists`. Les ports n'exposent plus que `getById` et `ensureExists`, implémentés par les adapters JPA qui lèvent l'exception du domaine.
@@ -450,6 +466,8 @@ Cette version pose six problèmes :
   | `POST /v2/contracts` | `COUNSELOR` |
   | `GET /v2/contracts?clientId=`, `GET /v2/contracts/{id}`, `GET /v2/contracts/total?clientId=` | `COUNSELOR` |
   | `PATCH /v2/contracts/{id}/cost` | `COUNSELOR` |
+  | `GET /v2/contracts/export` (ADR-019) | `COUNSELOR` |
+  | `POST /v2/contracts/imports` (ADR-021) | `COUNSELOR` |
   | `/actuator/health/**`, `/actuator/info` | public |
   | `/swagger-ui/**`, `/v3/api-docs/**` | public (la documentation ne contient aucune donnée) |
   | toute autre route | refusée (`denyAll`) |
@@ -469,6 +487,7 @@ Cette version pose six problèmes :
 - **Le domaine et les use cases ne savent rien de la sécurité.** Les rôles sont une règle d'accès à l'API, pas une règle métier. Aucun changement dans `domain` ni dans `features`.
 - **Le realm est versionné.** Un export du realm `contract-service` (rôle `COUNSELOR`, client `contract-service`, utilisateurs de démo pour le développement uniquement) est importé au démarrage (`start-dev --import-realm`). Les mots de passe de démo ne servent qu'en local.
 - **CORS** : origines autorisées lues dans une propriété (`app.cors.allowed-origins`), vide par défaut. Pas de `*`.
+- **CSRF désactivé** : l'API est sans état et le jeton ne circule que dans l'en-tête `Authorization`, sans cookie ni session (`SessionCreationPolicy.STATELESS`, `allowCredentials=false`). Le navigateur n'envoie donc aucun identifiant automatiquement, et un site tiers ne peut pas forger une requête authentifiée. Garder la protection active n'apporterait rien : les requêtes avec jeton en sont déjà exemptées, et un `POST` sans jeton recevrait `403` au lieu de `401`. À réévaluer si le jeton passe un jour dans un cookie (BFF).
 - **Dépendances** : `jjwt` est retiré, `spring-boot-starter-oauth2-resource-server` suffit.
 
 **Tests.**
@@ -497,3 +516,617 @@ Cette version pose six problèmes :
 - La branche `feat/add-auth-keycloak` est à remettre sur `develop` et à aligner sur cette décision : retirer `ApplicationRoles` et les `@PreAuthorize`, limiter le converter aux rôles du realm, ajouter la vérification d'audience.
 
 **Statut.** Acceptée.
+
+---
+
+## ADR-018 — Pagination par offset, bornes portées par le use case
+
+**Contexte.** `GET /v2/contracts?clientId=` est paginé. La pagination passait par un `ValidatingPageableArgumentResolver` (sous-classe de `PageableHandlerMethodArgumentResolver`), enregistré par un `WebMvcConfigurer` avec `@EnableSpringDataWebSupport`. Il validait `page` et `size` à la main (`parseInt`, bornes lues dans `app.pagination`). Il transmettait aussi le paramètre `sort` du client à JPA sans contrôle :
+- `?sort=lastModified,asc` triait sur un champ que l'API n'expose pas (ADR-005) ;
+- `?sort=version` triait sur un champ technique ;
+- `?sort=champInconnu` levait une `PropertyReferenceException`, transformée en `500`.
+
+`VIA_DTO` ne servait à rien : le contrôleur renvoie déjà son propre DTO `PagedContractResponse`.
+
+Une pagination par curseur a été écartée :
+- le sujet n'exige pas de pagination ;
+- la liste concerne les contrats actifs d'un seul client (quelques dizaines au plus), consultés par une dizaine de conseillers : le coût d'un `OFFSET` est négligeable ;
+- la clé de tri `lastModified` change à chaque `changeCost` : un curseur sur une clé qui bouge ferait sauter des éléments, et demanderait un curseur composite `(lastModified, id)` ;
+- `updatedSince` couvre déjà le besoin de synchronisation incrémentale.
+
+**Décision.**
+- **Les bornes et le tri appartiennent au use case**, pas au contrôleur (ADR-002 : le modèle d'entrée d'un use case se valide lui-même). Ils dépendent du cas d'usage (100 pour la liste, 1000 pour l'export, ADR-019), pas du canal :
+  - `ListActiveContractsByClient.Query(clientId, updatedSince, page, size)` vérifie `page ≥ 0` et `1 ≤ size ≤ MAX_PAGE_SIZE` (100) via `PageBounds` (`features/shared`) ;
+  - la `Query` construit le `PageRequest` avec le tri `lastModified` décroissant ; un appelant ne peut pas choisir le tri.
+- Le contrôleur ne fait que convertir : `@RequestParam int page` (`0` par défaut) et `int size` (`20` par défaut), sans annotation de validation. Le paramètre `sort` est ignoré. La description OpenAPI reprend `ListActiveContractsByClient.MAX_PAGE_SIZE` : une seule source de vérité.
+- Une borne non respectée lève une `InvalidPageRequestException` : `400`, code `invalidParameter`. C'est un paramètre de requête invalide, pas une règle métier violée : pas de `422`. Une valeur non numérique lève une `MethodArgumentTypeMismatchException` : `400`, code `invalidParameterType`, comme pour les autres paramètres.
+- `PaginationConfig`, `ValidatingPageableArgumentResolver`, `PaginationProperties` (`app.pagination`) et `InvalidPaginationException` sont supprimés.
+
+**Conséquences.**
+- Tout appelant du use case (contrôleur, batch, consommateur de messages) se heurte aux mêmes bornes ; les tests unitaires de la `Query` les couvrent, les tests d'acceptation vérifient le `400`.
+- OpenAPI n'expose plus `minimum`/`maximum` sur `page` et `size` : les bornes sont dans la description. `sort` n'est pas exposé.
+- Une première version validait `page`/`size` par Bean Validation dans le contrôleur (`@PositiveOrZero`, `@Positive`, `@Max`, `HandlerMethodValidationException`) ; elle a été abandonnée parce que le use case dépendait alors de l'adaptateur pour se protéger.
+- Changement de contrat (sans impact : la V2 n'est pas en production) : `sort` est ignoré, un `page`/`size` non numérique renvoie le code `invalidParameterType` au lieu de `invalidParameter`.
+- Le domaine garde `Page`/`Pageable` (compromis de l'ADR-001) : le use case construit le `PageRequest`, le contrôleur ne manipule plus de `Pageable`.
+- Un endpoint d'export de tous les contrats (gros volumes) pourrait justifier un curseur. Il fera l'objet d'une décision séparée (ADR-019).
+
+**Statut.** Acceptée (branche).
+
+---
+
+## ADR-019 — Export des contrats actifs : pagination par curseur sur l'identifiant
+
+**Contexte.** Exercice : un système tiers (entrepôt de données, archivage) doit récupérer tous les contrats actifs, tous clients confondus. Contrairement à la liste par client (ADR-018), le volume peut être grand, et donc :
+- avec un `OFFSET`, PostgreSQL lit puis jette toutes les lignes qui précèdent la page, si bien que chaque page coûte plus cher que la précédente ;
+- un `COUNT(*)` sur toute la table, à chaque page, ne sert à rien pour un export ;
+- l'export dure longtemps, et les contrats changent pendant ce temps. Avec un `OFFSET`, une ligne qui change de rang entre deux pages est sautée ou exportée deux fois.
+
+**Décision.**
+- `GET /v2/contracts/export?cursor=&size=`, rôle `COUNSELOR` (couvert par `/v2/**`, ADR-017).
+- **Périmètre** : les contrats actifs (ADR-004) de tous les clients, à l'instant de **chaque** requête. Aucun filtre tant que personne n'en a besoin.
+- **Curseur sur `id` seul** (pagination *keyset*) : `WHERE <actif> AND id > :after ORDER BY id LIMIT size + 1`. L'`id` est unique et immuable, et l'index de la clé primaire sert à la fois au tri et au point de reprise. La clé `(lastModified, id)` est écartée : `lastModified` change à chaque `changeCost` (ADR-005). Une ligne modifiée pendant l'export passerait derrière le curseur et serait perdue, ou repasserait devant et serait exportée deux fois.
+- **Curseur opaque** : le Base64 URL-safe des 16 octets de l'`id` du dernier contrat renvoyé. Le client le renvoie tel quel. Son format ne fait pas partie du contrat d'API : on pourra le changer (le signer, y ajouter une version) sans casser les clients. Un curseur qui ne se décode pas en UUID renvoie `400`, code `invalidCursor`.
+- **Réponse** : `{ "items": [ContractResponse…], "nextCursor": "…" | null }`. On lit `size + 1` lignes : la ligne en trop indique qu'il existe une page suivante, sans `COUNT`. `nextCursor` vaut `null` sur la dernière page. La réponse n'expose pas `lastModified` (ADR-005).
+- **Taille de page** : `1 ≤ size ≤ 1000` (`ExportActiveContracts.MAX_PAGE_SIZE`), vérifiée par `ExportActiveContracts.Query` via `PageBounds` comme dans l'ADR-018 (`400`, code `invalidParameter`). `100` par défaut, fixé par le contrôleur.
+- **JSON paginé plutôt que streaming** (NDJSON, CSV). Un flux garde une transaction et une connexion ouvertes pendant tout l'export, et on ne peut pas le reprendre après une coupure. Avec un curseur, chaque page est une requête courte, et le client reprend au dernier curseur reçu.
+- **Répartition des responsabilités** :
+  - le controller (`ExportContractController`) encode et décode le curseur, qui est un détail du protocole HTTP ;
+  - le use case (`ExportActiveContracts`) prend l'heure de la `Clock` (ADR-003) et décide s'il existe une page suivante ;
+  - le port `ContractRepository.findActiveAfter(activeAt, afterId, limit)` renvoie une `List`, sans `Page` ni `Pageable` ;
+  - l'adapter JPA utilise une `Specification` et `findBy(...).limit(...)`, ce qui évite la requête de comptage.
+
+**Conséquences.**
+- Coût constant par page, quelle que soit la profondeur de l'export. Aucune migration : l'index de la clé primaire suffit.
+- Garanties vérifiées par `ExportContractsAcceptanceTest` :
+  - chaque contrat actif est exporté une seule fois, et aucun contrat expiré ne l'est ;
+  - un contrat dont le coût change pendant l'export n'est ni sauté ni répété ;
+  - un contrat qui expire avant que sa page soit lue n'est pas exporté.
+- L'export n'est **pas un instantané** : chaque page reflète l'état de la base au moment de la requête. Un contrat créé pendant l'export a un UUID v7 (ADR-012), plus grand que le curseur, et il apparaît donc dans une page suivante. Un contrat ancien en UUID v4 ne suit pas cet ordre : s'il est actif mais placé avant le curseur, il n'est pas exporté dans cette passe. Pour obtenir un instantané cohérent, il faudrait une transaction `REPEATABLE READ` sur tout l'export ou une table d'export dédiée : hors périmètre.
+- L'ordre est celui de PostgreSQL sur le type `uuid` (octet par octet), et non celui de `UUID.compareTo` en Java (qui compare des `long` signés). Le tri et la comparaison au curseur se font tous les deux en base, donc ils restent cohérents. Il ne faut jamais trier ou filtrer ces identifiants en mémoire côté Java.
+- Le filtre « actif » n'est pas couvert par l'index utilisé pour le tri. Si la plupart des contrats étaient expirés, chaque page parcourrait beaucoup de lignes inactives. Un index partiel ou `(end_date, id)` serait alors à mesurer : pas avant d'avoir des volumes réels.
+
+**Statut.** Acceptée (branche `feat/contract-export`, exercice).
+
+---
+
+## ADR-020 — Stratégie de merge entre branches majeures et mineures
+
+**Contexte.** La PR #65 (`develop` → `release/2.0.0`) a été mergée en *squash* : `c01ffd4` contient tout le code de `develop`, mais c'est un commit neuf, sans lien avec les 76 commits d'origine. Le back-merge `d0b79da` (« Merge branch 'release/2.0.0' into develop ») avait été fait depuis l'ancien sommet de la release (`5a060e9`), pas depuis `c01ffd4`. Pour git, la release contenait donc un commit inconnu de `develop`, et `develop` 76 commits absents de la release. Après le merge d'une nouvelle feature sur `develop`, `git rebase release/2.0.0` a rejoué ces 76 commits un par un sur une base qui contenait déjà leur résultat final : chacun entrait en conflit avec sa propre version définitive. Un merge classique aurait donné 13 fichiers en conflit, alors que le contenu des deux branches ne différait que par les commits récents de `develop`.
+
+**Décision.**
+- **Deux types de branches :**
+  - **Branche majeure** : `master`, `develop` et `release/x.y.z`. Elle dure longtemps, elle est partagée, d'autres branches partent d'elle ou y reviennent, et son historique publié n'est jamais réécrit.
+    - `master` : le code livré en production. Chaque release mergée y est taguée `vx.y.z`.
+    - `develop` : la branche d'intégration de la prochaine version. Les features y arrivent.
+    - `release/x.y.z` : la stabilisation d'une version, créée depuis `develop`. Elle ne reçoit que des corrections, puis elle est mergée dans `master` et dans `develop`.
+  - **Branche mineure** : `feat/<topic>` et `bugfix/<topic>`. Elle dure peu de temps, elle porte un seul sujet, elle part d'une branche majeure et y revient par une seule PR, puis elle est supprimée. Personne ne repart de ses commits.
+    - `feat/<topic>` : part de `develop` et revient dans `develop`.
+    - `bugfix/<topic>` : part de la branche majeure à corriger (`develop`, `release/x.y.z` ou `master`) et revient dans cette même branche.
+- **PR d'une branche mineure vers une branche majeure** : **squash obligatoire**. Le sujet devient un seul commit au format Conventional Commits, et les commits de travail intermédiaires disparaissent. Comme la branche mineure est supprimée ensuite, perdre le lien avec ses commits n'a aucune conséquence.
+- **PR entre branches majeures** : **merge commit uniquement**, jamais de squash ni de rebase-merge. Le merge commit garde les commits d'origine comme ancêtres, et git sait qu'ils sont intégrés.
+- **Un bugfix est squashé dans une seule branche majeure**, la plus ancienne qu'il concerne. Il rejoint ensuite les autres par les merges entre branches majeures, jamais par une deuxième PR du même bugfix :
+  - un correctif de `release/x.y.z` arrive dans `master` et `develop` quand la release y est mergée ;
+  - un correctif de `master` arrive dans `develop` par un back-merge `master` → `develop`.
+- **Jamais de rebase d'une branche partagée.** Rebaser `develop` sur une release réécrit son historique publié et rejoue tous ses commits. On intègre une autre branche avec `git merge`.
+- **Back-merge** (`release/*` ou `master` → `develop`) depuis le sommet final de la branche, une fois la PR de release mergée.
+- **Rattrapage après un squash** : vérifier que la branche squashée n'apporte rien qui manque à la cible (`git diff`), puis `git merge -s ours <branche>`. Le commit de merge garde le contenu de la cible à l'identique (`git diff HEAD~1 HEAD` vide) et enregistre la branche comme intégrée. Appliqué sur `develop` pour `release/2.0.0`.
+- **Avant un merge entre branches majeures**, le simuler avec `git merge-tree --write-tree <cible> <branche>` : il liste les conflits sans toucher à l'arbre de travail.
+
+**Conséquences.**
+- Les merges suivants entre `develop`, `release/*` et `master` ne rejouent plus l'historique déjà intégré.
+- L'historique de `develop`, `release/*` et `master` garde des commits de merge : c'est le prix d'une ascendance que git sait suivre.
+- `-s ours` ignore tout le contenu de la branche fusionnée. Il ne faut l'utiliser qu'après avoir vérifié qu'elle n'apporte aucun correctif propre, sinon ce correctif est perdu sans conflit ni avertissement.
+- La règle repose sur la discipline. Un *ruleset* GitHub fixe les méthodes de merge autorisées par branche cible, pas par branche source : `master`, `release/*` et `develop` reçoivent à la fois des squash (branches mineures) et des merge commits (branches majeures), donc il ne peut pas imposer la bonne méthode. Il peut seulement interdire le rebase-merge sur les trois branches majeures. Le rappel figure dans la checklist du template de PR.
+
+**Statut.** Acceptée.
+
+---
+
+## ADR-021 — Import en masse de contrats : synchrone, tout ou rien
+
+**Contexte.** Exercice : ni `docs/sujet.txt` ni l'échelle actuelle (une dizaine de conseillers) n'exigent un import en masse. Il sert à s'entraîner sur la sémantique d'échec partiel et sur le JDBC batching. Il n'y a pas de besoin métier à invoquer.
+
+Un contrat n'a pas de clé naturelle : deux contrats identiques pour un même client sont légitimes. Le serveur ne peut donc pas reconnaître une ligne déjà importée, et cette contrainte décide de la sémantique d'échec.
+
+**Décision.**
+- `POST /v2/contracts/imports`, rôle `COUNSELOR` (couvert par `/v2/**`, ADR-017). Corps JSON : `{ "contracts": [ { clientId, startDate, endDate, costAmount }, … ] }`.
+- **Tout ou rien.** Toutes les lignes sont validées avant la première écriture, dans une seule transaction. Si une ligne est rejetée, rien n'est créé et la réponse liste tous les rejets : le conseiller corrige et renvoie l'import complet, sans risque de doublon.
+- **Réponses :**
+  - `201` : `{ "importedCount": n, "contractIds": [...] }`, les identifiants étant dans l'ordre des lignes. Pas de `Location` : aucune ressource d'import n'existe ;
+  - `422 contractImportRejected` : propriété `rejections`, avec pour chaque problème `index` (à partir de 0), `clientId`, `code` et `message`. `index` est le seul repère d'une ligne, car un import peut contenir plusieurs contrats du même client ; `clientId` permet de regrouper les lignes d'un même client manquant. Les codes sont ceux de `POST /v2/contracts` (`invalidContractCost`, `invalidContractPeriod`, `clientNotFound`) ;
+  - `422 invalidImportSize` : aucune ligne, ou plus de `ImportContracts.MAX_LINES` (1000) ;
+  - `422 validationError` : champ manquant ou mal typé, nommé `contracts[n].champ`.
+- **Syntaxe, puis règles.** Comme ailleurs (ADR-002), le DTO vérifie la syntaxe et s'arrête là : une erreur de syntaxe sur une ligne empêche d'évaluer les règles métier de toutes les autres. Une valeur mal typée interrompt le parsing JSON : seule la première est signalée.
+- **Un seul rejet par ligne, le client d'abord.** Une ligne dont le client est inconnu est rejetée sans construire le contrat : le conseiller sait qu'il doit d'abord créer ce client, et le contenu de la ligne sera évalué au renvoi. L'ordre diffère de `CreateContract`, qui valide le contrat avant de chercher le client : à l'échelle d'un import, signaler d'abord le client manquant donne la correction la plus utile. De même, la construction du contrat s'arrête à la première règle violée : une ligne dont la période et le coût sont invalides ne signale que la période. Une correction peut donc faire apparaître un nouveau rejet sur la même ligne. Cet ordre (client, période, coût, puis type depuis l'ADR-024) est porté par `ContractImportLineEvaluator` et vérifié par `ContractImportLineEvaluatorTest` : l'import par fichier (ADR-022) l'applique à l'identique, après son contrôle de format.
+- **L'import ne crée pas les clients manquants.** La ligne ne porte que `clientId`, alors que créer un client demande son type, son nom, son email, son téléphone et sa date de naissance ou son identifiant d'entreprise, que seul le conseiller peut fournir. De plus, l'identifiant est généré par le serveur : après `POST /v2/clients`, le conseiller remplace `clientId` dans la ligne par l'identifiant renvoyé. Enfin, `clientNotFound` couvre aussi un client supprimé (ADR-009), qu'il ne faut pas recréer sans décision du conseiller.
+- **« Always valid » conservé** : chaque contrat passe par `Contract.of`. `ContractImportLineEvaluator` (`features/shared`), partagé avec l'import par fichier (ADR-022), vérifie le client puis traduit les exceptions du domaine en rejets (`ContractImportRejectionReason`), sans ajouter de règle métier. Il porte une seule politique applicative : l'ordre des contrôles, le client d'abord (voir plus haut).
+- **Codes de l'API hors du domaine.** `ContractImportRejectionReason` et `ContractImportFailureReason` ne portent que le motif. `ContractImportCodes` (`controllers/contract/shared`) les traduit en codes (`invalidContractCost`…), dans un `switch` exhaustif : un nouveau motif ne compile pas tant qu'il n'a pas de code. Les rejets de la réponse `422` sont un record (`ContractImportLineRejectionResponse`), documenté dans OpenAPI, et non une `Map`.
+- **Taille** : la limite est portée par `ImportContracts.Command` (ADR-002). 1000 lignes suffisent largement à cette échelle et gardent une transaction courte (environ 30 ms d'écriture, mesuré ci-dessous).
+- **Existence des clients sans N+1** : le port `ClientRepository.findExistingIds(Set<UUID>)` fait une seule requête `IN`. `@SQLRestriction` s'y applique : un client supprimé est absent du résultat, donc rejeté comme inconnu (ADR-009).
+- **Une seule `now`** pour tout l'import (ADR-003) : date de début par défaut et `lastModified`.
+- **Pas de version attendue** (ADR-011) : l'import ne crée que de nouveaux contrats.
+- **Écriture** : `ContractRepository.saveAll(List<Contract>)` délègue à `save` pour chaque contrat : même règle « id nul → création, sinon fusion dans l'existant », sans la dupliquer ni recopier en silence un contrat existant. Chaque `save` fait un `persist` ; les `INSERT` sont différés et partent en lots au commit.
+
+**JDBC batching : ce qui est retenu, et pourquoi.** `hibernate.jdbc.batch_size: 50` dans `application.yml` ; l'ADR-022
+l'a depuis porté à 1000 et a activé `reWriteBatchedInserts`, et les mesures ci-dessous restent celles de cette première
+valeur. C'est possible parce que l'UUID v7 est généré côté application (ADR-012) : avec un `IDENTITY`, Hibernate devrait
+exécuter chaque `INSERT` pour lire l'identifiant, ce qui désactive le batching.
+
+Mesures : base PostgreSQL 18 en conteneur local (Docker, poste Windows), un seul client, médiane de 5 exécutions après 2 exécutions de chauffe. Ce sont des ordres de grandeur : la latence réseau réelle accentuerait l'écart.
+
+| Écriture | 1000 lignes | 10 000 lignes | Lots JDBC pour 1000 lignes |
+|---|---|---|---|
+| `persist`, sans batching | 296 ms | 2946 ms | 1000 exécutions |
+| `persist`, `batch_size=50` | **27 ms** | **276 ms** | 20 lots de 50 |
+| `persist`, `batch_size=50`, `flush`/`clear` tous les 50 | 27 ms | 277 ms | non compté |
+| `saveAll` Spring Data (`merge`), `batch_size=50` | 31 ms | 266 ms | non compté |
+
+- **Gain : un facteur 10 environ.** Le nombre de lots vient des traces `org.hibernate.orm.jdbc.batch` (20 fois `Executing JDBC batch (50 / 50)`).
+- **`flush`/`clear` écarté.** Aucun gain mesuré, même à 10 000 lignes, et `clear` détacherait toute autre entité du contexte de persistance. À réévaluer seulement si la limite augmente nettement.
+- **`order_inserts` écarté.** Il regroupe les `INSERT` de plusieurs tables ; l'import n'en écrit qu'une.
+- **`@Version` sans valeur initiale.** Spring Data considère comme nouvelle une entité dont le `@Version` de type objet est `null`. Les entités initialisaient ce champ à `0L` (commit `c307374`, sans justification) : `save` passait donc par `merge`, qui renvoyait une copie et laissait l'entité passée en argument sans identifiant. Comme son identifiant était `null`, Hibernate n'exécutait aucun `SELECT`, et le surcoût restait dans le bruit de mesure (dernière ligne du tableau, mesurée avant ce changement). L'initialisation est retirée de `ClientJpaEntity` et de `ContractJpaEntity` : Hibernate pose lui-même la version à `0` au `persist`, et `save` comme `saveAll` font désormais un `persist` pour une nouvelle entité. Le `DEFAULT 0` de la base reste pour les `INSERT` SQL manuels. Les lignes `persist` du tableau décrivent donc le chemin actuel.
+- **`reWriteBatchedInserts` de pgjdbc non retenu.** Il réécrit les lots en `INSERT` multi-valeurs ; non mesuré, et rien
+  ne le justifie à ce volume. Activé ensuite pour les gros volumes (ADR-022), ce réglage s'applique aussi à cet
+  endpoint.
+- **Effet global.** `batch_size` s'applique à toutes les écritures. Elles n'envoient qu'une ligne par entité et par table : un lot d'une ligne. La détection des conflits `@Version` reste vérifiée par les tests de concurrence existants.
+
+**Test technique, et sa justification.** `ContractBatchInsertAcceptanceTest` vérifie qu'un import de 1000 lignes prépare au plus une requête d'existence et une requête par lot (`Statistics.getPrepareStatementCount`). Un utilisateur de l'API ne peut pas observer cette garantie, et le réglage peut être perdu sans qu'aucun scénario métier échoue. Le test a échoué à 1001 requêtes avant l'ajout de `batch_size`. Limite : Hibernate réutilise le même `PreparedStatement` entre les lots (2 requêtes préparées en tout), donc cette statistique prouve l'absence d'une requête par ligne, sans compter les lots. Mesurer les lots demanderait `datasource-proxy`, une dépendance jugée inutile pour une seule assertion.
+
+**Options écartées.**
+- **Partiel dans une transaction** (lignes valides insérées, `207` ou `200` avec rapport). Si l'appelant renvoie tout le fichier au lieu des seules lignes rejetées, les lignes déjà acceptées sont créées une seconde fois. De plus, `207` vient de WebDAV et sert souvent mal à distinguer un succès d'un échec.
+- **Commit par lots.** Une panne en cours d'import laisse un état partiel que l'appelant ne connaît pas : il faudrait une `Idempotency-Key` ou un identifiant de ligne. Cela n'aurait d'intérêt que pour de gros volumes.
+- **Asynchrone** (`202 Accepted` + ressource d'import). Envisagé puis écarté : 1000 lignes tiennent en quelques dizaines
+  de millisecondes, et il faudrait une table (migration), un worker et une reprise après crash. La piste la plus simple
+  si le besoin apparaît : un `@Scheduled` qui traite chaque import dans une seule transaction avec
+  `FOR UPDATE SKIP LOCKED`, contrats et statut étant commités ensemble. Repris pour les gros volumes par l'ADR-022, qui
+  écarte la transaction unique.
+- **CSV.** Plus proche d'un fichier métier, mais il ajoute parsing, encodage et séparateurs, sans rapport avec le sujet
+  de l'exercice. Le sujet demande du JSON. Un import CSV aurait son propre validateur (ADR-002) et pourrait réutiliser
+  le même use case. L'ADR-022 ajoute ce format pour l'import asynchrone, sans toucher à cet endpoint.
+
+**Conséquences.**
+- Aucune migration.
+- Un import rejeté se renvoie sans risque, et un conseiller voit toutes les erreurs de règles métier en une seule réponse.
+- Limite : un import **accepté** dont la réponse se perd (coupure réseau), puis renvoyé, crée des doublons. Le risque est le même que pour `POST /v2/contracts`, avec plus de lignes. Le traitement prévu est `Idempotency-Key` (`PROGRESS.md`).
+- Limite : tout le corps est lu en mémoire et validé avant le contrôle du nombre de lignes. Acceptable pour des utilisateurs authentifiés, à une dizaine de conseillers. Une API ouverte demanderait une limite de taille du corps.
+- Limite : un client supprimé entre le contrôle d'existence et le commit garde les contrats importés, actifs. Cette course existe déjà dans `CreateContract` ; un verrou sur les clients ne se justifie pas à cette échelle.
+- `ContractControllerAdvice` nomme désormais le chemin complet d'un champ mal typé (`contracts[1].costAmount`). Pour les corps à un seul niveau, le message ne change pas.
+
+**Statut.** Acceptée (exercice).
+
+---
+
+## ADR-022 — Import de gros volumes : fichier CSV traité en asynchrone, partiel
+
+**Contexte.** Exercice, comme l'ADR-021 : aucun besoin métier ne l'exige. Il sert à s'entraîner sur le traitement
+asynchrone, la reprise après panne et la concurrence. L'import synchrone de l'ADR-021 reste inchangé : l'appelant
+choisit explicitement l'un ou l'autre endpoint, sans bascule automatique selon la taille.
+
+**Décision.**
+
+- **API**, rôle `COUNSELOR` (couvert par `/v2/**`, ADR-017) :
+  - `POST /v2/contracts/import-jobs`, `multipart/form-data`, partie `file` : `202`, en-tête `Location` et
+    `{ "jobId", "status" }` ;
+  - `GET /v2/contracts/import-jobs/{jobId}` : statut, nom du fichier et compteurs ;
+  - `GET /v2/contracts/import-jobs/{jobId}/rejections?page&size` : rejets paginés, triés par ligne (bornes de
+    l'ADR-018).
+  - `GET /v2/contracts/import-jobs?submittedBy&page&size` : jobs du plus récent au plus ancien, avec leur auteur ;
+  - `POST /v2/contracts/import-jobs/{jobId}/cancellation` : annule le job et ferme ses contrats ;
+  - `GET /v2/contracts/import-jobs/{jobId}/rejections/export` : rejets en CSV, avec leur ligne d'origine.
+- **Un seul contrôleur.** `ContractImportJobController` porte les six endpoints, par exception à la règle « un
+  contrôleur par endpoint » : ils forment une seule ressource et partagent ses erreurs.
+- **Format CSV.** UTF-8, BOM toléré, séparateur `;` (celui d'Excel en Suisse et en France), en-tête obligatoire
+  `clientId;type;startDate;endDate;costAmount` (colonne `type` ajoutée par l'ADR-024). Dates ISO, décimales avec un point, `startDate` et `endDate` vides autorisés.
+  Pas de guillemets : aucune valeur ne contient le séparateur. Un simple `split` suffit donc, sans dépendance.
+- **Contrôles à la soumission.** Fichier vide, en-tête incorrect, encodage invalide ou plus de `MAX_LINES` (500 000)
+  lignes de données : `422 invalidImportFile`, rien n'est enregistré. Plus de 50 Mo : `413 importFileTooLarge`.
+  `resolve-lazily` est activé pour que cette erreur passe par `ContractControllerAdvice`.
+- **Partiel.** Les lignes valides créent leur contrat, les autres sont rapportées. Une ligne mal formée est rejetée avec
+  `invalidLineFormat`. Les autres codes sont ceux de l'ADR-021.
+- **Identifiant de ligne.** Chaque ligne est identifiée par `(job_id, line_number)`, clé primaire de
+  `contract_import_job_line`, qui porte soit `contract_id`, soit le code et le message du rejet. `line_number` est le
+  numéro physique dans le fichier (l'en-tête est la ligne 1), celui que le conseiller voit dans son tableur.
+  L'identifiant du contrat reste un UUID v7 (ADR-012) : ni la table `contract` ni l'agrégat ne changent.
+- **Stockage du fichier.** En `BYTEA`, dans `contract_import_job_file`, séparée de `contract_import_job`. Hibernate ne
+  charge pas paresseusement un `byte[]` sans instrumenter le bytecode : dans une seule table, chaque lecture de statut
+  et chaque lot rechargeraient jusqu'à 50 Mo. La base évite aussi de dépendre d'un disque local si plusieurs instances
+  tournent.
+- **Spring Batch.** Le traitement est un job Spring Batch à un seul step, en chunks de 2000 lignes
+  (`ContractImportBatchConfiguration`, paramètre identifiant `jobId`). `FlatFileItemReader` lit le fichier et donne le
+  numéro de ligne, le processor écarte les lignes vides, et le writer délègue à `ProcessContractImportBatch`. Spring
+  Batch reste donc un adaptateur entrant, dans le package `batch` : le domaine et les règles ne le connaissent pas. Les
+  tables `BATCH_*` sont créées par Flyway dans le schéma `contracts` (`initialize-schema: never`).
+- **Worker.** Spring Batch ne choisit pas les jobs à lancer et ne détecte pas les crashs. Un `@Scheduled` réserve donc
+  un job avec `FOR UPDATE SKIP LOCKED` : `PENDING`, ou `RUNNING` dont le bail a expiré. Chaque chunk renouvelle le bail.
+- **Use cases.** Les douze use cases de cet import sont dans `features/contract/importjob`, comme une seule tranche
+  verticale. `SubmitContractImportJob`, `GetContractImportJob`, `ListContractImportJobs`, `ListContractImportJobRejections`,
+  `ExportContractImportJobRejections` et `CancelContractImportJob` sont appelés par le contrôleur ; les deux lectures de rejets passent par `ContractImportJobQueryPort` (ADR-011), le repository ne servant qu'à l'agrégat ; `ClaimContractImportJob`, `ProcessContractImportBatch`, `FinishContractImportJob`, `ReleaseContractImportJob`,
+  `FailContractImportJob` et `LoadContractImportJobFile` sont appelés par le package `batch`. Aucune règle ne les lui réserve : rien n'empêche un
+  autre adaptateur de les appeler, ce qui contournerait la position du reader et le bail. Ce sont tous des application
+  services, appelés par des adaptateurs entrants différents. `ContractImportJob` n'accepte `recordBatch`, `finish`, `release` et
+  `fail` que sur un job `RUNNING`.
+- **Fin de job.** La décision appartient à une seule classe, `ContractImportJobOutcomeListener`, à la fin de l'exécution
+  Spring Batch, et non plus au compteur de lignes dans `recordBatch` :
+  - `COMPLETED` : `FinishContractImportJob`. Si `processedLines` n'atteint pas `totalLines`, le job échoue en
+    `incompleteProcessing` au lieu de rester `RUNNING` ;
+  - `STOPPED` ou erreur transitoire (`TransientDataAccessException`, `RecoverableDataAccessException`) :
+    `ReleaseContractImportJob`, le job revient en `PENDING` et reprend après le dernier chunk commité ;
+  - toute autre erreur : `FailContractImportJob`, en `unexpectedError`.
+- **Reprise.** Chaque transaction de chunk commite ensemble les contrats, les lignes, les compteurs, le bail et la
+  position du reader : un job repris continue exactement après le dernier chunk commité. Après un crash, l'exécution
+  reste `STARTED` et Spring Batch refuse de la relancer (`JobExecutionAlreadyRunningException`) :
+  `ContractImportJobRunner` appelle d'abord `JobOperator.recover`. Si la dernière exécution est déjà `COMPLETED` (crash
+  avant le listener), le runner applique directement `FinishContractImportJob`. Après `MAX_ATTEMPTS` (5) exécutions en
+  échec, le job échoue en `tooManyAttempts`. Une exécution `STOPPED` ne compte pas : elle ne vient que d'un arrêt de
+  l'application, et un job doit survivre à plusieurs déploiements successifs. Le `retry` de Spring Batch n'est pas utilisé : il rejoue l'écriture dans la même
+  transaction, inutilisable après une erreur PostgreSQL. La remise en file relance dans une transaction neuve.
+- **Arrêt de l'application.** `ChunkOrientedStep` (Spring Batch 6.0.6) sort de sa boucle sur une interruption du thread
+  sans lever d'erreur : avec la politique par défaut, le step finit `COMPLETED` avec des lignes non lues, et une reprise
+  le saute. `ContractImportStepInterruptionPolicy` appelle donc `setTerminateOnly` à la limite d'un chunk, sur une
+  interruption comme sur `ContextClosedEvent`. Le step finit `STOPPED`, reste relançable, et le job revient en `PENDING`
+  sans attendre l'expiration du bail.
+- **Worker remplacé.** Un worker bloqué au-delà du bail peut se réveiller après qu'un autre a repris le job. Son chunk
+  échoue sur la clé primaire de `contract_import_job_line` et sur la version de son `StepExecution`. Le listener compare
+  son exécution à la dernière de l'instance et ignore le résultat d'une exécution remplacée, sans migration.
+- **Bail en `Instant`.** Exception à l'ADR-013 : le bail est une durée technique, pas une date métier. En
+  `LocalDateTime`, il durait 65 minutes pendant l'heure répétée du passage à l'heure d'hiver.
+- **Lignes qui ne doivent jamais faire échouer un chunk.** Un caractère NUL est rejeté en `invalidLineFormat`, car
+  PostgreSQL le refuse dans un `TEXT`. `ContractPeriod` borne les années de 1 à 9999, car `TIMESTAMPTZ` a ses propres
+  limites : la règle vaut pour toutes les créations, qui répondent `invalidContractPeriod`. Le reader désactive les
+  commentaires (`.comments()`) : par défaut, il ignore les lignes commençant par `#`.
+  Une règle du contrat ne fait pas non plus échouer un chunk : `InvalidContractCostException` et
+  `InvalidContractPeriodException` héritent de `ContractValidationException`, scellée. `ContractImportLineEvaluator`
+  n'intercepte qu'elle et la traduit en motif de rejet par un `switch` exhaustif : une nouvelle règle doit être
+  ajoutée à `permits`, puis le `switch` ne compile plus tant qu'elle n'a pas de motif, ni `ContractImportCodes` tant
+  qu'elle n'a pas de code. Un filet `DomainValidationException` générique a été écarté : il cacherait la règle oubliée
+  derrière un code vague.
+- **Client supprimé pendant le traitement.** Chaque lot relit ses clients avec `FOR SHARE` (devenu `FOR UPDATE` trié par identifiant avec l'incrément 2 de l'ADR-024)
+  (`ClientRepository.lockExistingIds`, `findExistingIds` restant sans verrou). Pour que le verrou serve à quelque chose,
+  `DeleteClient` doit écrire `deleted_at` **avant** de fermer les contrats : sans `flush`, Hibernate exécute la
+  fermeture d'abord, car elle ne touche pas la table `client`, puis bloque sur le verrou au commit. Le lot pourrait
+  alors insérer un contrat que la fermeture ne verrait jamais, d'où un contrat actif sur un client supprimé.
+  `JpaClientRepository.delete` fait donc un `flush`. La course de l'import synchrone et de `CreateContract`, qui lisent
+  sans verrou, reste celle décrite dans l'ADR-021.
+- **Attente bornée : `lock_timeout` de 5 s.** Le verrou `FOR SHARE` n'est tenu que pendant un chunk (2000 lignes), pas
+  pendant tout l'import : à environ 8000 lignes par seconde (500 000 lignes en une minute au plus), un chunk le garde
+  quelques centaines de millisecondes. Un `PUT`, `PATCH` ou `DELETE` sur un client du chunk attend donc ce commit, sans
+  échouer. Sans borne, un chunk bloqué (connexion lente, pause du GC) ferait attendre ces requêtes indéfiniment.
+  `SET lock_timeout` est posé à l'ouverture de chaque connexion du pool (`connection-init-sql`, propriété
+  `app.database.lock-timeout`). 5 s laissent une marge d'environ 20 fois la durée normale d'un chunk. Au-delà :
+  - côté API, PostgreSQL annule l'instruction, Spring lève `CannotAcquireLockException` et l'API répond
+    `409 resourceBusy` sans rien modifier : le conseiller renvoie la requête quelques secondes plus tard ;
+  - côté import, l'exception est transitoire : le job retourne dans la file et reprend au dernier chunk commité,
+    dans la limite de `ContractImportJobRunner.MAX_ATTEMPTS`.
+  La borne s'applique à toute attente de verrou, migrations Flyway comprises : une migration qui attendrait plus de
+  5 s un verrou tenu par l'application échoue au démarrage au lieu de bloquer le trafic derrière elle. Le verrou
+  consultatif de Flyway n'est pas concerné, Flyway l'obtient par essais successifs. Si un jour une opération doit
+  attendre plus longtemps, elle relève la borne pour sa transaction (`SET LOCAL lock_timeout`), sans changer la
+  valeur globale. Défaut connu : `FOR SHARE` fait aussi attendre la modification d'un client, alors que seule sa
+  suppression menace la règle ; un verrou consultatif par client ne bloquerait que la suppression, à revoir si
+  l'attente gêne.
+- **Pas de version attendue** (ADR-011) : le traitement ne dépend pas d'un état lu par l'utilisateur.
+- **Auteur d'un job.** La soumission enregistre le `preferred_username` du jeton dans `submitted_by`, ou son `sub` s'il n'en a pas. L'annulation enregistre de même `cancelled_by`. Les jobs soumis avant cet ajout ont un auteur `null`. La liste montre les jobs de tous les conseillers, avec un filtre facultatif `submittedBy` : aucune règle de propriété, comme dans le reste de l'API (ADR-017).
+- **Idempotence de la soumission.** Sans protection, une double soumission (double clic, nouvel essai après un timeout, réponse `202` perdue) importe deux fois tout le fichier. L'en-tête facultatif `Idempotency-Key` (255 caractères au plus) est unique par auteur, garanti par l'index unique partiel `(submitted_by, idempotency_key)`.
+  - même clé et même fichier : `202` avec le job déjà créé et son `Location`, sans nouveau job ;
+  - même clé et autre fichier : `422 idempotencyKeyReused`. Le fichier est comparé par son empreinte SHA-256 (`content_sha256`), calculée à chaque soumission et rétro-calculée par la migration pour les jobs existants ;
+  - clé vide ou trop longue : `400 invalidIdempotencyKey` ;
+  - deux soumissions simultanées avec la même clé : la seconde viole l'index unique et reçoit `409 dataIntegrityViolation`. Un nouvel essai renvoie alors le job créé par la première.
+  - Sans clé, rien ne change. La rendre obligatoire (`428`, comme `If-Match`) casserait les appelants existants. Les clés n'expirent pas.
+- **Annulation.** `POST /v2/contracts/import-jobs/{jobId}/cancellation` annule un job dans n'importe quel état. Un job `FAILED` n'est pas relancé : comme il est déjà importé en partie, le conseiller l'annule, puis soumet un fichier corrigé, sans doublon actif.
+  - Les contrats du job encore actifs sont fermés à l'instant de l'annulation (`end_date = last_modified = cancelled_at`, `version` incrémentée comme toute mise à jour en masse, ADR-011). Ce sont des contrats annulés au sens de l'ADR-009 : ils sortent de la liste et des totaux, et restent lisibles. Ils sont retrouvés par `contract_import_job_line.contract_id`. Un contrat déjà fermé (expiré, client supprimé) n'est pas touché ; un contrat dont le coût a changé depuis l'import est fermé quand même.
+  - Une seconde annulation ne change rien et renvoie `closedContracts = 0`. Pas de `If-Match` (ADR-011) : le résultat ne dépend pas d'un état lu par le conseiller.
+  - Pendant un chunk : l'annulation verrouille la ligne du job (`SELECT ... FOR UPDATE`) avant de fermer les contrats. Un chunk déjà commité voit ses contrats fermés. Un chunk en cours ne peut plus rien commiter : s'il relit le job annulé, `recordBatch` lève `ContractImportJobCancelledException` ; s'il l'avait lu avant, sa mise à jour du job échoue sur `@Version`. Dans les deux cas sa transaction est annulée. `finish`, `release` et `fail` laissent un job annulé tel quel, et le listener reconnaît l'annulation. Spring Batch journalise quand même l'arrêt du step en erreur.
+- **Export des rejets.** `GET /v2/contracts/import-jobs/{jobId}/rejections/export` renvoie un CSV `lineNumber;rejectionCode;rejectionMessage;line`, trié par ligne. La colonne `line` est relue dans le fichier stocké : aucune migration. Les colonnes de texte sont entre guillemets, car le message et la ligne d'origine contiennent des `;`. Une valeur de texte qui commence par `=`, `+`, `-`, `@`, une tabulation ou un retour chariot est préfixée d'une apostrophe (recommandation OWASP contre l'injection CSV) : les guillemets n'empêchent pas un tableur d'évaluer une formule, et sans règle de propriété (ADR-017) la ligne soumise par un conseiller s'ouvre chez un autre. Le conseiller retire l'apostrophe avant de recopier la ligne ; le contrôle de format la rejetterait sinon, sans rien importer. Test : `ContractImportJobManagementAcceptanceTest`. Le conseiller corrige la ligne et la recopie dans un nouveau fichier. L'export est construit en mémoire : quelques dizaines de Mo au pire, pour un fichier de 50 Mo entièrement rejeté. Acceptable à cette échelle ; au-delà, il faudrait le diffuser en flux.
+
+**Performance : ce qui est retenu, et pourquoi.** `CHUNK_SIZE = 2000`, `hibernate.jdbc.batch_size: 1000` et
+`reWriteBatchedInserts: true` (propriété de pgjdbc, via `spring.datasource.hikari.data-source-properties`).
+
+Un chronométrage temporaire sur 50 000 lignes (chunks de 5000, `batch_size` 50) a montré que l'écriture des `INSERT`
+prend 89 % du step : 6,1 s sur 6,8 s, pour 100 000 lignes écrites, soit un contrat et une ligne de rapport par ligne du
+fichier. Le parsing, les règles du domaine, le verrou `FOR SHARE` et Spring Batch pèsent chacun 6 % au plus.
+
+| Réglage                                                | Durée du step sur 50 000 lignes |
+|--------------------------------------------------------|---------------------------------|
+| Chunk 500, `batch_size` 50                             | 7,3 s                           |
+| Chunk 5000, `batch_size` 50                            | 6,8 s                           |
+| Chunk 2000, `batch_size` 1000                          | **5,8 s**                       |
+| Chunk 2000, `batch_size` 1000, `reWriteBatchedInserts` | **4,6 s**                       |
+
+Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des ordres de grandeur.
+
+- **Le chunk décide du commit, `batch_size` de la taille des paquets envoyés.** La taille du chunk influence peu la
+  durée mesurée, mais elle fixe la durée du verrou `FOR SHARE` et le travail perdu sur une erreur. `batch_size` doit
+  rester inférieur ou égal au chunk : au-delà, il ne produit pas de paquets plus grands.
+- **`INSERT` et verrous.** Un `INSERT` ne bloque pas les autres lectures et écritures de la table. Le seul verrou gênant
+  est `FOR SHARE`, tenu jusqu'au commit du chunk : il fait attendre la suppression ou la modification d'un client de ce
+  chunk, environ 200 ms d'après ces mesures. Un `batch_size` plus grand raccourcit cette attente.
+- **`reWriteBatchedInserts`.** Le driver fusionne les `INSERT` d'un paquet en requêtes multi-valeurs. Il ne touche pas
+  aux `UPDATE`, donc la détection des conflits `@Version` ne change pas. Il renvoie « succès, nombre inconnu » au lieu
+  du nombre de lignes par `INSERT`, ce qui est sans effet ici, car un `INSERT` sans `ON CONFLICT` réussit ou lève une
+  erreur. Une erreur de contrainte n'indique plus précisément la ligne fautive, ce qui ne gêne que le diagnostic : le
+  chunk est annulé dans tous les cas.
+
+**Options écartées.**
+
+- **Clé composite sur `contract`, ou UUID v5 dérivé de `(jobId, ligne)`.** La première casse l'API et le curseur
+  d'export, la seconde perd les UUID v7 (ADR-012), et aucune des deux ne stocke les rejets.
+- **Colonnes `import_job_id` et `line_number` sur `contract`.** Elles imposent un détail d'import à chaque contrat, et
+  les rejets restent à stocker ailleurs.
+- **Boucle de lots écrite à la main.** Première version de cet ADR : `processed_lines` servait de position de reprise.
+  Elle fonctionnait, sans dépendance ni tables `BATCH_*`, mais toute violation de contrainte y était lue comme une
+  reprise par un autre worker, avec un risque de reprises sans fin. Spring Batch est retenu pour l'exercice et pour ces
+  garanties, pas pour réduire le code : la réservation, le bail et le rapport de rejets restent nécessaires.
+- **`@Async` seul.** Un redémarrage perdrait le job sans laisser de trace.
+- **Tout-ou-rien en une transaction.** Une transaction de plusieurs minutes sur 500 000 lignes bloquerait les
+  suppressions de clients pendant toute sa durée.
+
+**Conséquences.**
+
+- Migrations `V2.0.0.6` (trois tables du domaine) et `V2.0.0.7` (tables de Spring Batch, script fourni par
+  `spring-batch-core`, préfixé par le schéma).
+- Les fichiers restent en base : aucune purge n'est prévue. À traiter si cet import quittait le cadre de l'exercice.
+- Un job s'exécute dans le thread du planificateur : une instance traite un job à la fois.
+- Limite : un worker vivant dont un chunk dépasse le bail de 5 minutes voit son job repris par un autre worker. Son
+  chunk en cours est perdu (annulé) et le worker remplaçant continue. `ContractImportJobRecoveryAcceptanceTest` couvre ce cas.
+- Migration `V2.0.0.8` : `failure_reason` sur `contract_import_job`, exposé en `failureCode` par l'API.
+- Migration `V2.0.0.9` : `submitted_by`, `idempotency_key`, `content_sha256` (calculée pour les jobs existants), `cancelled_at`, `cancelled_by`, statut `CANCELLED` et index unique partiel de l'idempotence.
+- CORS : `Idempotency-Key` est autorisé, `Content-Disposition` exposé.
+- La purge des fichiers, si elle arrive, devra les garder tant que les rejets peuvent être exportés.
+- `contract_import_job_line.contract_id` référence `contract` : les tests suppriment les jobs avant les contrats.
+- Le worker est désactivé dans le profil `test` (`app.contract-import.worker-enabled`) et activé seulement par les tests
+  qui le visent : sinon chaque contexte Spring en cache aurait son propre worker, avec une horloge parfois modifiée.
+
+**Statut.** Acceptée (exercice).
+
+---
+
+## ADR-023 — Analyse statique : Error Prone et NullAway
+
+**Contexte.** Le code annote ses valeurs optionnelles avec JSpecify (`@Nullable`), mais rien ne le vérifiait à la compilation : l'IDE signale le déréférencement d'une valeur `@Nullable`, pas le passage de `null` à un paramètre non annoté. Le `@NullMarked` de `com/mk/contractservice/package-info.java` ne couvre que ce package : en JSpecify, il ne s'applique pas aux sous-packages. Le numéro ADR-022 est pris par l'import asynchrone (`feat/import-contract-jobs`).
+
+**Décision.**
+- **Error Prone** (`maven-compiler-plugin`, `.mvn/jvm.config` pour les `--add-exports` du compilateur) avec ses contrôles par défaut : les contrôles de niveau erreur cassent le build, les avertissements restent des avertissements (pas de `-Werror`). Le code généré (MapStruct, `generated-sources`) est exclu.
+- **NullAway** en erreur sur `src/main`, désactivé sur `src/test` :
+  - `AnnotatedPackages=com.mk.contractservice` : tout le code du projet est considéré non nul par défaut, même dans un package qui aurait oublié son `@NullMarked` ;
+  - `JSpecifyMode=true` ;
+  - entités JPA exclues (`@Entity`, `@MappedSuperclass`, `@Embeddable`) : Hibernate les remplit par réflexion.
+- **Pas de comparaison de références sur les agrégats** (`ReferenceEquality`) : le no-op des mises à jour compare l'état (`updated.equals(loaded)`, `@EqualsAndHashCode` de Lombok, ADR-002).
+- Les absences légitimes sont déclarées `@Nullable` plutôt que contournées : `detail` d'un `ProblemDetail` (facultatif en RFC 9457), `code` et `cause` de `DomainValidationException`, `clientId` d'un contrat tant que la colonne accepte `NULL`. Une `DomainValidationException` porte toujours un message (`getMessage()` non nul).
+- Les réponses REST exigent un id : `Objects.requireNonNull(aggregate.id())` dans les mappers, un agrégat non persisté n'a rien à faire dans une réponse.
+- **Un `package-info.java` annoté `@NullMarked` dans chaque package de `src/main`**, pour que l'IDE applique la même règle que NullAway pendant l'écriture : sans lui, IntelliJ ne signale pas un `null` passé à un paramètre non annoté. `ArchitectureTest.every_package_should_be_null_marked` fait échouer le build si un nouveau package l'oublie.
+- **Formatage par Spotless** avec le profil Eclipse exporté d'IntelliJ (`config/formatter/eclipse-java-formatter.xml`), en `ratchetFrom` : seuls les fichiers modifiés par rapport à la branche cible sont vérifiés, pour ne pas reformater tout le projet d'un coup. Hors `verify` : `./mvnw spotless:apply` en local, `spotless:check` en première étape de la CI.
+
+**Alternatives écartées.**
+- **Checker Framework (Nullness Checker)** : plus complet, mais beaucoup plus lent et plus exigeant (annotations de généricité partout). NullAway est conçu pour tourner à chaque compilation.
+- **Seulement l'IDE** : il ne vérifie ni la CI ni les contributions faites sans IntelliJ.
+- **NullAway en `OnlyNullMarked` (sans `AnnotatedPackages`)** : il ne vérifierait que les packages annotés. Garder `AnnotatedPackages` protège le build même avant que le test ArchUnit ne signale un oubli.
+
+**Conséquences.**
+- Un `null` passé là où il n'est pas déclaré casse la compilation.
+- Les inférences de génériques de NullAway restent limitées : `ContractPeriod.of` donne ses arguments de type explicitement à `ValueObjectUtils.validateAndCreate`.
+- Error Prone se met à jour avec le JDK ; une nouvelle version de Java peut demander une nouvelle version d'Error Prone avant de compiler.
+- IntelliJ compile avec les arguments du `pom.xml` : si sa compilation échoue sur `-Xplugin:ErrorProne`, déléguer le build à Maven (*Build Tools → Maven → Runner → Delegate IDE build/run actions to Maven*).
+
+**Statut.** Acceptée.
+
+---
+
+## ADR-024 — Types de contrats : un type obligatoire qui porte l'éligibilité
+
+**Contexte.** Un contrat n'avait ni nature ni règle liée à son souscripteur : un conseiller pouvait créer n'importe quel contrat pour n'importe quel client. Le sujet (`docs/sujet.txt`) ne demande pas de type : ce sujet sert à s'exercer (voir `PROGRESS.md`), et il est livré par incréments. Cette ADR couvre le premier : le type et l'éligibilité selon la nature du client.
+
+**Décision.**
+- **Trois types, portés par une enum du domaine** (`ContractType`) : `LAMAL` (assurance-maladie obligatoire), `LAA` (assurance-accidents) et `LPP` (prévoyance professionnelle). Le type est obligatoire à la création et immuable (`updatable = false`, aucune méthode `change*`).
+- **Le type porte la règle d'éligibilité** (`ContractType.isClosedTo`) : la LAMal est souscrite par une personne, la LAA et la LPP par une entreprise, en tant qu'employeur. Ce n'est pas un libellé décoratif.
+- **La règle est vérifiée par `Contract.of`**, qui reçoit l'identifiant du client et sa nature (`ClientKind`), en plus du type. Aucun contrat ne peut exister avec un type interdit à son souscripteur (ADR-002), quel que soit le point d'entrée : création unitaire, import JSON (ADR-021), import par fichier (ADR-022). `reconstituteFromDatabase` ne revérifie pas : la donnée est de confiance, et la nature du client est immuable.
+- **Les agrégats restent indépendants.** `ArchitectureTest` interdit à `domain.contract` de dépendre de `domain.client` : le contrat ne reçoit donc pas le `Client`, seulement `ClientKind` (`PERSON`, `COMPANY`), placé dans `domain/shared` comme `ClientNotFoundException`. `Client.kind()` l'expose ; ce sont les use cases qui chargent le client et transmettent sa nature.
+- **Refus** : `ContractTypeNotAllowedException` (une `ContractValidationException`), traduite en `422 contractTypeNotAllowed` à la création et en rejet de ligne `TYPE_NOT_ALLOWED` dans les deux imports.
+- **Ordre des contrôles** : forme des valeurs d'abord (période, coût), existence du client ensuite, éligibilité en dernier. Dans les imports, l'ordre de l'ADR-021 devient : client, période, coût, type.
+- **API.** `type` est requis dans `POST /v2/contracts` et dans chaque ligne de `POST /v2/contracts/imports` ; il est renvoyé par toutes les lectures de contrats. L'en-tête CSV devient `clientId;type;startDate;endDate;costAmount`. Un type absent ou inconnu est une erreur de forme : `422 validationError` en JSON, `invalidLineFormat` en CSV, comme un UUID ou un montant illisible.
+- **Persistance.** Migration `V2.0.0.10` : colonne `contract.type VARCHAR(16) NOT NULL`, contrainte `CHECK (type IN ('LAMAL', 'LAA', 'LPP'))`, sans valeur par défaut. Hypothèse retenue : aucun contrat n'existe en base avant cette migration. Sur une base non vide, la migration échoue au lieu d'inventer un type.
+- **Ports.** `ClientRepository.findExistingIds` est remplacé par `findAllByIds`, qui renvoie les clients : les imports ont besoin de leur nature, pas seulement de leur existence. L'import par fichier garde son verrou `FOR SHARE` (`lockExistingIds`), puis charge les clients verrouillés.
+
+**Alternatives écartées.**
+- **Type optionnel ou valeur `UNSPECIFIED`** : un contrat sans type contournerait l'éligibilité. Sans contrat existant, rien ne justifie cette valeur.
+- **`Contract.of(Client, …)`** : plus direct, mais il couple les deux agrégats et casse la règle ArchUnit.
+- **Règle dans les handlers** : elle serait à répéter dans trois use cases, et un quatrième pourrait l'oublier.
+- **Service de domaine dédié** : la règle ne demande aucune donnée supplémentaire, le type sait à qui il s'adresse. Un service de domaine deviendra nécessaire pour interdire que deux LAMal d'une même personne se chevauchent : il doit interroger les contrats existants.
+- **Type `sealed` avec attributs propres** : prématuré tant qu'aucun type ne porte d'attribut. À reconsidérer avec la franchise LAMal.
+
+**Conséquences.**
+- Changement cassant pour les appelants, sans impact sur une version publiée : la 2.0.0 n'est pas encore taguée. À mentionner dans ses release notes.
+- Charger les clients d'un import (1000 lignes au plus en JSON, un chunk en CSV) coûte une requête avec jointures au lieu d'une requête sur les identifiants : acceptable à ce volume.
+- Hors périmètre, à traiter dans des incréments suivants : pas de LAMal qui se chevauchent pour une même personne (incrément 2, ci-dessous), franchise LAMal, droit d'option des frontaliers (demande une notion de résidence sur le client).
+
+### Incrément 2 : pas de LAMal qui se chevauchent pour une même personne
+
+**Contexte.** Une personne n'est couverte que par une assurance-maladie obligatoire à la fois. Le métier n'est pas joignable : la règle ci-dessous est une hypothèse, à confirmer.
+
+**Décision.**
+- **Règle : une nouvelle LAMal ne chevauche aucune LAMal active de la même personne** (active au sens de l’ADR-004 : pas encore expirée, futures comprises). Les périodes sont comparées avec une fin exclusive (ADR-004) : une LAMal peut commencer à l'instant où la précédente finit. `ContractPeriod.overlaps` porte la comparaison.
+- **« Une seule LAMal active » écartée.** Un contrat à début futur est actif (ADR-004) : la LAMal de l'année prochaine serait refusée tant que celle de l'année en cours court, alors qu'elle lui succède sans chevauchement. La règle compare donc les périodes, mais seulement avec les LAMal actives à `now`.
+- **Le type dit s'il interdit le chevauchement** (`ContractType.forbidsOverlap`, seulement `LAMAL`) : une entreprise peut avoir plusieurs LAA ou LPP en même temps.
+- **`ContractOverlapPolicy.Batch`** (domaine), un lot de vérification ouvert par `startBatch(clientIds, now)`, regroupe les périodes des contrats concernés par client et par type. `admit(contract)` refuse un contrat qui chevauche une période connue (`OverlappingContractException`), sinon l'enregistre. Un import admet ses lignes une à une dans le même lot : une ligne qui chevauche une ligne acceptée plus haut est rejetée, une ligne rejetée ne couvre rien. Le lot est imbriqué dans la politique et n’a pas de fabrique publique : on ne l’obtient que par `startBatch`, donc avec le verrou posé. Elle n’est testée qu’à travers la politique (`ContractOverlapPolicyTest`).
+- **Service de domaine `ContractOverlapPolicy`** : la règle doit lire les contrats existants, ce qu'aucun agrégat ne peut faire seul. Il charge en une requête les contrats des types concernés pour tous les clients d'un lot (`ContractRepository.lockAndFindAllByClientIdsAndTypes`), sans N+1. `ensureNoOverlap(contract, now)` sert la création unitaire et le changement de période (ADR-025), en écartant le contrat lui-même de la comparaison ; `startBatch(clientIds, now)` sert les imports : le lot garde les contrats admis, car les lignes acceptées ne sont enregistrées qu’à la fin, et une vérification par ligne en base ne les verrait pas.
+- **Ordre des contrôles** : le chevauchement vient en dernier, après le type. Dans les imports : client, période, coût, type, chevauchement.
+- **Refus** : `409 contractOverlap` à la création (conflit avec un état existant, comme `contractExpired`), rejet de ligne `OVERLAPPING_CONTRACT` (code `contractOverlap`) dans les deux imports.
+- **Concurrence : verrou `FOR UPDATE` sur les clients, posé par `ContractOverlapPolicy`.** `startBatch` et `ensureNoOverlap` lisent les contrats existants par `ContractRepository.lockAndFindAllByClientIdsAndTypes`, qui verrouille d’abord les clients (`select … from contracts.client where id in (…) order by id for update`). Verrou et lecture forment une seule opération du port : la politique ne peut pas lire sans verrouiller. `ensureNoOverlap` verrouille même pour un type qui autorise le chevauchement (LAA, LPP) : la vérification est sans effet pour ce type, mais une garde de plus ne protégerait rien, et la création de LAA d’une même entreprise se trouve simplement sérialisée. La ligne client est verrouillée parce qu'on ne peut pas verrouiller une LAMal qui n'existe pas encore. Deux conseillers qui créent une LAMal pour la même personne sont ainsi sérialisés : le second attend le commit du premier, puis voit son contrat et reçoit le refus précis du domaine. Le verrou passe par la politique, pas par les handlers : tout chemin qui vérifie la règle verrouille, aucun ne peut l'oublier. Le port vit dans `ContractRepository`, car `domain.contract` ne peut pas dépendre de `ClientRepository` (ArchUnit). Le verrou n’est tenu que jusqu’à la fin de la transaction qui le pose : hors transaction, il serait relâché aussitôt et la lecture puis l’enregistrement ne seraient plus protégés, sans aucune erreur. Les adaptateurs des deux ports de verrouillage (`ContractRepository.lockAndFindAllByClientIdsAndTypes`, `ClientRepository.lockExistingIds` pour le verrou de chunk) sont donc `@Transactional(propagation = MANDATORY)` : appelés sans transaction, ils lèvent `IllegalTransactionStateException`, même pour un lot vide, l’oubli de la transaction étant une erreur de l’appelant quels que soient les arguments. La politique verrouille en premier, elle échoue donc dès son entrée ; le domaine, sans dépendance à Spring, ne peut pas porter l’annotation lui-même.
+- **Ordre fixe, par identifiant.** Un lot d'import verrouille plusieurs clients : deux lots qui les prendraient dans un ordre différent pourraient s'attendre mutuellement (interblocage, `40P01`). `order by id` impose le même ordre à tous. L'import par fichier passe son verrou de chunk (`lockExistingIds`) de `FOR SHARE` à `FOR UPDATE` trié : deux verrous `FOR SHARE` ne s'excluent pas, deux lots liraient tous deux « aucune LAMal ».
+- **Attente bornée** par le `lock_timeout` de 5 s (ADR-022) : au-delà, `409 resourceBusy` pour une création ou un import JSON, erreur transitoire (job remis en file) pour l'import par fichier.
+- **Contrat fermé avant d'avoir commencé : il ne couvre rien.** La fermeture en masse (suppression du client, ADR-009 ; annulation d'un import, ADR-022) met `end_date` à la date de fermeture, y compris sur un contrat à début futur. `ContractPeriod.overlaps` (chacune des deux périodes est en vigueur au plus tardif des deux débuts) ne le compte jamais, sans cas particulier.
+
+**Alternatives écartées.**
+- **Contrainte d'exclusion PostgreSQL** (`EXCLUDE USING gist (client_id WITH =, tstzrange(start_date, end_date, '[)') WITH &&) WHERE (type = 'LAMAL')`, extension `btree_gist`) : la base garantirait la règle quel que soit le chemin d'écriture, même un script SQL. Écartée pour ce service, seul propriétaire de sa base, à une dizaine de conseillers : la course n'y est détectée qu'au commit (`23P01`), d'où un message générique à traduire, un chunk d'import à rejouer, et un intervalle à adapter pour les contrats fermés avant leur début (`LEAST(start_date, end_date)`). Le verrou donne toujours le message précis du domaine pour moins de code. À reconsidérer si d'autres applications écrivent dans la base.
+- **Comparer aussi aux LAMal terminées** : empêcherait une LAMal rétroactive de recouvrir une période passée déjà couverte, mais une LAMal fermée (`end_date = now` à la suppression du client ou à l'annulation d'un import) garderait sa période écoulée. Annuler un import dont une LAMal avait commencé, puis soumettre le fichier corrigé, ferait rejeter la ligne corrigée : le workflow de l'ADR-022 serait cassé. Comparer aux seules LAMal actives règle ce cas sans colonne ni migration ; le prix accepté est qu'une saisie rétroactive, rare, peut recouvrir une LAMal déjà expirée.
+- **Index unique partiel** : il ne compare que des égalités, pas des chevauchements de périodes.
+- **Requête par ligne d'import** : N+1, jusqu'à 2000 requêtes par chunk.
+- **`Person` racine de ses contrats** : l'invariant deviendrait interne, mais l'agrégat grossirait avec les contrats, chaque modification du client entrerait en conflit de version avec celles de ses contrats, et la règle ne concerne pas les entreprises. Contraire à l'indépendance des agrégats (ADR-001).
+- **Hiérarchie `sealed` `LamalContract` / `LaaContract` / `LppContract`** : utile pour porter des données propres à un type (franchise, incrément 3), mais chaque `LamalContract` reste un agrégat avec sa propre version. La règle porterait toujours sur plusieurs agrégats : une sous-classe change le type, pas la frontière de cohérence.
+- **Agrégat de réservation à côté de `Contract`** (périodes et version dans une table dédiée) : deux agrégats modifiés dans une transaction, périodes dupliquées que les fermetures en masse devraient aussi tenir à jour.
+- **Agrégat `AssuranceMaladie` (table `lamal`), reporté** : voir « Suite prévue ».
+
+**Suite prévue : un agrégat pour l'assurance de base d'une personne.** La règle porte sur plusieurs agrégats `Contract` : le service de domaine vérifie, le verrou sur la ligne client sérialise. C'est un écart assumé à la règle « un invariant, un agrégat ». La forme DDD visée est un agrégat `AssuranceMaladie`, une racine par personne :
+- table `lamal` (`person_id` unique, `version`, puis les données de la couverture) ; les échéances sont les contrats `LAMAL` de la table `contract`, sans dupliquer les périodes ni ajouter de clé étrangère (`client_id` + `type` suffisent) ;
+- l'invariant devient interne : ajouter une échéance charge la racine, vérifie le chevauchement et incrémente sa version même sans autre changement (`OPTIMISTIC_FORCE_INCREMENT`). Deux créations simultanées entrent en conflit de version (ADR-011) : plus de verrou sur la ligne client, et la modification d'un client ne bloque plus la création d'une LAMal ;
+- la racine est créée avec la personne, ou à la première LAMal (`INSERT … ON CONFLICT (person_id) DO NOTHING`) ; l'unicité de `person_id` règle la course ;
+- seuls les chemins qui peuvent créer un chevauchement passent par la racine : création unitaire, changement de période (ADR-025) et imports. Changer le coût ou fermer un contrat ne fait que garder ou raccourcir une période ;
+- reportée parce qu'aujourd'hui la racine ne porterait qu'un identifiant et une version, ce que fait déjà le verrou sans table. Créée à l'incrément 4a (voir « Incrément 4 » ci-dessous) : le droit d'option du frontalier est une donnée de la couverture, pas d'une échéance. La franchise (incrément 3) reste sur chaque échéance, dans sa couverture `ContractCoverage.Lamal`.
+
+**Conséquences.**
+- `POST /v2/contracts` peut répondre `409 contractOverlap` ; nouveau code de rejet dans les imports.
+- Une personne peut avoir plusieurs LAMal actives (2026, 2027, 2028), mais plus deux LAMal qui se chevauchent : les tests qui en créaient (plusieurs LAMal sans fin, par exemple) utilisent désormais une entreprise et des LAA ou LPP.
+- Un lot d'import verrouille ses clients en écriture jusqu'à son commit (en général moins d'une seconde) : une création de contrat ou un autre lot qui touche l'un d'eux attend, comme le faisaient déjà la modification et la suppression du client.
+
+**Statut.** Acceptée.
+
+### Incrément 3 : franchise LAMal
+
+**Contexte.** L'assuré LAMal choisit une franchise annuelle. Ses montants sont fixés par l'ordonnance sur l'assurance-maladie (OAMal, art. 93 à 95) et dépendent de l'âge. Le métier n'est pas joignable : les règles ci-dessous reprennent le droit, les choix de modélisation ont été validés le 11/11/2026.
+
+**Décision.**
+- **Couverture `sealed`.** `ContractCoverage` (`Lamal(LamalFranchise)`, `Laa`, `Lpp`) remplace le champ `type` de `Contract`, et `Contract.type()` en est déduit. Ce sont des états exclusifs (ADR-002) : une LAA ne peut pas porter de franchise, aucun champ nullable n'est lu par convention. `Contract.franchise()` renvoie un `Optional` pour les lectures.
+- **Barème** (`LamalFranchise`) : adulte 300, 500, 1000, 1500, 2000 ou 2500 CHF ; enfant de 0 à 600 CHF par paliers de 100. `ContractCoverage.of(type, franchise)` refuse une LAMal sans franchise, une franchise sur une LAA ou une LPP, et un montant hors des deux barèmes.
+- **Catégorie d'âge selon l'année de naissance**, comme dans l'OAMal : enfant jusqu'au 31 décembre de l'année des 18 ans, adulte dès le 1er janvier de l'année des 19 ans. Elle est évaluée à la date de début du contrat.
+- **La LAMal d'un enfant finit au plus tard le 1er janvier de l'année de ses 19 ans.** Le contrat reste valide toute sa durée (ADR-002) : une franchise d'enfant ne s'applique jamais à un adulte. L'adulte souscrit ensuite une nouvelle LAMal, que l'incrément 2 autorise déjà.
+- **Titulaire `ContractHolder`** (`domain/shared` : `Person(birthDate)`, `Company`). C'est un Value Object du noyau partagé : le client tel que les règles de couverture le voient, copie immuable du strict nécessaire passée par le use case, car un agrégat ne référence l'autre que par son identifiant. `Client` ne le contient pas, il le calcule. Il est nommé « titulaire » et non « preneur d'assurance » (`PolicyHolder`) : le client d'une LAMal est l'assuré, celui d'une LAA ou d'une LPP est le preneur, et le preneur d'une LAMal d'enfant peut être un parent (ADR-026). Il remplace `ClientKind` dans `Contract.of`. `ContractCoverage.ensureAllowedFor(holder, period)` vérifie l'éligibilité du type, puis la franchise selon l'âge, à la création et à chaque `changePeriod` : déplacer le début peut changer la catégorie d'âge, prolonger peut dépasser la fin de l'enfance. `Client.contractHolder()` le fournit, et `domain.contract` ne dépend toujours pas de `domain.client`.
+- **Changement de période** : `UpdateContractPeriod` lit le titulaire par `ClientRepository.getContractHolderIncludingDeleted`. La nature et la date de naissance sont immuables, et le contrat d'un client supprimé doit continuer à répondre `409 contractExpired`, pas 404.
+- **Franchise immuable dans cet incrément** (`updatable = false`, aucune méthode `change*`). Pour en changer, on ferme la LAMal au 31 décembre et on crée celle de l'année suivante. Un `changeFranchise` effectif au 1er janvier sera tranché avec l'agrégat `AssuranceMaladie` (incrément 4, « Suite prévue »).
+- **Refus** : `InvalidContractFranchiseException` (une `ContractValidationException`), traduite en `422 invalidContractFranchise` et en rejet de ligne `INVALID_FRANCHISE` (code `invalidContractFranchise`). La forme (présence, barème) est vérifiée avant le chargement du client, comme le coût. L'âge est vérifié après l'éligibilité du type. Dans les imports : client, période, coût, forme de la franchise, type, franchise selon l'âge, chevauchement.
+- **API.** `franchise` (entier, en CHF) dans `POST /v2/contracts`, dans les lignes de `POST /v2/contracts/imports` et dans toutes les lectures de contrats (`null` pour une LAA ou une LPP). L'en-tête CSV devient `clientId;type;franchise;startDate;endDate;costAmount` ; la franchise est vide pour une LAA ou une LPP, et une valeur illisible donne `invalidLineFormat`. En JSON, une franchise décimale (`300.5`) est refusée en `422 validationError` : Jackson la tronquait par défaut en 300 sans erreur, d'où `spring.jackson.deserialization.accept-float-as-int: false`, qui vaut pour tous les entiers des corps de requête (la franchise est le seul aujourd'hui).
+- **Persistance.** Migration `V2.0.0.11` : colonne `contract.franchise INTEGER NULL` dans la même table (lectures sans jointure), et contrainte `CHECK ((type = 'LAMAL') = (franchise IS NOT NULL))`. Le barème n'est pas recopié en base : il dépend de l'âge, que la table ne connaît pas, et il change avec l'OAMal. La migration ne crée que le schéma, sans renseigner de données : hypothèse retenue, aucune LAMal n'existe en base avant elle (la 2.0.0 n'est pas taguée). Sur une base qui en contient, la contrainte échoue au lieu de choisir une franchise à la place de l'assuré, comme `V2.0.0.10` pour le type. En local, une base créée avant l'incrément 3 avec des LAMal (volume `pgdata` de docker-compose, conteneur Testcontainers réutilisé) est à supprimer puis à recréer.
+
+**Alternatives écartées.**
+- **Agrégat `sealed`** (`LamalContract`, `LaaContract`, `LppContract`) : le builder, les méthodes `change*`, les mappers et les fixtures seraient dupliqués pour une seule donnée propre au type. La frontière de cohérence ne change pas non plus (incrément 2) : une couverture `sealed` dans un seul agrégat suffit.
+- **Franchise nullable sur `Contract`**, validée selon le type : c'est un état lu par convention, interdit par l'ADR-002.
+- **Contrôle de l'âge au seul début du contrat** : une LAMal d'enfant sans fin garderait une franchise d'enfant à l'âge adulte.
+- **Bascule automatique au 1er janvier** (job qui passe la franchise en barème adulte) : réaliste, mais il faut un job planifié, ShedLock et une règle pour choisir la nouvelle franchise. Rien ne le justifie tant que la fin imposée suffit.
+- **Franchise par défaut dans l'API** (300 pour un adulte, 0 pour un enfant) : une valeur implicite dans un contrat d'assurance, alors que c'est un choix de l'assuré.
+- **Lire le titulaire par `ClientRepository.getById`** au changement de période : le contrat d'un client supprimé répondrait 404 au lieu de `409 contractExpired`.
+- **Franchise ordinaire pour les LAMal existantes** (300 CHF pour un adulte, 0 CHF pour un enfant, calculée en SQL dans la migration) : la règle d'âge du domaine serait recopiée en SQL et ne suivrait pas ses évolutions, et la franchise serait choisie à la place de l'assuré. Implémentée puis retirée avant le commit.
+
+**Conséquences.**
+- Changement cassant pour les appelants, avant le tag 2.0.0 : une LAMal sans franchise est refusée (`422 invalidContractFranchise`), et un fichier CSV avec l'ancien en-tête aussi (`invalidImportFile`).
+- La LAMal d'un enfant a toujours une date de fin.
+
+**Statut.** Acceptée.
+
+### Incrément 4 : droit d'option des frontaliers (hypothèses)
+
+**Contexte.** Un frontalier soumis à la LAMal peut demander à en être exempté pour s'assurer dans son pays de résidence. Le métier n'est pas joignable : les hypothèses ci-dessous reprennent le droit tel que compris et ont été validées le 12/11/2026. Elles cadrent les deux sous-incréments avant tout code.
+
+**Hypothèses retenues.**
+- **Frontalier = client résidant dans un pays frontalier** (France, Allemagne, Italie, Autriche). En droit, c'est l'activité en Suisse qui soumet le frontalier à la LAMal ; ici elle est implicite (les clients vivent en Suisse ou sont frontaliers). L'emploi n'est pas modélisé, l'ancien frontalier sans activité en Suisse est hors périmètre.
+- **Pas de date de début d'emploi.** Le délai de 3 mois pour demander l'exemption est contrôlé par l'autorité cantonale du lieu de travail, pas par l'assureur : on n'en garde pas la donnée.
+- **L'exemption est une décision cantonale enregistrée** par le conseiller, avec sa date d'effet (rétroactive possible au début de l'emploi). Elle n'est possible que pour un frontalier, et une LAMal qui couvre une période d'exemption est refusée. Sans exemption, le frontalier est soumis à la LAMal comme un résident ; on ne contrôle pas qu'il en a une (continuité, voir ci-dessous).
+- **La résidence est modifiable**, sans historique (résidence actuelle seulement). Elle ne change pas le type de contrat (LAMal pour une personne, LAA et LPP pour une entreprise) mais seulement le droit à l'exemption. Passer la résidence en Suisse pendant une exemption en cours est refusé tant que l'exemption n'est pas close : plus simple et plus explicite qu'une clôture implicite.
+- **`ContractHolder.Person` portera `residence`** à côté de `birthDate` : c'est le titulaire qui transmet aux règles de couverture ce qu'elles doivent savoir du client.
+- **L'affiliation LAMal est continue, ses paramètres sont annuels.** L'affiliation à l'assureur n'a pas de fin (on en sort en changeant d'assureur au 1er janvier, en partant à l'étranger ou par exemption) ; la prime et la franchise valent pour une année civile. `AssuranceMaladie` est la racine continue, les contrats `LAMAL` en sont les échéances. La fin imposée à la LAMal d'un enfant (incrément 3) reste juste : les 19 ans tombent un 1er janvier, une limite d'échéance comme une autre. Ce qui manque est la continuité (pas de trou entre deux échéances, reconduction annuelle), à traiter dans la racine après l'incrément 4a.
+- **Hors périmètre** : membres de la famille (l'exemption ne s'étend pas aux enfants ici), règles propres à chaque pays.
+
+**Découpage.**
+- **Incrément 4a, refactoring sans changement de comportement** : créer l'agrégat `AssuranceMaladie` (« Suite prévue » ci-dessus, migration de la table `lamal`, racine créée à la première LAMal sans reprise de données) et y déplacer la règle de non-chevauchement, verrouillage optimiste forcé à la place du `FOR UPDATE` sur le client. Les tests d'acceptation restent inchangés.
+- **Incrément 4b, droit d'option** : résidence sur le client (migration, API client), `residence` dans `ContractHolder`, exemption dans `AssuranceMaladie`, refus d'une LAMal pendant une exemption.
+
+**Statut.** Proposée.
+
+---
+
+## ADR-025 — Modification de la période d'un contrat
+
+**Contexte.** La période (`startDate`, `endDate`) n'était fixée qu'à la création. Un conseiller doit pouvoir résilier un contrat, le prolonger, le rendre sans fin ou corriger sa date de début. `docs/sujet.txt` ne le demande pas : règles métier décidées le 10/11/2026.
+
+**Décision.**
+- **Endpoint** `PUT /v2/contracts/{id}/period` : la période est une sous-ressource remplacée en entier. `startDate` est obligatoire (`422 validationError`) ; `endDate` absent ou `null` rend le contrat sans fin. `If-Match` obligatoire, comme pour le coût (ADR-011) : la commande traduit une décision prise sur un état lu.
+- **Règles**, portées par `Contract.changePeriod(period, now)` :
+  - seul un contrat actif est modifiable (`409 contractExpired`, ADR-004) ;
+  - la date de début peut être déplacée librement, y compris dans le passé ;
+  - la date de fin ne peut pas être dans le passé (`endDate >= now`) : pas de résiliation rétroactive, la couverture passée a été fournie. `endDate = now` ferme le contrat immédiatement ;
+  - la fin reste après le début et les années entre 1 et 9999 (`ContractPeriod.of`) ;
+  - erreurs de période : `422 invalidContractPeriod` ;
+  - une période identique est un no-op ; sinon `lastModified = now` (ADR-005 : toute modification métier du contrat compte pour le filtre `updatedSince`).
+- Le use case `UpdateContractPeriod` construit `ContractPeriod.of(startDate, endDate, now)` et délègue à `changePeriod` : aucune règle dans le handler.
+- **Pas de chevauchement de LAMal** (ADR-024, incrément 2) : si la période change, le handler appelle `ContractOverlapPolicy.ensureNoOverlap` avant d'enregistrer, sous le même verrou que la création. La policy écarte le contrat modifié de la comparaison : sa propre période précédente ne compte pas. Conflit : `409 contractOverlap`. Une période inchangée ne déclenche ni vérification ni enregistrement.
+
+**Alternatives écartées.**
+- **Merge patch (`PATCH`, champs optionnels)** : implémenté puis abandonné avant merge. Avec une date de fin qui peut valoir `null`, il faut distinguer « champ absent » (conserver) de « `null` » (retirer). Jackson donne `null` dans les deux cas : il fallait deux désérialiseurs dédiés, un type `sealed` à trois états dans la commande et une fusion dans le handler. Aucun gain pour l'appelant : `If-Match` l'oblige déjà à lire le contrat, il connaît donc la période courante et peut la renvoyer en entier.
+- **Date de début modifiable seulement avant le début du contrat** : refusée, la correction d'une date de début erronée doit rester possible tant que le contrat est actif.
+- **Résiliation rétroactive** : refusée, elle réécrirait une couverture déjà fournie.
+- **Réactivation d'un contrat expiré** : non prévue, un contrat expiré reste non modifiable (ADR-004) ; on crée un nouveau contrat.
+
+**Conséquences.**
+- `endDate >= now` est évalué à l'heure du serveur : pour résilier « maintenant », l'appelant envoie une date légèrement future (ou la fin de journée) ; une date déjà dépassée à l'arrivée de la requête est refusée.
+- L'invariant « fin après début » est aussi garanti à la modification ; un contrat annulé (ADR-009) reste non modifiable car inactif.
+- Prolonger une LAMal ou avancer sa date de début peut être refusé si une autre LAMal active de la personne couvre la nouvelle période : raccourcir ou fermer d'abord l'autre LAMal.
+
+**Statut.** Acceptée (branche `feat/patch-contract-periods`).
+
+---
+
+## ADR-026 — Contexte Facturation et paiements : cadrage
+
+**Contexte.** Le service forme aujourd'hui un seul bounded context : clients et contrats partagent le même langage, et leurs agrégats sont modifiés dans la même transaction (fermeture des contrats à la suppression du client, ADR-009 ; verrou client de l'ADR-024). La règle ArchUnit qui interdit à `domain.contract` de dépendre de `domain.client` sépare des agrégats, pas des contextes. Facturer les primes et suivre leur paiement est un exercice (non demandé par `docs/sujet.txt`, voir `PROGRESS.md`) qui introduit un vrai second contexte : le langage change de sens, le rythme est mensuel et non dicté par les conseillers, et la cohérence peut être différée. Cette ADR fixe les frontières et les décisions difficiles à défaire avant tout code ; chaque incrément précisera le reste (endpoints, schéma, tests) dans sa propre section.
+
+**Langage du contexte Facturation.**
+
+| Facturation | Code | Contrats | Différence |
+|---|---|---|---|
+| Contrat facturable | `BillableContract` | `Contract` | Copie locale, construite à partir des événements : identifiant, payeur, historique des montants et des périodes. Jamais lue dans les tables `contracts`. |
+| Prime mensuelle | `MonthlyPremium` | `ContractCost` | Montant dû pour un mois complet de couverture. |
+| Payeur | `payerId` | `Client` | Celui qui reçoit et règle la facture. Égal au titulaire au départ, pas forcément ensuite. |
+| Mois de facturation | `BillingMonth` | — | Mois civil en `Europe/Zurich` (ADR-013), `[1er du mois, 1er du mois suivant)`. |
+| Facture | `Invoice` | — | Une par payeur et par mois, une ligne par contrat facturé. Immuable une fois émise. |
+| Encaissement | `Payment` | — | Montant reçu et affecté à une facture. |
+
+**Décision.**
+- **Un module dans le même service, pas un microservice.** Package `com.mk.contractservice.billing`, avec ses propres couches `domain`, `features`, `controllers`, `infrastructure` et les mêmes règles que le reste (ADR-001, ADR-002, ADR-003). Les packages existants forment le contexte Contrats, sans être déplacés. `ArchitectureTest` interdit à `billing..` de dépendre des packages de Contrats, sauf ceux qui transportent les événements publiés (voir plus bas) et la configuration technique commune (`Clock`, sécurité), et interdit à Contrats de dépendre de `billing..`.
+- **Schéma PostgreSQL `billing`**, migrations Flyway dans le même dossier et la même numérotation que le reste (ADR-006). Aucune clé étrangère vers `contracts` : la frontière vaut aussi en base, ce qui laisse sortir le module sans migration de données.
+- **Relation : Contrats en amont, Facturation en aval.** Contrats publie des événements dans un langage publié, sans rien savoir de la facturation. Facturation les traduit à l'entrée (couche anticorruption dans son `infrastructure`) : `ContractCost` n'entre pas dans son domaine, il devient une `MonthlyPremium`.
+- **Événements publiés par Contrats**, un par contrat touché, avec `eventId` (UUID v7), `contractId`, `contractVersion`, `occurredAt` et les données utiles :
+  - `ContractCreated` : `clientId`, `type`, période, montant (création unitaire et deux imports) ;
+  - `ContractCostChanged` : nouveau montant ;
+  - `ContractPeriodChanged` : nouvelle période (ADR-025) ;
+  - `ContractClosed` : date de fin, émis aussi par les fermetures en masse (suppression du client, ADR-009 ; annulation d'un import, ADR-022).
+
+  Pas de `ClientDeleted` : Facturation n'a besoin que de la fin des contrats, que `ContractClosed` lui donne.
+- **Exigences sur la publication**, le mécanisme étant choisi dans l'ADR de l'outbox (voir `PROGRESS.md` : polling `SKIP LOCKED`, Debezium ou Spring Modulith) :
+  - l'événement est écrit dans la transaction qui modifie le contrat : aucun changement validé sans son événement, aucun événement sans changement ;
+  - livraison au moins une fois ; le consommateur ignore un `eventId` déjà traité ;
+  - ordre garanti par contrat : `contractVersion`, déjà incrémentée par les mises à jour en masse (ADR-011), permet d'écarter un événement plus ancien que l'état connu ;
+  - pas de broker au départ : le relais livre au module dans le même processus. Kafka reste possible plus tard sans toucher au format des événements.
+- **Payeur : le titulaire du contrat au départ, une donnée de Facturation ensuite.** `BillableContract` porte un `payerId` initialisé au `clientId` de `ContractCreated`. Qu'une personne paie pour une autre (parents pour la LAMal des enfants, entreprise pour des employés) est une décision de facturation, enregistrée plus tard dans ce contexte sous forme de mandat de paiement. Le modèle `Client` de Contrats ne change pas.
+- **Facturation à terme échu.** La facture du mois M est émise après la fin de M, à partir de l'historique des montants et des périodes du mois. Une modification en cours de mois découpe le mois en tranches, sans régularisation après coup. Facturation à l'avance écartée au départ (voir plus bas).
+- **Règles de calcul**, dans le domaine de Facturation et testées sans base :
+  - une tranche est un intervalle du mois où période et montant sont constants. Elle vaut `prime × jours couverts / jours du mois`, en jours civils (date de début incluse, date de fin exclue, comme l'ADR-004) ;
+  - un nouveau montant s'applique à partir du jour de son `occurredAt`, inclus ;
+  - chaque ligne est arrondie au centime (`HALF_UP`), le total à payer aux 5 centimes, l'écart figure sur une ligne d'arrondi ;
+  - un contrat sans aucun jour couvert dans le mois ne donne pas de ligne ; un payeur sans ligne ne reçoit pas de facture ;
+  - le temps vient de la `Clock` (ADR-003) ; le domaine reçoit le mois à facturer.
+- **Émission idempotente** : un job mensuel par lots (même socle que l'ADR-022) produit les factures du mois écoulé. L'unicité `(payer_id, billing_month)` en base empêche une double émission en cas de relance ou de deux instances.
+- **Modification rétroactive d'un mois déjà facturé** (début avancé dans le passé, ADR-025) : la facture émise ne change pas. L'écart est enregistré dans la copie locale et sera facturé ou remboursé par une régularisation (incrément 4). Jusque-là, il n'est pas facturé.
+
+**Incréments.**
+1. **Événements et outbox** dans Contrats, avec leur propre ADR. Contrats ne change pas de comportement : il publie en plus.
+2. **Copie locale et émission des factures** : `BillableContract` nourrie par les événements, job mensuel, prorata, arrondi, lecture des factures d'un client par les conseillers.
+3. **Encaissements** : saisie d'un paiement par un conseiller, état de la facture (`Issued`, `PartiallyPaid`, `Paid`, en `sealed` selon l'ADR-002).
+4. **Plus tard** : payeur différent de l'assuré (mandats), régularisations et avoirs, rappels, QR-facture et lecture des avis de crédit bancaires (camt.054).
+
+**Hypothèses à confirmer** (le métier n'est pas joignable, comme pour l'ADR-024) :
+- le `cost` d'un contrat est une prime mensuelle en CHF, toutes taxes comprises ;
+- LAA et LPP sont facturées comme la LAMal. En réalité, leurs primes dépendent souvent de la masse salariale déclarée chaque année : à reconsidérer si un incrément le demande.
+
+**Alternatives écartées.**
+- **Microservice séparé** : déploiement, réseau, contrat d'API et observabilité distribuée en plus, pour une dizaine de conseillers. La frontière en packages, en schéma et en événements permet de sortir le module plus tard.
+- **Facturation qui lit les tables `contracts`** : simple au départ, mais elle couple Facturation au schéma de Contrats, qui ne pourrait plus évoluer seul, et ne donne pas l'historique des montants (le coût est écrasé à chaque modification).
+- **Appel direct d'un use case de Facturation par les handlers de Contrats** : Contrats connaîtrait Facturation, et une erreur de facturation ferait échouer la modification d'un contrat.
+- **Packages `domain/billing`, `features/billing`… dans les couches actuelles** : cohérent avec la structure existante, mais la frontière du contexte serait éclatée dans quatre packages et plus difficile à faire respecter.
+- **Déplacer l'existant dans un package `contracts`** : symétrique, mais un gros renommage sans gain fonctionnel. Possible plus tard.
+- **Facturation à l'avance** (le mois M facturé début M, comme souvent pour la LAMal) : plus fidèle au métier, mais toute modification du mois en cours demande une régularisation, ce qui rend dès le premier incrément nécessaires des avoirs et des factures correctives. Reportée avec les régularisations.
+- **Payeur ajouté au modèle `Client`** : mélangerait une donnée de facturation au contexte Contrats, et obligerait Contrats à changer pour une règle qui ne le concerne pas.
+
+**Conséquences.**
+- Toute écriture de contrat écrit aussi un événement, y compris les fermetures en masse et les imports (jusqu'à 500 000 lignes par fichier, ADR-022, donc autant d'événements, à écrire par lots).
+- Les factures sont en retard sur les contrats de la durée de livraison des événements : acceptable, l'émission est mensuelle et ne lit que des mois terminés.
+- Flyway et Hibernate doivent connaître le schéma `billing` (`ddl-auto: validate`).
+- Les règles d'accès restent celles de l'ADR-017 : rôle `counselor`, règles d'URL. Un portail payeur relèverait de l'accès client déjà noté comme conditionnel.
+
+**Statut.** Proposée.

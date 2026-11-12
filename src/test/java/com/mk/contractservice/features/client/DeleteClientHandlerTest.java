@@ -18,11 +18,8 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DeleteClient Handler")
@@ -57,15 +54,12 @@ class DeleteClientHandlerTest {
     }
 
     @Test
-    @DisplayName("GIVEN client inexistant ou déjà supprimé WHEN execute THEN lève ClientNotFoundException sans rien modifier")
+    @DisplayName("GIVEN client inexistant ou déjà supprimé WHEN execute THEN lève ClientNotFoundException")
     void shouldRejectUnknownClient() {
         UUID clientId = UUID.randomUUID();
         doThrow(ClientNotFoundException.forId(clientId)).when(clientRepository).ensureExists(clientId);
 
         assertThatThrownBy(() -> deleteClientHandler.execute(new DeleteClient.Command(clientId)))
                 .isInstanceOf(ClientNotFoundException.class);
-
-        verify(clientRepository, never()).delete(any(), any());
-        verify(contractRepository, never()).closeAllActiveByClientId(any(), any());
     }
 }

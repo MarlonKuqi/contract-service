@@ -10,7 +10,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaEntity;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
@@ -65,20 +65,25 @@ class ContractClosureConcurrencyAcceptanceTest {
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate())
         ));
-        Contract contract = contractRepository.save(ContractFactory.createFromCommand(
-                client.getId(), now.minusDays(1), null, new BigDecimal("100.00"), now));
+        Contract contract = contractRepository.save(ContractFixtures.newContract(
+                client.id(),
+                now.minusDays(1),
+                null,
+                new BigDecimal("100.00"),
+                now));
 
         TransactionTemplate costUpdateTransaction = new TransactionTemplate(transactionManager);
         TransactionTemplate closureTransaction = new TransactionTemplate(transactionManager);
         closureTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 
         assertThatThrownBy(() -> costUpdateTransaction.executeWithoutResult(status -> {
-            ContractJpaEntity staleCopy = contractJpaRepository.findById(contract.getId()).orElseThrow();
-            closureTransaction.executeWithoutResult(closure -> contractRepository.closeAllActiveByClientId(client.getId(), now));
+            ContractJpaEntity staleCopy = contractJpaRepository.findById(contract.id()).orElseThrow();
+            closureTransaction.executeWithoutResult(closure -> contractRepository.closeAllActiveByClientId(client.id(),
+                    now));
             staleCopy.setCostAmount(new BigDecimal("200.00"));
         })).isInstanceOf(OptimisticLockingFailureException.class);
 
-        ContractJpaEntity persisted = contractJpaRepository.findById(contract.getId()).orElseThrow();
+        ContractJpaEntity persisted = contractJpaRepository.findById(contract.id()).orElseThrow();
         assertThat(persisted.getEndDate()).isEqualTo(now);
         assertThat(persisted.getCostAmount()).isEqualByComparingTo("100.00");
     }

@@ -29,6 +29,10 @@ Thumbs.db
 *.tmp
 *.bak
 
+# Java Flight Recorder
+*.jfr
+.profileconfig.json
+
 # Test coverage
 .jacoco/
 jacoco.exec

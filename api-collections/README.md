@@ -31,14 +31,38 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 ### 2️⃣ ContractController
 **Fichier** : `ContractController.postman_collection.json`  
 **Endpoints** :
-- `POST /v2/contracts` - Create contract (`clientId` in the body)
+- `POST /v2/contracts` - Create contract (`clientId` and `type` in the body: `LAMAL` for a person, `LAA` or `LPP` for a company; `franchise` in CHF required for `LAMAL` and forbidden otherwise: `422 invalidContractFranchise`; two LAMAL of a person cannot overlap: `409 contractOverlap`)
 - `GET /v2/contracts?clientId={clientId}` - List active contracts (paginated)
 - `GET /v2/contracts?clientId={clientId}&updatedSince=...` - Filter by update date
+- `GET /v2/contracts/export` - Export active contracts of all clients (cursor)
+- `POST /v2/contracts/imports` - Import up to 1000 contracts, all or nothing (ADR-021)
+- `POST /v2/contracts/import-jobs` - Submit a CSV file for asynchronous, partial import (ADR-022)
+- `GET /v2/contracts/import-jobs/{jobId}` - Follow an import job (ADR-022)
+- `GET /v2/contracts/import-jobs/{jobId}/rejections` - List the lines rejected by a job (ADR-022)
+- `GET /v2/contracts/import-jobs/{jobId}/rejections/export` - Download the rejected lines as CSV, with their original line; values that start like a formula are prefixed with an apostrophe (ADR-022)
+- `GET /v2/contracts/import-jobs` - List the import jobs, newest first, with their author (ADR-022)
+- `POST /v2/contracts/import-jobs/{jobId}/cancellation` - Cancel a job and close the contracts it created (ADR-022)
 - `GET /v2/contracts/{contractId}` - Get specific contract
 - `PATCH /v2/contracts/{contractId}/cost` - Update cost
+- `PUT /v2/contracts/{contractId}/period` - Replace start and end dates (`If-Match`)
 - `GET /v2/contracts/total?clientId={clientId}` - Sum of active contracts
 
 **Requêtes** : création, lecture, mise à jour du coût et agrégation. Il n'existe pas d'endpoint de suppression ou de clôture de contrat : un contrat se termine par sa `endDate`, ou à la suppression de son client.
+
+---
+
+## 🔒 ETag / If-Match
+
+`PUT`/`PATCH` d'un client et `PATCH` du coût d'un contrat exigent l'en-tête `If-Match` avec l'ETag de la ressource lue (ADR-011).
+
+- Un script de collection copie l'en-tête `ETag` de chaque réponse dans `{{clientETag}}` ou `{{contractETag}}`. Les requêtes de modification l'envoient dans `If-Match`.
+- Seul le `GET` unitaire renvoie l'ETag (**Read Client**, **Get Contract By ID**). Les créations et les modifications n'en renvoient pas : relancer le `GET` avant chaque modification.
+- `428 preconditionRequired` : `If-Match` absent ou `*`. `412 preconditionFailed` : la ressource a changé depuis la lecture, il faut la relire.
+- Un `GET` avec `If-None-Match` égal à l'ETag courant renvoie `304 Not Modified`.
+
+## ⏳ Client occupé par un import
+
+Un lot d'import (`POST /v2/contracts/import-jobs`) verrouille ses clients jusqu'à son commit, en général moins d'une seconde. Un `PUT`, `PATCH` ou `DELETE` sur l'un de ces clients attend ce commit. S'il attend plus que le `lock_timeout` (5 s), il répond `409 resourceBusy` sans rien modifier : renvoyer la requête quelques secondes plus tard.
 
 ---
 
@@ -163,6 +187,13 @@ Chaque collection définit ses propres variables :
 1. Modifier la variable `contractId` avec l'UUID du contrat
 2. Exécuter "Update Contract Cost"
 
+### Importer des Contrats en Masse
+
+1. Modifier la variable `clientId` avec l'UUID copié
+2. Exécuter "Import Contracts"
+3. `201` : tous les contrats sont créés (`contractIds`, dans l'ordre des lignes). Ne pas renvoyer l'import.
+4. `422 contractImportRejected` : rien n'est créé. Corriger les lignes listées dans `rejections`, puis renvoyer tout l'import.
+
 ### Calculer la Somme
 
 1. Exécuter "Get Sum of Active Contracts"
@@ -206,15 +237,42 @@ Les variables `clientId` et `contractId` doivent être **manuellement copiées**
 ```
 api-collections/
 ├── ClientController.postman_collection.json        (9 requêtes)
-├── ContractController.postman_collection.json      (8 requêtes)
+├── ContractController.postman_collection.json      (16 requêtes)
 └── README.md
 ```
 
-**Total : 17 requêtes réparties dans 2 fichiers**
+**Total : 25 requêtes réparties dans 2 fichiers**
 
 ---
 
 ## 🆘 Troubleshooting
+
+### Bruno : "Export Active Contracts" échoue ou renvoie toujours la première page
+
+La collection Postman retire le paramètre `cursor` avec `pm.request.url.query.remove`. Après l'import dans Bruno, le script devient `req.getUrl().query.remove('cursor')` et échoue : `TypeError: cannot read property 'remove' of undefined`. `req.getUrl()` y renvoie une chaîne.
+
+Remplacer les scripts de la requête dans Bruno.
+
+**Script > Pre Request :**
+
+```js
+if (!bru.getVar('exportCursor')) {
+  req.setUrl(req.getUrl().replace(/[?&]cursor=[^&]*/, ''));
+}
+```
+
+**Script > Post Response :**
+
+```js
+const nextCursor = res.getBody().nextCursor;
+if (nextCursor) {
+  bru.setVar('exportCursor', nextCursor);
+} else {
+  bru.deleteVar('exportCursor');
+}
+```
+
+Le premier envoi part sans curseur, chaque envoi suivant demande la page d'après, et l'envoi qui suit la dernière page repart du début. Le paramètre `cursor=` apparaît dans la **Timeline** de Bruno à partir du deuxième envoi.
 
 ### Les variables ne fonctionnent pas
 - Vérifier que la variable est bien définie dans la collection

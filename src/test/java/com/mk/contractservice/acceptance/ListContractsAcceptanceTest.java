@@ -5,12 +5,8 @@ import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.ClientEmail;
-import com.mk.contractservice.domain.client.ClientName;
-import com.mk.contractservice.domain.client.ClientPhoneNumber;
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.specification.RequestSpecification;
@@ -20,6 +16,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -29,7 +26,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -68,12 +64,10 @@ class ListContractsAcceptanceTest {
         contractJpaRepository.deleteAll();
         clientJpaRepository.deleteAll();
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-        testClient = Person.of(
-                ClientName.of("List Test Client"),
-                ClientEmail.of("list.test." + uniqueId + "@example.com"),
-                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
-        );
+        testClient = ClientFixtures.newCompany("List Test Client",
+                "list.test." + uniqueId + "@example.com",
+                TestDataHelper.randomSwissPhoneNumber(),
+                TestDataHelper.uniqueCompanyIdentifier("CHE"));
         testClient = clientRepository.save(testClient);
     }
 
@@ -88,7 +82,7 @@ class ListContractsAcceptanceTest {
             createContracts(25, 100);
             givenPaginationParams(0, pageSize)
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(206)
                     .header("Content-Range", org.hamcrest.Matchers.containsString("contracts 0-9/25"))
@@ -101,7 +95,7 @@ class ListContractsAcceptanceTest {
                     .body("isLast", equalTo(false));
             givenPaginationParams(1, pageSize)
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(206)
                     .header("Content-Range", org.hamcrest.Matchers.containsString("contracts 10-19/25"))
@@ -114,7 +108,7 @@ class ListContractsAcceptanceTest {
                     .body("isLast", equalTo(false));
             givenPaginationParams(2, pageSize)
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(206)
                     .header("Content-Range", org.hamcrest.Matchers.containsString("contracts 20-24/25"))
@@ -134,7 +128,7 @@ class ListContractsAcceptanceTest {
 
             givenPaginationParams(5, 10)
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(206)
                     .header("Content-Range", org.hamcrest.Matchers.matchesRegex("contracts .*/5"))
@@ -148,65 +142,89 @@ class ListContractsAcceptanceTest {
         }
 
         @Test
-        @DisplayName("Should sort contracts by lastModified descending")
+        @DisplayName("Should sort contracts by lastModified descending by default")
         void shouldSortContractsByLastModifiedDescending() {
             String oldContract = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAA",
                         "startDate": "2025-01-01T00:00:00",
                         "endDate": null,
                         "costAmount": "100.00"
                     }
-                    """, testClient.getId());
+                    """, testClient.id());
 
             String middleContract = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAA",
                         "startDate": "2025-01-15T00:00:00",
                         "endDate": null,
                         "costAmount": "200.00"
                     }
-                    """, testClient.getId());
+                    """, testClient.id());
 
             String recentContract = String.format("""
                     {
                         "clientId": "%s",
+                        "type": "LAA",
                         "startDate": "2025-02-01T00:00:00",
                         "endDate": null,
                         "costAmount": "300.00"
                     }
-                    """, testClient.getId());
+                    """, testClient.id());
 
             // Create contracts with explicit delays to ensure distinct lastModified timestamps
             given().body(middleContract)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
 
             given().body(oldContract)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
 
             given().body(recentContract)
                     .post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .then()
+                    .statusCode(201);
 
             // Wait a bit to ensure all transactions are committed
             await().pollDelay(Duration.ofMillis(50)).atMost(Duration.ofSeconds(1)).until(() -> true);
 
             given()
-                    .queryParam("sort", "lastModified,desc")
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(200)
                     .body("content.size()", equalTo(3))
                     .body("content[0].costAmount", equalTo(300.00f))  // most recent
                     .body("content[1].costAmount", equalTo(100.00f))  // middle
                     .body("content[2].costAmount", equalTo(200.00f)); // oldest
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"lastModified,asc", "costAmount,asc", "unknownField,desc", "version"})
+        @DisplayName("Should ignore client-provided sort and keep lastModified descending")
+        void shouldIgnoreClientProvidedSort(String sort) {
+            createContract(100);
+            await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
+            createContract(200);
+
+            given()
+                    .queryParam("sort", sort)
+                    .when()
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
+                    .then()
+                    .statusCode(200)
+                    .body("content.size()", equalTo(2))
+                    .body("content[0].costAmount", equalTo(200.00f))
+                    .body("content[1].costAmount", equalTo(100.00f));
         }
 
         @Test
@@ -217,15 +235,17 @@ class ListContractsAcceptanceTest {
                 String oldContract = String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAA",
                             "startDate": "2025-01-01T00:00:00Z",
                             "endDate": null,
                             "costAmount": "%d.00"
                         }
-                        """, testClient.getId(), i * 100);
+                        """, testClient.id(), i * 100);
 
                 given().body(oldContract)
                         .post(ContractEndpoints.CONTRACTS_BASE)
-                        .then().statusCode(201);
+                        .then()
+                        .statusCode(201);
             }
 
             await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofSeconds(2)).until(() -> true);
@@ -238,15 +258,17 @@ class ListContractsAcceptanceTest {
                 String recentContract = String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAA",
                             "startDate": "2025-02-01T00:00:00Z",
                             "endDate": null,
                             "costAmount": "%d.00"
                         }
-                        """, testClient.getId(), i * 100);
+                        """, testClient.id(), i * 100);
 
                 given().body(recentContract)
                         .post(ContractEndpoints.CONTRACTS_BASE)
-                        .then().statusCode(201);
+                        .then()
+                        .statusCode(201);
             }
 
             given()
@@ -254,7 +276,7 @@ class ListContractsAcceptanceTest {
                     .queryParam("page", 0)
                     .queryParam("size", 5)
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(200)
                     .body("content.size()", equalTo(5))
@@ -269,7 +291,7 @@ class ListContractsAcceptanceTest {
 
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(206)
                     .body("content.size()", equalTo(20))
@@ -285,7 +307,7 @@ class ListContractsAcceptanceTest {
             given()
                     .queryParam("size", 5)
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(206)
                     .body("content.size()", equalTo(5))
@@ -295,7 +317,7 @@ class ListContractsAcceptanceTest {
             given()
                     .queryParam("size", 25)
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(206)
                     .body("content.size()", equalTo(25))
@@ -305,7 +327,7 @@ class ListContractsAcceptanceTest {
             given()
                     .queryParam("size", 50)
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(200)
                     .body("content.size()", equalTo(50))
@@ -323,7 +345,7 @@ class ListContractsAcceptanceTest {
             given()
                     .queryParam("size", 20)
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(200)
                     .body("content.size()", equalTo(3))
@@ -341,7 +363,7 @@ class ListContractsAcceptanceTest {
 
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(200)
                     .body("content.size()", equalTo(0))
@@ -359,11 +381,12 @@ class ListContractsAcceptanceTest {
                 String expiredContract = String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAA",
                             "startDate": "2024-01-01T00:00:00Z",
                             "endDate": "2024-12-31T23:59:59Z",
                             "costAmount": "%d.00"
                         }
-                        """, testClient.getId(), i * 100);
+                        """, testClient.id(), i * 100);
 
                 given()
                         .body(expiredContract)
@@ -376,11 +399,12 @@ class ListContractsAcceptanceTest {
                 String activeContract = String.format("""
                         {
                             "clientId": "%s",
+                            "type": "LAA",
                             "startDate": "2025-01-01T00:00:00Z",
                             "endDate": null,
                             "costAmount": "%d.00"
                         }
-                        """, testClient.getId(), i * 100);
+                        """, testClient.id(), i * 100);
 
                 given()
                         .body(activeContract)
@@ -392,7 +416,7 @@ class ListContractsAcceptanceTest {
             given()
                     .queryParam("size", 5)
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(206)
                     .body("content.size()", equalTo(5))
@@ -406,7 +430,7 @@ class ListContractsAcceptanceTest {
             createContract(2500);
             given()
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(200)
                     .body("content.size()", equalTo(1))
@@ -424,7 +448,7 @@ class ListContractsAcceptanceTest {
             given()
                     .queryParam("size", 200)
                     .when()
-                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                    .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                     .then()
                     .statusCode(400)
                     .body("title", equalTo("Invalid Parameter"))
@@ -435,11 +459,12 @@ class ListContractsAcceptanceTest {
             String contractPayload = """
                     {
                         "clientId": "%s",
+                        "type": "LAA",
                         "startDate": "2025-01-01T00:00:00Z",
                         "endDate": null,
                         "costAmount": "%s"
                     }
-                    """.formatted(testClient.getId(), String.format(java.util.Locale.US, "%.2f", costAmount));
+                    """.formatted(testClient.id(), String.format(java.util.Locale.US, "%.2f", costAmount));
 
             given()
                     .body(contractPayload)
@@ -469,7 +494,7 @@ class ListContractsAcceptanceTest {
         @DisplayName("Should accept valid pagination parameters")
         void shouldAcceptValidPagination() {
             given()
-                    .param("clientId", testClient.getId())
+                    .param("clientId", testClient.id())
                     .param("page", 0)
                     .param("size", 20)
                     .when()
@@ -495,7 +520,8 @@ class ListContractsAcceptanceTest {
                     .when()
                     .get(ContractEndpoints.CONTRACTS_BASE)
                     .then()
-                    .log().all()
+                    .log()
+                    .all()
                     .statusCode(HttpStatus.BAD_REQUEST.value())
                     .body("title", containsString("Invalid Parameter"))
                     .body("detail", containsString(expectedMessage));
@@ -510,7 +536,7 @@ class ListContractsAcceptanceTest {
         @DisplayName("Should reject page size less than 1")
         void shouldRejectPageSizeLessThanOne(int page, int size, String expectedMessage) {
             given()
-                    .param("clientId", testClient.getId())
+                    .param("clientId", testClient.id())
                     .param("page", page)
                     .param("size", size)
                     .when()
@@ -530,7 +556,7 @@ class ListContractsAcceptanceTest {
         @DisplayName("Should reject page size greater than max")
         void shouldRejectPageSizeGreaterThanMax(int page, int size, String expectedMessage) {
             given()
-                    .param("clientId", testClient.getId())
+                    .param("clientId", testClient.id())
                     .param("page", page)
                     .param("size", size)
                     .when()
@@ -545,7 +571,7 @@ class ListContractsAcceptanceTest {
         @DisplayName("Should accept page size equal to max (100)")
         void shouldAcceptPageSizeEqualToMax() {
             given()
-                    .param("clientId", testClient.getId())
+                    .param("clientId", testClient.id())
                     .param("page", 0)
                     .param("size", 100)
                     .when()
@@ -556,22 +582,21 @@ class ListContractsAcceptanceTest {
 
         @ParameterizedTest
         @CsvSource({
-                "abc, 20, 'Invalid page number format'",
-                "0, xyz, 'Invalid page size format'"
+                "abc, 20, page",
+                "0, xyz, size"
         })
         @DisplayName("Should reject invalid number formats")
-        void shouldRejectInvalidFormats(String page, String size, String expectedMessage) {
+        void shouldRejectInvalidFormats(String page, String size, String invalidParameter) {
             given()
-                    .param("clientId", testClient.getId())
+                    .param("clientId", testClient.id())
                     .param("page", page)
                     .param("size", size)
                     .when()
                     .get(ContractEndpoints.CONTRACTS_BASE)
                     .then()
                     .statusCode(HttpStatus.BAD_REQUEST.value())
-                    .body("title", containsString("Invalid Parameter"))
-                    .body("detail", containsString(expectedMessage));
+                    .body("code", equalTo("invalidParameterType"))
+                    .body("parameterName", equalTo(invalidParameter));
         }
     }
 }
-

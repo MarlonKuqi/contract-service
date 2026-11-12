@@ -37,7 +37,7 @@ RUN apt-get update && \
 COPY --from=deps /root/.m2 /root/.m2
 COPY --from=deps ${BUILD_WORKDIR}/mvnw ./mvnw
 COPY --from=deps ${BUILD_WORKDIR}/.mvn .mvn
-COPY pom.xml .
+COPY pom.xml lombok.config ./
 COPY src src
 
 # Build the Spring Boot jar, then use jarmode=tools to expose the jar's built-in
@@ -61,8 +61,10 @@ RUN ./mvnw -B package -DskipTests && \
         ${EXTRACT_DIR}/application/BOOT-INF/classes > target/jre-deps.info && \
     : "Build a custom minimal JRE for the application" && \
     : "Explicitly keep jdk.crypto.ec for modern HTTPS/TLS certificates; jdeps may not infer it reliably" && \
+    : "Explicitly keep jdk.jfr and jdk.jcmd for production diagnostics; \
+     the application code does not reference them" && \
     jlink \
-        --add-modules "$(cat target/jre-deps.info)",jdk.crypto.ec \
+        --add-modules "$(cat target/jre-deps.info)",jdk.crypto.ec,jdk.jfr,jdk.jcmd \
         --strip-debug \
         --no-man-pages \
         --no-header-files \
@@ -142,6 +144,7 @@ ENTRYPOINT ["java", \
     "-XX:TieredStopAtLevel=1", \
     "-XX:+HeapDumpOnOutOfMemoryError", \
     "-XX:HeapDumpPath=/tmp/heap_dump.bin", \
+    "-XX:StartFlightRecording=name=continuous,maxage=6h,maxsize=500m,settings=default", \
     "-Djava.security.egd=file:/dev/./urandom", \
     "-Dspring.profiles.active=prod", \
     "org.springframework.boot.loader.launch.JarLauncher"]

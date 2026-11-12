@@ -2,16 +2,12 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
+import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
-import com.mk.contractservice.domain.client.ClientEmail;
-import com.mk.contractservice.domain.client.ClientName;
-import com.mk.contractservice.domain.client.ClientPhoneNumber;
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonBirthDate;
-import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,15 +17,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -54,9 +52,6 @@ class ContractLifecycleAcceptanceTest {
     private ClientRepository clientRepository;
 
     @Autowired
-    private ContractRepository contractRepository;
-
-    @Autowired
     private ContractJpaRepository contractJpaRepository;
     @Autowired
     private ClientJpaRepository clientJpaRepository;
@@ -71,12 +66,10 @@ class ContractLifecycleAcceptanceTest {
         clientJpaRepository.deleteAll();
 
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-        testClient = Person.of(
-                ClientName.of("Marie Durand"),
-                ClientEmail.of("marie.durand." + uniqueId + "@example.com"),
-                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
-        );
+        testClient = ClientFixtures.newCompany("Marie Durand",
+                "marie.durand." + uniqueId + "@example.com",
+                TestDataHelper.randomSwissPhoneNumber(),
+                TestDataHelper.uniqueCompanyIdentifier("CHE"));
         testClient = clientRepository.save(testClient);
     }
 
@@ -87,11 +80,12 @@ class ContractLifecycleAcceptanceTest {
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "5000.00"
                 }
-                """, testClient.getId(), now, now.plusMonths(12));
+                """, testClient.id(), now, now.plusMonths(12));
 
         String contractId = given()
                 .body(createPayload)
@@ -105,7 +99,8 @@ class ContractLifecycleAcceptanceTest {
                 .body("costAmount", equalTo(5000.00f))
                 .body("startDate", notNullValue())
                 .body("endDate", notNullValue())
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         given()
                 .when()
@@ -127,13 +122,14 @@ class ContractLifecycleAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, contractId))
                 .patch(ContractEndpoints.CONTRACT_COST, contractId)
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                 .then()
                 .statusCode(200)
                 .body("content.size()", greaterThan(0));
@@ -147,29 +143,32 @@ class ContractLifecycleAcceptanceTest {
         String contract1 = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "1000.00"
                 }
-                """, testClient.getId(), now.minusDays(10).toString());
+                """, testClient.id(), now.minusDays(10).toString());
 
         String contract2 = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "2500.00"
                 }
-                """, testClient.getId(), now.minusDays(5).toString(), now.plusMonths(6).toString());
+                """, testClient.id(), now.minusDays(5).toString(), now.plusMonths(6).toString());
 
         String contract3 = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "750.50"
                 }
-                """, testClient.getId(), now.minusDays(3).toString(), now.plusMonths(3).toString());
+                """, testClient.id(), now.minusDays(3).toString(), now.plusMonths(3).toString());
 
         given().body(contract1).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
         given().body(contract2).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
@@ -177,14 +176,15 @@ class ContractLifecycleAcceptanceTest {
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        testClient.id())
                 .then()
                 .statusCode(200)
                 .body(equalTo("4250.50"));
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(3));
@@ -196,34 +196,37 @@ class ContractLifecycleAcceptanceTest {
         String expiredContract = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "2024-01-01T00:00:00Z",
                     "endDate": "2024-12-31T23:59:59Z",
                     "costAmount": "3000.00"
                 }
-                """, testClient.getId());
+                """, testClient.id());
 
         String activeContract = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": "2026-12-31T23:59:59Z",
                     "costAmount": "5000.00"
                 }
-                """, testClient.getId());
+                """, testClient.id());
 
         given().body(expiredContract).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
         given().body(activeContract).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        testClient.id())
                 .then()
                 .statusCode(200)
                 .body(equalTo("5000.00"));
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(1))
@@ -236,11 +239,12 @@ class ContractLifecycleAcceptanceTest {
         String invalidPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": "2025-12-31T23:59:59Z",
                     "costAmount": "-1000.00"
                 }
-                """, testClient.getId());
+                """, testClient.id());
 
         given()
                 .body(invalidPayload)
@@ -253,11 +257,12 @@ class ContractLifecycleAcceptanceTest {
         String invalidDateRange = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "1000.00"
                 }
-                """, testClient.getId(), testNow.plusDays(30).toString(), testNow.toString());
+                """, testClient.id(), testNow.plusDays(30).toString(), testNow.toString());
 
         given()
                 .body(invalidDateRange)
@@ -275,6 +280,7 @@ class ContractLifecycleAcceptanceTest {
         String payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": "2025-12-31T23:59:59Z",
                     "costAmount": "1000.00"
@@ -295,11 +301,12 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": "2026-12-31T23:59:59Z",
                     "costAmount": "1000.00"
                 }
-                """, testClient.getId());
+                """, testClient.id());
 
         String location = given()
                 .body(contractPayload)
@@ -307,7 +314,8 @@ class ContractLifecycleAcceptanceTest {
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .extract().header("Location");
+                .extract()
+                .header("Location");
 
         String contractId = location.substring(location.lastIndexOf('/') + 1);
 
@@ -320,6 +328,7 @@ class ContractLifecycleAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, contractId))
                 .patch(ContractEndpoints.CONTRACT_COST, contractId)
                 .then()
                 .statusCode(204);
@@ -328,7 +337,7 @@ class ContractLifecycleAcceptanceTest {
         given()
                 .queryParam("updatedSince", updatedSince)
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                 .then()
                 .statusCode(200)
                 .body("content.size()", greaterThanOrEqualTo(1));
@@ -341,11 +350,12 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "1500.00"
                 }
-                """, testClient.getId(), now.minusDays(10).toString());
+                """, testClient.id(), now.minusDays(10).toString());
 
         given()
                 .body(contractPayload)
@@ -356,7 +366,7 @@ class ContractLifecycleAcceptanceTest {
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(1))
@@ -364,7 +374,8 @@ class ContractLifecycleAcceptanceTest {
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        testClient.id())
                 .then()
                 .statusCode(200)
                 .body(equalTo("1500.00"));
@@ -379,58 +390,66 @@ class ContractLifecycleAcceptanceTest {
         String activeNoEndDatePayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "1000.00"
                 }
-                """, testClient.getId(), now.minusDays(10));
+                """, testClient.id(), now.minusDays(10));
 
         String activeFutureEndPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "2000.00"
                 }
-                """, testClient.getId(), now.minusDays(10), now.plusDays(30));
+                """, testClient.id(), now.minusDays(10), now.plusDays(30));
 
         String expiredYesterdayPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "3000.00"
                 }
-                """, testClient.getId(), now.minusDays(100), now.minusDays(1));
+                """, testClient.id(), now.minusDays(100), now.minusDays(1));
 
         String expiredLastMonthPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "4000.00"
                 }
-                """, testClient.getId(), now.minusDays(60), now.minusDays(30));
+                """, testClient.id(), now.minusDays(60), now.minusDays(30));
 
         given().body(activeNoEndDatePayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given().body(activeFutureEndPayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given().body(expiredYesterdayPayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given().body(expiredLastMonthPayload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                 .then()
                 .statusCode(200)
                 .body("totalElements", equalTo(2))  // Only 2 active contracts
@@ -448,59 +467,68 @@ class ContractLifecycleAcceptanceTest {
         String active1Payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "1000.00"
                 }
-                """, testClient.getId(), now.minusDays(10));
+                """, testClient.id(), now.minusDays(10));
 
         String active2Payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "2000.00"
                 }
-                """, testClient.getId(), now.minusDays(5), now.plusDays(30));
+                """, testClient.id(), now.minusDays(5), now.plusDays(30));
 
         // Create 2 expired contracts (should NOT be included in sum)
         String expired1Payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "500.00"
                 }
-                """, testClient.getId(), now.minusDays(100), now.minusDays(1));
+                """, testClient.id(), now.minusDays(100), now.minusDays(1));
 
         String expired2Payload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "700.00"
                 }
-                """, testClient.getId(), now.minusDays(60), now.minusDays(30));
+                """, testClient.id(), now.minusDays(60), now.minusDays(30));
 
         given().body(active1Payload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given().body(active2Payload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given().body(expired1Payload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given().body(expired2Payload)
                 .post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(201);
+                .then()
+                .statusCode(201);
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        testClient.id())
                 .then()
                 .statusCode(200)
                 .body(equalTo("3000.00"));
@@ -512,11 +540,12 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": null,
                     "costAmount": "2500.00"
                 }
-                """, testClient.getId());
+                """, testClient.id());
 
         given()
                 .header("Accept-Language", "it-CH")
@@ -530,7 +559,7 @@ class ContractLifecycleAcceptanceTest {
         given()
                 .header("Accept-Language", "it-CH")
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("it-CH"))
@@ -543,11 +572,12 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": null,
                     "costAmount": "1500.00"
                 }
-                """, testClient.getId());
+                """, testClient.id());
 
         given()
                 .body(contractPayload)
@@ -558,7 +588,8 @@ class ContractLifecycleAcceptanceTest {
         given()
                 .header("Accept-Language", "de-CH")
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + ContractEndpoints.CONTRACT_TOTAL + "?clientId={clientId}",
+                        testClient.id())
                 .then()
                 .statusCode(200)
                 .header("Content-Language", equalTo("de-CH"));
@@ -570,11 +601,12 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "2025-01-01T00:00:00Z",
                     "endDate": null,
                     "costAmount": "3000.00"
                 }
-                """, testClient.getId());
+                """, testClient.id());
 
         given()
                 .header("Accept-Language", "de-CH")
@@ -593,19 +625,21 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "999999999.99"
                 }
-                """, testClient.getId(), now.minusDays(5));
+                """, testClient.id(), now.minusDays(5));
 
         given()
+                .config(AcceptanceRestAssured.exactNumbers())
                 .body(contractPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .body("costAmount", equalTo(999999999.99f));
+                .body("costAmount", comparesEqualTo(new BigDecimal("999999999.99")));
     }
 
     @Test
@@ -623,11 +657,12 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "1000.00"
                 }
-                """, testClient.getId(), now.minusDays(30), endDate);
+                """, testClient.id(), now.minusDays(30), endDate);
 
         given()
                 .body(contractPayload)
@@ -637,8 +672,11 @@ class ContractLifecycleAcceptanceTest {
                 .statusCode(201);
 
         given()
-                .when().get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
-                .then().statusCode(200).body("content.size()", greaterThanOrEqualTo(1));
+                .when()
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
+                .then()
+                .statusCode(200)
+                .body("content.size()", greaterThanOrEqualTo(1));
     }
 
     @Test
@@ -648,21 +686,27 @@ class ContractLifecycleAcceptanceTest {
         String contractPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "500.00"
                 }
-                """, testClient.getId(), now.minusDays(5));
+                """, testClient.id(), now.minusDays(5));
 
         for (int i = 0; i < 5; i++) {
             given().body(contractPayload)
-                    .when().post(ContractEndpoints.CONTRACTS_BASE)
-                    .then().statusCode(201);
+                    .when()
+                    .post(ContractEndpoints.CONTRACTS_BASE)
+                    .then()
+                    .statusCode(201);
         }
 
         given()
-                .when().get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
-                .then().statusCode(200).body("content.size()", equalTo(5));
+                .when()
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
+                .then()
+                .statusCode(200)
+                .body("content.size()", equalTo(5));
     }
 
     @Test
@@ -672,13 +716,16 @@ class ContractLifecycleAcceptanceTest {
         String zeroAmountPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAA",
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "0.00"
                 }
-                """, testClient.getId(), now.minusDays(1));
+                """, testClient.id(), now.minusDays(1));
         given().body(zeroAmountPayload)
-                .when().post(ContractEndpoints.CONTRACTS_BASE)
-                .then().statusCode(anyOf(is(400), is(422), is(500)));
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(anyOf(is(400), is(422), is(500)));
     }
 }

@@ -1,10 +1,13 @@
 package com.mk.contractservice.domain.contract;
 
 import com.mk.contractservice.domain.shared.RepositoryPort;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -21,9 +24,19 @@ import java.util.UUID;
 public interface ContractRepository {
     Contract save(Contract contract);
 
+    List<Contract> saveAll(List<Contract> contracts);
+
     Contract getById(UUID contractId);
+
+    void ensureVersion(UUID contractId, long expectedVersion);
 
     Page<Contract> findByCriteria(ContractSearchCriteria criteria, Pageable pageable);
 
+    List<Contract> findActiveAfter(LocalDateTime activeAt, @Nullable UUID afterId, int limit);
+
+    List<Contract> lockAndFindAllByClientIdsAndTypes(Set<UUID> clientIds, Set<ContractType> types);
+
     int closeAllActiveByClientId(UUID clientId, LocalDateTime closureDate);
+
+    int closeAllActiveImportedBy(UUID importJobId, LocalDateTime closureDate);
 }

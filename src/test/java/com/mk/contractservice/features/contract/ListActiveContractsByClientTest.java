@@ -5,14 +5,19 @@ import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
+import com.mk.contractservice.features.shared.InvalidPageRequestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -21,7 +26,10 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
@@ -47,15 +55,45 @@ class ListActiveContractsByClientTest {
     @Test
     @DisplayName("GIVEN null clientId WHEN building Query THEN throw NullPointerException")
     void shouldThrowWhenClientIdIsNull() {
-        assertThatThrownBy(() -> new ListActiveContractsByClient.Query(null, null, Pageable.unpaged()))
+        assertThatThrownBy(() -> new ListActiveContractsByClient.Query(null, null, 0, 20))
                 .isInstanceOf(NullPointerException.class);
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "-1, 20, 'Page number must not be less than zero'",
+            "0, 0, 'Page size must not be less than one'",
+            "0, -1, 'Page size must not be less than one'",
+            "0, 101, 'Page size must not exceed 100'"
+    })
+    @DisplayName("GIVEN page or size out of bounds WHEN building Query THEN throw InvalidPageRequestException")
+    void shouldRejectPageRequestOutOfBounds(int page, int size, String expectedMessage) {
+        assertThatThrownBy(() -> new ListActiveContractsByClient.Query(UUID.randomUUID(), null, page, size))
+                .isInstanceOf(InvalidPageRequestException.class)
+                .hasMessageContaining(expectedMessage);
+    }
+
     @Test
-    @DisplayName("GIVEN null pageable WHEN building Query THEN throw NullPointerException")
-    void shouldThrowWhenPageableIsNull() {
-        assertThatThrownBy(() -> new ListActiveContractsByClient.Query(UUID.randomUUID(), null, null))
-                .isInstanceOf(NullPointerException.class);
+    @DisplayName("GIVEN size equal to the maximum WHEN building Query THEN accept it")
+    void shouldAcceptMaxPageSize() {
+        assertThatCode(() -> new ListActiveContractsByClient.Query(UUID.randomUUID(), null, 0, ListActiveContractsByClient.MAX_PAGE_SIZE))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("GIVEN page and size WHEN execute THEN request that page sorted by lastModified descending")
+    void shouldRequestPageSortedByLastModifiedDescending() {
+        UUID clientId = UUID.randomUUID();
+        ContractSearchCriteria expectedCriteria = ContractSearchCriteria.activeForClient(clientId, LocalDateTime.now(FIXED_CLOCK));
+        Pageable expectedPageable = PageRequest.of(2, 10, Sort.by(Sort.Direction.DESC, "lastModified"));
+        Page<Contract> expectedPage = Page.empty();
+
+        when(contractRepository.findByCriteria(expectedCriteria, expectedPageable))
+                .thenReturn(expectedPage);
+
+        Page<Contract> result = handler.execute(new ListActiveContractsByClient.Query(clientId, null, 2, 10));
+
+        assertThat(result).isEqualTo(expectedPage);
     }
 
     @Test
@@ -64,7 +102,7 @@ class ListActiveContractsByClientTest {
         UUID unknownId = UUID.randomUUID();
         doThrow(ClientNotFoundException.forId(unknownId)).when(clientRepository).ensureExists(unknownId);
 
-        assertThatThrownBy(() -> handler.execute(new ListActiveContractsByClient.Query(unknownId, null, Pageable.unpaged())))
+        assertThatThrownBy(() -> handler.execute(new ListActiveContractsByClient.Query(unknownId, null, 0, 20)))
                 .isInstanceOf(ClientNotFoundException.class);
     }
 
@@ -75,10 +113,10 @@ class ListActiveContractsByClientTest {
         Page<Contract> expectedPage = Page.empty();
         ContractSearchCriteria expectedCriteria = ContractSearchCriteria.activeForClient(clientId, LocalDateTime.now(FIXED_CLOCK));
 
-        when(contractRepository.findByCriteria(expectedCriteria, Pageable.unpaged()))
+        when(contractRepository.findByCriteria(eq(expectedCriteria), any(Pageable.class)))
                 .thenReturn(expectedPage);
 
-        Page<Contract> result = handler.execute(new ListActiveContractsByClient.Query(clientId, null, Pageable.unpaged()));
+        Page<Contract> result = handler.execute(new ListActiveContractsByClient.Query(clientId, null, 0, 20));
 
         assertThat(result).isEqualTo(expectedPage);
     }
@@ -91,10 +129,10 @@ class ListActiveContractsByClientTest {
         Page<Contract> expectedPage = Page.empty();
         ContractSearchCriteria expectedCriteria = new ContractSearchCriteria(clientId, LocalDateTime.now(FIXED_CLOCK), updatedSince);
 
-        when(contractRepository.findByCriteria(expectedCriteria, Pageable.unpaged()))
+        when(contractRepository.findByCriteria(eq(expectedCriteria), any(Pageable.class)))
                 .thenReturn(expectedPage);
 
-        Page<Contract> result = handler.execute(new ListActiveContractsByClient.Query(clientId, updatedSince, Pageable.unpaged()));
+        Page<Contract> result = handler.execute(new ListActiveContractsByClient.Query(clientId, updatedSince, 0, 20));
 
         assertThat(result).isEqualTo(expectedPage);
     }

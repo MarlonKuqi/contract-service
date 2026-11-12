@@ -58,9 +58,10 @@ class CreatePersonHandlerTest {
         CreatePerson.Command command = new CreatePerson.Command("John Doe", "john@example.com", "+33123456789", today);
         when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Person result = createPersonHandler.execute(command);
+        Client result = createPersonHandler.execute(command);
 
-        assertThat(result.getBirthDate().getValue()).isEqualTo(today);
+        assertThat(result).isInstanceOfSatisfying(Person.class,
+                person -> assertThat(person.birthDate().value()).isEqualTo(today));
     }
 
     @Test
@@ -74,10 +75,11 @@ class CreatePersonHandlerTest {
         );
         when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Person result = createPersonHandler.execute(command);
+        Client result = createPersonHandler.execute(command);
 
-        assertThat(result.getName().getValue()).isEqualTo("John Doe");
-        assertThat(result.getEmail().getValue()).isEqualTo("john@example.com");
-        assertThat(result.getBirthDate().getValue()).isEqualTo(LocalDate.of(1990, 5, 15));
+        assertThat(result.name().value()).isEqualTo("John Doe");
+        assertThat(result.email().value()).isEqualTo("john@example.com");
+        assertThat(result).isInstanceOfSatisfying(Person.class,
+                person -> assertThat(person.birthDate().value()).isEqualTo(LocalDate.of(1990, 5, 15)));
     }
 }

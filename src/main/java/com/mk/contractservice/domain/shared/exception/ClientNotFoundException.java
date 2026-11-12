@@ -9,7 +9,11 @@ public class ClientNotFoundException extends RuntimeException {
     }
 
     public static ClientNotFoundException forId(UUID clientId) {
-        return new ClientNotFoundException("Client not found with id: " + clientId);
+        return new ClientNotFoundException(messageFor(clientId));
+    }
+
+    public static String messageFor(UUID clientId) {
+        return "Client not found with id: " + clientId;
     }
 }
 

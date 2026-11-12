@@ -22,11 +22,12 @@ Backend REST API for a Swiss insurance company (counselors manage clients and th
 
 Stack:
 - Java 27
-- Spring Boot 4.1.1, Hibernate 7.4
+- Spring Boot 4.1.2, Hibernate 7.4
 - PostgreSQL 18, schema `contracts`
 - Flyway (SQL migrations)
 - Docker / docker-compose for the local runtime
-- Testcontainers, RestAssured, ArchUnit, JaCoCo
+- Testcontainers, RestAssured, ArchUnit, JaCoCo, PIT
+- Error Prone + NullAway at compile time (ADR-023)
 
 Architecture decisions are recorded in `docs/ADR.md`. Read the relevant ADR before changing an area it covers.
 
@@ -40,9 +41,13 @@ endDate IS NULL  OR  t < endDate
 The end date is exclusive. A contract whose `startDate` is in the future **is active**: "active" means "not yet expired", not "currently running". Do NOT add a `startDate <= t` condition without an explicit business requirement (ADR-004). The rule lives in `ContractPeriod.isEffectiveAt` and `ContractSpecifications.isActive`: keep them aligned.
 
 **Other rules**
+- A contract has a mandatory, immutable `type` (`ContractType`): `LAMAL` is reserved to persons, `LAA` and `LPP` to companies. `Contract.of` enforces it from the client's `ClientKind` (`domain/shared`), never from the `Client` itself: the two aggregates stay independent (ADR-024, `ContractTypeNotAllowedException` → 422 `contractTypeNotAllowed`).
+- A new LAMAL never overlaps an active LAMAL of the same person (active as in ADR-004, future ones included; ended or closed ones, such as those closed by a cancellation, no longer count; end exclusive: one may start when the previous one ends). `ContractOverlapPolicy` holds the rule: `startBatch` loads the existing contracts in one query for all clients of an import and returns a `Batch` whose `admit` refuses each overlapping contract and keeps the admitted ones (lines of the same import included), `ensureNoOverlap` checks a single contract; the policy reads them through `ContractRepository.lockAndFindAllByClientIdsAndTypes`, which locks the client rows first (`FOR UPDATE … ORDER BY id`), so concurrent creations are serialized and the policy cannot read without locking; the lock adapters (`lockAndFindAllByClientIdsAndTypes`, `lockExistingIds`) are `@Transactional(propagation = MANDATORY)`, so the policy fails outside a transaction, even for an empty batch, instead of locking for nothing (ADR-024, `OverlappingContractException` → 409 `contractOverlap`). A person may hold several active LAMAL (2026, 2027, 2028) as long as they do not overlap; tests that need overlapping contracts for one client use a company with `LAA`/`LPP`.
+- The type lives in a `sealed` `ContractCoverage` (`Lamal(LamalFranchise)`, `Laa`, `Lpp`); `Contract.type()` derives from it. A LAMAL requires a franchise from the legal scale (adult 300/500/1000/1500/2000/2500, child 0–600 by 100), LAA and LPP have none. The age category comes from the birth year at the contract start (adult from January 1st of the year they turn 19), and a child LAMAL must end at the latest on that date. `Contract.of` and `changePeriod` receive a `ContractHolder` (`domain/shared`, from `Client.contractHolder()` or `ClientRepository.getContractHolderIncludingDeleted`) and check both rules through `ContractCoverage.ensureAllowedFor` (ADR-024 increment 3, `InvalidContractFranchiseException` → 422 `invalidContractFranchise`). The franchise is immutable for now.
 - Only active contracts can be modified (`ExpiredContractException`).
-- Updating the cost updates `lastModified`; the same amount (scale-insensitive) is a no-op. `lastModified` is never exposed by the API (ADR-005).
+- Updating the cost updates `lastModified`; the same amount (scale-insensitive) is a no-op. Replacing the period (`PUT /v2/contracts/{id}/period`, ADR-025) updates it too; the end date cannot be set in the past. `lastModified` is never exposed by the API (ADR-005).
 - `birthDate` and `companyIdentifier` are immutable.
+- `PUT`/`PATCH` of a client and `PATCH` of a contract cost and `PUT` of its period require `If-Match` with the strong ETag `"<version>"` (`428` if missing or `*`, `412` if stale). Only the single-resource `GET` returns the ETag, through read models (`ClientQueryPort`, `ContractQueryPort.getDetails`). The version stays out of the aggregates and of the write ports: commands carry `expectedVersion`, handlers call `repository.ensureVersion(id, expectedVersion)` right after loading, inside the transaction (the adapters are `@Transactional(propagation = MANDATORY)`) (ADR-011). Only commands that apply a user decision taken on a previously read state carry `expectedVersion`; creations, state-independent operations (client deletion) and same-transaction processing (bulk closure, jobs) rely on `@Version` alone.
 - Email and phone are NOT unique. `companyIdentifier` is unique, even after the company is deleted (ADR-008).
 - Deleting a client is a soft delete: `deleted_at` is set, the client answers 404 everywhere, and its active contracts are closed with `endDate = deleted_at` (ADR-009).
 
@@ -54,20 +59,22 @@ src/main/java/com/mk/contractservice
 ├── domain/          Aggregates, Value Objects, domain services, repository ports, domain exceptions
 ├── features/        One use case per file (vertical slice)
 ├── controllers/     Inbound adapters: REST endpoints, DTOs, DTO mappers, exception handlers
+├── batch/           Inbound adapter: Spring Batch jobs and their worker (ADR-022)
 └── infrastructure/  Outbound adapters: JPA entities/repositories/mappers, configuration
 ```
 
-Dependencies point inward: `controllers → features → domain ← infrastructure`. Enforced by `ArchitectureTest` (ArchUnit).
+Dependencies point inward: `controllers → features → domain ← infrastructure`, and `batch → features` like `controllers`. Enforced by `ArchitectureTest` (ArchUnit).
 
 ### Domain
 - No dependency on Spring, JPA or infrastructure. Tolerated: Lombok, JSpecify, and Spring Data `Page`/`Pageable`.
-- `@UseCase`, `@DomainService`, `@RepositoryPort` are defined in `domain/shared` and registered by `DomainBeanConfiguration`.
+- `@DomainService` and `@RepositoryPort` are defined in `domain/shared`; `@UseCase` and `@QueryUseCase` in `features/shared`. All are registered by `DomainBeanConfiguration`.
 - Aggregates: `Client` (`sealed`, `permits Person, Company`) and `Contract`. A contract references its client by id.
 - Repository interfaces (ports) live in the domain; their JPA implementations live in `infrastructure`.
 
 ### Use cases (`features/`)
 - One interface per use case containing its `Command`/`Query` record, its `execute` method and its `Handler`.
-- The handler is annotated `@UseCase` and declares `@Transactional` or `@Transactional(readOnly = true)` explicitly.
+- The `Command`/`Query` validates itself: its constructor checks the application rules no Value Object covers (e.g. pagination bounds through `PageBounds`, `InvalidPageRequestException` → 400). The use case never relies on a controller to protect it; controllers only convert (ADR-002, ADR-018).
+- The handler is annotated `@UseCase` (read-write transaction) or `@QueryUseCase` (read-only transaction): both carry `@Transactional` as a meta-annotation, so a handler never runs without a transaction. Never add `@Transactional` on a handler.
 - Handlers orchestrate: they load aggregates and check existence through the ports (`getById`, `ensureExists`), delegate rules to domain objects and domain services, and call ports. No business rule in a handler.
 - A domain service holds a business rule that no single aggregate can check on its own (e.g. `CompanyIdentifierUniqueness`). Data access helpers ("find or throw", "exists or throw") belong to the port, not to a domain service.
 
@@ -87,14 +94,16 @@ Dependencies point inward: `controllers → features → domain ← infrastructu
 No domain object can exist in an invalid state.
 - Constructors are private and validate every mandatory field with `Assert.notNull` (throws `InvalidDomainObjectError`).
 - Value Objects are Lombok `@Value` classes with a private constructor. They validate and normalize through `ValueObjectUtils.validateAndCreate` (normalize, then validate, then construct). Records are not used for Value Objects because their canonical constructor cannot be hidden.
+- Lombok accessors are fluent (`lombok.config`): `contract.id()`, `email.value()`, like records. JPA entities keep JavaBean accessors (`infrastructure/persistence/lombok.config`) so Hibernate can read the id of a lazy proxy without initializing it.
 - Entry points:
     - `of(...)`: data coming from outside, validated and normalized;
     - `reconstituteFromDatabase(...)`: trusted data, only null-checked;
-    - factories (`PersonFactory`, `CompanyFactory`, `ContractFactory`): `createFromCommand(...)` and `buildFromDatabase(...)`.
+    - aggregates take Value Objects, never raw values: callers build each VO through its own `of`/`reconstituteFromDatabase`. No factory class: it would only turn typed arguments into positional strings.
 - Mutations go through intention-revealing methods that return a new instance (`changeName`, `changeEmail`, `changePhone`, `changeCoreFields`, `changeCost`).
-- Comparison methods express business equality (`hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs`). An update with an identical value must not change the object nor trigger a save: the `change*` method returns `this`, and the handler saves only when `updated != loaded`.
-- Builders must be private, so that factory methods are the only way in. Production and tests go through `of`/factories.
-- Avoid `null`; mark optional values with `@Nullable` (JSpecify) and use `Optional` where absence is meaningful.
+- Comparison methods express business equality (`hasEmail`, `hasPhone`, `hasName`, `ContractCost.isSameAmountAs`). An update with an identical value must not change the object nor trigger a save: the `change*` method returns `this`, and the handler saves only when `!updated.equals(loaded)` (value equality through Lombok `@EqualsAndHashCode`; Error Prone rejects `!=` on objects that define `equals`).
+- Mutually exclusive states are a `sealed` interface with one record per state, never nullable fields read by convention (`ContractImportTermination.Ended`/`Failed`, `ContractImportJobLine.Imported`/`Rejected`, `ContractImportJobState.Pending`/`Running`/`Completed`/`Failed`/`Cancelled`). Exception to the Value Object rule (ADR-002): these variants normalize nothing, so their compact constructor validates every mandatory field and the interface keeps the factories. Consumers deconstruct them in an exhaustive `switch`.
+- Builders must be private, so that factory methods are the only way in. Production goes through `of`/`reconstituteFromDatabase`; tests also use `ClientFixtures` and `ContractFixtures` (`src/test`), which only chain those entry points from raw values.
+- Avoid `null`; mark optional values with `@Nullable` (JSpecify) and use `Optional` where absence is meaningful. NullAway fails the build when a value not declared `@Nullable` may be `null` (`src/main` only). Every package of `src/main` has a `package-info.java` annotated `@NullMarked` (checked by `ArchitectureTest`).
 
 ### Time
 - The domain NEVER calls `now()`. It receives the time as a parameter (`isActiveAt(now)`, `changeCost(cost, now)`, `PersonBirthDate.of(date, today)`…) (ADR-003).
@@ -110,26 +119,39 @@ No domain object can exist in an invalid state.
 - Hibernate runs with `ddl-auto: validate`: the entity mapping must match the migrations.
 
 ## Testing strategy
-- We work in TDD mode, NOT TEST-FIRST.
-- Unit tests (Surefire, `./mvnw test`): domain main objects and handlers, mocked ports, `Clock.fixed`.
-- Acceptance tests (Failsafe, classes named `*AcceptanceTest`, `./mvnw verify`): REST API end to end with RestAssured on PostgreSQL via Testcontainers. Reserved for features seen by an API user. The JVM runs in UTC (`-Duser.timezone=UTC`). To make time pass, replace only the `InstantSource` with `MutableInstantSource`, never the `Clock`.
-- Security is never bypassed in tests. Acceptance tests call `AcceptanceRestAssured.configure(port)` in their `setUp`: it sets the base URI, a counselor token (`RestAssured.authentication`) and the JSON content type, so requests never repeat `.contentType(ContentType.JSON)`. `configure` starts with `RestAssured.reset()`: `new RequestSpecBuilder()` wraps the current static `requestSpecification`, so without the reset each `setUp` nests the previous spec, its headers pile up and its stale port sends requests to another test context. Never set RestAssured statics outside this helper (except `RestAssured.authentication` to test calls without a token). The token goes through `RestAssured.authentication`, signed with a test RSA key and checked by the production `AccessTokenValidator`. Access rules are URL rules in `SecurityConfig`, not `@PreAuthorize` (ADR-017); `SecurityAcceptanceTest` covers them.
-- Tests never call `now()` without a clock: acceptance tests inject the application `Clock` bean, unit tests use fixed dates or `Clock.fixed`.
-- Concurrency bugs are reproduced with two real transactions (`TransactionTemplate` + `PROPAGATION_REQUIRES_NEW`).
-- A regression test must fail without the fix: check it before delivering.
-- Value Objects are tested through entity factories and the REST API. A dedicated VO test exists only when the VO is shared across aggregates or carries logic not observable through an entity.
-- Required for each entity:
+TDD in a fast loop: red, green, refactor, one business scenario at a time, never a batch of tests written upfront. A scenario is driven and finished in the fast loop; the end-to-end suite only confirms the wiring and stays small (ADR-014).
+
+### Fast loop (Surefire, `./mvnw test`, seconds)
+- **Domain tests**: every variant of a rule (bounds, scales, dates, null and invalid values), through the aggregates' entry points and the test fixtures. Required for each entity:
     - `of()` with valid data, and with null or invalid fields;
     - `reconstituteFromDatabase()` with a valid id, and rejecting a null id or a null mandatory field;
     - each `change*` method, including the no-op case for an identical value;
     - immutability of `birthDate` and `companyIdentifier`.
+- **Feature tests**: the handler test of the use case, `src/test/.../features/<area>/<UseCase>Test`, mocked ports, `Clock.fixed`. One test per business scenario, named in domain terms (`GIVEN … WHEN … THEN …`): what is loaded, which rule applies, what is saved, which error wins.
+- Handler tests assert outcomes, not missing calls: no `verify(port, never())` after an exception (the exception proves the refusal, the use case transaction rolls back any write). Check the order of validations by making the other error possible (`lenient()` stub that throws) and asserting which one wins. A no-op update is asserted with `isSameAs(loaded)`. Only a `void` handler whose sole output is a port call keeps `verify`.
+- Value Objects are tested through the entities' `of`. A dedicated VO test exists only when the VO is shared across aggregates or carries logic not observable through an entity.
+
+### Acceptance tests (Failsafe, `*AcceptanceTest`, `./mvnw verify`)
+End to end: REST API with RestAssured on PostgreSQL via Testcontainers. Written once the scenario is green in its feature test, so it is expected green at once: a red one points to the wiring, not to a rule. Each test reflects a feature seen by an API user, in business terms. Per feature, cover only:
+- the nominal scenario, with a read back when the feature writes;
+- the specific cases only end to end can show: a new HTTP outcome (status + `code`, one representative example), JSON binding, security, database constraints, transactions, concurrency, job recovery, a no-op update (unchanged ETag).
+
+A rule variant already proven in the fast loop gets no acceptance test.
+- The JVM runs in UTC (`-Duser.timezone=UTC`). To make time pass, replace only the `InstantSource` with `MutableInstantSource`, never the `Clock`.
+- Security is never bypassed in tests. Acceptance tests call `AcceptanceRestAssured.configure(port)` in their `setUp`: it sets the base URI, a counselor token (`RestAssured.authentication`) and the JSON content type, so requests never repeat `.contentType(ContentType.JSON)`. `configure` starts with `RestAssured.reset()`: `new RequestSpecBuilder()` wraps the current static `requestSpecification`, so without the reset each `setUp` nests the previous spec, its headers pile up and its stale port sends requests to another test context. Never set RestAssured statics outside this helper (except `RestAssured.authentication` to test calls without a token). The token goes through `RestAssured.authentication`, signed with a test RSA key and checked by the production `AccessTokenValidator`. Access rules are URL rules in `SecurityConfig`, not `@PreAuthorize` (ADR-017); `SecurityAcceptanceTest` covers them.
+- Concurrency bugs are reproduced with two real transactions (`TransactionTemplate` + `PROPAGATION_REQUIRES_NEW`).
 - Test cleanup deletes contracts before clients (FK `ON DELETE RESTRICT`).
+
+### All tests
+- Tests never call `now()` without a clock: acceptance tests inject the application `Clock` bean, unit tests use fixed dates or `Clock.fixed`.
+- A regression test must fail without the fix: check it before delivering. It sits at the lowest level that reproduces the bug (an acceptance test only when the bug lives in the wiring, like a JSON binding).
+- Run `./mvnw spotless:apply` before committing: the CI fails on files that differ from `config/formatter/eclipse-java-formatter.xml` (only files changed since the target branch are checked).
 - Always run `./mvnw clean verify` before declaring a change done. `clean` matters: stale resources in `target/` (renamed migrations) are not removed otherwise.
 - The Testcontainers PostgreSQL container is reused (`withReuse(true)`). After switching branches, its database may contain migrations the branch does not know (Flyway silently ignores "future" migrations). If tests fail on schema-related errors, remove the reused container and rerun.
 
 ## Git
 - Never perform git actions (commit, push, branch switch, stash) without being explicitly asked.
-- Branches start from `develop`: `feat/<topic>`, `bugfix/<topic>`. Releases: `release/x.y.z`. Main branch: `master`.
+- `feat/<topic>` starts from `develop`. `bugfix/<topic>` starts from the branch it fixes: `develop`, `release/x.y.z` or `master`, and goes back to that same branch (ADR-020). Releases: `release/x.y.z`. Main branch: `master`.
 - Before switching branches, check `git status`: uncommitted changes follow the switch.
 
 ### Commit rules
@@ -138,6 +160,7 @@ Conventional Commits:
 - `fix`: bug fix
 - `refactor`: code restructuring with no behavior change
 - `chore`: non-functional work (dependencies, build, formatting)
+- `ci`: CI pipeline and its configuration (GitHub workflows, Dependabot, CODEOWNERS)
 - `test`: adding or improving tests
 - `docs`: documentation (including this file)
 
@@ -157,7 +180,7 @@ Use `!` and a `BREAKING CHANGE:` footer only when a client that respected the AP
 ## How to respond when asked to generate code
 Before producing code:
 1. Read the existing codebase and documentation (including the ADRs).
-2. Write the unit, acceptance and feature tests and work in TDD mode.
+2. Work in TDD in the fast loop (domain and feature tests), then add the acceptance tests the feature needs (see "Testing strategy").
 3. Verify the change fits the architecture.
 4. Highlight impacts: domain, persistence (migrations), API contract.
 
@@ -173,3 +196,17 @@ If the request is unclear, ask questions.
 ## Environment notes
 - Development machine: Windows, Git Bash and PowerShell. Python is NOT installed; use the editing tools or `perl` for scripted edits.
 - Source files use CRLF line endings: multi-line text replacements must tolerate `\r\n`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues (`MarlonKuqi/contract-service`) through the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `docs/sujet.txt`, `GLOSSARY.md` (created lazily), and the ADRs in the single file `docs/ADR.md`. See `docs/agents/domain.md`.
