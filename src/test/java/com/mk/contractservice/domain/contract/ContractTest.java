@@ -798,6 +798,22 @@ class ContractTest {
 
             assertThat(contract.coverage()).isEqualTo(ContractCoverage.of(ContractType.LAMAL, franchise));
             assertThat(contract.type()).isEqualTo(ContractType.LAMAL);
+            assertThat(contract.franchise().map(LamalFranchise::value)).hasValue(franchise);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = ContractType.class, names = {"LAA", "LPP"})
+        @DisplayName("GIVEN a company WHEN taking out a LAA or LPP THEN the contract carries no franchise")
+        void shouldCarryNoFranchiseForOtherTypes(final ContractType type) {
+            Contract contract = ContractFixtures.newContract(ClientFixtures.existingCompany(testClientId),
+                    type,
+                    null,
+                    NOW,
+                    null,
+                    COST,
+                    NOW);
+
+            assertThat(contract.franchise()).isEmpty();
         }
 
         @ParameterizedTest
@@ -831,9 +847,9 @@ class ContractTest {
 
         @ParameterizedTest
         @ValueSource(ints = {-100, 50, 250, 700, 3000})
-        @DisplayName("GIVEN an amount outside the legal franchises WHEN taking out a LAMal THEN it is refused")
+        @DisplayName("GIVEN an amount outside both legal scales WHEN building a LAMal coverage THEN it is refused whatever the age of the insured")
         void shouldRefuseAmountsOutsideLegalFranchises(final int franchise) {
-            assertThatThrownBy(() -> lamal(LocalDate.of(1990, 5, 14), franchise, NOW, null))
+            assertThatThrownBy(() -> ContractCoverage.of(ContractType.LAMAL, franchise))
                     .isInstanceOf(InvalidContractFranchiseException.class)
                     .hasMessageContaining(String.valueOf(franchise));
         }
