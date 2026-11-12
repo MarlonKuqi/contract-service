@@ -60,7 +60,7 @@ import static org.mockito.Mockito.doAnswer;
 @DisplayName("Feature: A counselor follows, cancels and fixes the asynchronous import jobs")
 class ContractImportJobManagementAcceptanceTest {
 
-    private static final String HEADER = "clientId;type;startDate;endDate;costAmount\n";
+    private static final String HEADER = "clientId;type;franchise;startDate;endDate;costAmount\n";
     private static final String MULTIPART = "multipart/form-data";
     private static final String IDEMPOTENCY_KEY = "Idempotency-Key";
     private static final String JOB_PATH = CONTRACT_IMPORT_JOBS + "/{jobId}";
@@ -125,7 +125,7 @@ class ContractImportJobManagementAcceptanceTest {
     private String fileOf(final List<String> costs) {
         final StringBuilder file = new StringBuilder(HEADER);
         for (final String cost : costs) {
-            file.append(clientId).append(";LAA;;;").append(cost).append('\n');
+            file.append(clientId).append(";LAA;;;;").append(cost).append('\n');
         }
         return file.toString();
     }
@@ -315,8 +315,8 @@ class ContractImportJobManagementAcceptanceTest {
                 .statusCode(201)
                 .extract()
                 .path("id");
-        final String wrongFile = HEADER + personId + ";LAMAL;2000-01-01T00:00:00;;999.00\n";
-        final String fixedFile = HEADER + personId + ";LAMAL;2000-01-01T00:00:00;;300.00\n";
+        final String wrongFile = HEADER + personId + ";LAMAL;300;2010-01-01T00:00:00;;999.00\n";
+        final String fixedFile = HEADER + personId + ";LAMAL;300;2010-01-01T00:00:00;;300.00\n";
         final String wrongJob = submitAccepted(wrongFile);
         runNextJob();
         cancel(wrongJob).statusCode(200).body("closedContracts", equalTo(1));
@@ -393,7 +393,7 @@ class ContractImportJobManagementAcceptanceTest {
         "GIVEN rejected lines WHEN the counselor downloads them THEN each comes with its code, its reason and its original line")
     void shouldExportRejectedLinesAsCsv() {
         final String jobId = submitAccepted(
-                HEADER + clientId + ";LAA;;;100.00\n" + clientId + ";LAA;;;-1\n" + "garbage \"quoted\"\n");
+                HEADER + clientId + ";LAA;;;;100.00\n" + clientId + ";LAA;;;;-1\n" + "garbage \"quoted\"\n");
         runNextJob();
 
         final String csv = given().when()
@@ -408,7 +408,7 @@ class ContractImportJobManagementAcceptanceTest {
         final List<String> lines = csv.lines().toList();
         assertThat(lines).hasSize(3);
         assertThat(lines.get(0)).isEqualTo(ContractImportRejectionCsv.HEADER);
-        assertThat(lines.get(1)).startsWith("3;invalidContractCost;\"").endsWith(";\"" + clientId + ";LAA;;;-1\"");
+        assertThat(lines.get(1)).startsWith("3;invalidContractCost;\"").endsWith(";\"" + clientId + ";LAA;;;;-1\"");
         assertThat(lines.get(2)).startsWith("4;invalidLineFormat;\"").endsWith(";\"garbage \"\"quoted\"\"\"");
     }
 

@@ -147,6 +147,19 @@ class OptimisticLockingAcceptanceTest {
         }
 
         @Test
+        @DisplayName("GIVEN identical values WHEN the client is updated THEN its ETag does not change")
+        void shouldKeepETagWhenNothingChangesOnUpdate() {
+            given()
+                    .header(HttpHeaders.IF_MATCH, clientETag)
+                    .body(CLIENT_PAYLOAD.formatted("Alice Martin", email, phone))
+                    .put(ClientEndpoints.CLIENT_BY_ID, clientId)
+                    .then()
+                    .statusCode(204);
+
+            assertThat(currentClientETag()).isEqualTo(clientETag);
+        }
+
+        @Test
         @DisplayName("GIVEN another counselor updated the client since it was read WHEN it is updated with the old ETag THEN 412 and the other change is kept")
         void shouldRejectUpdateBasedOnStaleRead() {
             given()
@@ -321,6 +334,7 @@ class OptimisticLockingAcceptanceTest {
                             {
                                 "clientId": "%s",
                                 "type": "LAMAL",
+                                "franchise": 300,
                                 "startDate": "2025-01-01T00:00:00",
                                 "costAmount": "1000.00"
                             }
@@ -379,6 +393,21 @@ class OptimisticLockingAcceptanceTest {
 
             assertCost(1500.00f);
             assertThat(currentContractETag()).isNotEqualTo(contractETag);
+        }
+
+        @Test
+        @DisplayName("GIVEN the same amount with another scale WHEN the cost is changed THEN the ETag of the contract does not change")
+        void shouldKeepETagWhenCostIsTheSame() {
+            given()
+                    .header(HttpHeaders.IF_MATCH, contractETag)
+                    .body("""
+                            { "amount": "1000.0" }
+                            """)
+                    .patch(ContractEndpoints.CONTRACT_COST, contractId)
+                    .then()
+                    .statusCode(204);
+
+            assertThat(currentContractETag()).isEqualTo(contractETag);
         }
 
         @Test

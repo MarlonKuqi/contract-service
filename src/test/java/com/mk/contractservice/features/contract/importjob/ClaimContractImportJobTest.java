@@ -18,8 +18,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,12 +59,11 @@ class ClaimContractImportJobTest {
     }
 
     @Test
-    @DisplayName("GIVEN no job to run WHEN claiming THEN nothing is saved")
+    @DisplayName("GIVEN no job to run WHEN claiming THEN no job is claimed")
     void shouldClaimNothing() {
         when(jobRepository.findNextToRun(NOW)).thenReturn(Optional.empty());
 
         assertThat(new ClaimContractImportJob.Handler(jobRepository, CLOCK).execute()).isEmpty();
 
-        verify(jobRepository, never()).save(any());
     }
 }

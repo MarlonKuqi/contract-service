@@ -168,6 +168,7 @@ class ReadContractAcceptanceTest {
                         {
                             "clientId": "%s",
                             "type": "LAMAL",
+                            "franchise": 300,
                             "startDate": "%s",
                             "endDate": "%s",
                             "costAmount": "1000.00"

@@ -54,7 +54,7 @@ import static org.hamcrest.Matchers.nullValue;
 @DisplayName("Feature: A counselor imports a large CSV file of contracts asynchronously")
 class ContractImportJobAcceptanceTest {
 
-    private static final String HEADER = "clientId;type;startDate;endDate;costAmount\n";
+    private static final String HEADER = "clientId;type;franchise;startDate;endDate;costAmount\n";
     private static final String MULTIPART = "multipart/form-data";
     private static final String JOB_PATH = CONTRACT_IMPORT_JOBS + "/{jobId}";
 
@@ -189,7 +189,7 @@ class ContractImportJobAcceptanceTest {
                 .contentType(MULTIPART)
                 .multiPart("file",
                         "contracts.csv",
-                        (HEADER + clientId + ";LAA;;;100.00\n" + clientId + ";LAA;;;-1\n" + "\n" + unknownClient + ";LAA;;;100.00\n" + "garbage\n" + clientId + ";LAA;2026-01-01T00:00:00;2025-01-01T00:00:00;100.00\n")
+                        (HEADER + clientId + ";LAA;;;;100.00\n" + clientId + ";LAA;;;;-1\n" + "\n" + unknownClient + ";LAA;;;;100.00\n" + "garbage\n" + clientId + ";LAA;;2026-01-01T00:00:00;2025-01-01T00:00:00;100.00\n")
                                 .getBytes(StandardCharsets.UTF_8))
                 .when()
                 .post(CONTRACT_IMPORT_JOBS)
@@ -233,7 +233,7 @@ class ContractImportJobAcceptanceTest {
     void shouldImportAcrossBatches() {
         final int lines = ContractImportBatchConfiguration.CHUNK_SIZE + 1;
 
-        final String jobId = submitAccepted(HEADER + (clientId + ";LAA;;;100.00\n").repeat(lines));
+        final String jobId = submitAccepted(HEADER + (clientId + ";LAA;;;;100.00\n").repeat(lines));
 
         awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
         getJob(jobId).body("importedCount", equalTo(lines));
@@ -247,7 +247,7 @@ class ContractImportJobAcceptanceTest {
         final int lines = 10_000;
         final LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
         final String contracts = IntStream.rangeClosed(1, lines)
-                .mapToObj(cost -> clientId + ";LAA;" + now + ";;" + cost + "\n")
+                .mapToObj(cost -> clientId + ";LAA;;" + now + ";;" + cost + "\n")
                 .collect(Collectors.joining());
 
         final String jobId = submitAccepted(HEADER + contracts);
@@ -277,7 +277,7 @@ class ContractImportJobAcceptanceTest {
     @DisplayName(
         "GIVEN a line starting with a hash WHEN the job runs THEN it is rejected like any malformed line and the job completes")
     void shouldRejectLineStartingWithHash() {
-        final String jobId = submitAccepted(HEADER + clientId + ";LAA;;;100.00\n#garbage;LAA;;;1\n");
+        final String jobId = submitAccepted(HEADER + clientId + ";LAA;;;;100.00\n#garbage;LAA;;;;1\n");
 
         awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
@@ -297,7 +297,7 @@ class ContractImportJobAcceptanceTest {
         "GIVEN a health insurance (LAMal) and an unknown type for a company WHEN the job runs THEN only the employer insurance (LAA) is imported")
     void shouldRejectTypesNotAllowedForTheClient() {
         final String jobId = submitAccepted(
-                HEADER + clientId + ";LAA;;;100.00\n" + clientId + ";LAMAL;;;100.00\n" + clientId + ";CASCO;;;100.00\n");
+                HEADER + clientId + ";LAA;;;;100.00\n" + clientId + ";LAMAL;300;;;100.00\n" + clientId + ";CASCO;;;;100.00\n");
 
         awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
@@ -313,16 +313,34 @@ class ContractImportJobAcceptanceTest {
     }
 
     @Test
+    @DisplayName("GIVEN a franchise on a LAA line and an unreadable franchise WHEN the job runs THEN only the line without franchise is imported")
+    void shouldRejectInvalidFranchises() {
+        final String jobId = submitAccepted(
+                HEADER + clientId + ";LAA;;;;100.00\n" + clientId + ";LAA;300;;;100.00\n" + clientId + ";LAA;abc;;;100.00\n");
+
+        awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
+
+        getJob(jobId).body("importedCount", equalTo(1))
+                .body("rejectedCount", equalTo(2));
+        given().when()
+                .get(JOB_PATH + "/rejections", jobId)
+                .then()
+                .statusCode(200)
+                .body("content.lineNumber", equalTo(List.of(3, 4)))
+                .body("content.code", equalTo(List.of("invalidContractFranchise", "invalidLineFormat")));
+    }
+
+    @Test
     @DisplayName(
         "GIVEN LAMal lines overlapping a stored LAMal or a previous line of the file WHEN the job runs THEN only those lines are rejected")
     void shouldRejectOverlappingLamalLines() {
         final String personId = createPerson();
         final String otherPersonId = createPerson();
-        final String firstJob = submitAccepted(HEADER + personId + ";LAMAL;;;300.00\n");
+        final String firstJob = submitAccepted(HEADER + personId + ";LAMAL;300;;;300.00\n");
         awaitStatus(firstJob, ContractImportJobState.Status.COMPLETED);
 
         final String jobId = submitAccepted(
-                HEADER + personId + ";LAMAL;2030-01-01T00:00:00;;300.00\n" + otherPersonId + ";LAMAL;2030-01-01T00:00:00;2031-01-01T00:00:00;300.00\n" + otherPersonId + ";LAMAL;2031-01-01T00:00:00;;300.00\n" + otherPersonId + ";LAMAL;2030-06-01T00:00:00;;300.00\n");
+                HEADER + personId + ";LAMAL;300;2030-01-01T00:00:00;;300.00\n" + otherPersonId + ";LAMAL;300;2030-01-01T00:00:00;2031-01-01T00:00:00;300.00\n" + otherPersonId + ";LAMAL;300;2031-01-01T00:00:00;;300.00\n" + otherPersonId + ";LAMAL;300;2030-06-01T00:00:00;;300.00\n");
 
         awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
@@ -339,7 +357,7 @@ class ContractImportJobAcceptanceTest {
     @DisplayName("GIVEN a date PostgreSQL cannot store WHEN the job runs THEN only this line is rejected")
     void shouldRejectOnlyTheLineWithADateOutOfRange() {
         final String jobId = submitAccepted(
-                HEADER + clientId + ";LAA;;;100.00\n" + clientId + ";LAA;+999999-01-01T00:00:00;;100.00\n" + clientId + ";LAA;;-000001-01-01T00:00:00;100.00\n" + clientId + ";LAA;;;100.00\n");
+                HEADER + clientId + ";LAA;;;;100.00\n" + clientId + ";LAA;;+999999-01-01T00:00:00;;100.00\n" + clientId + ";LAA;;;-000001-01-01T00:00:00;100.00\n" + clientId + ";LAA;;;;100.00\n");
 
         awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
@@ -355,7 +373,7 @@ class ContractImportJobAcceptanceTest {
     @DisplayName("GIVEN a NUL character WHEN the job runs THEN only this line is rejected")
     void shouldRejectOnlyTheLineWithANulCharacter() {
         final String jobId = submitAccepted(
-                HEADER + clientId + ";LAA;;;100.00\nab\u0000c;;;100.00\n" + clientId + ";LAA;;;100.00\n");
+                HEADER + clientId + ";LAA;;;;100.00\nab\u0000c;;;100.00\n" + clientId + ";LAA;;;;100.00\n");
 
         awaitStatus(jobId, ContractImportJobState.Status.COMPLETED);
 
@@ -381,7 +399,7 @@ class ContractImportJobAcceptanceTest {
     void shouldUseDefaultNameForUnnamedFile() {
         given()
                 .contentType(MULTIPART)
-                .multiPart("file", "", (HEADER + clientId + ";LAA;;;100.00\n").getBytes(StandardCharsets.UTF_8))
+                .multiPart("file", "", (HEADER + clientId + ";LAA;;;;100.00\n").getBytes(StandardCharsets.UTF_8))
                 .when()
                 .post(CONTRACT_IMPORT_JOBS)
                 .then()
@@ -392,7 +410,7 @@ class ContractImportJobAcceptanceTest {
     @Test
     @DisplayName("GIVEN a file with a wrong header WHEN submitting THEN 422 and nothing is stored")
     void shouldRejectWrongHeader() {
-        submit("wrong;header\n" + clientId + ";LAA;;;100.00\n")
+        submit("wrong;header\n" + clientId + ";LAA;;;;100.00\n")
                 .statusCode(422)
                 .body("code", equalTo("invalidImportFile"));
 

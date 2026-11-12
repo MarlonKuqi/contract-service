@@ -3,6 +3,7 @@ package com.mk.contractservice.features.shared;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractCost;
+import com.mk.contractservice.domain.contract.ContractCoverage;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractPeriod;
@@ -10,6 +11,7 @@ import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.ContractValidationException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
+import com.mk.contractservice.domain.contract.exception.InvalidContractFranchiseException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
@@ -47,6 +49,7 @@ public final class ContractImportLineEvaluator {
     public static Outcome evaluate(
             final UUID clientId,
             final ContractType type,
+            @Nullable final Integer franchise,
             @Nullable final LocalDateTime startDate,
             @Nullable final LocalDateTime endDate,
             final BigDecimal costAmount,
@@ -60,14 +63,10 @@ public final class ContractImportLineEvaluator {
                     ClientNotFoundException.messageFor(clientId));
         }
         try {
-            final Contract contract = Contract.of(
-                    clientId,
-                    client.kind(),
-                    type,
-                    ContractPeriod.of(startDate, endDate, now),
-                    ContractCost.of(costAmount),
-                    now
-            );
+            final ContractPeriod period = ContractPeriod.of(startDate, endDate, now);
+            final ContractCost cost = ContractCost.of(costAmount);
+            final ContractCoverage coverage = ContractCoverage.of(type, franchise);
+            final Contract contract = Contract.of(clientId, client.contractHolder(), coverage, period, cost, now);
             overlapBatch.admit(contract);
             return new Accepted(contract);
         } catch (final ContractValidationException ex) {
@@ -82,6 +81,7 @@ public final class ContractImportLineEvaluator {
             case InvalidContractCostException _ -> ContractImportRejectionReason.INVALID_COST;
             case InvalidContractPeriodException _ -> ContractImportRejectionReason.INVALID_PERIOD;
             case ContractTypeNotAllowedException _ -> ContractImportRejectionReason.TYPE_NOT_ALLOWED;
+            case InvalidContractFranchiseException _ -> ContractImportRejectionReason.INVALID_FRANCHISE;
         };
     }
 }

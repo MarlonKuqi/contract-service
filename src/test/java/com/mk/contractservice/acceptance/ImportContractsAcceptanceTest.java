@@ -111,7 +111,7 @@ class ImportContractsAcceptanceTest {
 
     private String lamalLine(final String personId, final LocalDateTime startDate, final LocalDateTime endDate) {
         return """
-                { "clientId": "%s", "type": "LAMAL", "startDate": "%s", "endDate": %s, "costAmount": "300.00" }"""
+                { "clientId": "%s", "type": "LAMAL", "franchise": 300, "startDate": "%s", "endDate": %s, "costAmount": "300.00" }"""
                 .formatted(personId,
                         isoDateTime(startDate),
                         endDate == null ? "null" : "\"" + isoDateTime(endDate) + "\"");
@@ -222,7 +222,8 @@ class ImportContractsAcceptanceTest {
         given()
                 .body(importOf(line(clientId, "1000.00"),
                         """
-                                { "clientId": "%s", "type": "LAMAL", "costAmount": "500.00" }""".formatted(clientId)))
+                                { "clientId": "%s", "type": "LAMAL", "franchise": 300, "costAmount": "500.00" }"""
+                                .formatted(clientId)))
                 .when()
                 .post(ContractEndpoints.CONTRACT_IMPORTS)
                 .then()

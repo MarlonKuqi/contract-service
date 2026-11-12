@@ -62,7 +62,7 @@ import static org.mockito.Mockito.doAnswer;
 @DisplayName("Technical guarantee: an import job stops cleanly on failure and resumes after a crash without duplicates")
 class ContractImportJobRecoveryAcceptanceTest {
 
-    private static final String HEADER = "clientId;type;startDate;endDate;costAmount\n";
+    private static final String HEADER = "clientId;type;franchise;startDate;endDate;costAmount\n";
     private static final String JOB_PATH = ContractEndpoints.CONTRACT_IMPORT_JOBS + "/{jobId}";
     private static final int CHUNK_SIZE = ContractImportBatchConfiguration.CHUNK_SIZE;
     private static final String TAKEOVER_THREAD = "takeover-worker";
@@ -192,7 +192,7 @@ class ContractImportJobRecoveryAcceptanceTest {
                 .contentType("multipart/form-data")
                 .multiPart("file",
                         "contracts.csv",
-                        (HEADER + (clientId + ";LAA;;;100.00\n").repeat(lines)).getBytes(StandardCharsets.UTF_8))
+                        (HEADER + (clientId + ";LAA;;;;100.00\n").repeat(lines)).getBytes(StandardCharsets.UTF_8))
                 .when()
                 .post(ContractEndpoints.CONTRACT_IMPORT_JOBS)
                 .then()
@@ -442,7 +442,7 @@ class ContractImportJobRecoveryAcceptanceTest {
                 .contentType("multipart/form-data")
                 .multiPart("file",
                         "contracts.csv",
-                        (HEADER + (clientId + ";LAA;;;100.00\n").repeat(CHUNK_SIZE) + "\n").getBytes(
+                        (HEADER + (clientId + ";LAA;;;;100.00\n").repeat(CHUNK_SIZE) + "\n").getBytes(
                                 StandardCharsets.UTF_8))
                 .when()
                 .post(ContractEndpoints.CONTRACT_IMPORT_JOBS)
@@ -466,7 +466,7 @@ class ContractImportJobRecoveryAcceptanceTest {
     void shouldRejectSameBatchTwice() {
         secondChunkFailure.set(null);
         final LocalDateTime now = LocalDateTime.now(clock);
-        final byte[] file = (HEADER + clientId + ";LAA;;;100.00\n" + clientId + ";LAA;;;100.00\n").getBytes(
+        final byte[] file = (HEADER + clientId + ";LAA;;;;100.00\n" + clientId + ";LAA;;;;100.00\n").getBytes(
                 StandardCharsets.UTF_8);
         final ContractImportJob job = new TransactionTemplate(transactionManager).execute(status -> {
             final ContractImportJob inserted = jobRepository.save(ContractImportJob.of(ContractImportSubmission.of(
@@ -479,7 +479,7 @@ class ContractImportJobRecoveryAcceptanceTest {
         });
         final ProcessContractImportBatch.Command batch = new ProcessContractImportBatch.Command(
                 job.id(),
-                List.of(new RawLine(2, clientId + ";LAA;;;100.00")));
+                List.of(new RawLine(2, clientId + ";LAA;;;;100.00")));
 
         processBatch.execute(batch);
 

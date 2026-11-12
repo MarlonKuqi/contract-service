@@ -25,7 +25,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -81,7 +80,7 @@ class CancelContractImportJobTest {
     }
 
     @Test
-    @DisplayName("GIVEN an already cancelled job WHEN cancelling again THEN nothing is saved nor closed")
+    @DisplayName("GIVEN an already cancelled job WHEN cancelling again THEN the job is returned unchanged with no closed contract")
     void shouldIgnoreAlreadyCancelledJob() {
         final ContractImportJob cancelled = ContractImportJobFixtures.cancelledJob(JOB_ID);
         when(jobRepository.lockById(JOB_ID)).thenReturn(cancelled);
@@ -91,17 +90,14 @@ class CancelContractImportJobTest {
 
         assertThat(result.job()).isSameAs(cancelled);
         assertThat(result.closedContracts()).isZero();
-        verify(jobRepository, never()).save(any());
-        verify(contractRepository, never()).closeAllActiveImportedBy(any(), any());
     }
 
     @Test
-    @DisplayName("GIVEN an unknown job WHEN cancelling THEN it is not found and nothing is closed")
+    @DisplayName("GIVEN an unknown job WHEN cancelling THEN it is not found")
     void shouldNotCloseContractsOfUnknownJob() {
         when(jobRepository.lockById(JOB_ID)).thenThrow(new ContractImportJobNotFoundException(JOB_ID));
 
         assertThatThrownBy(() -> handler().execute(new CancelContractImportJob.Command(JOB_ID, COUNSELOR)))
                 .isInstanceOf(ContractImportJobNotFoundException.class);
-        verify(contractRepository, never()).closeAllActiveImportedBy(any(), any());
     }
 }

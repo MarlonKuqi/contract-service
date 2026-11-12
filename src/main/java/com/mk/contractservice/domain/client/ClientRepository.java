@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.client;
 
+import com.mk.contractservice.domain.shared.ContractHolder;
 import com.mk.contractservice.domain.shared.RepositoryPort;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,8 @@ public interface ClientRepository {
     List<Client> findAllByIds(final Set<UUID> ids);
 
     Set<UUID> lockExistingIds(final Set<UUID> ids);
+
+    ContractHolder getContractHolderIncludingDeleted(final UUID id);
 
     void ensureVersion(final UUID id, final long expectedVersion);
 

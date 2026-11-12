@@ -51,6 +51,7 @@ public class JpaContractQueryAdapter implements ContractQueryPort {
                 entity.getId(),
                 entity.getClientId(),
                 entity.getType(),
+                entity.getFranchise(),
                 entity.getStartDate(),
                 entity.getEndDate(),
                 active,

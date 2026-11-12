@@ -24,10 +24,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -65,14 +62,12 @@ class ListContractImportJobRejectionsTest {
     }
 
     @Test
-    @DisplayName("GIVEN an unknown job WHEN listing THEN it is not found and no rejection is read")
+    @DisplayName("GIVEN an unknown job WHEN listing THEN it is not found")
     void shouldNotReadRejectionsOfUnknownJob() {
         doThrow(new ContractImportJobNotFoundException(JOB_ID)).when(jobRepository).ensureExists(JOB_ID);
         final ListContractImportJobRejections.Query query = new ListContractImportJobRejections.Query(JOB_ID, 0, 20);
 
         assertThatThrownBy(() -> handler.execute(query)).isInstanceOf(ContractImportJobNotFoundException.class);
-
-        verify(queryPort, never()).findRejections(any(), any());
     }
 
     @ParameterizedTest

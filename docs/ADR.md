@@ -21,6 +21,7 @@ Format de chaque décision : **Contexte → Décision → Conséquences → Stat
 - [ADR-005 — `lastModified` est une donnée du domaine](#adr-005--lastmodified-est-une-donnée-du-domaine)
 - [ADR-024 — Types de contrats : un type obligatoire qui porte l'éligibilité](#adr-024--types-de-contrats--un-type-obligatoire-qui-porte-léligibilité)
 - [ADR-025 — Modification de la période d'un contrat](#adr-025--modification-de-la-période-dun-contrat)
+- [ADR-026 — Contexte Facturation et paiements : cadrage](#adr-026--contexte-facturation-et-paiements--cadrage)
 
 **Persistance et données**
 - [ADR-006 — PostgreSQL + Flyway, migrations immuables](#adr-006--postgresql--flyway-migrations-immuables)
@@ -374,12 +375,15 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
 ## ADR-014 — Stratégie de tests
 
 **Décision.**
-- **Tests unitaires** (Surefire, `mvn test`) : domaine et handlers, avec repositories mockés et `Clock.fixed`.
-- **Tests d'acceptance** (Failsafe, `*AcceptanceTest`, `mvn verify`) : API REST de bout en bout avec RestAssured, sur un vrai PostgreSQL via **Testcontainers**. Réservés aux fonctionnalités vues par un utilisateur de l'API. La JVM tourne en UTC (`-Duser.timezone=UTC`), comme un hôte sans fuseau configuré ; le temps se contrôle en remplaçant uniquement l'`InstantSource` par une `MutableInstantSource`, jamais le `Clock`.
+- **TDD en boucle rapide.** Red, green, refactor, un scénario métier à la fois. Un scénario est guidé et terminé dans la boucle rapide (Surefire, `mvn test`, quelques secondes) :
+  - **tests du domaine** : toutes les variantes d'une règle (bornes, barèmes, dates, valeurs nulles ou invalides), par les points d'entrée des agrégats ;
+  - **feature tests** : le test du handler (`features/<domaine>/<UseCase>Test`, ports mockés, `Clock.fixed`), un test par scénario, nommé en termes métier : ce qui est chargé, quelle règle s'applique, ce qui est sauvé, quelle erreur l'emporte.
+- **Tests d'acceptance** (Failsafe, `*AcceptanceTest`, `mvn verify`) : API REST de bout en bout avec RestAssured, sur un vrai PostgreSQL via **Testcontainers**. Ils confirment le câblage et restent peu nombreux : par fonctionnalité, le scénario nominal (avec relecture quand elle écrit) et les cas que seul le bout en bout peut montrer (nouvelle réponse HTTP avec un exemple représentatif, liaison JSON, sécurité, contraintes de la base, transactions, concurrence, reprise des jobs, no-op par ETag inchangé). Une variante de règle déjà prouvée dans la boucle rapide n'a pas de test d'acceptance. Ils s'écrivent une fois le scénario vert en feature test : un échec signale un problème de câblage, pas de règle. Mesure du 12/11/2026 : 647 tests unitaires en 10 s, 300 tests d'acceptance en 63 s, dont 23 s pour la reprise et l'arrêt des jobs d'import ; un scénario d'acceptance de plus coûte environ 50 ms une fois le contexte démarré, mais chaque règle testée seulement de bout en bout sort de la boucle rapide. La JVM tourne en UTC (`-Duser.timezone=UTC`), comme un hôte sans fuseau configuré ; le temps se contrôle en remplaçant uniquement l'`InstantSource` par une `MutableInstantSource`, jamais le `Clock`.
 - **Tests de concurrence** : deux transactions réelles (`TransactionTemplate` + `REQUIRES_NEW`) pour reproduire les courses.
 - **ArchUnit** pour les règles de dépendance (ADR-001).
 - **JaCoCo** en rapport de couverture, sans seuil : une ligne couverte n'est pas une ligne vérifiée. Le critère bloquant sur la qualité des tests est le score de mutation PIT (ADR-016).
-- Un test de non-régression sur un bug doit **échouer sans le correctif** ; on le vérifie avant de livrer.
+- Un test de non-régression sur un bug doit **échouer sans le correctif** ; on le vérifie avant de livrer. Il se place au niveau le plus bas qui reproduit le bug : un test d'acceptance seulement quand le bug vit dans le câblage (ex. liaison JSON).
+- **Les tests de handlers vérifient des résultats, pas des appels absents.** Pas de `verify(port, never())` après une exception : l'exception prouve le refus, et la transaction du use case annule toute écriture faite avant elle. Pour l'ordre des contrôles, on rend l'autre erreur possible (port qui lève une exception, `lenient`) et on vérifie que la bonne erreur sort. Une mise à jour sans changement (no-op) se vérifie par `isSameAs(loaded)` dans le test unitaire, et par un ETag inchangé dans un test d'acceptance : c'est ce que l'appelant observe. Exception : un handler `void` dont la seule sortie est un appel à un port (ex. jobs d'import annulés pendant leur exécution) garde `verify`, qui est alors son seul résultat observable.
 
 **Conséquences.**
 - Le conteneur Testcontainers est réutilisé (`withReuse(true)`) pour la rapidité en local. Mais en passant d'une branche à l'autre, sa base peut contenir des migrations que la branche ne connaît pas, et Flyway ignore sans rien dire une migration « future ». Il faut alors supprimer le conteneur (TODO : base par branche, ou pas de réutilisation en CI).
@@ -966,7 +970,7 @@ Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des 
 - l'invariant devient interne : ajouter une échéance charge la racine, vérifie le chevauchement et incrémente sa version même sans autre changement (`OPTIMISTIC_FORCE_INCREMENT`). Deux créations simultanées entrent en conflit de version (ADR-011) : plus de verrou sur la ligne client, et la modification d'un client ne bloque plus la création d'une LAMal ;
 - la racine est créée avec la personne, ou à la première LAMal (`INSERT … ON CONFLICT (person_id) DO NOTHING`) ; l'unicité de `person_id` règle la course ;
 - seuls les chemins qui peuvent créer un chevauchement passent par la racine : création unitaire, changement de période (ADR-025) et imports. Changer le coût ou fermer un contrat ne fait que garder ou raccourcir une période ;
-- reportée parce qu'aujourd'hui la racine ne porterait qu'un identifiant et une version, ce que fait déjà le verrou sans table. À créer au plus tard à l'incrément 4 : le droit d'option du frontalier est une donnée de la couverture, pas d'une échéance. La franchise (incrément 3) reste sur chaque échéance ; si l'incrément 3 introduit la hiérarchie `sealed`, `LamalContract` en sera l'entité.
+- reportée parce qu'aujourd'hui la racine ne porterait qu'un identifiant et une version, ce que fait déjà le verrou sans table. Créée à l'incrément 4a (voir « Incrément 4 » ci-dessous) : le droit d'option du frontalier est une donnée de la couverture, pas d'une échéance. La franchise (incrément 3) reste sur chaque échéance, dans sa couverture `ContractCoverage.Lamal`.
 
 **Conséquences.**
 - `POST /v2/contracts` peut répondre `409 contractOverlap` ; nouveau code de rejet dans les imports.
@@ -974,6 +978,56 @@ Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des 
 - Un lot d'import verrouille ses clients en écriture jusqu'à son commit (en général moins d'une seconde) : une création de contrat ou un autre lot qui touche l'un d'eux attend, comme le faisaient déjà la modification et la suppression du client.
 
 **Statut.** Acceptée.
+
+### Incrément 3 : franchise LAMal
+
+**Contexte.** L'assuré LAMal choisit une franchise annuelle. Ses montants sont fixés par l'ordonnance sur l'assurance-maladie (OAMal, art. 93 à 95) et dépendent de l'âge. Le métier n'est pas joignable : les règles ci-dessous reprennent le droit, les choix de modélisation ont été validés le 11/11/2026.
+
+**Décision.**
+- **Couverture `sealed`.** `ContractCoverage` (`Lamal(LamalFranchise)`, `Laa`, `Lpp`) remplace le champ `type` de `Contract`, et `Contract.type()` en est déduit. Ce sont des états exclusifs (ADR-002) : une LAA ne peut pas porter de franchise, aucun champ nullable n'est lu par convention. `Contract.franchise()` renvoie un `Optional` pour les lectures.
+- **Barème** (`LamalFranchise`) : adulte 300, 500, 1000, 1500, 2000 ou 2500 CHF ; enfant de 0 à 600 CHF par paliers de 100. `ContractCoverage.of(type, franchise)` refuse une LAMal sans franchise, une franchise sur une LAA ou une LPP, et un montant hors des deux barèmes.
+- **Catégorie d'âge selon l'année de naissance**, comme dans l'OAMal : enfant jusqu'au 31 décembre de l'année des 18 ans, adulte dès le 1er janvier de l'année des 19 ans. Elle est évaluée à la date de début du contrat.
+- **La LAMal d'un enfant finit au plus tard le 1er janvier de l'année de ses 19 ans.** Le contrat reste valide toute sa durée (ADR-002) : une franchise d'enfant ne s'applique jamais à un adulte. L'adulte souscrit ensuite une nouvelle LAMal, que l'incrément 2 autorise déjà.
+- **Titulaire `ContractHolder`** (`domain/shared` : `Person(birthDate)`, `Company`). C'est un Value Object du noyau partagé : le client tel que les règles de couverture le voient, copie immuable du strict nécessaire passée par le use case, car un agrégat ne référence l'autre que par son identifiant. `Client` ne le contient pas, il le calcule. Il est nommé « titulaire » et non « preneur d'assurance » (`PolicyHolder`) : le client d'une LAMal est l'assuré, celui d'une LAA ou d'une LPP est le preneur, et le preneur d'une LAMal d'enfant peut être un parent (ADR-026). Il remplace `ClientKind` dans `Contract.of`. `ContractCoverage.ensureAllowedFor(holder, period)` vérifie l'éligibilité du type, puis la franchise selon l'âge, à la création et à chaque `changePeriod` : déplacer le début peut changer la catégorie d'âge, prolonger peut dépasser la fin de l'enfance. `Client.contractHolder()` le fournit, et `domain.contract` ne dépend toujours pas de `domain.client`.
+- **Changement de période** : `UpdateContractPeriod` lit le titulaire par `ClientRepository.getContractHolderIncludingDeleted`. La nature et la date de naissance sont immuables, et le contrat d'un client supprimé doit continuer à répondre `409 contractExpired`, pas 404.
+- **Franchise immuable dans cet incrément** (`updatable = false`, aucune méthode `change*`). Pour en changer, on ferme la LAMal au 31 décembre et on crée celle de l'année suivante. Un `changeFranchise` effectif au 1er janvier sera tranché avec l'agrégat `AssuranceMaladie` (incrément 4, « Suite prévue »).
+- **Refus** : `InvalidContractFranchiseException` (une `ContractValidationException`), traduite en `422 invalidContractFranchise` et en rejet de ligne `INVALID_FRANCHISE` (code `invalidContractFranchise`). La forme (présence, barème) est vérifiée avant le chargement du client, comme le coût. L'âge est vérifié après l'éligibilité du type. Dans les imports : client, période, coût, forme de la franchise, type, franchise selon l'âge, chevauchement.
+- **API.** `franchise` (entier, en CHF) dans `POST /v2/contracts`, dans les lignes de `POST /v2/contracts/imports` et dans toutes les lectures de contrats (`null` pour une LAA ou une LPP). L'en-tête CSV devient `clientId;type;franchise;startDate;endDate;costAmount` ; la franchise est vide pour une LAA ou une LPP, et une valeur illisible donne `invalidLineFormat`. En JSON, une franchise décimale (`300.5`) est refusée en `422 validationError` : Jackson la tronquait par défaut en 300 sans erreur, d'où `spring.jackson.deserialization.accept-float-as-int: false`, qui vaut pour tous les entiers des corps de requête (la franchise est le seul aujourd'hui).
+- **Persistance.** Migration `V2.0.0.11` : colonne `contract.franchise INTEGER NULL` dans la même table (lectures sans jointure), et contrainte `CHECK ((type = 'LAMAL') = (franchise IS NOT NULL))`. Le barème n'est pas recopié en base : il dépend de l'âge, que la table ne connaît pas, et il change avec l'OAMal. La migration ne crée que le schéma, sans renseigner de données : hypothèse retenue, aucune LAMal n'existe en base avant elle (la 2.0.0 n'est pas taguée). Sur une base qui en contient, la contrainte échoue au lieu de choisir une franchise à la place de l'assuré, comme `V2.0.0.10` pour le type. En local, une base créée avant l'incrément 3 avec des LAMal (volume `pgdata` de docker-compose, conteneur Testcontainers réutilisé) est à supprimer puis à recréer.
+
+**Alternatives écartées.**
+- **Agrégat `sealed`** (`LamalContract`, `LaaContract`, `LppContract`) : le builder, les méthodes `change*`, les mappers et les fixtures seraient dupliqués pour une seule donnée propre au type. La frontière de cohérence ne change pas non plus (incrément 2) : une couverture `sealed` dans un seul agrégat suffit.
+- **Franchise nullable sur `Contract`**, validée selon le type : c'est un état lu par convention, interdit par l'ADR-002.
+- **Contrôle de l'âge au seul début du contrat** : une LAMal d'enfant sans fin garderait une franchise d'enfant à l'âge adulte.
+- **Bascule automatique au 1er janvier** (job qui passe la franchise en barème adulte) : réaliste, mais il faut un job planifié, ShedLock et une règle pour choisir la nouvelle franchise. Rien ne le justifie tant que la fin imposée suffit.
+- **Franchise par défaut dans l'API** (300 pour un adulte, 0 pour un enfant) : une valeur implicite dans un contrat d'assurance, alors que c'est un choix de l'assuré.
+- **Lire le titulaire par `ClientRepository.getById`** au changement de période : le contrat d'un client supprimé répondrait 404 au lieu de `409 contractExpired`.
+- **Franchise ordinaire pour les LAMal existantes** (300 CHF pour un adulte, 0 CHF pour un enfant, calculée en SQL dans la migration) : la règle d'âge du domaine serait recopiée en SQL et ne suivrait pas ses évolutions, et la franchise serait choisie à la place de l'assuré. Implémentée puis retirée avant le commit.
+
+**Conséquences.**
+- Changement cassant pour les appelants, avant le tag 2.0.0 : une LAMal sans franchise est refusée (`422 invalidContractFranchise`), et un fichier CSV avec l'ancien en-tête aussi (`invalidImportFile`).
+- La LAMal d'un enfant a toujours une date de fin.
+
+**Statut.** Acceptée.
+
+### Incrément 4 : droit d'option des frontaliers (hypothèses)
+
+**Contexte.** Un frontalier soumis à la LAMal peut demander à en être exempté pour s'assurer dans son pays de résidence. Le métier n'est pas joignable : les hypothèses ci-dessous reprennent le droit tel que compris et ont été validées le 12/11/2026. Elles cadrent les deux sous-incréments avant tout code.
+
+**Hypothèses retenues.**
+- **Frontalier = client résidant dans un pays frontalier** (France, Allemagne, Italie, Autriche). En droit, c'est l'activité en Suisse qui soumet le frontalier à la LAMal ; ici elle est implicite (les clients vivent en Suisse ou sont frontaliers). L'emploi n'est pas modélisé, l'ancien frontalier sans activité en Suisse est hors périmètre.
+- **Pas de date de début d'emploi.** Le délai de 3 mois pour demander l'exemption est contrôlé par l'autorité cantonale du lieu de travail, pas par l'assureur : on n'en garde pas la donnée.
+- **L'exemption est une décision cantonale enregistrée** par le conseiller, avec sa date d'effet (rétroactive possible au début de l'emploi). Elle n'est possible que pour un frontalier, et une LAMal qui couvre une période d'exemption est refusée. Sans exemption, le frontalier est soumis à la LAMal comme un résident ; on ne contrôle pas qu'il en a une (continuité, voir ci-dessous).
+- **La résidence est modifiable**, sans historique (résidence actuelle seulement). Elle ne change pas le type de contrat (LAMal pour une personne, LAA et LPP pour une entreprise) mais seulement le droit à l'exemption. Passer la résidence en Suisse pendant une exemption en cours est refusé tant que l'exemption n'est pas close : plus simple et plus explicite qu'une clôture implicite.
+- **`ContractHolder.Person` portera `residence`** à côté de `birthDate` : c'est le titulaire qui transmet aux règles de couverture ce qu'elles doivent savoir du client.
+- **L'affiliation LAMal est continue, ses paramètres sont annuels.** L'affiliation à l'assureur n'a pas de fin (on en sort en changeant d'assureur au 1er janvier, en partant à l'étranger ou par exemption) ; la prime et la franchise valent pour une année civile. `AssuranceMaladie` est la racine continue, les contrats `LAMAL` en sont les échéances. La fin imposée à la LAMal d'un enfant (incrément 3) reste juste : les 19 ans tombent un 1er janvier, une limite d'échéance comme une autre. Ce qui manque est la continuité (pas de trou entre deux échéances, reconduction annuelle), à traiter dans la racine après l'incrément 4a.
+- **Hors périmètre** : membres de la famille (l'exemption ne s'étend pas aux enfants ici), règles propres à chaque pays.
+
+**Découpage.**
+- **Incrément 4a, refactoring sans changement de comportement** : créer l'agrégat `AssuranceMaladie` (« Suite prévue » ci-dessus, migration de la table `lamal`, racine créée à la première LAMal sans reprise de données) et y déplacer la règle de non-chevauchement, verrouillage optimiste forcé à la place du `FOR UPDATE` sur le client. Les tests d'acceptation restent inchangés.
+- **Incrément 4b, droit d'option** : résidence sur le client (migration, API client), `residence` dans `ContractHolder`, exemption dans `AssuranceMaladie`, refus d'une LAMal pendant une exemption.
+
+**Statut.** Proposée.
 
 ---
 
@@ -1005,3 +1059,74 @@ Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des 
 - Prolonger une LAMal ou avancer sa date de début peut être refusé si une autre LAMal active de la personne couvre la nouvelle période : raccourcir ou fermer d'abord l'autre LAMal.
 
 **Statut.** Acceptée (branche `feat/patch-contract-periods`).
+
+---
+
+## ADR-026 — Contexte Facturation et paiements : cadrage
+
+**Contexte.** Le service forme aujourd'hui un seul bounded context : clients et contrats partagent le même langage, et leurs agrégats sont modifiés dans la même transaction (fermeture des contrats à la suppression du client, ADR-009 ; verrou client de l'ADR-024). La règle ArchUnit qui interdit à `domain.contract` de dépendre de `domain.client` sépare des agrégats, pas des contextes. Facturer les primes et suivre leur paiement est un exercice (non demandé par `docs/sujet.txt`, voir `PROGRESS.md`) qui introduit un vrai second contexte : le langage change de sens, le rythme est mensuel et non dicté par les conseillers, et la cohérence peut être différée. Cette ADR fixe les frontières et les décisions difficiles à défaire avant tout code ; chaque incrément précisera le reste (endpoints, schéma, tests) dans sa propre section.
+
+**Langage du contexte Facturation.**
+
+| Facturation | Code | Contrats | Différence |
+|---|---|---|---|
+| Contrat facturable | `BillableContract` | `Contract` | Copie locale, construite à partir des événements : identifiant, payeur, historique des montants et des périodes. Jamais lue dans les tables `contracts`. |
+| Prime mensuelle | `MonthlyPremium` | `ContractCost` | Montant dû pour un mois complet de couverture. |
+| Payeur | `payerId` | `Client` | Celui qui reçoit et règle la facture. Égal au titulaire au départ, pas forcément ensuite. |
+| Mois de facturation | `BillingMonth` | — | Mois civil en `Europe/Zurich` (ADR-013), `[1er du mois, 1er du mois suivant)`. |
+| Facture | `Invoice` | — | Une par payeur et par mois, une ligne par contrat facturé. Immuable une fois émise. |
+| Encaissement | `Payment` | — | Montant reçu et affecté à une facture. |
+
+**Décision.**
+- **Un module dans le même service, pas un microservice.** Package `com.mk.contractservice.billing`, avec ses propres couches `domain`, `features`, `controllers`, `infrastructure` et les mêmes règles que le reste (ADR-001, ADR-002, ADR-003). Les packages existants forment le contexte Contrats, sans être déplacés. `ArchitectureTest` interdit à `billing..` de dépendre des packages de Contrats, sauf ceux qui transportent les événements publiés (voir plus bas) et la configuration technique commune (`Clock`, sécurité), et interdit à Contrats de dépendre de `billing..`.
+- **Schéma PostgreSQL `billing`**, migrations Flyway dans le même dossier et la même numérotation que le reste (ADR-006). Aucune clé étrangère vers `contracts` : la frontière vaut aussi en base, ce qui laisse sortir le module sans migration de données.
+- **Relation : Contrats en amont, Facturation en aval.** Contrats publie des événements dans un langage publié, sans rien savoir de la facturation. Facturation les traduit à l'entrée (couche anticorruption dans son `infrastructure`) : `ContractCost` n'entre pas dans son domaine, il devient une `MonthlyPremium`.
+- **Événements publiés par Contrats**, un par contrat touché, avec `eventId` (UUID v7), `contractId`, `contractVersion`, `occurredAt` et les données utiles :
+  - `ContractCreated` : `clientId`, `type`, période, montant (création unitaire et deux imports) ;
+  - `ContractCostChanged` : nouveau montant ;
+  - `ContractPeriodChanged` : nouvelle période (ADR-025) ;
+  - `ContractClosed` : date de fin, émis aussi par les fermetures en masse (suppression du client, ADR-009 ; annulation d'un import, ADR-022).
+
+  Pas de `ClientDeleted` : Facturation n'a besoin que de la fin des contrats, que `ContractClosed` lui donne.
+- **Exigences sur la publication**, le mécanisme étant choisi dans l'ADR de l'outbox (voir `PROGRESS.md` : polling `SKIP LOCKED`, Debezium ou Spring Modulith) :
+  - l'événement est écrit dans la transaction qui modifie le contrat : aucun changement validé sans son événement, aucun événement sans changement ;
+  - livraison au moins une fois ; le consommateur ignore un `eventId` déjà traité ;
+  - ordre garanti par contrat : `contractVersion`, déjà incrémentée par les mises à jour en masse (ADR-011), permet d'écarter un événement plus ancien que l'état connu ;
+  - pas de broker au départ : le relais livre au module dans le même processus. Kafka reste possible plus tard sans toucher au format des événements.
+- **Payeur : le titulaire du contrat au départ, une donnée de Facturation ensuite.** `BillableContract` porte un `payerId` initialisé au `clientId` de `ContractCreated`. Qu'une personne paie pour une autre (parents pour la LAMal des enfants, entreprise pour des employés) est une décision de facturation, enregistrée plus tard dans ce contexte sous forme de mandat de paiement. Le modèle `Client` de Contrats ne change pas.
+- **Facturation à terme échu.** La facture du mois M est émise après la fin de M, à partir de l'historique des montants et des périodes du mois. Une modification en cours de mois découpe le mois en tranches, sans régularisation après coup. Facturation à l'avance écartée au départ (voir plus bas).
+- **Règles de calcul**, dans le domaine de Facturation et testées sans base :
+  - une tranche est un intervalle du mois où période et montant sont constants. Elle vaut `prime × jours couverts / jours du mois`, en jours civils (date de début incluse, date de fin exclue, comme l'ADR-004) ;
+  - un nouveau montant s'applique à partir du jour de son `occurredAt`, inclus ;
+  - chaque ligne est arrondie au centime (`HALF_UP`), le total à payer aux 5 centimes, l'écart figure sur une ligne d'arrondi ;
+  - un contrat sans aucun jour couvert dans le mois ne donne pas de ligne ; un payeur sans ligne ne reçoit pas de facture ;
+  - le temps vient de la `Clock` (ADR-003) ; le domaine reçoit le mois à facturer.
+- **Émission idempotente** : un job mensuel par lots (même socle que l'ADR-022) produit les factures du mois écoulé. L'unicité `(payer_id, billing_month)` en base empêche une double émission en cas de relance ou de deux instances.
+- **Modification rétroactive d'un mois déjà facturé** (début avancé dans le passé, ADR-025) : la facture émise ne change pas. L'écart est enregistré dans la copie locale et sera facturé ou remboursé par une régularisation (incrément 4). Jusque-là, il n'est pas facturé.
+
+**Incréments.**
+1. **Événements et outbox** dans Contrats, avec leur propre ADR. Contrats ne change pas de comportement : il publie en plus.
+2. **Copie locale et émission des factures** : `BillableContract` nourrie par les événements, job mensuel, prorata, arrondi, lecture des factures d'un client par les conseillers.
+3. **Encaissements** : saisie d'un paiement par un conseiller, état de la facture (`Issued`, `PartiallyPaid`, `Paid`, en `sealed` selon l'ADR-002).
+4. **Plus tard** : payeur différent de l'assuré (mandats), régularisations et avoirs, rappels, QR-facture et lecture des avis de crédit bancaires (camt.054).
+
+**Hypothèses à confirmer** (le métier n'est pas joignable, comme pour l'ADR-024) :
+- le `cost` d'un contrat est une prime mensuelle en CHF, toutes taxes comprises ;
+- LAA et LPP sont facturées comme la LAMal. En réalité, leurs primes dépendent souvent de la masse salariale déclarée chaque année : à reconsidérer si un incrément le demande.
+
+**Alternatives écartées.**
+- **Microservice séparé** : déploiement, réseau, contrat d'API et observabilité distribuée en plus, pour une dizaine de conseillers. La frontière en packages, en schéma et en événements permet de sortir le module plus tard.
+- **Facturation qui lit les tables `contracts`** : simple au départ, mais elle couple Facturation au schéma de Contrats, qui ne pourrait plus évoluer seul, et ne donne pas l'historique des montants (le coût est écrasé à chaque modification).
+- **Appel direct d'un use case de Facturation par les handlers de Contrats** : Contrats connaîtrait Facturation, et une erreur de facturation ferait échouer la modification d'un contrat.
+- **Packages `domain/billing`, `features/billing`… dans les couches actuelles** : cohérent avec la structure existante, mais la frontière du contexte serait éclatée dans quatre packages et plus difficile à faire respecter.
+- **Déplacer l'existant dans un package `contracts`** : symétrique, mais un gros renommage sans gain fonctionnel. Possible plus tard.
+- **Facturation à l'avance** (le mois M facturé début M, comme souvent pour la LAMal) : plus fidèle au métier, mais toute modification du mois en cours demande une régularisation, ce qui rend dès le premier incrément nécessaires des avoirs et des factures correctives. Reportée avec les régularisations.
+- **Payeur ajouté au modèle `Client`** : mélangerait une donnée de facturation au contexte Contrats, et obligerait Contrats à changer pour une règle qui ne le concerne pas.
+
+**Conséquences.**
+- Toute écriture de contrat écrit aussi un événement, y compris les fermetures en masse et les imports (jusqu'à 500 000 lignes par fichier, ADR-022, donc autant d'événements, à écrire par lots).
+- Les factures sont en retard sur les contrats de la durée de livraison des événements : acceptable, l'émission est mensuelle et ne lit que des mois terminés.
+- Flyway et Hibernate doivent connaître le schéma `billing` (`ddl-auto: validate`).
+- Les règles d'accès restent celles de l'ADR-017 : rôle `counselor`, règles d'URL. Un portail payeur relèverait de l'accès client déjà noté comme conditionnel.
+
+**Statut.** Proposée.

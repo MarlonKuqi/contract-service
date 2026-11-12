@@ -70,7 +70,7 @@ public class CreateContractController {
     )
     @ApiResponse(
             responseCode = "422",
-            description = "Business validation failed: invalid cost amount or date range, missing or unknown type (code validationError), type not allowed for this client (code contractTypeNotAllowed: LAMAL is reserved to persons, LAA and LPP to companies)",
+            description = "Business validation failed: invalid cost amount or date range, missing or unknown type (code validationError), type not allowed for this client (code contractTypeNotAllowed: LAMAL is reserved to persons, LAA and LPP to companies), franchise missing, forbidden or not allowed for the age of the insured person (code invalidContractFranchise)",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
@@ -89,6 +89,7 @@ public class CreateContractController {
         final Contract contract = createContract.execute(new CreateContract.Command(
                 request.clientId(),
                 request.type(),
+                request.franchise(),
                 request.startDate(),
                 request.endDate(),
                 request.costAmount()

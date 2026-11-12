@@ -7,8 +7,10 @@ import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
+import com.mk.contractservice.domain.contract.LamalFranchise;
 import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
+import com.mk.contractservice.domain.contract.exception.InvalidContractFranchiseException;
 import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +33,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,7 +64,12 @@ class CreateContractTest {
     }
 
     private CreateContract.Command commandOf(final ContractType type, final BigDecimal cost) {
-        return new CreateContract.Command(clientId, type, now, now.plusMonths(12), cost);
+        return new CreateContract.Command(clientId,
+                type,
+                ContractFixtures.defaultFranchise(type),
+                now,
+                now.plusMonths(12),
+                cost);
     }
 
     @Test
@@ -77,13 +84,19 @@ class CreateContractTest {
                 now);
         when(contractRepository.save(any(Contract.class))).thenReturn(saved);
 
-        Contract result = createContractHandler.execute(commandOf(ContractType.LAMAL, COST));
+        Contract result = createContractHandler.execute(new CreateContract.Command(clientId,
+                ContractType.LAMAL,
+                2500,
+                now,
+                now.plusMonths(12),
+                COST));
 
         assertThat(result).isSameAs(saved);
         ArgumentCaptor<Contract> captor = ArgumentCaptor.forClass(Contract.class);
         verify(contractRepository).save(captor.capture());
         assertThat(captor.getValue().clientId()).isEqualTo(clientId);
         assertThat(captor.getValue().type()).isEqualTo(ContractType.LAMAL);
+        assertThat(captor.getValue().franchise().map(LamalFranchise::value)).hasValue(2500);
         assertThat(captor.getValue().lastModified()).isEqualTo(now);
     }
 
@@ -99,7 +112,7 @@ class CreateContractTest {
     }
 
     @Test
-    @DisplayName("GIVEN une personne avec une LAMal qui couvre la période WHEN elle souscrit une LAMal THEN refuse sans créer de contrat")
+    @DisplayName("GIVEN une personne avec une LAMal qui couvre la période WHEN elle souscrit une LAMal THEN refuse le contrat")
     void shouldRefuseLamalOverlappingExistingOne() {
         when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId));
         when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
@@ -113,7 +126,6 @@ class CreateContractTest {
 
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(OverlappingContractException.class);
-        verify(contractRepository, never()).save(any(Contract.class));
     }
 
     @Test
@@ -135,36 +147,64 @@ class CreateContractTest {
     }
 
     @Test
-    @DisplayName("GIVEN une entreprise WHEN elle souscrit une LAMal THEN refuse sans créer de contrat")
+    @DisplayName("GIVEN une entreprise WHEN elle souscrit une LAMal THEN refuse le contrat")
     void shouldRefuseTypeNotAllowedForClient() {
         when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingCompany(clientId));
         CreateContract.Command command = commandOf(ContractType.LAMAL, COST);
 
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(ContractTypeNotAllowedException.class);
-        verify(contractRepository, never()).save(any(Contract.class));
     }
 
     @Test
-    @DisplayName("GIVEN client inexistant WHEN execute THEN lève ClientNotFoundException sans créer de contrat")
+    @DisplayName("GIVEN client inexistant WHEN execute THEN lève ClientNotFoundException")
     void shouldThrowExceptionWhenClientNotFound() {
         when(clientRepository.getById(clientId)).thenThrow(ClientNotFoundException.forId(clientId));
         CreateContract.Command command = commandOf(ContractType.LAMAL, COST);
 
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(ClientNotFoundException.class);
-        verify(contractRepository, never()).save(any(Contract.class));
     }
 
     @Test
-    @DisplayName("GIVEN coût invalide WHEN execute THEN lève InvalidContractCostException sans interroger les clients")
+    @DisplayName("GIVEN coût invalide et client inexistant WHEN execute THEN signale le coût avant le client")
     void shouldValidateContractBeforeCheckingClientExistence() {
+        lenient().when(clientRepository.getById(clientId)).thenThrow(ClientNotFoundException.forId(clientId));
         CreateContract.Command command = commandOf(ContractType.LAMAL, new BigDecimal("-1000.00"));
 
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(InvalidContractCostException.class);
-        verify(clientRepository, never()).getById(any(UUID.class));
-        verify(contractRepository, never()).save(any(Contract.class));
+    }
+
+    @Test
+    @DisplayName("GIVEN une LAMal sans franchise et un client inexistant WHEN execute THEN signale la franchise avant le client")
+    void shouldValidateFranchiseBeforeCheckingClientExistence() {
+        lenient().when(clientRepository.getById(clientId)).thenThrow(ClientNotFoundException.forId(clientId));
+        CreateContract.Command command = new CreateContract.Command(clientId,
+                ContractType.LAMAL,
+                null,
+                now,
+                null,
+                COST);
+
+        assertThatThrownBy(() -> createContractHandler.execute(command))
+                .isInstanceOf(InvalidContractFranchiseException.class);
+    }
+
+    @Test
+    @DisplayName("GIVEN un enfant WHEN il souscrit une LAMal avec une franchise d'adulte THEN refuse le contrat")
+    void shouldRefuseFranchiseNotAllowedForTheAgeOfTheInsured() {
+        when(clientRepository.getById(clientId))
+                .thenReturn(ClientFixtures.existingPerson(clientId, now.toLocalDate().minusYears(10)));
+        CreateContract.Command command = new CreateContract.Command(clientId,
+                ContractType.LAMAL,
+                1000,
+                now,
+                now.plusMonths(12),
+                COST);
+
+        assertThatThrownBy(() -> createContractHandler.execute(command))
+                .isInstanceOf(InvalidContractFranchiseException.class);
     }
 
     @Test

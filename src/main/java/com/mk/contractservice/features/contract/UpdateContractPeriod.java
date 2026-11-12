@@ -1,9 +1,11 @@
 package com.mk.contractservice.features.contract;
 
+import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.shared.ContractHolder;
 import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -34,6 +36,7 @@ public interface UpdateContractPeriod {
     class Handler implements UpdateContractPeriod {
 
         private final ContractRepository contractRepository;
+        private final ClientRepository clientRepository;
         private final ContractOverlapPolicy contractOverlapPolicy;
         private final Clock clock;
 
@@ -42,9 +45,12 @@ public interface UpdateContractPeriod {
             final Contract contract = contractRepository.getById(command.contractId());
             contractRepository.ensureVersion(command.contractId(), command.expectedVersion());
 
+            final ContractHolder holder = clientRepository.getContractHolderIncludingDeleted(
+                    Objects.requireNonNull(contract.clientId()));
             final LocalDateTime now = LocalDateTime.now(clock);
             final Contract updatedContract = contract.changePeriod(
                     ContractPeriod.of(command.startDate(), command.endDate(), now),
+                    holder,
                     now
             );
 

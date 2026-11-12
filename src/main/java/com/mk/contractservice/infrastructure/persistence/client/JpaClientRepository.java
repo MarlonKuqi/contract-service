@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.domain.shared.ContractHolder;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import com.mk.contractservice.infrastructure.persistence.client.entities.ClientJpaEntity;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -76,6 +78,15 @@ public class JpaClientRepository implements ClientRepository {
     @Transactional(propagation = Propagation.MANDATORY)
     public Set<UUID> lockExistingIds(final Set<UUID> ids) {
         return ids.isEmpty() ? Set.of() : jpa.lockExistingIds(ids);
+    }
+
+    @Override
+    public ContractHolder getContractHolderIncludingDeleted(final UUID id) {
+        return jpa.findPersonBirthDateIncludingDeleted(id)
+                .<ContractHolder>map(ContractHolder::person)
+                .or(() -> jpa.existsCompanyIncludingDeleted(id) ? Optional.of(ContractHolder.company()) : Optional
+                        .empty())
+                .orElseThrow(() -> ClientNotFoundException.forId(id));
     }
 
     @Override

@@ -125,6 +125,7 @@ public interface ProcessContractImportBatch {
             return switch (ContractImportLineEvaluator.evaluate(
                     parsed.clientId(),
                     parsed.type(),
+                    parsed.franchise(),
                     parsed.startDate(),
                     parsed.endDate(),
                     parsed.costAmount(),

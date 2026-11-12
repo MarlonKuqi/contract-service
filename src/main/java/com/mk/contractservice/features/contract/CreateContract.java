@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractCost;
+import com.mk.contractservice.domain.contract.ContractCoverage;
 import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractRepository;
@@ -23,6 +24,7 @@ public interface CreateContract {
     record Command(
             UUID clientId,
             ContractType type,
+            @Nullable Integer franchise,
             @Nullable LocalDateTime startDate,
             @Nullable LocalDateTime endDate,
             BigDecimal costAmount
@@ -50,10 +52,11 @@ public interface CreateContract {
             final LocalDateTime now = LocalDateTime.now(clock);
             final ContractPeriod period = ContractPeriod.of(command.startDate(), command.endDate(), now);
             final ContractCost cost = ContractCost.of(command.costAmount());
+            final ContractCoverage coverage = ContractCoverage.of(command.type(), command.franchise());
 
             final Client client = clientRepository.getById(command.clientId());
 
-            final Contract contract = Contract.of(client.id(), client.kind(), command.type(), period, cost, now);
+            final Contract contract = Contract.of(client.id(), client.contractHolder(), coverage, period, cost, now);
             contractOverlapPolicy.ensureNoOverlap(contract, now);
             return contractRepository.save(contract);
         }

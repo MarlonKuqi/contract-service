@@ -4,6 +4,7 @@ import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
 import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
+import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientEmail;
@@ -37,6 +38,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -104,6 +106,20 @@ class UpdateContractPeriodAcceptanceTest {
                 .body("startDate", equalTo(iso(newStart)))
                 .body("endDate", equalTo(iso(newEnd)))
                 .body("active", equalTo(true));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Sending the current period changes nothing, the ETag of the contract stays the same")
+    void shouldKeepETagWhenPeriodIsTheSame() {
+        Contract contract = givenContract(today.minusMonths(6), today.plusMonths(6));
+        String etag = ETags.current(ContractEndpoints.CONTRACT_BY_ID, contract.id());
+
+        putPeriod(contract, """
+                { "startDate": "%s", "endDate": "%s" }
+                """.formatted(iso(today.minusMonths(6)), iso(today.plusMonths(6))))
+                .statusCode(204);
+
+        assertThat(ETags.current(ContractEndpoints.CONTRACT_BY_ID, contract.id())).isEqualTo(etag);
     }
 
     @Test
@@ -205,6 +221,23 @@ class UpdateContractPeriodAcceptanceTest {
     @DisplayName("SCENARIO: The period of an expired contract cannot be changed (409 contractExpired)")
     void shouldRejectExpiredContract() {
         Contract contract = givenContract(today.minusMonths(6), today.minusDays(1));
+
+        putPeriod(contract, """
+                { "startDate": "%s", "endDate": null }
+                """.formatted(iso(today.minusMonths(6))))
+                .statusCode(409)
+                .body("code", equalTo("contractExpired"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: The period of a contract closed by the deletion of its client cannot be changed (409 contractExpired)")
+    void shouldRejectContractOfDeletedClientAsExpired() {
+        Contract contract = givenContract(today.minusMonths(6), null);
+        given()
+                .when()
+                .delete(ClientEndpoints.CLIENT_BY_ID, testClient.id())
+                .then()
+                .statusCode(204);
 
         putPeriod(contract, """
                 { "startDate": "%s", "endDate": null }
