@@ -119,21 +119,32 @@ No domain object can exist in an invalid state.
 - Hibernate runs with `ddl-auto: validate`: the entity mapping must match the migrations.
 
 ## Testing strategy
-- We work in TDD mode, NOT TEST-FIRST.
-- Unit tests (Surefire, `./mvnw test`): domain main objects and handlers, mocked ports, `Clock.fixed`.
-- Acceptance tests (Failsafe, classes named `*AcceptanceTest`, `./mvnw verify`): REST API end to end with RestAssured on PostgreSQL via Testcontainers. Reserved for features seen by an API user. The JVM runs in UTC (`-Duser.timezone=UTC`). To make time pass, replace only the `InstantSource` with `MutableInstantSource`, never the `Clock`.
-- Security is never bypassed in tests. Acceptance tests call `AcceptanceRestAssured.configure(port)` in their `setUp`: it sets the base URI, a counselor token (`RestAssured.authentication`) and the JSON content type, so requests never repeat `.contentType(ContentType.JSON)`. `configure` starts with `RestAssured.reset()`: `new RequestSpecBuilder()` wraps the current static `requestSpecification`, so without the reset each `setUp` nests the previous spec, its headers pile up and its stale port sends requests to another test context. Never set RestAssured statics outside this helper (except `RestAssured.authentication` to test calls without a token). The token goes through `RestAssured.authentication`, signed with a test RSA key and checked by the production `AccessTokenValidator`. Access rules are URL rules in `SecurityConfig`, not `@PreAuthorize` (ADR-017); `SecurityAcceptanceTest` covers them.
-- Tests never call `now()` without a clock: acceptance tests inject the application `Clock` bean, unit tests use fixed dates or `Clock.fixed`.
-- Concurrency bugs are reproduced with two real transactions (`TransactionTemplate` + `PROPAGATION_REQUIRES_NEW`).
-- A regression test must fail without the fix: check it before delivering.
-- Handler tests assert outcomes, not missing calls (ADR-014): no `verify(port, never())` after an exception (the exception proves the refusal, the use case transaction rolls back any write). Check the order of validations by making the other error possible (`lenient()` stub that throws) and asserting which one wins. A no-op update is asserted with `isSameAs(loaded)` in the unit test and an unchanged ETag in an acceptance test. Only a `void` handler whose sole output is a port call keeps `verify`.
-- Value Objects are tested through the entities' `of` (via the test fixtures) and the REST API. A dedicated VO test exists only when the VO is shared across aggregates or carries logic not observable through an entity.
-- Required for each entity:
+TDD in a fast loop: red, green, refactor, one business scenario at a time, never a batch of tests written upfront. A scenario is driven and finished in the fast loop; the end-to-end suite only confirms the wiring and stays small (ADR-014).
+
+### Fast loop (Surefire, `./mvnw test`, seconds)
+- **Domain tests**: every variant of a rule (bounds, scales, dates, null and invalid values), through the aggregates' entry points and the test fixtures. Required for each entity:
     - `of()` with valid data, and with null or invalid fields;
     - `reconstituteFromDatabase()` with a valid id, and rejecting a null id or a null mandatory field;
     - each `change*` method, including the no-op case for an identical value;
     - immutability of `birthDate` and `companyIdentifier`.
+- **Feature tests**: the handler test of the use case, `src/test/.../features/<area>/<UseCase>Test`, mocked ports, `Clock.fixed`. One test per business scenario, named in domain terms (`GIVEN … WHEN … THEN …`): what is loaded, which rule applies, what is saved, which error wins.
+- Handler tests assert outcomes, not missing calls: no `verify(port, never())` after an exception (the exception proves the refusal, the use case transaction rolls back any write). Check the order of validations by making the other error possible (`lenient()` stub that throws) and asserting which one wins. A no-op update is asserted with `isSameAs(loaded)`. Only a `void` handler whose sole output is a port call keeps `verify`.
+- Value Objects are tested through the entities' `of`. A dedicated VO test exists only when the VO is shared across aggregates or carries logic not observable through an entity.
+
+### Acceptance tests (Failsafe, `*AcceptanceTest`, `./mvnw verify`)
+End to end: REST API with RestAssured on PostgreSQL via Testcontainers. Written once the scenario is green in its feature test, so it is expected green at once: a red one points to the wiring, not to a rule. Each test reflects a feature seen by an API user, in business terms. Per feature, cover only:
+- the nominal scenario, with a read back when the feature writes;
+- the specific cases only end to end can show: a new HTTP outcome (status + `code`, one representative example), JSON binding, security, database constraints, transactions, concurrency, job recovery, a no-op update (unchanged ETag).
+
+A rule variant already proven in the fast loop gets no acceptance test.
+- The JVM runs in UTC (`-Duser.timezone=UTC`). To make time pass, replace only the `InstantSource` with `MutableInstantSource`, never the `Clock`.
+- Security is never bypassed in tests. Acceptance tests call `AcceptanceRestAssured.configure(port)` in their `setUp`: it sets the base URI, a counselor token (`RestAssured.authentication`) and the JSON content type, so requests never repeat `.contentType(ContentType.JSON)`. `configure` starts with `RestAssured.reset()`: `new RequestSpecBuilder()` wraps the current static `requestSpecification`, so without the reset each `setUp` nests the previous spec, its headers pile up and its stale port sends requests to another test context. Never set RestAssured statics outside this helper (except `RestAssured.authentication` to test calls without a token). The token goes through `RestAssured.authentication`, signed with a test RSA key and checked by the production `AccessTokenValidator`. Access rules are URL rules in `SecurityConfig`, not `@PreAuthorize` (ADR-017); `SecurityAcceptanceTest` covers them.
+- Concurrency bugs are reproduced with two real transactions (`TransactionTemplate` + `PROPAGATION_REQUIRES_NEW`).
 - Test cleanup deletes contracts before clients (FK `ON DELETE RESTRICT`).
+
+### All tests
+- Tests never call `now()` without a clock: acceptance tests inject the application `Clock` bean, unit tests use fixed dates or `Clock.fixed`.
+- A regression test must fail without the fix: check it before delivering. It sits at the lowest level that reproduces the bug (an acceptance test only when the bug lives in the wiring, like a JSON binding).
 - Run `./mvnw spotless:apply` before committing: the CI fails on files that differ from `config/formatter/eclipse-java-formatter.xml` (only files changed since the target branch are checked).
 - Always run `./mvnw clean verify` before declaring a change done. `clean` matters: stale resources in `target/` (renamed migrations) are not removed otherwise.
 - The Testcontainers PostgreSQL container is reused (`withReuse(true)`). After switching branches, its database may contain migrations the branch does not know (Flyway silently ignores "future" migrations). If tests fail on schema-related errors, remove the reused container and rerun.
@@ -169,7 +180,7 @@ Use `!` and a `BREAKING CHANGE:` footer only when a client that respected the AP
 ## How to respond when asked to generate code
 Before producing code:
 1. Read the existing codebase and documentation (including the ADRs).
-2. Write the unit, acceptance and feature tests and work in TDD mode.
+2. Work in TDD in the fast loop (domain and feature tests), then add the acceptance tests the feature needs (see "Testing strategy").
 3. Verify the change fits the architecture.
 4. Highlight impacts: domain, persistence (migrations), API contract.
 
