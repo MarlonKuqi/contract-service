@@ -36,7 +36,7 @@ Suivi des sujets en cours. Les décisions sont détaillées dans [ADR.md](docs/A
 - [ ] **Docs utilisateur**
   - Release notes 2.0.0 : à écrire dans `docs/cli/RELEASE_NOTES_2.0.0.md` (fichier absent de toutes les branches) :
     - `type` obligatoire sur les contrats (`POST /v2/contracts`, imports JSON et CSV), éligibilité selon la nature du client (ADR-024) ;
-    - `franchise` obligatoire sur une LAMal, selon le barème légal et l'âge de l'assuré, LAMal d'enfant à durée limitée, nouvel en-tête CSV (ADR-024, incrément 3) ;
+    - `franchise` obligatoire sur une LAMal, selon le barème légal et l'âge de l'assuré, LAMal d'enfant à durée limitée, nouvel en-tête CSV, base à recréer si elle contient des LAMal antérieures à `V2.0.0.11` (ADR-024, incrément 3) ;
     - plus de 409 sur email / téléphone ;
     - `DELETE` d'un client inconnu ou déjà supprimé : 404 ;
     - soft delete ;
@@ -101,7 +101,7 @@ Non exigé par `docs/sujet.txt`, livré par incréments. Chaque incrément a sa 
   - `ContractOverlapPolicy` (service de domaine) porte la règle : `ensureNoOverlap` vérifie un contrat (création, changement de période en écartant le contrat lui-même), `startBatch` charge en une requête les LAMal de tous les clients d’un import et renvoie un `Batch` dont `admit` refuse ou retient chaque ligne. `409 contractOverlap` à la création et au changement de période, rejet `OVERLAPPING_CONTRACT` / `contractOverlap` dans les imports, y compris entre lignes d'un même import.
   - Concurrence : `ContractOverlapPolicy` verrouille les clients (`FOR UPDATE … ORDER BY id`) avant de lire leurs LAMal ; le verrou de chunk de l'import par fichier passe de `FOR SHARE` à `FOR UPDATE` trié. Contrainte d'exclusion PostgreSQL envisagée puis écartée (ADR-024). Test avec deux vraies transactions sur deux threads.
   - Clôture d'un contrat et suppression d'un client : sans effet sur la règle (une fin plus tôt ne crée pas de chevauchement).
-- [x] **Incrément 3 : franchise LAMal** (non commité, travail sur `develop`).
+- [x] **Incrément 3 : franchise LAMal** (`feat/contract-types-increment-3`).
   - Couverture `sealed` `ContractCoverage` (`Lamal(LamalFranchise)`, `Laa`, `Lpp`) à la place du champ `type`, plutôt qu'un agrégat `sealed` : une seule donnée propre au type ne justifie pas de dupliquer le builder, les `change*` et les mappers. Une seule table : colonne `franchise` nullable, `CHECK` liée au type, migration `V2.0.0.11` sans reprise de données (aucune LAMal attendue en base avant elle).
   - Barème légal (`LamalFranchise`) : adulte 300, 500, 1000, 1500, 2000, 2500 CHF ; enfant de 0 à 600 CHF par paliers de 100. Catégorie selon l'année de naissance, évaluée au début du contrat.
   - LAMal d'enfant : fin obligatoire au plus tard le 1er janvier de l'année des 19 ans, vérifiée aussi au changement de période.

@@ -105,10 +105,14 @@ curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:8080/v2/contract
   -H "Content-Type: application/json" \
   -d '{
     "clientId": "{client-uuid}",
+    "type": "LAMAL",
+    "franchise": 300,
     "costAmount": 1500.00
   }'
 ```
 ✅ **Response:** `201 Created` (startDate = now(), endDate = null)
+
+`type` is `LAMAL` for a person, `LAA` or `LPP` for a company. `franchise` is required for a `LAMAL` and forbidden otherwise: 300, 500, 1000, 1500, 2000 or 2500 for an adult, 0 to 600 by steps of 100 for a child, whose contract must end at the latest on January 1st of the year they turn 19.
 
 **Get Active Contracts** (paginated, only active):
 ```bash
@@ -203,7 +207,7 @@ Import from `api-collections/` for complete API examples:
 ### Contracts
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/v2/contracts` | Create contract (`clientId` and `type` in the body: `LAMAL` for a person, `LAA` or `LPP` for a company; startDate defaults to now) |
+| POST | `/v2/contracts` | Create contract (`clientId` and `type` in the body: `LAMAL` for a person, `LAA` or `LPP` for a company; `franchise` required for a `LAMAL`; startDate defaults to now) |
 | GET | `/v2/contracts?clientId={id}` | Get active contracts (paginated, filter by updatedSince) |
 | GET | `/v2/contracts/{id}` | Get specific contract |
 | PATCH | `/v2/contracts/{id}/cost` | Update cost (updates the internal last modification date) |
@@ -374,6 +378,7 @@ COPY (
     WITH c AS (SELECT array_agg(id) AS ids FROM contracts.client WHERE deleted_at IS NULL AND type = 'COMPANY')
     SELECT ids[1 + n % cardinality(ids)] AS "clientId",
            CASE WHEN n % 2 = 0 THEN 'LAA' ELSE 'LPP' END AS "type",
+           NULL AS "franchise",
            CASE WHEN n % 2 = 0 THEN to_char(DATE '2027-01-01' + n % 365, 'YYYY-MM-DD"T"00:00:00') END AS "startDate",
            CASE WHEN n % 2 = 0 THEN to_char(DATE '2028-01-01' + n % 365, 'YYYY-MM-DD"T"00:00:00') END AS "endDate",
            (100 + n % 9900)::numeric(12,2) AS "costAmount"
