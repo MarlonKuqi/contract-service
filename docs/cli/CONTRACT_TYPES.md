@@ -74,7 +74,7 @@ Deux créations simultanées pour la même personne sont traitées l'une après 
 
 Décision : [ADR-024, incrément 3](../ADR.md#incrément-3--franchise-lamal).
 
-Une LAMal porte toujours une franchise annuelle en CHF (`franchise`, un entier). Une LAA ou une LPP n'en a pas : on n'envoie pas le champ, ou on envoie `null`.
+Une LAMal porte toujours une franchise annuelle en CHF (`franchise`, un entier). Une valeur décimale (`300.5`) est refusée en `422 validationError` au lieu d'être tronquée. Une LAA ou une LPP n'en a pas : on n'envoie pas le champ, ou on envoie `null`.
 
 | Assuré | Franchises autorisées |
 |---|---|

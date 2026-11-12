@@ -22,6 +22,9 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     default-schema: contracts
+  jackson:
+    deserialization:
+      accept-float-as-int: false
   docker:
     compose:
       enabled: false

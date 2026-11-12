@@ -138,6 +138,19 @@ class LamalFranchiseAcceptanceTest {
     }
 
     @Test
+    @DisplayName("SCENARIO: A decimal franchise is refused instead of being truncated")
+    void shouldRefuseDecimalFranchise() {
+        Client adult = aPerson(LocalDate.of(1985, 3, 20));
+
+        createContract("""
+                { "clientId": "%s", "type": "LAMAL", "franchise": 300.5, "costAmount": "250.00" }
+                """.formatted(adult.id()))
+                .statusCode(422)
+                .body("code", equalTo("validationError"))
+                .body("detail", containsString("franchise"));
+    }
+
+    @Test
     @DisplayName("SCENARIO: An adult cannot take a child franchise")
     void shouldRefuseChildFranchiseForAdult() {
         Client adult = aPerson(LocalDate.of(1985, 3, 20));
