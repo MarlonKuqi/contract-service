@@ -8,6 +8,7 @@ import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
+import com.mk.contractservice.domain.contract.LamalFranchise;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
 import org.junit.jupiter.api.BeforeEach;
@@ -147,7 +148,7 @@ class ImportContractsTest {
                     new ImportContracts.Line(clientId, ContractType.LAMAL, 300, now, now.plusYears(1), VALID_COST),
                     new ImportContracts.Line(otherClientId,
                             ContractType.LAMAL,
-                            300,
+                            1500,
                             null,
                             null,
                             new BigDecimal("2000.00"))
@@ -160,10 +161,12 @@ class ImportContractsTest {
             final List<Contract> created = handler.execute(command);
 
             assertThat(created)
-                    .extracting(Contract::clientId, contract -> contract.costAmount().value())
+                    .extracting(Contract::clientId,
+                            contract -> contract.franchise().map(LamalFranchise::value).orElseThrow(),
+                            contract -> contract.costAmount().value())
                     .containsExactly(
-                            tuple(clientId, VALID_COST),
-                            tuple(otherClientId, new BigDecimal("2000.00")));
+                            tuple(clientId, 300, VALID_COST),
+                            tuple(otherClientId, 1500, new BigDecimal("2000.00")));
         }
 
         @Test

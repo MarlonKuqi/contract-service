@@ -7,6 +7,7 @@ import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
+import com.mk.contractservice.domain.contract.LamalFranchise;
 import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractFranchiseException;
@@ -83,13 +84,19 @@ class CreateContractTest {
                 now);
         when(contractRepository.save(any(Contract.class))).thenReturn(saved);
 
-        Contract result = createContractHandler.execute(commandOf(ContractType.LAMAL, COST));
+        Contract result = createContractHandler.execute(new CreateContract.Command(clientId,
+                ContractType.LAMAL,
+                2500,
+                now,
+                now.plusMonths(12),
+                COST));
 
         assertThat(result).isSameAs(saved);
         ArgumentCaptor<Contract> captor = ArgumentCaptor.forClass(Contract.class);
         verify(contractRepository).save(captor.capture());
         assertThat(captor.getValue().clientId()).isEqualTo(clientId);
         assertThat(captor.getValue().type()).isEqualTo(ContractType.LAMAL);
+        assertThat(captor.getValue().franchise().map(LamalFranchise::value)).hasValue(2500);
         assertThat(captor.getValue().lastModified()).isEqualTo(now);
     }
 

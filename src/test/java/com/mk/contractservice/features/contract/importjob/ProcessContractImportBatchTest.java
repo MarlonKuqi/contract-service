@@ -8,6 +8,7 @@ import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
+import com.mk.contractservice.domain.contract.LamalFranchise;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
@@ -60,6 +61,8 @@ class ProcessContractImportBatchTest {
     private ArgumentCaptor<List<ContractImportJobLine>> linesCaptor;
     @Captor
     private ArgumentCaptor<ContractImportJob> jobCaptor;
+    @Captor
+    private ArgumentCaptor<List<Contract>> contractsCaptor;
 
     private ProcessContractImportBatch handler;
 
@@ -107,7 +110,7 @@ class ProcessContractImportBatchTest {
 
         handler.execute(new ProcessContractImportBatch.Command(JOB_ID,
                 List.of(
-                        new RawLine(2, CLIENT_ID + ";LAMAL;300;;;100.00"),
+                        new RawLine(2, CLIENT_ID + ";LAMAL;1500;;;100.00"),
                         new RawLine(3, CLIENT_ID + ";LAMAL;300;;;-1"),
                         new RawLine(4, UNKNOWN_CLIENT_ID + ";LAMAL;300;;;100.00"),
                         new RawLine(5, "garbage"),
@@ -128,6 +131,10 @@ class ProcessContractImportBatchTest {
                         tuple(7, CLIENT_ID, ContractImportRejectionReason.TYPE_NOT_ALLOWED),
                         tuple(8, CLIENT_ID, ContractImportRejectionReason.INVALID_LINE_FORMAT)
                 );
+        verify(contractRepository).saveAll(contractsCaptor.capture());
+        assertThat(contractsCaptor.getValue())
+                .singleElement()
+                .satisfies(contract -> assertThat(contract.franchise().map(LamalFranchise::value)).hasValue(1500));
     }
 
     @Test
