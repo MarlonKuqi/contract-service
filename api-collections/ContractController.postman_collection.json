@@ -363,7 +363,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "contracts", "import-jobs", "{{importJobId}}", "rejections", "export"]
         },
-        "description": "Download the rejected lines as CSV (text/csv, attachment): lineNumber;rejectionCode;rejectionMessage;line, ordered by line number. The line column is the original line of the file: fix it and copy it into a new file to submit. Text columns are quoted, inner quotes doubled. 404 contractImportJobNotFound: unknown job."
+        "description": "Download the rejected lines as CSV (text/csv, attachment): lineNumber;rejectionCode;rejectionMessage;line, ordered by line number. The line column is the original line of the file: fix it and copy it into a new file to submit. Text columns are quoted, inner quotes doubled. A text value starting with =, +, -, @, a tab or a carriage return is prefixed with an apostrophe so that a spreadsheet shows it as text (CSV injection): remove it before copying the line. 404 contractImportJobNotFound: unknown job."
       }
     },
     {

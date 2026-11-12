@@ -413,6 +413,31 @@ class ContractImportJobManagementAcceptanceTest {
     }
 
     @Test
+    @DisplayName(
+        "GIVEN rejected lines that start like a spreadsheet formula WHEN the counselor downloads them THEN they are exported as text")
+    void shouldExportFormulaLikeRejectedLinesAsText() {
+        final String jobId = submitAccepted(
+                HEADER + "=HYPERLINK(\"http://evil\")\n" + "+1+1\n" + "-1+1\n" + "@SUM(1)\n" + "\t=1+1\n");
+        runNextJob();
+
+        final List<String> lines = given().when()
+                .get(REJECTIONS_EXPORT_PATH, jobId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .asString()
+                .lines()
+                .toList();
+
+        assertThat(lines).hasSize(6);
+        assertThat(lines.get(1)).startsWith("2;invalidLineFormat;\"").endsWith(";\"'=HYPERLINK(\"\"http://evil\"\")\"");
+        assertThat(lines.get(2)).startsWith("3;invalidLineFormat;\"").endsWith(";\"'+1+1\"");
+        assertThat(lines.get(3)).startsWith("4;invalidLineFormat;\"").endsWith(";\"'-1+1\"");
+        assertThat(lines.get(4)).startsWith("5;invalidLineFormat;\"").endsWith(";\"'@SUM(1)\"");
+        assertThat(lines.get(5)).startsWith("6;invalidLineFormat;\"").endsWith(";\"'\t=1+1\"");
+    }
+
+    @Test
     @DisplayName("GIVEN an unknown job WHEN cancelling it or downloading its rejections THEN 404")
     void shouldAnswerNotFoundForUnknownJob() {
         final String unknown = UUID.randomUUID().toString();

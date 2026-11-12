@@ -14,6 +14,8 @@ public final class ContractImportRejectionCsv {
 
     private static final String LINE_END = "\r\n";
     private static final String QUOTE = "\"";
+    private static final String TEXT_MARKER = "'";
+    private static final String FORMULA_TRIGGERS = "=+-@\t\r";
 
     public static String write(final List<RejectedLine> lines) {
         final StringBuilder csv = new StringBuilder(HEADER).append(LINE_END);
@@ -31,6 +33,13 @@ public final class ContractImportRejectionCsv {
     }
 
     private static String quoted(final String value) {
-        return QUOTE + value.replace(QUOTE, QUOTE + QUOTE) + QUOTE;
+        return QUOTE + asText(value).replace(QUOTE, QUOTE + QUOTE) + QUOTE;
+    }
+
+    private static String asText(final String value) {
+        if (!value.isEmpty() && FORMULA_TRIGGERS.indexOf(value.charAt(0)) >= 0) {
+            return TEXT_MARKER + value;
+        }
+        return value;
     }
 }

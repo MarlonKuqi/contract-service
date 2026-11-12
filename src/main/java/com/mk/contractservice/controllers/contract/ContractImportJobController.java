@@ -220,7 +220,7 @@ public class ContractImportJobController {
 
     @Operation(
             summary = "Download the rejected lines of an import job as CSV",
-            description = "UTF-8, separator ';', columns " + ContractImportRejectionCsv.HEADER + ", ordered by line number. " + "The line column holds the original line of the file: fix it, then copy it into a new file to submit. " + "Text columns are quoted, inner quotes doubled."
+            description = "UTF-8, separator ';', columns " + ContractImportRejectionCsv.HEADER + ", ordered by line number. " + "The line column holds the original line of the file: fix it, then copy it into a new file to submit. " + "Text columns are quoted, inner quotes doubled. " + "A text value starting with =, +, -, @, a tab or a carriage return is prefixed with an apostrophe so that a spreadsheet shows it as text: remove it before copying the line."
     )
     @ApiResponse(
             responseCode = "200",

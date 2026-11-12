@@ -39,7 +39,7 @@ Ces fichiers JSON peuvent être importés dans **n'importe quel outil** :
 - `POST /v2/contracts/import-jobs` - Submit a CSV file for asynchronous, partial import (ADR-022)
 - `GET /v2/contracts/import-jobs/{jobId}` - Follow an import job (ADR-022)
 - `GET /v2/contracts/import-jobs/{jobId}/rejections` - List the lines rejected by a job (ADR-022)
-- `GET /v2/contracts/import-jobs/{jobId}/rejections/export` - Download the rejected lines as CSV, with their original line (ADR-022)
+- `GET /v2/contracts/import-jobs/{jobId}/rejections/export` - Download the rejected lines as CSV, with their original line; values that start like a formula are prefixed with an apostrophe (ADR-022)
 - `GET /v2/contracts/import-jobs` - List the import jobs, newest first, with their author (ADR-022)
 - `POST /v2/contracts/import-jobs/{jobId}/cancellation` - Cancel a job and close the contracts it created (ADR-022)
 - `GET /v2/contracts/{contractId}` - Get specific contract
