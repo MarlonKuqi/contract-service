@@ -1,6 +1,6 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.shared.PolicyHolder;
+import com.mk.contractservice.domain.shared.ContractHolder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -59,8 +59,8 @@ public final class Company extends Client {
     }
 
     @Override
-    public PolicyHolder policyHolder() {
-        return PolicyHolder.company();
+    public ContractHolder contractHolder() {
+        return ContractHolder.company();
     }
 
     @Override

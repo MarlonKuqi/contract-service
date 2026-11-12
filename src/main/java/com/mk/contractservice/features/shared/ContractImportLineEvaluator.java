@@ -66,7 +66,7 @@ public final class ContractImportLineEvaluator {
             final ContractPeriod period = ContractPeriod.of(startDate, endDate, now);
             final ContractCost cost = ContractCost.of(costAmount);
             final ContractCoverage coverage = ContractCoverage.of(type, franchise);
-            final Contract contract = Contract.of(clientId, client.policyHolder(), coverage, period, cost, now);
+            final Contract contract = Contract.of(clientId, client.contractHolder(), coverage, period, cost, now);
             overlapBatch.admit(contract);
             return new Accepted(contract);
         } catch (final ContractValidationException ex) {

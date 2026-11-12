@@ -7,8 +7,8 @@ import com.mk.contractservice.domain.contract.exception.ExpiredContractException
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractFranchiseException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
+import com.mk.contractservice.domain.shared.ContractHolder;
 import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
-import com.mk.contractservice.domain.shared.PolicyHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -33,7 +33,7 @@ class ContractTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 6, 1, 10, 0);
 
-    private static final PolicyHolder ADULT = PolicyHolder.person(LocalDate.of(1990, 5, 14));
+    private static final ContractHolder ADULT = ContractHolder.person(LocalDate.of(1990, 5, 14));
 
     private UUID testClientId;
 
@@ -713,8 +713,8 @@ class ContractTest {
         }
 
         @Test
-        @DisplayName("GIVEN no policy holder WHEN creating Contract THEN throw InvalidDomainObjectError")
-        void shouldRejectNullPolicyHolder() {
+        @DisplayName("GIVEN no contract holder WHEN creating Contract THEN throw InvalidDomainObjectError")
+        void shouldRejectNullContractHolder() {
             assertThatThrownBy(() -> Contract.of(testClientId,
                     null,
                     ContractCoverage.of(ContractType.LAMAL, ContractFixtures.ADULT_FRANCHISE),
@@ -921,7 +921,7 @@ class ContractTest {
         @Test
         @DisplayName("GIVEN an adult LAMal WHEN moving its start into childhood THEN it is refused with an adult-only franchise")
         void shouldRecheckFranchiseWhenStartMovesIntoChildhood() {
-            PolicyHolder holder = PolicyHolder.person(BORN_ON_NEW_YEARS_EVE_2008);
+            ContractHolder holder = ContractHolder.person(BORN_ON_NEW_YEARS_EVE_2008);
             Contract contract = lamal(BORN_ON_NEW_YEARS_EVE_2008, 1000, LocalDateTime.of(2027, 1, 1, 0, 0), null);
             ContractPeriod intoChildhood = ContractPeriod.of(LocalDateTime.of(2026, 1, 1, 0, 0),
                     LocalDateTime.of(2027, 1, 1, 0, 0),
@@ -935,7 +935,7 @@ class ContractTest {
         @Test
         @DisplayName("GIVEN a child LAMal WHEN removing its end date THEN it is refused")
         void shouldRefuseOpenEndedChildLamalOnPeriodChange() {
-            PolicyHolder holder = PolicyHolder.person(CHILD_BIRTH_DATE);
+            ContractHolder holder = ContractHolder.person(CHILD_BIRTH_DATE);
             Contract contract = lamal(CHILD_BIRTH_DATE, 0, NOW, END_OF_CHILDHOOD);
 
             assertThatThrownBy(() -> contract.changePeriod(ContractPeriod.of(NOW, null, NOW), holder, NOW))
@@ -946,7 +946,7 @@ class ContractTest {
         @Test
         @DisplayName("GIVEN a child LAMal WHEN shortening it THEN the period is changed")
         void shouldAcceptChildLamalPeriodWithinChildhood() {
-            PolicyHolder holder = PolicyHolder.person(CHILD_BIRTH_DATE);
+            ContractHolder holder = ContractHolder.person(CHILD_BIRTH_DATE);
             Contract contract = lamal(CHILD_BIRTH_DATE, 0, NOW, END_OF_CHILDHOOD);
             ContractPeriod shorter = ContractPeriod.of(NOW, LocalDateTime.of(2028, 1, 1, 0, 0), NOW);
 

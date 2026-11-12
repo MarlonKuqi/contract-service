@@ -4,7 +4,7 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.shared.PolicyHolder;
+import com.mk.contractservice.domain.shared.ContractHolder;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import com.mk.contractservice.infrastructure.persistence.client.entities.ClientJpaEntity;
@@ -81,10 +81,10 @@ public class JpaClientRepository implements ClientRepository {
     }
 
     @Override
-    public PolicyHolder getPolicyHolderIncludingDeleted(final UUID id) {
+    public ContractHolder getContractHolderIncludingDeleted(final UUID id) {
         return jpa.findPersonBirthDateIncludingDeleted(id)
-                .<PolicyHolder>map(PolicyHolder::person)
-                .or(() -> jpa.existsCompanyIncludingDeleted(id) ? Optional.of(PolicyHolder.company()) : Optional
+                .<ContractHolder>map(ContractHolder::person)
+                .or(() -> jpa.existsCompanyIncludingDeleted(id) ? Optional.of(ContractHolder.company()) : Optional
                         .empty())
                 .orElseThrow(() -> ClientNotFoundException.forId(id));
     }

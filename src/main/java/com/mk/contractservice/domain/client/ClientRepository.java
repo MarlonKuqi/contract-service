@@ -1,6 +1,6 @@
 package com.mk.contractservice.domain.client;
 
-import com.mk.contractservice.domain.shared.PolicyHolder;
+import com.mk.contractservice.domain.shared.ContractHolder;
 import com.mk.contractservice.domain.shared.RepositoryPort;
 
 import java.time.LocalDateTime;
@@ -22,7 +22,7 @@ public interface ClientRepository {
 
     Set<UUID> lockExistingIds(final Set<UUID> ids);
 
-    PolicyHolder getPolicyHolderIncludingDeleted(final UUID id);
+    ContractHolder getContractHolderIncludingDeleted(final UUID id);
 
     void ensureVersion(final UUID id, final long expectedVersion);
 

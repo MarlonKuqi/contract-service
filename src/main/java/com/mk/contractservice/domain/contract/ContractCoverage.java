@@ -2,7 +2,7 @@ package com.mk.contractservice.domain.contract;
 
 import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractFranchiseException;
-import com.mk.contractservice.domain.shared.PolicyHolder;
+import com.mk.contractservice.domain.shared.ContractHolder;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
@@ -36,11 +36,11 @@ public sealed interface ContractCoverage permits ContractCoverage.Lamal, Contrac
         };
     }
 
-    default void ensureAllowedFor(final PolicyHolder holder, final ContractPeriod period) {
+    default void ensureAllowedFor(final ContractHolder holder, final ContractPeriod period) {
         if (type().isClosedTo(holder.kind())) {
             throw new ContractTypeNotAllowedException(type(), holder.kind());
         }
-        if (this instanceof Lamal(LamalFranchise franchise) && holder instanceof PolicyHolder.Person(LocalDate birthDate)) {
+        if (this instanceof Lamal(LamalFranchise franchise) && holder instanceof ContractHolder.Person(LocalDate birthDate)) {
             franchise.ensureSuits(birthDate, period);
         }
     }

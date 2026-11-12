@@ -54,7 +54,7 @@ public final class ContractFixtures {
             final LocalDateTime now
     ) {
         return Contract.of(client.id(),
-                client.policyHolder(),
+                client.contractHolder(),
                 ContractCoverage.of(type, franchise),
                 ContractPeriod.of(startDate, endDate, now),
                 ContractCost.of(costAmount),

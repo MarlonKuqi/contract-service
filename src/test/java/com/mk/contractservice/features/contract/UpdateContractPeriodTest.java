@@ -145,8 +145,8 @@ class UpdateContractPeriodTest {
                 new BigDecimal("500.00"),
                 CURRENT_START);
         when(contractRepository.getById(contractId)).thenReturn(childLamal);
-        when(clientRepository.getPolicyHolderIncludingDeleted(clientId))
-                .thenReturn(ClientFixtures.existingPerson(clientId, birthDate).policyHolder());
+        when(clientRepository.getContractHolderIncludingDeleted(clientId))
+                .thenReturn(ClientFixtures.existingPerson(clientId, birthDate).contractHolder());
 
         assertThatThrownBy(() -> handler.execute(command(CURRENT_START, null)))
                 .isInstanceOf(InvalidContractFranchiseException.class);
@@ -212,8 +212,8 @@ class UpdateContractPeriodTest {
                 endDate,
                 new BigDecimal("500.00"),
                 CURRENT_START);
-        lenient().when(clientRepository.getPolicyHolderIncludingDeleted(clientId))
-                .thenReturn(ClientFixtures.existingPerson(clientId).policyHolder());
+        lenient().when(clientRepository.getContractHolderIncludingDeleted(clientId))
+                .thenReturn(ClientFixtures.existingPerson(clientId).contractHolder());
         when(contractRepository.getById(contractId)).thenReturn(contract);
         return contract;
     }

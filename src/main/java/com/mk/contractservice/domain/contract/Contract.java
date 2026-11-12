@@ -2,7 +2,7 @@ package com.mk.contractservice.domain.contract;
 
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
-import com.mk.contractservice.domain.shared.PolicyHolder;
+import com.mk.contractservice.domain.shared.ContractHolder;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -45,7 +45,7 @@ public class Contract {
 
     public static Contract of(
             @Nullable final UUID clientId,
-            @Nullable final PolicyHolder policyHolder,
+            @Nullable final ContractHolder contractHolder,
             @Nullable final ContractCoverage coverage,
             @Nullable final ContractPeriod period,
             @Nullable final ContractCost costAmount,
@@ -53,7 +53,7 @@ public class Contract {
     ) {
         final ContractCoverage contractCoverage = notNull(coverage);
         final ContractPeriod contractPeriod = notNull(period);
-        contractCoverage.ensureAllowedFor(notNull(policyHolder), contractPeriod);
+        contractCoverage.ensureAllowedFor(notNull(contractHolder), contractPeriod);
         return builder()
                 .clientId(notNull(clientId))
                 .coverage(contractCoverage)
@@ -114,7 +114,7 @@ public class Contract {
 
     public Contract changePeriod(
             @Nullable final ContractPeriod newPeriod,
-            @Nullable final PolicyHolder policyHolder,
+            @Nullable final ContractHolder contractHolder,
             final LocalDateTime now
     ) {
         final ContractPeriod changedPeriod = notNull(newPeriod);
@@ -127,7 +127,7 @@ public class Contract {
                     "Contract end date cannot be in the past. End: " + changedPeriod.endDate() + ", now: " + now
             );
         }
-        coverage.ensureAllowedFor(notNull(policyHolder), changedPeriod);
+        coverage.ensureAllowedFor(notNull(contractHolder), changedPeriod);
         return toBuilder()
                 .period(changedPeriod)
                 .lastModified(now)

@@ -285,7 +285,7 @@ class ContractOverlapPolicyTest {
             Contract stored = existingLamal(Y2027, Y2028);
             givenExisting(stored);
             Contract extended = stored.changePeriod(ContractPeriod.of(Y2027, Y2029, NOW),
-                    ClientFixtures.existingPerson(PERSON_ID).policyHolder(),
+                    ClientFixtures.existingPerson(PERSON_ID).contractHolder(),
                     NOW);
 
             assertThatCode(() -> policy.ensureNoOverlap(extended, NOW)).doesNotThrowAnyException();

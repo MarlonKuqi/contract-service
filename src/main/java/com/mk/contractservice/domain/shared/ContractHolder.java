@@ -6,7 +6,7 @@ import java.time.LocalDate;
 
 import static com.mk.contractservice.domain.shared.Assert.notNull;
 
-public sealed interface PolicyHolder permits PolicyHolder.Person, PolicyHolder.Company {
+public sealed interface ContractHolder permits ContractHolder.Person, ContractHolder.Company {
 
     ClientKind kind();
 
@@ -18,7 +18,7 @@ public sealed interface PolicyHolder permits PolicyHolder.Person, PolicyHolder.C
         return new Company();
     }
 
-    record Person(LocalDate birthDate) implements PolicyHolder {
+    record Person(LocalDate birthDate) implements ContractHolder {
 
         public Person {
             notNull(birthDate);
@@ -30,7 +30,7 @@ public sealed interface PolicyHolder permits PolicyHolder.Person, PolicyHolder.C
         }
     }
 
-    record Company() implements PolicyHolder {
+    record Company() implements ContractHolder {
 
         @Override
         public ClientKind kind() {

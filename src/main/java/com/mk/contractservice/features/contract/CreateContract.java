@@ -56,7 +56,7 @@ public interface CreateContract {
 
             final Client client = clientRepository.getById(command.clientId());
 
-            final Contract contract = Contract.of(client.id(), client.policyHolder(), coverage, period, cost, now);
+            final Contract contract = Contract.of(client.id(), client.contractHolder(), coverage, period, cost, now);
             contractOverlapPolicy.ensureNoOverlap(contract, now);
             return contractRepository.save(contract);
         }
