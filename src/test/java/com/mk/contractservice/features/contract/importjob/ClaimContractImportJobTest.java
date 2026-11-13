@@ -18,6 +18,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +41,7 @@ class ClaimContractImportJobTest {
 
         final Optional<ContractImportJob> claimed = new ClaimContractImportJob.Handler(jobRepository, CLOCK).execute();
 
+        verify(jobRepository).save(claimed.orElseThrow());
         assertThat(claimed).isPresent();
         assertThat(claimed.get().status()).isEqualTo(ContractImportJobState.Status.RUNNING);
         assertThat(claimed.get().state().leaseUntil()).isEqualTo(NOW.plus(ClaimContractImportJob.LEASE));
@@ -55,6 +58,7 @@ class ClaimContractImportJobTest {
 
         final Optional<ContractImportJob> claimed = new ClaimContractImportJob.Handler(jobRepository, clock).execute();
 
+        verify(jobRepository).save(claimed.orElseThrow());
         assertThat(claimed.orElseThrow().state().leaseUntil()).isEqualTo(Instant.parse("2026-10-25T01:03:00Z"));
     }
 
@@ -64,6 +68,6 @@ class ClaimContractImportJobTest {
         when(jobRepository.findNextToRun(NOW)).thenReturn(Optional.empty());
 
         assertThat(new ClaimContractImportJob.Handler(jobRepository, CLOCK).execute()).isEmpty();
-
+        verify(jobRepository, never()).save(any());
     }
 }

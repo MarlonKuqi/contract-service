@@ -4,13 +4,14 @@ import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
-import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ExpiredContractException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractFranchiseException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
+import com.mk.contractservice.domain.lamal.LamalAffiliationFixtures;
+import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,8 +33,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -54,15 +57,20 @@ class UpdateContractPeriodTest {
     private ContractRepository contractRepository;
 
     @Mock
+    private LamalAffiliationRepository lamalAffiliationRepository;
+
+    @Mock
     private ClientRepository clientRepository;
 
     private UpdateContractPeriod.Handler handler;
 
     @BeforeEach
     void setUp() {
+        lenient().when(lamalAffiliationRepository.loadForAdmission(anySet()))
+                .thenAnswer(invocation -> LamalAffiliationFixtures.loadedFor(invocation.getArgument(0), List.of()));
         handler = new UpdateContractPeriod.Handler(contractRepository,
                 clientRepository,
-                new ContractOverlapPolicy(contractRepository),
+                lamalAffiliationRepository,
                 FIXED_CLOCK);
     }
 
@@ -88,6 +96,7 @@ class UpdateContractPeriodTest {
 
         Contract result = handler.execute(command(CURRENT_START, null));
 
+        verify(contractRepository).save(result);
         assertThat(result.period().startDate()).isEqualTo(CURRENT_START);
         assertThat(result.period().endDate()).isNull();
     }
@@ -100,6 +109,7 @@ class UpdateContractPeriodTest {
         Contract result = handler.execute(command(CURRENT_START, CURRENT_END));
 
         assertThat(result).isSameAs(loaded);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
@@ -112,23 +122,25 @@ class UpdateContractPeriodTest {
                 null,
                 new BigDecimal("500.00"),
                 CURRENT_START);
-        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
-                .thenReturn(List.of(loaded, next));
+        when(lamalAffiliationRepository.loadForAdmission(Set.of(clientId)))
+                .thenReturn(LamalAffiliationFixtures.loadedFor(Set.of(clientId), List.of(loaded, next)));
         UpdateContractPeriod.Command command = command(CURRENT_START, CURRENT_END.plusMonths(1));
 
         assertThatThrownBy(() -> handler.execute(command)).isInstanceOf(OverlappingContractException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("GIVEN a LAMal WHEN its new period runs over its own previous period THEN saves it, the contract not overlapping itself")
     void shouldNotCompareTheContractWithItself() {
         Contract loaded = givenContract(CURRENT_START, CURRENT_END);
-        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
-                .thenReturn(List.of(loaded));
+        when(lamalAffiliationRepository.loadForAdmission(Set.of(clientId)))
+                .thenReturn(LamalAffiliationFixtures.loadedFor(Set.of(clientId), List.of(loaded)));
         givenSaveReturnsArgument();
 
         Contract result = handler.execute(command(CURRENT_START, CURRENT_END.plusMonths(1)));
 
+        verify(contractRepository).save(result);
         assertThat(result.period().endDate()).isEqualTo(CURRENT_END.plusMonths(1));
     }
 
@@ -150,6 +162,7 @@ class UpdateContractPeriodTest {
 
         assertThatThrownBy(() -> handler.execute(command(CURRENT_START, null)))
                 .isInstanceOf(InvalidContractFranchiseException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
@@ -159,6 +172,7 @@ class UpdateContractPeriodTest {
 
         assertThatThrownBy(() -> handler.execute(command(CURRENT_END.plusDays(1), CURRENT_END)))
                 .isInstanceOf(InvalidContractPeriodException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
@@ -168,6 +182,7 @@ class UpdateContractPeriodTest {
 
         assertThatThrownBy(() -> handler.execute(command(CURRENT_START, null)))
                 .isInstanceOf(ExpiredContractException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
@@ -190,6 +205,7 @@ class UpdateContractPeriodTest {
 
         assertThatThrownBy(() -> handler.execute(command(CURRENT_START, null)))
                 .isInstanceOf(VersionMismatchException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test

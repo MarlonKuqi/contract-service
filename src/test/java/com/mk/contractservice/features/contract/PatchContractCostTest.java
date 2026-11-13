@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,6 +64,7 @@ class PatchContractCostTest {
         assertThatThrownBy(() -> patchContractCostHandler.execute(
                 new PatchContractCost.Command(contractId, VERSION, new BigDecimal("1000.00"))))
                 .isInstanceOf(ExpiredContractException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
@@ -77,6 +79,7 @@ class PatchContractCostTest {
                 new PatchContractCost.Command(contractId, VERSION, new BigDecimal("500.0")));
 
         assertThat(result).isSameAs(activeContract);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
@@ -129,6 +132,7 @@ class PatchContractCostTest {
         assertThatThrownBy(() -> patchContractCostHandler.execute(
                 new PatchContractCost.Command(contractId, VERSION, new BigDecimal("1000.00"))))
                 .isInstanceOf(VersionMismatchException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     private static Contract activeContractWithCost(final UUID contractId, final BigDecimal cost) {

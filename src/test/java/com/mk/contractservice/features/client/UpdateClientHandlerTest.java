@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -81,6 +82,8 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
+
+            verify(clientRepository).save(result);
             assertThat(result.name().value()).isEqualTo(command.name());
             assertThat(result.email().value()).isEqualTo(command.email());
             assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
@@ -105,6 +108,8 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
+
+            verify(clientRepository).save(result);
             assertThat(result.name().value()).isEqualTo(command.name());
             assertThat(result.email().value()).isEqualTo(command.email());
             assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
@@ -129,6 +134,8 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
+
+            verify(clientRepository).save(result);
             assertThat(result.name().value()).isEqualTo(command.name());
             assertThat(result.email().value()).isEqualTo(command.email());
             assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
@@ -153,6 +160,8 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
+
+            verify(clientRepository).save(result);
             assertThat(result.name().value()).isEqualTo(command.name());
             assertThat(result.email().value()).isEqualTo(command.email());
             assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
@@ -214,6 +223,8 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             assertThat(result).isSameAs(existingPerson);
+
+            verify(clientRepository, never()).save(any());
         }
 
         @Test
@@ -232,6 +243,8 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             assertThat(result).isSameAs(existingPerson);
+
+            verify(clientRepository, never()).save(any());
         }
     }
 
@@ -274,6 +287,8 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
+
+            verify(clientRepository).save(result);
             assertThat(result.name().value()).isEqualTo(command.name());
             assertThat(result.email().value()).isEqualTo(command.email());
             assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
@@ -298,6 +313,8 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
+
+            verify(clientRepository).save(result);
             assertThat(result.name().value()).isEqualTo(command.name());
             assertThat(result.email().value()).isEqualTo(command.email());
             assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
@@ -334,6 +351,7 @@ class UpdateClientHandlerTest {
             // When & Then
             assertThatThrownBy(() -> updateClientHandler.execute(command))
                     .isInstanceOf(ClientNotFoundException.class);
+            verify(clientRepository, never()).save(any());
         }
     }
 
@@ -381,6 +399,7 @@ class UpdateClientHandlerTest {
             assertThatThrownBy(() -> updateClientHandler.execute(
                     new UpdateClient.Command(clientId, VERSION, "Jane Doe", "john@example.com", "+33111111111")))
                     .isInstanceOf(VersionMismatchException.class);
+            verify(clientRepository, never()).save(any());
         }
     }
 }

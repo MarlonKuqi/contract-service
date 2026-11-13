@@ -129,6 +129,31 @@ class ArchitectureTest {
     }
 
     @Test
+    void lamal_affiliation_should_not_depend_on_client_aggregate() {
+        noClasses()
+                .that()
+                .resideInAPackage("com.mk.contractservice.domain.lamal..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("com.mk.contractservice.domain.client..")
+                .because("A LAMal affiliation references its person by id only")
+                .check(classes);
+    }
+
+    @Test
+    void contracts_and_clients_should_not_depend_on_lamal_affiliation() {
+        noClasses()
+                .that()
+                .resideInAnyPackage("com.mk.contractservice.domain.contract..",
+                        "com.mk.contractservice.domain.client..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("com.mk.contractservice.domain.lamal..")
+                .because("The affiliation guards its LAMal terms, the terms do not know their affiliation")
+                .check(classes);
+    }
+
+    @Test
     void features_should_not_depend_on_controllers() {
         noClasses()
                 .that(areFeatures)

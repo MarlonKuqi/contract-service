@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -120,6 +121,7 @@ class SubmitContractImportJobTest {
                 KEY));
 
         assertThat(result).isSameAs(existing);
+        verify(jobRepository, never()).save(any(), any());
     }
 
     @Test
@@ -133,6 +135,7 @@ class SubmitContractImportJobTest {
                 KEY);
 
         assertThatThrownBy(() -> handler().execute(command)).isInstanceOf(IdempotencyKeyReusedException.class);
+        verify(jobRepository, never()).save(any(), any());
     }
 
     @Test
@@ -151,6 +154,7 @@ class SubmitContractImportJobTest {
 
         assertThatThrownBy(() -> handler().execute(blankKey)).isInstanceOf(InvalidIdempotencyKeyException.class);
         assertThatThrownBy(() -> handler().execute(tooLongKey)).isInstanceOf(InvalidIdempotencyKeyException.class);
+        verify(jobRepository, never()).save(any(), any());
     }
 
     @Test

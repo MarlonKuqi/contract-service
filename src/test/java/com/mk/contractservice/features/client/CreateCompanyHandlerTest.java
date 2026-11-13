@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -19,6 +20,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -56,6 +59,7 @@ class CreateCompanyHandlerTest {
                 .isInstanceOf(CompanyIdentifierAlreadyExistsException.class)
                 .extracting(ex -> ((CompanyIdentifierAlreadyExistsException) ex).companyIdentifier())
                 .isEqualTo(duplicateIdentifier);
+        verify(clientRepository, never()).save(any());
     }
 
     @Test
@@ -83,5 +87,11 @@ class CreateCompanyHandlerTest {
 
         // Then
         assertThat(result).isSameAs(saved);
+        ArgumentCaptor<Company> captor = ArgumentCaptor.forClass(Company.class);
+        verify(clientRepository).save(captor.capture());
+        assertThat(captor.getValue().name().value()).isEqualTo("Tech Corp");
+        assertThat(captor.getValue().email().value()).isEqualTo("contact@techcorp.com");
+        assertThat(captor.getValue().phone().value()).isEqualTo("+33123456789");
+        assertThat(captor.getValue().companyIdentifier().value()).isEqualTo("123456789");
     }
 }

@@ -289,7 +289,7 @@ Deux tables sans parent ont été écartées : la FK de `contract` aurait dû po
    - les réponses de création et de modification ne portent pas d'ETag : le client relit la ressource avant une nouvelle modification. Pour le `PUT`, c'est de toute façon imposé par RFC 9110 §9.3.4, qui interdit un validateur dans la réponse quand la représentation stockée diffère de celle reçue (on normalise l'email et le téléphone) ;
    - la suppression d'un client n'exige pas `If-Match` : la rejouer après une modification concurrente donne le résultat voulu ;
    - un `GET` avec `If-None-Match` égal à l'ETag courant renvoie `304` (comportement standard de Spring MVC dès que la réponse porte un ETag).
-3. **Réessai côté serveur (fait : suppression d'un client uniquement)** : le handler est annoté `@Retryable` sur `OptimisticLockingFailureException` (3 nouveaux essais, `delay` 20 ms, `jitter` 10 ms), activé par `@EnableResilientMethods` (`ResilienceConfig`). Chaque essai ouvre une nouvelle transaction : il relit l'agrégat et revérifie les règles métier. Les endpoints protégés par `If-Match` ne sont pas réessayés.
+3. **Réessai côté serveur (fait : suppression d'un client ; création, import JSON et changement de période d'un contrat depuis l'ADR-024, incrément 4a)** : le handler est annoté `@Retryable` sur `OptimisticLockingFailureException` (3 nouveaux essais, `delay` 20 ms, `jitter` 10 ms), activé par `@EnableResilientMethods` (`ResilienceConfig`). Chaque essai ouvre une nouvelle transaction : il relit l'agrégat et revérifie les règles métier. Les endpoints protégés par `If-Match` ne sont pas réessayés, sauf `PUT /v2/contracts/{id}/period` : son conflit peut venir de la racine `LamalAffiliation`, pas du contrat, et le réessai rappelle `ensureVersion`, donc un ETag périmé donne toujours `412`.
 
 **Conception de l'étape 2.**
 - La version est un détail de persistance, pas une donnée métier : le domaine ne décide rien à partir d'elle (contrairement à `lastModified`, ADR-005). Elle reste hors des agrégats et hors des types renvoyés par les ports d'écriture : `getById` et `save` renvoient `Client` et `Contract`.
@@ -1028,6 +1028,33 @@ Ces durées viennent d'un run chacune, sur une base Docker locale : ce sont des 
 - **Incrément 4b, droit d'option** : résidence sur le client (migration, API client), `residence` dans `ContractHolder`, exemption dans `AssuranceMaladie`, refus d'une LAMal pendant une exemption.
 
 **Statut.** Proposée.
+
+### Incrément 4a : agrégat `LamalAffiliation`
+
+**Contexte.** Réalisation de la « Suite prévue » de l'incrément 2, sans changement de comportement fonctionnel. L'agrégat appelé `AssuranceMaladie` ci-dessus est nommé `LamalAffiliation` dans le code (anglais, terme « affiliation continue » de l'incrément 4, table `lamal`). Choix validés le 13/11/2026.
+
+**Décision.**
+- **Racine `LamalAffiliation`** (`domain/lamal`) : une par personne, identifiée par `personId`, avec ses échéances `LamalTerm` (identifiant du contrat et période). Les échéances sont lues dans la table `contract` (contrats `LAMAL` de la personne), sans copie ni colonne en plus. `admit(contract, now)` refuse un contrat dont la période chevauche une échéance active (`OverlappingContractException`, mêmes règles qu'à l'incrément 2 : fin exclusive, futures comprises, contrat écarté de la comparaison avec lui-même). Sinon, elle renvoie une nouvelle instance qui contient son échéance ; pour un changement de période, celle-ci remplace la précédente. Un contrat qui n'est pas une LAMal de la personne est une erreur de programmation (`InvalidDomainObjectError`).
+- **Échéance `LamalTerm` plutôt que `Contract`** : la racine ne contient pas d'autres agrégats. Une liste de `Contract` laissait croire que la racine les enregistre, et elle couplait la racine à tout le contrat (coût, couverture, `lastModified`), alors que la règle ne lit que l'identifiant et la période. « Actif » passe par `ContractPeriod.isEffectiveAt` (ADR-004), sans recopier la règle. Une échéance lue en base a toujours un identifiant ; celle d'un contrat pas encore enregistré n'en a pas, et elle ne remplace donc aucune autre échéance. L'adaptateur construit les échéances depuis les entités, sans reconstituer de `Contract`. `domain.lamal` dépend de `domain.contract`, jamais l'inverse, et pas de `domain.client` (ArchUnit).
+- **`LamalAffiliations`** : les racines chargées pour un use case, indexées par personne. `admit(contract, now)` ignore une LAA ou une LPP et confie une LAMal à la racine de sa personne ; une LAMal dont la racine n'a pas été chargée lève `IllegalStateException`. Il remplace `ContractOverlapPolicy` et son `Batch` (supprimés) : un import y admet ses lignes une à une, une ligne rejetée ne couvre rien.
+- **Port `LamalAffiliationRepository.loadForAdmission(clientIds)`** : crée les racines manquantes des personnes parmi ces clients (`INSERT … SELECT … FROM person … ORDER BY id ON CONFLICT (person_id) DO NOTHING`, les entreprises n'en ont pas), puis les charge en `OPTIMISTIC_FORCE_INCREMENT`, triées par personne, avec leurs LAMal en une requête. Le nom dit l'intention : charger une racine pour y admettre une échéance incrémente sa version au commit, même si rien n'est admis. Comme l'ancien verrou, le chargement ne peut pas se faire sans la garde : aucun `save` à oublier. L'adaptateur est `@Transactional(propagation = MANDATORY)`.
+- **Concurrence** :
+  - première LAMal d'une personne : la seconde transaction attend sur l'index unique de `person_id` le commit de la première, puis la relit avec son contrat et reçoit le refus précis (`LamalOverlapConcurrencyAcceptanceTest`, inchangé) ;
+  - racine existante : les deux transactions lisent la même version, la seconde échoue au commit (`ObjectOptimisticLockingFailureException`). `CreateContract`, `UpdateContractPeriod` et `ImportContracts` sont `@Retryable` sur `OptimisticLockingFailureException` (3 essais, comme `DeleteClient`, ADR-011) : le nouvel essai voit le contrat concurrent et renvoie `409 contractOverlap`. Sans réessai, `PUT /period` répondrait `412` (l'advice traduit tout échec optimiste en `412` quand `If-Match` est présent), alors que l'ETag du contrat n'était pas périmé. Au réessai, `ensureVersion` est réévalué : un ETag réellement périmé donne toujours `412` ;
+  - import par fichier : pas de réessai dans le use case (il rejoint la transaction du chunk) ; l'échec optimiste est transitoire (`ConcurrencyFailureException`), le chunk est remis en file (ADR-022).
+- **La ligne client n'est plus verrouillée** pour la règle de chevauchement : modifier un client ne bloque plus la création d'une LAMal, et la création d'une LAA ou d'une LPP n'est plus sérialisée. `ContractRepository.lockAndFindAllByClientIdsAndTypes` et `ContractType.forbidsOverlap` sont supprimés. Le verrou de chunk de l'import par fichier (`ClientRepository.lockExistingIds`, `FOR UPDATE` trié) est conservé : il protège toujours contre la suppression d'un client pendant le lot (ADR-022). Revenir à `FOR SHARE` est possible mais changerait le comportement concurrent des imports, hors d'un refactoring.
+- **Persistance.** Migration `V2.0.0.12` : table `contracts.lamal (person_id UUID PRIMARY KEY REFERENCES person ON DELETE CASCADE, version BIGINT NOT NULL DEFAULT 0)`. Pas de reprise : une racine est créée à la première opération LAMal de la personne. `ON DELETE CASCADE` ne joue jamais en production (suppression logique, ADR-009) ; il laisse le nettoyage des tests supprimer les clients sans connaître la table.
+
+**Alternatives écartées.**
+- **Verrou pessimiste sur la ligne `lamal`** (`FOR UPDATE`) : refus précis sans réessai, mais c'est le verrou de l'incrément 2 déplacé, sans la frontière de cohérence par version prévue.
+- **Optimiste sans réessai** : `409 optimisticLockFailure` générique, et `412` trompeur sur `PUT /period`.
+- **Version dans l'agrégat et `save` explicite** : contraire à l'ADR-011 (la version reste hors des agrégats), et un handler qui oublierait le `save` vérifierait la règle sans garde.
+
+**Conséquences.**
+- Comportement de l'API inchangé ; tests d'acceptation existants inchangés. Un test ajouté reproduit la course sur une racine existante et prouve le réessai.
+- Deux imports qui touchent la même personne sans rien lui admettre peuvent entrer en conflit (version incrémentée au chargement) : le perdant est réessayé ou remis en file.
+
+**Statut.** Acceptée.
 
 ---
 

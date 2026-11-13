@@ -5,9 +5,9 @@ import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
-import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
-import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
+import com.mk.contractservice.domain.lamal.LamalAffiliationFixtures;
+import com.mk.contractservice.domain.lamal.LamalAffiliations;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Accepted;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Outcome;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Rejected;
@@ -18,13 +18,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @DisplayName("ContractImportLineEvaluator")
 class ContractImportLineEvaluatorTest {
@@ -38,11 +34,8 @@ class ContractImportLineEvaluatorTest {
     private static final BigDecimal VALID_COST = new BigDecimal("100.00");
     private static final BigDecimal NEGATIVE_COST = new BigDecimal("-1.00");
 
-    private static ContractOverlapPolicy.Batch overlapBatchOf(final Contract... existingContracts) {
-        final ContractRepository contractRepository = mock(ContractRepository.class);
-        when(contractRepository.lockAndFindAllByClientIdsAndTypes(anySet(), anySet())).thenReturn(List.of(
-                existingContracts));
-        return new ContractOverlapPolicy(contractRepository).startBatch(Set.of(CLIENT_ID, COMPANY_ID), NOW);
+    private static LamalAffiliations overlapBatchOf(final Contract... existingContracts) {
+        return LamalAffiliations.of(LamalAffiliationFixtures.loadedFor(List.of(CLIENT_ID), List.of(existingContracts)));
     }
 
     private static Outcome evaluate(final UUID clientId,
@@ -65,7 +58,7 @@ class ContractImportLineEvaluatorTest {
             final LocalDateTime startDate,
             final LocalDateTime endDate,
             final BigDecimal cost,
-            final ContractOverlapPolicy.Batch overlapBatch) {
+            final LamalAffiliations overlapBatch) {
         return ContractImportLineEvaluator.evaluate(clientId,
                 type,
                 ContractFixtures.defaultFranchise(type),
@@ -80,7 +73,7 @@ class ContractImportLineEvaluatorTest {
     @Test
     @DisplayName("GIVEN a LAMal of the client covering the period WHEN evaluating a LAMal THEN the line is rejected for the overlap")
     void shouldRejectLamalOverlappingExistingOne() {
-        final ContractOverlapPolicy.Batch overlapBatch = overlapBatchOf(ContractFixtures.existingContract(
+        final LamalAffiliations overlapBatch = overlapBatchOf(ContractFixtures.existingContract(
                 UUID.randomUUID(),
                 CLIENT_ID,
                 NOW.minusYears(1),
@@ -99,7 +92,7 @@ class ContractImportLineEvaluatorTest {
     @Test
     @DisplayName("GIVEN an accepted LAMal line WHEN evaluating an overlapping LAMal line in the same import THEN the second one is rejected")
     void shouldRejectLineOverlappingAPreviouslyAcceptedOne() {
-        final ContractOverlapPolicy.Batch overlapBatch = overlapBatchOf();
+        final LamalAffiliations overlapBatch = overlapBatchOf();
 
         final Outcome first = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, VALID_COST, overlapBatch);
         final Outcome second = evaluate(CLIENT_ID,
@@ -118,7 +111,7 @@ class ContractImportLineEvaluatorTest {
     @Test
     @DisplayName("GIVEN a rejected line WHEN evaluating a line overlapping only the rejected one THEN it is accepted")
     void shouldNotCoverWithRejectedLine() {
-        final ContractOverlapPolicy.Batch overlapBatch = overlapBatchOf();
+        final LamalAffiliations overlapBatch = overlapBatchOf();
 
         final Outcome rejected = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, NEGATIVE_COST, overlapBatch);
         final Outcome accepted = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, VALID_COST, overlapBatch);

@@ -81,7 +81,7 @@ class FailContractImportJobTest {
 
         assertThatThrownBy(() -> handler.execute(COMMAND)).isInstanceOf(
                 ContractImportJobTransitionNotAllowedException.class);
-
+        verify(jobRepository, never()).save(any());
     }
 
     @Test

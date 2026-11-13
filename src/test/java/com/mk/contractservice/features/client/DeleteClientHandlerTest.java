@@ -18,8 +18,11 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DeleteClient Handler")
@@ -61,5 +64,7 @@ class DeleteClientHandlerTest {
 
         assertThatThrownBy(() -> deleteClientHandler.execute(new DeleteClient.Command(clientId)))
                 .isInstanceOf(ClientNotFoundException.class);
+        verify(clientRepository, never()).delete(any(), any());
+        verify(contractRepository, never()).closeAllActiveByClientId(any(), any());
     }
 }

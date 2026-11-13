@@ -5,7 +5,6 @@ import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractCost;
 import com.mk.contractservice.domain.contract.ContractCoverage;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
-import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedException;
@@ -14,6 +13,7 @@ import com.mk.contractservice.domain.contract.exception.InvalidContractCostExcep
 import com.mk.contractservice.domain.contract.exception.InvalidContractFranchiseException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
+import com.mk.contractservice.domain.lamal.LamalAffiliations;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -54,7 +54,7 @@ public final class ContractImportLineEvaluator {
             @Nullable final LocalDateTime endDate,
             final BigDecimal costAmount,
             final Map<UUID, Client> clientsById,
-            final ContractOverlapPolicy.Batch overlapBatch,
+            final LamalAffiliations lamalAffiliations,
             final LocalDateTime now
     ) {
         final Client client = clientsById.get(clientId);
@@ -67,7 +67,7 @@ public final class ContractImportLineEvaluator {
             final ContractCost cost = ContractCost.of(costAmount);
             final ContractCoverage coverage = ContractCoverage.of(type, franchise);
             final Contract contract = Contract.of(clientId, client.contractHolder(), coverage, period, cost, now);
-            overlapBatch.admit(contract);
+            lamalAffiliations.admit(contract, now);
             return new Accepted(contract);
         } catch (final ContractValidationException ex) {
             return new Rejected(reasonOf(ex), ex.getMessage());

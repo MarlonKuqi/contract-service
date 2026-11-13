@@ -2,17 +2,21 @@ package com.mk.contractservice.features.contract;
 
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
+import com.mk.contractservice.domain.lamal.LamalAffiliations;
 import com.mk.contractservice.domain.shared.ContractHolder;
 import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.resilience.annotation.Retryable;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 public interface UpdateContractPeriod {
@@ -37,10 +41,16 @@ public interface UpdateContractPeriod {
 
         private final ContractRepository contractRepository;
         private final ClientRepository clientRepository;
-        private final ContractOverlapPolicy contractOverlapPolicy;
+        private final LamalAffiliationRepository lamalAffiliationRepository;
         private final Clock clock;
 
         @Override
+        @Retryable(
+                includes = OptimisticLockingFailureException.class,
+                maxRetries = 3,
+                delay = 20,
+                jitter = 10
+        )
         public Contract execute(final Command command) {
             final Contract contract = contractRepository.getById(command.contractId());
             contractRepository.ensureVersion(command.contractId(), command.expectedVersion());
@@ -57,7 +67,9 @@ public interface UpdateContractPeriod {
             if (updatedContract.equals(contract)) {
                 return contract;
             }
-            contractOverlapPolicy.ensureNoOverlap(updatedContract, now);
+            LamalAffiliations.of(lamalAffiliationRepository.loadForAdmission(Set.of(Objects.requireNonNull(
+                    updatedContract.clientId()))))
+                    .admit(updatedContract, now);
             return contractRepository.save(updatedContract);
         }
     }

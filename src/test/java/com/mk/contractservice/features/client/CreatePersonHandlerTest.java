@@ -19,6 +19,8 @@ import java.time.ZoneOffset;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,6 +51,7 @@ class CreatePersonHandlerTest {
 
         assertThatThrownBy(() -> createPersonHandler.execute(command))
                 .isInstanceOf(InvalidPersonBirthDateException.class);
+        verify(clientRepository, never()).save(any());
     }
 
     @Test
@@ -60,6 +63,7 @@ class CreatePersonHandlerTest {
 
         Client result = createPersonHandler.execute(command);
 
+        verify(clientRepository).save(result);
         assertThat(result).isInstanceOfSatisfying(Person.class,
                 person -> assertThat(person.birthDate().value()).isEqualTo(today));
     }
@@ -77,6 +81,7 @@ class CreatePersonHandlerTest {
 
         Client result = createPersonHandler.execute(command);
 
+        verify(clientRepository).save(result);
         assertThat(result.name().value()).isEqualTo("John Doe");
         assertThat(result.email().value()).isEqualTo("john@example.com");
         assertThat(result).isInstanceOfSatisfying(Person.class,

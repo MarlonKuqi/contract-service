@@ -5,14 +5,14 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
-import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
-import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.LamalFranchise;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobFixtures;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
+import com.mk.contractservice.domain.lamal.LamalAffiliationFixtures;
+import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
 import com.mk.contractservice.features.shared.ContractImportCsv.RawLine;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +36,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -55,6 +57,9 @@ class ProcessContractImportBatchTest {
     private ClientRepository clientRepository;
     @Mock
     private ContractRepository contractRepository;
+
+    @Mock
+    private LamalAffiliationRepository lamalAffiliationRepository;
     @Mock
     private ContractImportJobRepository jobRepository;
     @Captor
@@ -68,9 +73,11 @@ class ProcessContractImportBatchTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(lamalAffiliationRepository.loadForAdmission(anySet()))
+                .thenAnswer(invocation -> LamalAffiliationFixtures.loadedFor(invocation.getArgument(0), List.of()));
         handler = new ProcessContractImportBatch.Handler(clientRepository,
                 contractRepository,
-                new ContractOverlapPolicy(contractRepository),
+                lamalAffiliationRepository,
                 jobRepository,
                 CLOCK);
     }
@@ -177,14 +184,14 @@ class ProcessContractImportBatchTest {
         when(clientRepository.findAllByIds(Set.of(CLIENT_ID, otherPersonId)))
                 .thenReturn(List.of(ClientFixtures.existingPerson(CLIENT_ID),
                         ClientFixtures.existingPerson(otherPersonId)));
-        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(CLIENT_ID, otherPersonId),
-                Set.of(ContractType.LAMAL)))
-                .thenReturn(List.of(ContractFixtures.existingContract(UUID.randomUUID(),
-                        CLIENT_ID,
-                        NOW.minusYears(1),
-                        null,
-                        new BigDecimal("100.00"),
-                        NOW)));
+        when(lamalAffiliationRepository.loadForAdmission(Set.of(CLIENT_ID, otherPersonId)))
+                .thenReturn(LamalAffiliationFixtures.loadedFor(Set.of(CLIENT_ID, otherPersonId),
+                        List.of(ContractFixtures.existingContract(UUID.randomUUID(),
+                                CLIENT_ID,
+                                NOW.minusYears(1),
+                                null,
+                                new BigDecimal("100.00"),
+                                NOW))));
         final UUID contractId = UUID.randomUUID();
         when(contractRepository.saveAll(anyList())).thenReturn(List.of(persisted(contractId, otherPersonId)));
 
@@ -203,6 +210,8 @@ class ProcessContractImportBatchTest {
                         tuple(3, otherPersonId, contractId),
                         tuple(4, otherPersonId, ContractImportRejectionReason.OVERLAPPING_CONTRACT)
                 );
+        verify(contractRepository).saveAll(contractsCaptor.capture());
+        assertThat(contractsCaptor.getValue()).extracting(Contract::clientId).containsExactly(otherPersonId);
     }
 
     @Test

@@ -5,12 +5,13 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
-import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.LamalFranchise;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
+import com.mk.contractservice.domain.lamal.LamalAffiliationFixtures;
+import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,6 +38,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -53,6 +57,9 @@ class ImportContractsTest {
     @Mock
     private ContractRepository contractRepository;
 
+    @Mock
+    private LamalAffiliationRepository lamalAffiliationRepository;
+
     @Captor
     private ArgumentCaptor<List<Contract>> insertedContracts;
 
@@ -64,9 +71,11 @@ class ImportContractsTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(lamalAffiliationRepository.loadForAdmission(anySet()))
+                .thenAnswer(invocation -> LamalAffiliationFixtures.loadedFor(invocation.getArgument(0), List.of()));
         handler = new ImportContracts.Handler(clientRepository,
                 contractRepository,
-                new ContractOverlapPolicy(contractRepository),
+                lamalAffiliationRepository,
                 clock);
     }
 
@@ -160,6 +169,7 @@ class ImportContractsTest {
 
             final List<Contract> created = handler.execute(command);
 
+            verify(contractRepository).saveAll(created);
             assertThat(created)
                     .extracting(Contract::clientId,
                             contract -> contract.franchise().map(LamalFranchise::value).orElseThrow(),
@@ -201,7 +211,7 @@ class ImportContractsTest {
 
             assertThatThrownBy(() -> handler.execute(command))
                     .isInstanceOf(ContractImportRejectedException.class);
-
+            verify(contractRepository, never()).saveAll(anyList());
         }
 
         @Test
@@ -234,6 +244,7 @@ class ImportContractsTest {
                     );
             assertThat(rejection.rejections()).allSatisfy(line -> assertThat(line.message()).isNotBlank());
             assertThat(rejection.rejections().get(2).message()).contains(unknownClientId.toString());
+            verify(contractRepository, never()).saveAll(anyList());
         }
 
         @Test
@@ -241,13 +252,14 @@ class ImportContractsTest {
         void shouldRejectLineOverlappingExistingContract() {
             when(clientRepository.findAllByIds(Set.of(clientId)))
                     .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
-            when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
-                    .thenReturn(List.of(ContractFixtures.existingContract(UUID.randomUUID(),
-                            clientId,
-                            now.minusYears(1),
-                            null,
-                            VALID_COST,
-                            now)));
+            when(lamalAffiliationRepository.loadForAdmission(Set.of(clientId)))
+                    .thenReturn(LamalAffiliationFixtures.loadedFor(Set.of(clientId),
+                            List.of(ContractFixtures.existingContract(UUID.randomUUID(),
+                                    clientId,
+                                    now.minusYears(1),
+                                    null,
+                                    VALID_COST,
+                                    now))));
             final ImportContracts.Command command = commandOf(validLine());
 
             final ContractImportRejectedException rejection = catchThrowableOfType(
@@ -258,6 +270,7 @@ class ImportContractsTest {
                     .extracting(ContractImportRejectedException.LineRejection::index,
                             ContractImportRejectedException.LineRejection::reason)
                     .containsExactly(tuple(0, ContractImportRejectionReason.OVERLAPPING_CONTRACT));
+            verify(contractRepository, never()).saveAll(anyList());
         }
 
         @Test
@@ -279,6 +292,7 @@ class ImportContractsTest {
                     .extracting(ContractImportRejectedException.LineRejection::index,
                             ContractImportRejectedException.LineRejection::reason)
                     .containsExactly(tuple(2, ContractImportRejectionReason.OVERLAPPING_CONTRACT));
+            verify(contractRepository, never()).saveAll(anyList());
         }
     }
 }

@@ -25,6 +25,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -90,6 +91,8 @@ class CancelContractImportJobTest {
 
         assertThat(result.job()).isSameAs(cancelled);
         assertThat(result.closedContracts()).isZero();
+        verify(jobRepository, never()).save(any());
+        verify(contractRepository, never()).closeAllActiveImportedBy(any(), any());
     }
 
     @Test
@@ -99,5 +102,7 @@ class CancelContractImportJobTest {
 
         assertThatThrownBy(() -> handler().execute(new CancelContractImportJob.Command(JOB_ID, COUNSELOR)))
                 .isInstanceOf(ContractImportJobNotFoundException.class);
+        verify(jobRepository, never()).save(any());
+        verify(contractRepository, never()).closeAllActiveImportedBy(any(), any());
     }
 }

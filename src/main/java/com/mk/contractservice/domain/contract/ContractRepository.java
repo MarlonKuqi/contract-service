@@ -7,7 +7,6 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -33,8 +32,6 @@ public interface ContractRepository {
     Page<Contract> findByCriteria(ContractSearchCriteria criteria, Pageable pageable);
 
     List<Contract> findActiveAfter(LocalDateTime activeAt, @Nullable UUID afterId, int limit);
-
-    List<Contract> lockAndFindAllByClientIdsAndTypes(Set<UUID> clientIds, Set<ContractType> types);
 
     int closeAllActiveByClientId(UUID clientId, LocalDateTime closureDate);
 

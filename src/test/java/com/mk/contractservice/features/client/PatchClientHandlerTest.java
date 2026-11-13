@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -80,6 +81,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
+            verify(clientRepository).save(result);
             assertThat(result.name().value()).isEqualTo("Jane Smith");
             assertThat(result.email().value()).isEqualTo("jane@example.com");
             assertThat(result.phone().value()).isEqualTo("+33222222222");
@@ -103,6 +105,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
+            verify(clientRepository).save(result);
             assertThat(result.name().value()).isEqualTo("Jane Smith");
             assertThat(result.email().value()).isEqualTo(existingPerson.email().value());
             assertThat(result.phone().value()).isEqualTo(existingPerson.phone().value());
@@ -126,6 +129,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
+            verify(clientRepository).save(result);
             assertThat(result.name().value()).isEqualTo(existingPerson.name().value());
             assertThat(result.email().value()).isEqualTo("jane@example.com");
             assertThat(result.phone().value()).isEqualTo(existingPerson.phone().value());
@@ -149,6 +153,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
+            verify(clientRepository).save(result);
             assertThat(result.name().value()).isEqualTo(existingPerson.name().value());
             assertThat(result.email().value()).isEqualTo(existingPerson.email().value());
             assertThat(result.phone().value()).isEqualTo("+33999999999");
@@ -189,6 +194,7 @@ class PatchClientHandlerTest {
             assertThat(result.email().value()).isEqualTo(existingPerson.email().value());
             assertThat(result.phone().value()).isEqualTo(existingPerson.phone().value());
             assertThat(result).isSameAs(existingPerson);
+            verify(clientRepository, never()).save(any());
             assertThat(((Person) result).birthDate()).isEqualTo(existingPerson.birthDate());
         }
 
@@ -222,6 +228,7 @@ class PatchClientHandlerTest {
             assertThat(result.email().value()).isEqualTo(existingCompany.email().value());
             assertThat(result.phone().value()).isEqualTo(existingCompany.phone().value());
             assertThat(result).isSameAs(existingCompany);
+            verify(clientRepository, never()).save(any());
             assertThat(((Company) result).companyIdentifier()).isEqualTo(existingCompany.companyIdentifier());
         }
     }
@@ -265,6 +272,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
+            verify(clientRepository).save(result);
             assertThat(result.name().value()).isEqualTo("Acme Corporation");
             assertThat(result.email().value()).isEqualTo("info@acme.com");
             assertThat(result.phone().value()).isEqualTo("+33222222222");
@@ -289,6 +297,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
+            verify(clientRepository).save(result);
             assertThat(result.name().value()).isEqualTo("Acme Corporation");
             assertThat(result.email().value()).isEqualTo(existingCompany.email().value());
             assertThat(result.phone().value()).isEqualTo(existingCompany.phone().value());
@@ -332,6 +341,7 @@ class PatchClientHandlerTest {
             // When & Then
             assertThatThrownBy(() -> patchClientHandler.execute(command))
                     .isInstanceOf(ClientNotFoundException.class);
+            verify(clientRepository, never()).save(any());
         }
 
         @Test
@@ -347,7 +357,9 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
+            assertThat(result).isSameAs(existingPerson);
             assertThat(result.email().value()).isEqualTo(existingEmail);
+            verify(clientRepository, never()).save(any());
         }
 
         @Test
@@ -363,7 +375,9 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             // Then
+            assertThat(result).isSameAs(existingPerson);
             assertThat(result.phone().value()).isEqualTo(existingPhone);
+            verify(clientRepository, never()).save(any());
         }
 
         @Test
@@ -376,6 +390,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             assertThat(result).isSameAs(existingPerson);
+            verify(clientRepository, never()).save(any());
             assertThat(result.phone()).isEqualTo(existingPerson.phone());
         }
 
@@ -389,6 +404,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             assertThat(result).isSameAs(existingPerson);
+            verify(clientRepository, never()).save(any());
             assertThat(result.email()).isEqualTo(existingPerson.email());
         }
 
@@ -402,6 +418,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             assertThat(result).isSameAs(existingPerson);
+            verify(clientRepository, never()).save(any());
         }
 
         @Test
@@ -418,6 +435,7 @@ class PatchClientHandlerTest {
             Client result = patchClientHandler.execute(command);
 
             assertThat(result).isSameAs(existingPerson);
+            verify(clientRepository, never()).save(any());
         }
 
         @Test
@@ -483,6 +501,7 @@ class PatchClientHandlerTest {
                     null,
                     null)))
                     .isInstanceOf(VersionMismatchException.class);
+            verify(clientRepository, never()).save(any());
         }
 
         @Test
@@ -498,6 +517,7 @@ class PatchClientHandlerTest {
                     "not-an-email",
                     null)))
                     .isInstanceOf(VersionMismatchException.class);
+            verify(clientRepository, never()).save(any());
         }
     }
 }

@@ -4,18 +4,21 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
-import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException;
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException.LineRejection;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
+import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
+import com.mk.contractservice.domain.lamal.LamalAffiliations;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Accepted;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Rejected;
 import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.resilience.annotation.Retryable;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -73,7 +76,7 @@ public interface ImportContracts {
 
         private final ClientRepository clientRepository;
         private final ContractRepository contractRepository;
-        private final ContractOverlapPolicy contractOverlapPolicy;
+        private final LamalAffiliationRepository lamalAffiliationRepository;
         private final Clock clock;
 
         private record LineProcessResult(List<Contract> contracts, List<LineRejection> rejections) {
@@ -83,6 +86,12 @@ public interface ImportContracts {
         }
 
         @Override
+        @Retryable(
+                includes = OptimisticLockingFailureException.class,
+                maxRetries = 3,
+                delay = 20,
+                jitter = 10
+        )
         public List<Contract> execute(final Command command) {
             final LocalDateTime now = LocalDateTime.now(clock);
 
@@ -100,8 +109,8 @@ public interface ImportContracts {
 
             final Map<UUID, Client> clientsById = ContractImportLineEvaluator.indexById(
                     clientRepository.findAllByIds(command.clientIds()));
-            final ContractOverlapPolicy.Batch overlapBatch = contractOverlapPolicy.startBatch(clientsById.keySet(),
-                    now);
+            final LamalAffiliations lamalAffiliations = LamalAffiliations.of(
+                    lamalAffiliationRepository.loadForAdmission(clientsById.keySet()));
 
             for (int index = 0; index < command.lines().size(); index++) {
                 final Line line = command.lines().get(index);
@@ -112,7 +121,7 @@ public interface ImportContracts {
                         line.endDate(),
                         line.costAmount(),
                         clientsById,
-                        overlapBatch,
+                        lamalAffiliations,
                         now)) {
                     case Accepted(Contract contract) -> contracts.add(contract);
                     case Rejected(ContractImportRejectionReason reason, String message) -> rejections.add(

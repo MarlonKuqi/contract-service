@@ -4,7 +4,6 @@ import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
-import com.mk.contractservice.domain.contract.ContractOverlapPolicy;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.LamalFranchise;
@@ -12,6 +11,8 @@ import com.mk.contractservice.domain.contract.exception.ContractTypeNotAllowedEx
 import com.mk.contractservice.domain.contract.exception.InvalidContractCostException;
 import com.mk.contractservice.domain.contract.exception.InvalidContractFranchiseException;
 import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
+import com.mk.contractservice.domain.lamal.LamalAffiliationFixtures;
+import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,7 +34,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,6 +52,9 @@ class CreateContractTest {
     @Mock
     private ContractRepository contractRepository;
 
+    @Mock
+    private LamalAffiliationRepository lamalAffiliationRepository;
+
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-15T10:00:00Z"), ZoneId.of("Europe/Zurich"));
     private final LocalDateTime now = LocalDateTime.now(clock);
     private final UUID clientId = UUID.randomUUID();
@@ -57,9 +63,11 @@ class CreateContractTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(lamalAffiliationRepository.loadForAdmission(anySet()))
+                .thenAnswer(invocation -> LamalAffiliationFixtures.loadedFor(invocation.getArgument(0), List.of()));
         createContractHandler = new CreateContract.Handler(clientRepository,
                 contractRepository,
-                new ContractOverlapPolicy(contractRepository),
+                lamalAffiliationRepository,
                 clock);
     }
 
@@ -108,6 +116,7 @@ class CreateContractTest {
 
         Contract result = createContractHandler.execute(commandOf(ContractType.LPP, COST));
 
+        verify(contractRepository).save(result);
         assertThat(result.type()).isEqualTo(ContractType.LPP);
     }
 
@@ -115,34 +124,38 @@ class CreateContractTest {
     @DisplayName("GIVEN une personne avec une LAMal qui couvre la période WHEN elle souscrit une LAMal THEN refuse le contrat")
     void shouldRefuseLamalOverlappingExistingOne() {
         when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId));
-        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
-                .thenReturn(List.of(ContractFixtures.existingContract(UUID.randomUUID(),
-                        clientId,
-                        now.minusMonths(1),
-                        null,
-                        COST,
-                        now)));
+        when(lamalAffiliationRepository.loadForAdmission(Set.of(clientId)))
+                .thenReturn(LamalAffiliationFixtures.loadedFor(Set.of(clientId),
+                        List.of(ContractFixtures.existingContract(UUID.randomUUID(),
+                                clientId,
+                                now.minusMonths(1),
+                                null,
+                                COST,
+                                now))));
         CreateContract.Command command = commandOf(ContractType.LAMAL, COST);
 
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(OverlappingContractException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("GIVEN une personne avec une LAMal qui finit au début de la nouvelle WHEN elle souscrit une LAMal THEN crée le contrat")
     void shouldCreateLamalStartingWhenPreviousOneEnds() {
         when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId));
-        when(contractRepository.lockAndFindAllByClientIdsAndTypes(Set.of(clientId), Set.of(ContractType.LAMAL)))
-                .thenReturn(List.of(ContractFixtures.existingContract(UUID.randomUUID(),
-                        clientId,
-                        now.minusYears(1),
-                        now,
-                        COST,
-                        now)));
+        when(lamalAffiliationRepository.loadForAdmission(Set.of(clientId)))
+                .thenReturn(LamalAffiliationFixtures.loadedFor(Set.of(clientId),
+                        List.of(ContractFixtures.existingContract(UUID.randomUUID(),
+                                clientId,
+                                now.minusYears(1),
+                                now,
+                                COST,
+                                now))));
         when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Contract result = createContractHandler.execute(commandOf(ContractType.LAMAL, COST));
 
+        verify(contractRepository).save(result);
         assertThat(result.period().startDate()).isEqualTo(now);
     }
 
@@ -154,6 +167,7 @@ class CreateContractTest {
 
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(ContractTypeNotAllowedException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
@@ -164,6 +178,7 @@ class CreateContractTest {
 
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(ClientNotFoundException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
@@ -174,6 +189,7 @@ class CreateContractTest {
 
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(InvalidContractCostException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
@@ -189,6 +205,7 @@ class CreateContractTest {
 
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(InvalidContractFranchiseException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
@@ -205,6 +222,7 @@ class CreateContractTest {
 
         assertThatThrownBy(() -> createContractHandler.execute(command))
                 .isInstanceOf(InvalidContractFranchiseException.class);
+        verify(contractRepository, never()).save(any());
     }
 
     @Test
