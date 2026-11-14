@@ -64,6 +64,7 @@ public interface CreateContract {
             final ContractCost cost = ContractCost.of(command.costAmount());
             final ContractCoverage coverage = ContractCoverage.of(command.type(), command.franchise());
 
+            clientRepository.lockAgainstDeletion(command.clientId());
             final Client client = clientRepository.getById(command.clientId());
 
             final Contract contract = Contract.of(client.id(), client.contractHolder(), coverage, period, cost, now);

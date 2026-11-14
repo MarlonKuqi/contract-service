@@ -108,7 +108,7 @@ public interface ImportContracts {
             final List<LineRejection> rejections = new ArrayList<>();
 
             final Map<UUID, Client> clientsById = ContractImportLineEvaluator.indexById(
-                    clientRepository.findAllByIds(command.clientIds()));
+                    clientRepository.findAllByIds(clientRepository.lockAgainstDeletion(command.clientIds())));
             final LamalAffiliations lamalAffiliations = LamalAffiliations.of(
                     lamalAffiliationRepository.loadForAdmission(clientsById.keySet()));
 

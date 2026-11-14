@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -174,6 +175,18 @@ class CreateContractTest {
     @DisplayName("GIVEN client inexistant WHEN execute THEN lève ClientNotFoundException")
     void shouldThrowExceptionWhenClientNotFound() {
         when(clientRepository.getById(clientId)).thenThrow(ClientNotFoundException.forId(clientId));
+        CreateContract.Command command = commandOf(ContractType.LAMAL, COST);
+
+        assertThatThrownBy(() -> createContractHandler.execute(command))
+                .isInstanceOf(ClientNotFoundException.class);
+        verify(contractRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("GIVEN un client supprimé pendant que la création attendait le verrou WHEN execute THEN lève ClientNotFoundException sans créer de contrat")
+    void shouldRefuseContractWhenClientDeletedWhileWaitingForTheLock() {
+        doThrow(ClientNotFoundException.forId(clientId)).when(clientRepository).lockAgainstDeletion(clientId);
+        lenient().when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId));
         CreateContract.Command command = commandOf(ContractType.LAMAL, COST);
 
         assertThatThrownBy(() -> createContractHandler.execute(command))

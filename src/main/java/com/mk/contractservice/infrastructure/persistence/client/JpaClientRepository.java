@@ -81,6 +81,20 @@ public class JpaClientRepository implements ClientRepository {
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void lockAgainstDeletion(final UUID id) {
+        if (!lockAgainstDeletion(Set.of(id)).contains(id)) {
+            throw ClientNotFoundException.forId(id);
+        }
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Set<UUID> lockAgainstDeletion(final Set<UUID> ids) {
+        return ids.isEmpty() ? Set.of() : jpa.lockAgainstDeletion(ids);
+    }
+
+    @Override
     public ContractHolder getContractHolderIncludingDeleted(final UUID id) {
         return jpa.findPersonBirthDateIncludingDeleted(id)
                 .<ContractHolder>map(ContractHolder::person)

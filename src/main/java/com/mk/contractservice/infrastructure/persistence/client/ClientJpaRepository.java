@@ -16,6 +16,10 @@ public interface ClientJpaRepository extends JpaRepository<ClientJpaEntity, UUID
             nativeQuery = true)
     Set<UUID> lockExistingIds(@Param("ids") Set<UUID> ids);
 
+    @Query(value = "select id from contracts.client where id in (:ids) and deleted_at is null order by id for share",
+            nativeQuery = true)
+    Set<UUID> lockAgainstDeletion(@Param("ids") Set<UUID> ids);
+
     @Query(value = "select p.birth_date from contracts.person p where p.id = :id", nativeQuery = true)
     Optional<LocalDate> findPersonBirthDateIncludingDeleted(@Param("id") UUID id);
 

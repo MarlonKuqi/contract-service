@@ -22,6 +22,10 @@ public interface ClientRepository {
 
     Set<UUID> lockExistingIds(final Set<UUID> ids);
 
+    void lockAgainstDeletion(final UUID id);
+
+    Set<UUID> lockAgainstDeletion(final Set<UUID> ids);
+
     ContractHolder getContractHolderIncludingDeleted(final UUID id);
 
     void ensureVersion(final UUID id, final long expectedVersion);

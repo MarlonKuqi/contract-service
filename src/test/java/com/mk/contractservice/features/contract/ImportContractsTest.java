@@ -71,6 +71,8 @@ class ImportContractsTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(clientRepository.lockAgainstDeletion(anySet()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         lenient().when(lamalAffiliationRepository.loadForAdmission(anySet()))
                 .thenAnswer(invocation -> LamalAffiliationFixtures.loadedFor(invocation.getArgument(0), List.of()));
         handler = new ImportContracts.Handler(clientRepository,
@@ -211,6 +213,33 @@ class ImportContractsTest {
 
             assertThatThrownBy(() -> handler.execute(command))
                     .isInstanceOf(ContractImportRejectedException.class);
+            verify(contractRepository, never()).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("GIVEN un client supprimé pendant que l'import attendait le verrou WHEN execute THEN rejette sa ligne comme client introuvable")
+        void shouldRejectLineOfClientDeletedWhileWaitingForTheLock() {
+            final UUID deletedClientId = UUID.randomUUID();
+            when(clientRepository.lockAgainstDeletion(Set.of(clientId, deletedClientId))).thenReturn(Set.of(clientId));
+            when(clientRepository.findAllByIds(Set.of(clientId)))
+                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
+            lenient().when(clientRepository.findAllByIds(Set.of(clientId, deletedClientId)))
+                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId),
+                            ClientFixtures.existingPerson(deletedClientId)));
+            final ImportContracts.Command command = commandOf(
+                    validLine(),
+                    new ImportContracts.Line(deletedClientId, ContractType.LAMAL, 300, null, null, VALID_COST)
+            );
+
+            final ContractImportRejectedException rejection = catchThrowableOfType(
+                    ContractImportRejectedException.class,
+                    () -> handler.execute(command));
+
+            assertThat(rejection.rejections())
+                    .extracting(ContractImportRejectedException.LineRejection::index,
+                            ContractImportRejectedException.LineRejection::clientId,
+                            ContractImportRejectedException.LineRejection::reason)
+                    .containsExactly(tuple(1, deletedClientId, ContractImportRejectionReason.CLIENT_NOT_FOUND));
             verify(contractRepository, never()).saveAll(anyList());
         }
 
