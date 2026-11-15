@@ -12,6 +12,7 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,8 +73,8 @@ class CreateContractAcceptanceTest {
                 ClientName.of("Marie Durand"),
                 ClientEmail.of("marie.durand." + uniqueId + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
-        );
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock)),
+                Residence.CH);
         testClient = clientRepository.save(testClient);
     }
 

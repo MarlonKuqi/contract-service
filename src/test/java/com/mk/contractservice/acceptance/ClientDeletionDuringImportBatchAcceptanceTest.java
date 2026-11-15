@@ -12,6 +12,7 @@ import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.features.client.DeleteClient;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -79,8 +80,8 @@ class ClientDeletionDuringImportBatchAcceptanceTest {
                 ClientName.of("Import Race"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("import.race")),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate())
-        ));
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate()),
+                Residence.CH));
         return client.id();
     }
 

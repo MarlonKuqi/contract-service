@@ -14,6 +14,7 @@ import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractQueryPort;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
+import com.mk.contractservice.domain.shared.Residence;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -84,8 +85,8 @@ class ActiveContractRuleAlignmentAcceptanceTest {
                 ClientName.of("Alignment Client"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("alignment")),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), NOW.toLocalDate())
-        ));
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), NOW.toLocalDate()),
+                Residence.CH));
         final Contract contract = contractRepository.save(
                 ContractFixtures.newContract(client.id(), startDate, endDate, COST, PAST.minusYears(1))
         );

@@ -3,6 +3,7 @@ package com.mk.contractservice.domain.lamal;
 import com.mk.contractservice.domain.shared.RepositoryPort;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -10,4 +11,10 @@ import java.util.UUID;
 public interface LamalAffiliationRepository {
 
     List<LamalAffiliation> loadForAdmission(Set<UUID> clientIds);
+
+    LamalAffiliation loadForUpdate(UUID personId);
+
+    void save(LamalAffiliation affiliation);
+
+    Optional<LamalExemption> findExemption(UUID personId);
 }

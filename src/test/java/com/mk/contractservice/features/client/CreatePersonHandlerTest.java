@@ -4,6 +4,7 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.exception.InvalidPersonBirthDateException;
+import com.mk.contractservice.domain.shared.Residence;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,8 +47,8 @@ class CreatePersonHandlerTest {
                 "John Doe",
                 "john@example.com",
                 "+33123456789",
-                LocalDate.now(FIXED_CLOCK).plusDays(1)
-        );
+                LocalDate.now(FIXED_CLOCK).plusDays(1),
+                Residence.FR);
 
         assertThatThrownBy(() -> createPersonHandler.execute(command))
                 .isInstanceOf(InvalidPersonBirthDateException.class);
@@ -58,7 +59,11 @@ class CreatePersonHandlerTest {
     @DisplayName("GIVEN date de naissance égale à la date de l'horloge WHEN execute THEN sauvegarde la personne")
     void shouldAcceptBirthDateEqualToClockDate() {
         LocalDate today = LocalDate.now(FIXED_CLOCK);
-        CreatePerson.Command command = new CreatePerson.Command("John Doe", "john@example.com", "+33123456789", today);
+        CreatePerson.Command command = new CreatePerson.Command("John Doe",
+                "john@example.com",
+                "+33123456789",
+                today,
+                Residence.FR);
         when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Client result = createPersonHandler.execute(command);
@@ -75,8 +80,8 @@ class CreatePersonHandlerTest {
                 "John Doe",
                 "john@example.com",
                 "+33123456789",
-                LocalDate.of(1990, 5, 15)
-        );
+                LocalDate.of(1990, 5, 15),
+                Residence.FR);
         when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Client result = createPersonHandler.execute(command);
@@ -86,5 +91,7 @@ class CreatePersonHandlerTest {
         assertThat(result.email().value()).isEqualTo("john@example.com");
         assertThat(result).isInstanceOfSatisfying(Person.class,
                 person -> assertThat(person.birthDate().value()).isEqualTo(LocalDate.of(1990, 5, 15)));
+        assertThat(result).isInstanceOfSatisfying(Person.class,
+                person -> assertThat(person.residence()).isEqualTo(Residence.FR));
     }
 }

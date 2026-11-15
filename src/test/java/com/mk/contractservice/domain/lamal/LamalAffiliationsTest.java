@@ -60,7 +60,7 @@ class LamalAffiliationsTest {
     private static LamalAffiliations affiliationsWith(final Contract... terms) {
         return LamalAffiliations.of(List.of(
                 LamalAffiliationFixtures.loadedFor(List.of(PERSON_ID), List.of(terms)).getFirst(),
-                LamalAffiliation.reconstituteFromDatabase(OTHER_PERSON_ID, List.of())));
+                LamalAffiliation.reconstituteFromDatabase(OTHER_PERSON_ID, List.of(), null)));
     }
 
     @Nested
@@ -70,14 +70,14 @@ class LamalAffiliationsTest {
         @Test
         @DisplayName("GIVEN no person id WHEN reconstituting an affiliation THEN it is refused")
         void shouldRefuseNullPersonId() {
-            assertThatThrownBy(() -> LamalAffiliation.reconstituteFromDatabase(null, List.of()))
+            assertThatThrownBy(() -> LamalAffiliation.reconstituteFromDatabase(null, List.of(), null))
                     .isInstanceOf(InvalidDomainObjectError.class);
         }
 
         @Test
         @DisplayName("GIVEN no terms WHEN reconstituting an affiliation THEN it is refused")
         void shouldRefuseNullTerms() {
-            assertThatThrownBy(() -> LamalAffiliation.reconstituteFromDatabase(PERSON_ID, null))
+            assertThatThrownBy(() -> LamalAffiliation.reconstituteFromDatabase(PERSON_ID, null, null))
                     .isInstanceOf(InvalidDomainObjectError.class);
         }
 
@@ -221,7 +221,7 @@ class LamalAffiliationsTest {
         @DisplayName("GIVEN a LAMal of another person WHEN admitting a LAMal over the same period THEN it is accepted")
         void shouldAcceptLamalOfAnotherPerson() {
             LamalAffiliations affiliations = LamalAffiliations.of(List.of(
-                    LamalAffiliation.reconstituteFromDatabase(PERSON_ID, List.of()),
+                    LamalAffiliation.reconstituteFromDatabase(PERSON_ID, List.of(), null),
                     LamalAffiliationFixtures.loadedFor(List.of(OTHER_PERSON_ID),
                             List.of(existingLamal(OTHER_PERSON_ID, Y2027, null))).getFirst()));
 
@@ -295,7 +295,7 @@ class LamalAffiliationsTest {
         @Test
         @DisplayName("GIVEN the affiliation of a person WHEN admitting a LAMal of another person THEN it is refused")
         void shouldRefuseTermOfAnotherPerson() {
-            LamalAffiliation affiliation = LamalAffiliation.reconstituteFromDatabase(PERSON_ID, List.of());
+            LamalAffiliation affiliation = LamalAffiliation.reconstituteFromDatabase(PERSON_ID, List.of(), null);
             Contract lamalOfAnotherPerson = existingLamal(OTHER_PERSON_ID, Y2027, null);
 
             assertThatThrownBy(() -> affiliation.admit(lamalOfAnotherPerson, NOW))
@@ -305,7 +305,7 @@ class LamalAffiliationsTest {
         @Test
         @DisplayName("GIVEN the affiliation of a person WHEN admitting a contract other than a LAMal THEN it is refused, only LAMal being its terms")
         void shouldRefuseTermOfAnotherType() {
-            LamalAffiliation affiliation = LamalAffiliation.reconstituteFromDatabase(PERSON_ID, List.of());
+            LamalAffiliation affiliation = LamalAffiliation.reconstituteFromDatabase(PERSON_ID, List.of(), null);
             Contract laa = ContractFixtures.existingContract(UUID.randomUUID(),
                     PERSON_ID,
                     ContractType.LAA,

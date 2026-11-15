@@ -70,7 +70,8 @@ class OptimisticLockingAcceptanceTest {
                             "name": "Alice Martin",
                             "email": "%s",
                             "phone": "%s",
-                            "birthDate": "1990-05-15"
+                            "birthDate": "1990-05-15",
+                            "residence": "CH"
                         }
                         """.formatted(email, phone))
                 .post(ClientEndpoints.CLIENTS_BASE)

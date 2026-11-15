@@ -10,23 +10,31 @@ public sealed interface ContractHolder permits ContractHolder.Person, ContractHo
 
     ClientKind kind();
 
-    static Person person(@Nullable final LocalDate birthDate) {
-        return new Person(notNull(birthDate));
+    boolean isNotCrossBorder();
+
+    static Person person(@Nullable final LocalDate birthDate, @Nullable final Residence residence) {
+        return new Person(notNull(birthDate), notNull(residence));
     }
 
     static Company company() {
         return new Company();
     }
 
-    record Person(LocalDate birthDate) implements ContractHolder {
+    record Person(LocalDate birthDate, Residence residence) implements ContractHolder {
 
         public Person {
             notNull(birthDate);
+            notNull(residence);
         }
 
         @Override
         public ClientKind kind() {
             return ClientKind.PERSON;
+        }
+
+        @Override
+        public boolean isNotCrossBorder() {
+            return residence.isNotCrossBorder();
         }
     }
 
@@ -35,6 +43,11 @@ public sealed interface ContractHolder permits ContractHolder.Person, ContractHo
         @Override
         public ClientKind kind() {
             return ClientKind.COMPANY;
+        }
+
+        @Override
+        public boolean isNotCrossBorder() {
+            return true;
         }
     }
 }

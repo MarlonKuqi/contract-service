@@ -4,12 +4,16 @@ package com.mk.contractservice.domain.client;
 import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
 import com.mk.contractservice.domain.client.exception.InvalidClientNameException;
 import com.mk.contractservice.domain.client.exception.InvalidClientPhoneNumberException;
+import com.mk.contractservice.domain.client.exception.InvalidClientResidenceException;
 import com.mk.contractservice.domain.client.exception.InvalidPersonBirthDateException;
+import com.mk.contractservice.domain.shared.ContractHolder;
 import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
+import com.mk.contractservice.domain.shared.Residence;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -306,7 +310,8 @@ class PersonTest {
                     ClientName.of("John Doe"),
                     ClientEmail.of("john.doe@example.com"),
                     ClientPhoneNumber.of("+33123456789"),
-                    originalBirthDate
+                    originalBirthDate,
+                    Residence.CH
             );
 
             Person updated = person.changeCoreFields(
@@ -412,6 +417,114 @@ class PersonTest {
             assertThat(updated.name()).isEqualTo(person.name());
             assertThat(updated.email()).isEqualTo(person.email());
             assertThat(updated.phone().value()).isEqualTo("+33999999999");
+        }
+    }
+
+    @Nested
+    @DisplayName("Residence")
+    class ResidenceRules {
+
+        @ParameterizedTest
+        @EnumSource(Residence.class)
+        @DisplayName("GIVEN a residence WHEN creating Person THEN the person and its contract holder live there")
+        void shouldCreatePersonWithResidence(Residence residence) {
+            Person person = ClientFixtures.newPerson("John Doe",
+                    "john@example.com",
+                    "+33123456789",
+                    LocalDate.of(1990, 5, 15),
+                    TODAY,
+                    residence);
+
+            assertThat(person.residence()).isEqualTo(residence);
+            assertThat(person.contractHolder()).isEqualTo(ContractHolder.person(LocalDate.of(1990, 5, 15), residence));
+        }
+
+        @Test
+        @DisplayName("GIVEN no residence WHEN creating Person THEN throw InvalidClientResidenceException")
+        void shouldRejectMissingResidenceOnCreation() {
+            assertThatThrownBy(() -> ClientFixtures.newPerson("John Doe",
+                    "john@example.com",
+                    "+33123456789",
+                    LocalDate.of(1990, 5, 15),
+                    TODAY,
+                    null))
+                    .isInstanceOf(InvalidClientResidenceException.class)
+                    .hasMessage("A person must have a residence");
+        }
+
+        @Test
+        @DisplayName("GIVEN no stored residence WHEN rebuilding Person THEN throw InvalidDomainObjectError")
+        void shouldRejectMissingStoredResidence() {
+            assertThatThrownBy(() -> ClientFixtures.existingPerson(UUID.randomUUID(),
+                    "John Doe",
+                    "john@example.com",
+                    "+41791234567",
+                    LocalDate.of(1990, 5, 15),
+                    null))
+                    .isInstanceOf(InvalidDomainObjectError.class);
+        }
+
+        @Test
+        @DisplayName("GIVEN a person living in Switzerland WHEN moving to France THEN only the residence changes")
+        void shouldChangeResidence() {
+            Person person = ClientFixtures.existingPerson(UUID.randomUUID(), Residence.CH);
+
+            Person moved = person.changeResidence(Residence.FR);
+
+            assertThat(moved.residence()).isEqualTo(Residence.FR);
+            assertThat(moved.id()).isEqualTo(person.id());
+            assertThat(moved.name()).isEqualTo(person.name());
+            assertThat(moved.birthDate()).isEqualTo(person.birthDate());
+            assertThat(person.residence()).isEqualTo(Residence.CH);
+        }
+
+        @Test
+        @DisplayName("GIVEN a person WHEN reading its contract holder twice THEN it is the same value, built with the person")
+        void shouldHoldItsContractHolder() {
+            Person person = ClientFixtures.existingPerson(UUID.randomUUID(), Residence.CH);
+
+            assertThat(person.contractHolder()).isSameAs(person.contractHolder());
+        }
+
+        @Test
+        @DisplayName("GIVEN a person living in Switzerland WHEN moving to France THEN its contract holder lives in France")
+        void shouldChangeContractHolderWithResidence() {
+            Person person = ClientFixtures.existingPerson(UUID.randomUUID(), Residence.CH);
+
+            Person moved = person.changeResidence(Residence.FR);
+
+            assertThat(moved.contractHolder()).isEqualTo(ContractHolder.person(LocalDate.of(1990, 5, 14),
+                    Residence.FR));
+            assertThat(person.contractHolder()).isEqualTo(ContractHolder.person(LocalDate.of(1990, 5, 14),
+                    Residence.CH));
+        }
+
+        @Test
+        @DisplayName("GIVEN a person living in France WHEN changing to France THEN the same instance is returned")
+        void shouldIgnoreSameResidence() {
+            Person person = ClientFixtures.existingPerson(UUID.randomUUID(), Residence.FR);
+
+            assertThat(person.changeResidence(Residence.FR)).isSameAs(person);
+        }
+
+        @Test
+        @DisplayName("GIVEN a person WHEN removing its residence THEN throw InvalidClientResidenceException")
+        void shouldRejectRemovingResidence() {
+            Person person = ClientFixtures.existingPerson(UUID.randomUUID(), Residence.FR);
+
+            assertThatThrownBy(() -> person.changeResidence(null))
+                    .isInstanceOf(InvalidClientResidenceException.class)
+                    .hasMessage("A person must have a residence");
+        }
+
+        @Test
+        @DisplayName("GIVEN a person living in Germany WHEN updating its core fields THEN the residence is kept")
+        void shouldKeepResidenceOnCoreFieldsUpdate() {
+            Person person = ClientFixtures.existingPerson(UUID.randomUUID(), Residence.DE);
+
+            Person updated = person.changeCoreFields(ClientName.of("Jane Doe"), person.email(), person.phone());
+
+            assertThat(updated.residence()).isEqualTo(Residence.DE);
         }
     }
 }

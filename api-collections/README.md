@@ -155,7 +155,8 @@ Chaque collection définit ses propres variables :
      "name": "Jane Doe",
      "email": "jane@example.com",
      "phone": "+41791234567",
-     "birthDate": "1985-03-20"
+     "birthDate": "1985-03-20",
+     "residence": "CH"
    }
    ```
 3. Copier l'`id` retourné dans la réponse

@@ -8,6 +8,7 @@ import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.lamal.LamalAffiliationFixtures;
 import com.mk.contractservice.domain.lamal.LamalAffiliations;
+import com.mk.contractservice.domain.lamal.LamalExemption;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Accepted;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Outcome;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Rejected;
@@ -217,5 +218,20 @@ class ContractImportLineEvaluatorTest {
 
         assertThat(outcome).isInstanceOfSatisfying(Rejected.class,
                 rejected -> assertThat(rejected.reason()).isEqualTo(ContractImportRejectionReason.INVALID_COST));
+    }
+
+    @Test
+    @DisplayName("GIVEN a person exempted from LAMal WHEN evaluating a LAMal during the exemption THEN the line is rejected for the exemption")
+    void shouldRejectLamalDuringExemption() {
+        final LamalExemption exemption = LamalExemption.reconstituteFromDatabase(NOW.toLocalDate().minusYears(1), null);
+        final LamalAffiliations affiliations = LamalAffiliations.of(List.of(
+                LamalAffiliationFixtures.loadedFor(CLIENT_ID, List.of(), exemption)));
+
+        final Outcome outcome = evaluate(CLIENT_ID, ContractType.LAMAL, null, null, VALID_COST, affiliations);
+
+        assertThat(outcome).isInstanceOfSatisfying(Rejected.class, rejected -> {
+            assertThat(rejected.reason()).isEqualTo(ContractImportRejectionReason.LAMAL_EXEMPTION_CONFLICT);
+            assertThat(rejected.message()).contains("is exempted from LAMal");
+        });
     }
 }

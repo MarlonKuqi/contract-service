@@ -81,7 +81,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients"]
         },
-        "description": "Create a Person client. Requires 'type': 'PERSON' and birthDate field (format: YYYY-MM-DD). Swiss phone format."
+        "description": "Create a Person client. Requires 'type': 'PERSON', birthDate (format: YYYY-MM-DD) and residence (CH, or FR, DE, IT, AT for a cross-border worker). Swiss phone format."
       }
     },
     {
@@ -142,7 +142,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["v2", "clients", "{{clientId}}"]
         },
-        "description": "Update client common fields (name, email, phone). Note: Cannot update birthDate (Person) or companyIdentifier (Company). Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged. Requires If-Match: {{clientETag}} is filled by the collection from the ETag of the last Read Client response. The response carries no ETag: run Read Client again before another modification. Missing If-Match or If-Match: * returns 428 (preconditionRequired), a stale ETag returns 412 (preconditionFailed)."
+        "description": "Update client common fields (name, email, phone). The residence of a person is changed with PATCH. Note: Cannot update birthDate (Person) or companyIdentifier (Company). Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged. Requires If-Match: {{clientETag}} is filled by the collection from the ETag of the last Read Client response. The response carries no ETag: run Read Client again before another modification. Missing If-Match or If-Match: * returns 428 (preconditionRequired), a stale ETag returns 412 (preconditionFailed)."
       }
     },
     {
@@ -247,6 +247,67 @@
           "path": ["v2", "clients", "{{clientId}}"]
         },
         "description": "Partially update a client - multiple fields at once (name and email). Only the provided fields are updated. Values identical to the current ones after normalization (email case, surrounding spaces, phone format) leave the client unchanged. A concurrent modification returns 412 with code preconditionFailed. Requires If-Match ({{clientETag}}, filled by Read Client); the response carries no ETag, run Read Client again before another modification. Missing If-Match returns 428, a stale ETag returns 412."
+      }
+    },
+    {
+      "name": "Patch Client - Residence",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "If-Match",
+            "value": "{{clientETag}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"residence\": \"CH\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "clients", "{{clientId}}"]
+        },
+        "description": "Change the residence of a person (CH, FR, DE, IT, AT). Ignored for a company, which has no residence. Moving to CH while a LAMal exemption is ongoing or starts later returns 409 (lamalExemptionOngoing): close the exemption first. An explicit null returns 422."
+      }
+    },
+    {
+      "name": "Record LAMal Exemption",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"startDate\": \"2026-01-01\",\n  \"endDate\": null\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}/lamal-exemption",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "clients", "{{clientId}}", "lamal-exemption"]
+        },
+        "description": "Record or replace the LAMal exemption of a person living in a bordering country (cantonal decision). startDate inclusive (may be in the past), endDate exclusive and optional: send the exemption again with an endDate to close it. 204 on success. 422 lamalExemptionNotAllowed (company or person living in CH), 422 invalidLamalExemptionPeriod (endDate not after startDate), 409 lamalExemptionConflict (an active LAMal covers the period), 404 clientNotFound. No If-Match."
+      }
+    },
+    {
+      "name": "Read LAMal Exemption",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/clients/{{clientId}}/lamal-exemption",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "clients", "{{clientId}}", "lamal-exemption"]
+        },
+        "description": "Read the LAMal exemption of a person: { startDate, endDate }. 404 lamalExemptionNotFound when none is recorded, 404 clientNotFound for an unknown or deleted client."
       }
     },
     {

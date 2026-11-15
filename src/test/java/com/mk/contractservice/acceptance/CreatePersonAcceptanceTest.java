@@ -60,7 +60,8 @@ class CreatePersonAcceptanceTest {
                     "name": "John Doe",
                     "email": "%s",
                     "phone": "%s",
-                    "birthDate": "1990-05-15"
+                    "birthDate": "1990-05-15",
+                    "residence": "FR"
                 }
                 """, uniqueEmail, phoneNumber);
 
@@ -78,8 +79,10 @@ class CreatePersonAcceptanceTest {
                 .body("email", equalTo(uniqueEmail))
                 .body("phone", equalTo(phoneNumber))
                 .body("birthDate", equalTo("1990-05-15"))
+                .body("residence", equalTo("FR"))
                 .body("companyIdentifier", nullValue())
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // Verify persistence
         given()
@@ -89,7 +92,8 @@ class CreatePersonAcceptanceTest {
                 .statusCode(200)
                 .body("type", equalTo("PERSON"))
                 .body("name", equalTo("John Doe"))
-                .body("birthDate", equalTo("1990-05-15"));
+                .body("birthDate", equalTo("1990-05-15"))
+                .body("residence", equalTo("FR"));
     }
 
     @Test
@@ -104,7 +108,8 @@ class CreatePersonAcceptanceTest {
                     "name": "François O'Brien-Müller",
                     "email": "%s",
                     "phone": "%s",
-                    "birthDate": "1990-01-01"
+                    "birthDate": "1990-01-01",
+                    "residence": "CH"
                 }
                 """, uniqueEmail, phoneNumber);
 
@@ -130,7 +135,8 @@ class CreatePersonAcceptanceTest {
                     "name": "Very Old Person",
                     "email": "%s",
                     "phone": "%s",
-                    "birthDate": "1920-01-01"
+                    "birthDate": "1920-01-01",
+                    "residence": "CH"
                 }
                 """, uniqueEmail, phoneNumber);
 
@@ -155,7 +161,8 @@ class CreatePersonAcceptanceTest {
                     "name": "Student Person",
                     "email": "%s",
                     "phone": "%s",
-                    "birthDate": "2002-04-10"
+                    "birthDate": "2002-04-10",
+                    "residence": "CH"
                 }
                 """, subdomainEmail, TestDataHelper.randomSwissPhoneNumber());
 
@@ -179,7 +186,8 @@ class CreatePersonAcceptanceTest {
                     "name": "Invalid Email Person",
                     "email": "invalid-email-format",
                     "phone": "%s",
-                    "birthDate": "1990-01-01"
+                    "birthDate": "1990-01-01",
+                    "residence": "CH"
                 }
                 """, phoneNumber);
 
@@ -201,7 +209,8 @@ class CreatePersonAcceptanceTest {
                     "name": "Long Phone Person",
                     "email": "%s",
                     "phone": "+493742508450764",
-                    "birthDate": "1990-01-01"
+                    "birthDate": "1990-01-01",
+                    "residence": "CH"
                 }
                 """, TestDataHelper.uniqueEmail("long-phone"));
 
@@ -228,7 +237,8 @@ class CreatePersonAcceptanceTest {
                     "name": "First Person",
                     "email": "%s",
                     "phone": "%s",
-                    "birthDate": "1990-01-01"
+                    "birthDate": "1990-01-01",
+                    "residence": "CH"
                 }
                 """, duplicateEmail, phoneNumber1);
 
@@ -246,7 +256,8 @@ class CreatePersonAcceptanceTest {
                     "name": "Second Person",
                     "email": "%s",
                     "phone": "%s",
-                    "birthDate": "1985-01-01"
+                    "birthDate": "1985-01-01",
+                    "residence": "CH"
                 }
                 """, duplicateEmail, phoneNumber2);
 
@@ -273,7 +284,8 @@ class CreatePersonAcceptanceTest {
                     "name": "First Person",
                     "email": "%s",
                     "phone": "%s",
-                    "birthDate": "1990-01-01"
+                    "birthDate": "1990-01-01",
+                    "residence": "CH"
                 }
                 """, email1, duplicatePhone);
 
@@ -291,7 +303,8 @@ class CreatePersonAcceptanceTest {
                     "name": "Second Person",
                     "email": "%s",
                     "phone": "%s",
-                    "birthDate": "1985-01-01"
+                    "birthDate": "1985-01-01",
+                    "residence": "CH"
                 }
                 """, email2, duplicatePhone);
 
@@ -316,7 +329,8 @@ class CreatePersonAcceptanceTest {
                     "name": "Jane Freelance",
                     "email": "%s",
                     "phone": "%s",
-                    "birthDate": "1988-03-12"
+                    "birthDate": "1988-03-12",
+                    "residence": "CH"
                 }
                 """, sharedEmail, sharedPhone);
 
@@ -364,7 +378,8 @@ class CreatePersonAcceptanceTest {
                     "name": "Formatted Phone",
                     "email": "%s",
                     "phone": "%s",
-                    "birthDate": "1990-01-01"
+                    "birthDate": "1990-01-01",
+                    "residence": "CH"
                 }
                 """, TestDataHelper.uniqueEmail("formatted"), formattedPhone);
 
@@ -388,7 +403,8 @@ class CreatePersonAcceptanceTest {
                     "name": "Uppercase Email",
                     "email": "%s",
                     "phone": "%s",
-                    "birthDate": "1990-01-01"
+                    "birthDate": "1990-01-01",
+                    "residence": "CH"
                 }
                 """, email.toUpperCase(Locale.ROOT), TestDataHelper.randomSwissPhoneNumber());
 
@@ -422,5 +438,48 @@ class CreatePersonAcceptanceTest {
                 .post(ClientEndpoints.CLIENTS_BASE)
                 .then()
                 .statusCode(422);
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person without residence fails")
+    void shouldRejectPersonWithoutResidence() {
+        given()
+                .body("""
+                        {
+                            "type": "PERSON",
+                            "name": "No Residence",
+                            "email": "%s",
+                            "phone": "%s",
+                            "birthDate": "1990-01-01"
+                        }
+                        """.formatted(TestDataHelper.uniqueEmail("noresidence"),
+                        TestDataHelper.randomSwissPhoneNumber()))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("validationError"))
+                .body("validations[0].field", equalTo("residence"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create person living outside Switzerland and its bordering countries fails")
+    void shouldRejectUnknownResidence() {
+        given()
+                .body("""
+                        {
+                            "type": "PERSON",
+                            "name": "Far Away",
+                            "email": "%s",
+                            "phone": "%s",
+                            "birthDate": "1990-01-01",
+                            "residence": "ES"
+                        }
+                        """.formatted(TestDataHelper.uniqueEmail("faraway"), TestDataHelper.randomSwissPhoneNumber()))
+                .when()
+                .post(ClientEndpoints.CLIENTS_BASE)
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("validationError"));
     }
 }

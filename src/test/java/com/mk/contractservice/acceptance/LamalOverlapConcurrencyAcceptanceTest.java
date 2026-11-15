@@ -12,6 +12,7 @@ import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
 import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.features.contract.CreateContract;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -79,8 +80,8 @@ class LamalOverlapConcurrencyAcceptanceTest {
                 ClientName.of("Concurrent Lamal"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("concurrent.lamal")),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate())
-        ));
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate()),
+                Residence.CH));
         CreateContract.Command lamal2027 = new CreateContract.Command(person.id(),
                 ContractType.LAMAL,
                 300,
@@ -115,8 +116,8 @@ class LamalOverlapConcurrencyAcceptanceTest {
                 ClientName.of("Concurrent Affiliation"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("concurrent.affiliation")),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate())
-        ));
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate()),
+                Residence.CH));
         createContract.execute(new CreateContract.Command(person.id(),
                 ContractType.LAMAL,
                 300,

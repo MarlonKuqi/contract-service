@@ -2,10 +2,12 @@ package com.mk.contractservice.controllers.client;
 
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.client.shared.ClientSwaggerTags;
+import com.mk.contractservice.controllers.client.shared.OptionalNonNullResidenceDeserializer;
 import com.mk.contractservice.controllers.shared.EntityTags;
 import com.mk.contractservice.controllers.shared.OptionalNonNullStringDeserializer;
 import com.mk.contractservice.domain.client.ClientEmail;
 import com.mk.contractservice.domain.client.ClientName;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.features.client.PatchClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,7 +44,7 @@ public class PatchClientController {
 
     @Operation(
             summary = "Partially update a client (PATCH)",
-            description = "Updates only the provided fields of a client. " + "All fields are optional. If no fields are provided, the operation is idempotent (no change). " + "A field sent with an explicit null is rejected (422): these fields are mandatory and cannot be cleared. " + "Values identical to the current ones after normalization (email case, surrounding spaces, phone format) are ignored. " + "birthDate and companyIdentifier cannot be updated as per business rules. " + "Works for both Person and Company clients. " + "Requires If-Match with the ETag of the client as read (GET). The response carries no ETag: read the client again before another modification."
+            description = "Updates only the provided fields of a client. " + "All fields are optional. If no fields are provided, the operation is idempotent (no change). " + "A field sent with an explicit null is rejected (422): these fields are mandatory and cannot be cleared. " + "Values identical to the current ones after normalization (email case, surrounding spaces, phone format) are ignored. " + "birthDate and companyIdentifier cannot be updated as per business rules. " + "Moving a person to Switzerland while a LAMal exemption is ongoing or starts later is refused (409 lamalExemptionOngoing). " + "Works for both Person and Company clients. " + "Requires If-Match with the ETag of the client as read (GET). The response carries no ETag: read the client again before another modification."
     )
     @ApiResponse(
             responseCode = "204",
@@ -103,7 +105,8 @@ public class PatchClientController {
                 EntityTags.requiredVersion(ifMatch),
                 request.name().orElse(null),
                 request.email().orElse(null),
-                request.phone().orElse(null)
+                request.phone().orElse(null),
+                request.residence().orElse(null)
         ));
         return ResponseEntity.noContent().build();
     }
@@ -121,7 +124,11 @@ public class PatchClientController {
 
             @JsonDeserialize(using = OptionalNonNullStringDeserializer.class) @Schema(
                     description = "Client phone number in international format (optional, +41, +33, +39 or +49). Normalized to E.164 in the response.",
-                    example = "+41791234567") Optional<String> phone
+                    example = "+41791234567") Optional<String> phone,
+
+            @JsonDeserialize(using = OptionalNonNullResidenceDeserializer.class) @Schema(
+                    description = "Country of residence of a person (optional, CH, FR, DE, IT, AT). Ignored for a company, which has no residence.",
+                    example = "FR") Optional<Residence> residence
     ) {
     }
 }

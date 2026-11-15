@@ -15,6 +15,7 @@ import com.mk.contractservice.domain.client.CompanyIdentifier;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.client.exception.InvalidClientEmailException;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,8 +75,8 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Original Name"),
                 ClientEmail.of("original." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
-        );
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock)),
+                Residence.CH);
         person = (Person) clientRepository.save(person);
 
         String patchPayload = """
@@ -111,8 +112,8 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("old." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
-        );
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock)),
+                Residence.CH);
         person = (Person) clientRepository.save(person);
 
         String patchPayload = """
@@ -147,8 +148,8 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
-        );
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock)),
+                Residence.CH);
         person = (Person) clientRepository.save(person);
 
         String patchPayload = """
@@ -224,8 +225,8 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
-        ));
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock)),
+                Residence.CH));
 
         String invalidPatchPayload = """
                 {
@@ -250,8 +251,8 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
-        ));
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock)),
+                Residence.CH));
 
         String invalidPatchPayload = """
                 {
@@ -276,8 +277,8 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
-        ));
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock)),
+                Residence.CH));
 
         given()
                 .body("""
@@ -292,15 +293,15 @@ class PatchClientAcceptanceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"name", "email", "phone"})
+    @ValueSource(strings = {"name", "email", "phone", "residence"})
     @DisplayName("GIVEN an explicit null WHEN patch THEN returns 422 and the client keeps its value, because these fields are mandatory")
     void shouldRejectPatchWithExplicitNull(final String field) {
         Client client = clientRepository.save(Person.of(
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
-        ));
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock)),
+                Residence.CH));
         String eTagBeforePatch = ETags.current(ClientEndpoints.CLIENT_BY_ID, client.id());
 
         given()
@@ -346,8 +347,8 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Test Person"),
                 ClientEmail.of("test." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
-        );
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock)),
+                Residence.CH);
         person = (Person) clientRepository.save(person);
 
         String emptyPatchPayload = "{}";
@@ -379,8 +380,8 @@ class PatchClientAcceptanceTest {
                 ClientName.of("Same Name"),
                 ClientEmail.of(email),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock))
-        );
+                PersonBirthDate.of(LocalDate.of(1990, 1, 1), LocalDate.now(clock)),
+                Residence.CH);
         person = (Person) clientRepository.save(person);
 
         String patchPayload = """

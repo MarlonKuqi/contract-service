@@ -92,7 +92,8 @@ class ImportContractsAcceptanceTest {
                             "name": "Marie Durand",
                             "email": "%s",
                             "phone": "%s",
-                            "birthDate": "1985-03-20"
+                            "birthDate": "1985-03-20",
+                            "residence": "CH"
                         }
                         """.formatted(TestDataHelper.uniqueEmail("marie.durand"),
                         TestDataHelper.randomSwissPhoneNumber()))

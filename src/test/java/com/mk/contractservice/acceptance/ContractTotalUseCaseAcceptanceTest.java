@@ -404,7 +404,8 @@ class ContractTotalUseCaseAcceptanceTest {
                         "name": "Client Alpha",
                         "email": "alpha.%s@example.com",
                         "phone": "%s",
-                        "birthDate": "1990-01-01"
+                        "birthDate": "1990-01-01",
+                        "residence": "CH"
                     }
                     """, uniqueId1, TestDataHelper.randomSwissPhoneNumber());
 
@@ -424,7 +425,8 @@ class ContractTotalUseCaseAcceptanceTest {
                         "name": "Client Beta",
                         "email": "beta.%s@example.com",
                         "phone": "%s",
-                        "birthDate": "1992-02-02"
+                        "birthDate": "1992-02-02",
+                        "residence": "CH"
                     }
                     """, uniqueId2, TestDataHelper.randomSwissPhoneNumber());
 

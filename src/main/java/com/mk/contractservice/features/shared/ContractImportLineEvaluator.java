@@ -14,6 +14,7 @@ import com.mk.contractservice.domain.contract.exception.InvalidContractFranchise
 import com.mk.contractservice.domain.contract.exception.InvalidContractPeriodException;
 import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
 import com.mk.contractservice.domain.lamal.LamalAffiliations;
+import com.mk.contractservice.domain.lamal.exception.LamalExemptionConflictException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -73,6 +74,8 @@ public final class ContractImportLineEvaluator {
             return new Rejected(reasonOf(ex), ex.getMessage());
         } catch (final OverlappingContractException ex) {
             return new Rejected(ContractImportRejectionReason.OVERLAPPING_CONTRACT, ex.getMessage());
+        } catch (final LamalExemptionConflictException ex) {
+            return new Rejected(ContractImportRejectionReason.LAMAL_EXEMPTION_CONFLICT, ex.getMessage());
         }
     }
 

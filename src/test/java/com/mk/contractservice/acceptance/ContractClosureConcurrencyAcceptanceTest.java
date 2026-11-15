@@ -12,6 +12,7 @@ import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaEntity;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -63,8 +64,8 @@ class ContractClosureConcurrencyAcceptanceTest {
                 ClientName.of("Concurrent Closure"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("concurrent.closure")),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate())
-        ));
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate()),
+                Residence.CH));
         Contract contract = contractRepository.save(ContractFixtures.newContract(
                 client.id(),
                 now.minusDays(1),

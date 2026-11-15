@@ -5,10 +5,15 @@ import com.mk.contractservice.domain.client.ClientEmail;
 import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
+import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -19,7 +24,8 @@ public interface PatchClient {
             long expectedVersion,
             @Nullable String name,
             @Nullable String email,
-            @Nullable String phoneNumber
+            @Nullable String phoneNumber,
+            @Nullable Residence residence
     ) {
         public Command {
             Objects.requireNonNull(clientId, "Client ID cannot be null");
@@ -33,6 +39,8 @@ public interface PatchClient {
     class Handler implements PatchClient {
 
         private final ClientRepository clientRepository;
+        private final LamalAffiliationRepository lamalAffiliationRepository;
+        private final Clock clock;
 
         @Override
         public Client execute(final Command command) {
@@ -53,7 +61,18 @@ public interface PatchClient {
             if (phone != null) {
                 updatedClient = updatedClient.changePhone(phone);
             }
-            return updatedClient.equals(client) ? client : clientRepository.save(updatedClient);
+            final Residence residence = command.residence();
+            if (residence != null && updatedClient instanceof Person person) {
+                updatedClient = person.changeResidence(residence);
+            }
+            if (updatedClient.equals(client)) {
+                return client;
+            }
+            if (!updatedClient.contractHolder().equals(client.contractHolder())) {
+                lamalAffiliationRepository.loadForUpdate(command.clientId())
+                        .ensureAcceptsHolder(updatedClient.contractHolder(), LocalDateTime.now(clock));
+            }
+            return clientRepository.save(updatedClient);
         }
     }
 }

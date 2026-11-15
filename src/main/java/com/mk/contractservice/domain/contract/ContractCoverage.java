@@ -40,7 +40,7 @@ public sealed interface ContractCoverage permits ContractCoverage.Lamal, Contrac
         if (type().isClosedTo(holder.kind())) {
             throw new ContractTypeNotAllowedException(type(), holder.kind());
         }
-        if (this instanceof Lamal(LamalFranchise franchise) && holder instanceof ContractHolder.Person(LocalDate birthDate)) {
+        if (this instanceof Lamal(LamalFranchise franchise) && holder instanceof ContractHolder.Person(LocalDate birthDate, var _)) {
             franchise.ensureSuits(birthDate, period);
         }
     }

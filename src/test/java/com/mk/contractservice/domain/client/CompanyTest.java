@@ -5,6 +5,7 @@ import com.mk.contractservice.domain.client.exception.InvalidClientEmailExceptio
 import com.mk.contractservice.domain.client.exception.InvalidClientNameException;
 import com.mk.contractservice.domain.client.exception.InvalidClientPhoneNumberException;
 import com.mk.contractservice.domain.client.exception.InvalidCompanyIdentifierException;
+import com.mk.contractservice.domain.shared.ContractHolder;
 import com.mk.contractservice.domain.shared.InvalidDomainObjectError;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -373,6 +374,20 @@ class CompanyTest {
             assertThat(updated.name()).isEqualTo(company.name());
             assertThat(updated.email()).isEqualTo(company.email());
             assertThat(updated.phone().value()).isEqualTo("+33999999999");
+        }
+    }
+
+
+    @Nested
+    @DisplayName("Contract holder")
+    class ContractHolderOfCompany {
+
+        @Test
+        @DisplayName("GIVEN a company WHEN reading its contract holder twice THEN it is the same company holder, built with the company")
+        void shouldHoldItsContractHolder() {
+            Company company = ClientFixtures.existingCompany(UUID.randomUUID());
+
+            assertThat(company.contractHolder()).isEqualTo(ContractHolder.company()).isSameAs(company.contractHolder());
         }
     }
 }

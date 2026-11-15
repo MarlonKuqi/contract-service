@@ -17,6 +17,9 @@ public final class Company extends Client {
 
     private final CompanyIdentifier companyIdentifier;
 
+    @EqualsAndHashCode.Exclude
+    private final ContractHolder contractHolder;
+
     private Company(
             @Nullable final UUID id,
             @Nullable final ClientName name,
@@ -26,6 +29,7 @@ public final class Company extends Client {
     ) {
         super(id, name, email, phone);
         this.companyIdentifier = notNull(companyIdentifier);
+        this.contractHolder = ContractHolder.company();
     }
 
     public static Company of(
@@ -56,11 +60,6 @@ public final class Company extends Client {
                 .phone(notNull(phone))
                 .companyIdentifier(notNull(companyIdentifier))
                 .build();
-    }
-
-    @Override
-    public ContractHolder contractHolder() {
-        return ContractHolder.company();
     }
 
     @Override

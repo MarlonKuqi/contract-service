@@ -15,6 +15,7 @@ import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.client.entities.ClientJpaEntity;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
@@ -92,8 +93,8 @@ class ClientConflictAcceptanceTest {
                 ClientName.of("Client Conflict"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("client.conflict")),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate())
-        ));
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate()),
+                Residence.CH));
         concurrentPhone = TestDataHelper.randomSwissPhoneNumber();
     }
 

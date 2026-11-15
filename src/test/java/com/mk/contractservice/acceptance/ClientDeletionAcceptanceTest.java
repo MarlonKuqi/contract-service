@@ -226,7 +226,8 @@ class ClientDeletionAcceptanceTest {
                     "name": "Client No Contracts",
                     "email": "client.nocontracts.%s@example.com",
                     "phone": "+41791234567",
-                    "birthDate": "1990-05-15"
+                    "birthDate": "1990-05-15",
+                    "residence": "CH"
                 }
                 """.formatted(UUID.randomUUID().toString().substring(0, 8));
 
@@ -265,7 +266,8 @@ class ClientDeletionAcceptanceTest {
                     "name": "Client Expired Only",
                     "email": "client.expiredonly.%s@example.com",
                     "phone": "+41791234567",
-                    "birthDate": "1990-05-15"
+                    "birthDate": "1990-05-15",
+                    "residence": "CH"
                 }
                 """, uniqueId);
 
@@ -564,7 +566,8 @@ class ClientDeletionAcceptanceTest {
                             "name": "Soft Deleted Person",
                             "email": "%s",
                             "phone": "%s",
-                            "birthDate": "1990-05-15"
+                            "birthDate": "1990-05-15",
+                            "residence": "CH"
                         }
                         """.formatted(TestDataHelper.uniqueEmail("soft.delete"),
                         TestDataHelper.randomSwissPhoneNumber()))

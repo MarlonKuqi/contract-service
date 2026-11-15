@@ -14,6 +14,7 @@ import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.response.ExtractableResponse;
@@ -80,8 +81,8 @@ class ReadContractAcceptanceTest {
                 ClientName.of("Marie Durand"),
                 ClientEmail.of("marie.durand." + uniqueId + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock))
-        );
+                PersonBirthDate.of(LocalDate.of(1985, 3, 20), LocalDate.now(clock)),
+                Residence.CH);
         testClient = clientRepository.save(testClient);
     }
 

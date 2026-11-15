@@ -16,6 +16,7 @@ import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import io.restassured.response.ValidatableResponse;
@@ -82,8 +83,8 @@ class UpdateContractPeriodAcceptanceTest {
                 ClientName.of("Lea Meier"),
                 ClientEmail.of("lea.meier." + UUID.randomUUID().toString().substring(0, 8) + "@example.com"),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 4, 12), LocalDate.now(clock))
-        ));
+                PersonBirthDate.of(LocalDate.of(1990, 4, 12), LocalDate.now(clock)),
+                Residence.CH));
         today = LocalDateTime.now(clock).truncatedTo(ChronoUnit.DAYS);
     }
 

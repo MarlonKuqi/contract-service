@@ -20,7 +20,8 @@ public interface ClientDtoMapper {
                     p.name().value(),
                     p.email().value(),
                     p.phone().value(),
-                    p.birthDate().value()
+                    p.birthDate().value(),
+                    p.residence()
             );
             case Company c -> new CompanyResponse(
                     Objects.requireNonNull(c.id()),
@@ -34,7 +35,12 @@ public interface ClientDtoMapper {
 
     default ClientResponse toResponse(final ClientDetails client) {
         return switch (client) {
-            case PersonDetails p -> new PersonResponse(p.id(), p.name(), p.email(), p.phone(), p.birthDate());
+            case PersonDetails p -> new PersonResponse(p.id(),
+                    p.name(),
+                    p.email(),
+                    p.phone(),
+                    p.birthDate(),
+                    p.residence());
             case CompanyDetails c -> new CompanyResponse(c.id(), c.name(), c.email(), c.phone(), c.companyIdentifier());
         };
     }

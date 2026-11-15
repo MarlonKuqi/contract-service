@@ -17,6 +17,7 @@ public final class ContractImportCodes {
             case TYPE_NOT_ALLOWED -> "contractTypeNotAllowed";
             case INVALID_FRANCHISE -> "invalidContractFranchise";
             case OVERLAPPING_CONTRACT -> "contractOverlap";
+            case LAMAL_EXEMPTION_CONFLICT -> "lamalExemptionConflict";
         };
     }
 

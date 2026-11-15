@@ -85,7 +85,8 @@ public class CreateClientController {
                     person.name(),
                     person.email(),
                     person.phone(),
-                    person.birthDate()
+                    person.birthDate(),
+                    person.residence()
             ));
             case CreateCompanyRequest company -> createCompany.execute(new CreateCompany.Command(
                     company.name(),

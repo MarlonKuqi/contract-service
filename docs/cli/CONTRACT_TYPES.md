@@ -119,4 +119,4 @@ Une LAMal porte toujours une franchise annuelle en CHF (`franchise`, un entier).
 
 ## Hors périmètre
 
-Changement de franchise d'une LAMal existante, droit d'option des frontaliers : voir `PROGRESS.md`.
+Changement de franchise d'une LAMal existante : voir `PROGRESS.md`. Droit d'option des frontaliers : voir [LAMAL_EXEMPTION.md](LAMAL_EXEMPTION.md).

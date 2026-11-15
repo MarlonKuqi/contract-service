@@ -214,7 +214,8 @@ class SecurityAcceptanceTest {
                             "name": "Counselor Flow",
                             "email": "%s",
                             "phone": "%s",
-                            "birthDate": "1990-01-01"
+                            "birthDate": "1990-01-01",
+                            "residence": "FR"
                         }
                         """.formatted(email, phone))
                 .when()
@@ -249,6 +250,17 @@ class SecurityAcceptanceTest {
                 .patch(ClientEndpoints.CLIENT_BY_ID, clientId)
                 .then()
                 .statusCode(204);
+
+        given()
+                .body("""
+                        { "startDate": "2020-01-01", "endDate": "2021-01-01" }
+                        """)
+                .when()
+                .put(ClientEndpoints.CLIENT_LAMAL_EXEMPTION, clientId)
+                .then()
+                .statusCode(204);
+
+        given().when().get(ClientEndpoints.CLIENT_LAMAL_EXEMPTION, clientId).then().statusCode(200);
 
         final String contractId = given()
                 .body("""

@@ -29,10 +29,21 @@ public class JpaClientQueryAdapter implements ClientQueryPort {
     private static ClientDetails toDetails(final ClientJpaEntity entity) {
         return switch (entity) {
             case PersonJpaEntity p -> new PersonDetails(
-                    p.getId(), p.getName(), p.getEmail(), p.getPhone(), p.getBirthDate(), p.getVersion()
+                    p.getId(),
+                    p.getName(),
+                    p.getEmail(),
+                    p.getPhone(),
+                    p.getBirthDate(),
+                    p.getResidence(),
+                    p.getVersion()
             );
             case CompanyJpaEntity c -> new CompanyDetails(
-                    c.getId(), c.getName(), c.getEmail(), c.getPhone(), c.getCompanyIdentifier(), c.getVersion()
+                    c.getId(),
+                    c.getName(),
+                    c.getEmail(),
+                    c.getPhone(),
+                    c.getCompanyIdentifier(),
+                    c.getVersion()
             );
             default -> throw new IllegalArgumentException("Unknown client entity type: " + entity.getClass().getName());
         };

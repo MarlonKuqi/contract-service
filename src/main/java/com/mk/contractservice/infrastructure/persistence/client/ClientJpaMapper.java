@@ -24,7 +24,8 @@ public final class ClientJpaMapper {
                     ClientName.reconstituteFromDatabase(p.getName()),
                     ClientEmail.reconstituteFromDatabase(p.getEmail()),
                     ClientPhoneNumber.reconstituteFromDatabase(p.getPhone()),
-                    PersonBirthDate.reconstituteFromDatabase(p.getBirthDate())
+                    PersonBirthDate.reconstituteFromDatabase(p.getBirthDate()),
+                    p.getResidence()
             );
             case CompanyJpaEntity c -> Company.reconstituteFromDatabase(
                     c.getId(),
@@ -42,7 +43,8 @@ public final class ClientJpaMapper {
                 person.name().value(),
                 person.email().value(),
                 person.phone().value(),
-                person.birthDate().value()
+                person.birthDate().value(),
+                person.residence()
         );
     }
 
@@ -59,5 +61,8 @@ public final class ClientJpaMapper {
         existing.setName(domain.name().value());
         existing.setEmail(domain.email().value());
         existing.setPhone(domain.phone().value());
+        if (domain instanceof Person person && existing instanceof PersonJpaEntity personEntity) {
+            personEntity.setResidence(person.residence());
+        }
     }
 }

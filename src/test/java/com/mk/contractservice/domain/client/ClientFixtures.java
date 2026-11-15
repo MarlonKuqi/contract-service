@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.client;
 
+import com.mk.contractservice.domain.shared.Residence;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -16,11 +17,23 @@ public final class ClientFixtures {
             final LocalDate birthDate,
             final LocalDate today
     ) {
+        return newPerson(name, email, phoneNumber, birthDate, today, Residence.CH);
+    }
+
+    public static Person newPerson(
+            final String name,
+            final String email,
+            final String phoneNumber,
+            final LocalDate birthDate,
+            final LocalDate today,
+            final Residence residence
+    ) {
         return Person.of(
                 ClientName.of(name),
                 ClientEmail.of(email),
                 ClientPhoneNumber.of(phoneNumber),
-                PersonBirthDate.of(birthDate, today)
+                PersonBirthDate.of(birthDate, today),
+                residence
         );
     }
 
@@ -31,13 +44,34 @@ public final class ClientFixtures {
             final String phoneNumber,
             final LocalDate birthDate
     ) {
+        return existingPerson(id, name, email, phoneNumber, birthDate, Residence.CH);
+    }
+
+    public static Person existingPerson(
+            final UUID id,
+            final String name,
+            final String email,
+            final String phoneNumber,
+            final LocalDate birthDate,
+            final Residence residence
+    ) {
         return Person.reconstituteFromDatabase(
                 id,
                 ClientName.reconstituteFromDatabase(name),
                 ClientEmail.reconstituteFromDatabase(email),
                 ClientPhoneNumber.reconstituteFromDatabase(phoneNumber),
-                PersonBirthDate.reconstituteFromDatabase(birthDate)
+                PersonBirthDate.reconstituteFromDatabase(birthDate),
+                residence
         );
+    }
+
+    public static Person existingPerson(final UUID id, final Residence residence) {
+        return existingPerson(id,
+                "Alice Martin",
+                "alice.martin@example.com",
+                "+41791234567",
+                LocalDate.of(1990, 5, 14),
+                residence);
     }
 
     public static Person existingPerson(final UUID id) {

@@ -5,6 +5,12 @@ import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.domain.lamal.LamalAffiliationFixtures;
+import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
+import com.mk.contractservice.domain.lamal.LamalExemption;
+import com.mk.contractservice.domain.lamal.exception.OngoingLamalExemptionException;
+import com.mk.contractservice.domain.shared.ContractHolder;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +21,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,11 +46,17 @@ class PatchClientHandlerTest {
     @Mock
     private ClientRepository clientRepository;
 
+    @Mock
+    private LamalAffiliationRepository lamalAffiliationRepository;
+
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 6, 1, 10, 0);
+    private static final Clock FIXED_CLOCK = Clock.fixed(NOW.toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
+
     private PatchClient.Handler patchClientHandler;
 
     @BeforeEach
     void setUp() {
-        patchClientHandler = new PatchClient.Handler(clientRepository);
+        patchClientHandler = new PatchClient.Handler(clientRepository, lamalAffiliationRepository, FIXED_CLOCK);
     }
 
     @Nested
@@ -72,7 +89,8 @@ class PatchClientHandlerTest {
                     VERSION,
                     "Jane Smith",
                     "jane@example.com",
-                    "+33222222222"
+                    "+33222222222",
+                    null
             );
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
@@ -95,6 +113,7 @@ class PatchClientHandlerTest {
                     clientId,
                     VERSION,
                     "Jane Smith",
+                    null,
                     null,
                     null
             );
@@ -120,6 +139,7 @@ class PatchClientHandlerTest {
                     VERSION,
                     null,
                     "jane@example.com",
+                    null,
                     null
             );
 
@@ -144,7 +164,8 @@ class PatchClientHandlerTest {
                     VERSION,
                     null,
                     null,
-                    "+33999999999"
+                    "+33999999999",
+                    null
             );
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
@@ -181,6 +202,7 @@ class PatchClientHandlerTest {
                     VERSION,
                     null,
                     null,
+                    null,
                     null
             );
 
@@ -213,6 +235,7 @@ class PatchClientHandlerTest {
             PatchClient.Command command = new PatchClient.Command(
                     clientId,
                     VERSION,
+                    null,
                     null,
                     null,
                     null
@@ -263,7 +286,8 @@ class PatchClientHandlerTest {
                     VERSION,
                     "Acme Corporation",
                     "info@acme.com",
-                    "+33222222222"
+                    "+33222222222",
+                    null
             );
 
             when(clientRepository.getById(clientId)).thenReturn(existingCompany);
@@ -287,6 +311,7 @@ class PatchClientHandlerTest {
                     clientId,
                     VERSION,
                     "Acme Corporation",
+                    null,
                     null,
                     null
             );
@@ -332,6 +357,7 @@ class PatchClientHandlerTest {
                     VERSION,
                     "New Name",
                     null,
+                    null,
                     null
             );
 
@@ -349,7 +375,7 @@ class PatchClientHandlerTest {
         void shouldNotThrowWhenEmailIsIdenticalToExisting() {
             // Given
             String existingEmail = existingPerson.email().value();
-            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, null, existingEmail, null);
+            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, null, existingEmail, null, null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -367,7 +393,7 @@ class PatchClientHandlerTest {
         void shouldNotThrowWhenPhoneIsIdenticalToExisting() {
             // Given
             String existingPhone = existingPerson.phone().value();
-            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, null, null, existingPhone);
+            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, null, null, existingPhone, null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -383,7 +409,12 @@ class PatchClientHandlerTest {
         @Test
         @DisplayName("GIVEN même téléphone dans un autre format WHEN execute THEN ne sauvegarde pas")
         void shouldNotSaveWhenSamePhoneInAnotherFormat() {
-            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, null, null, "+33 1 11 11 11 11");
+            PatchClient.Command command = new PatchClient.Command(clientId,
+                    VERSION,
+                    null,
+                    null,
+                    "+33 1 11 11 11 11",
+                    null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -397,7 +428,12 @@ class PatchClientHandlerTest {
         @Test
         @DisplayName("GIVEN même email dans une autre casse WHEN execute THEN ne sauvegarde pas")
         void shouldNotSaveWhenSameEmailInAnotherCase() {
-            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, null, "JOHN@Example.com", null);
+            PatchClient.Command command = new PatchClient.Command(clientId,
+                    VERSION,
+                    null,
+                    "JOHN@Example.com",
+                    null,
+                    null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -411,7 +447,7 @@ class PatchClientHandlerTest {
         @Test
         @DisplayName("GIVEN même nom avec espaces WHEN execute THEN ne sauvegarde pas")
         void shouldNotSaveWhenSameNameWithSpaces() {
-            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, "  John Doe  ", null, null);
+            PatchClient.Command command = new PatchClient.Command(clientId, VERSION, "  John Doe  ", null, null, null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -428,7 +464,8 @@ class PatchClientHandlerTest {
                     VERSION,
                     "John Doe",
                     "john@example.com",
-                    "+33111111111");
+                    "+33111111111",
+                    null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
 
@@ -445,6 +482,7 @@ class PatchClientHandlerTest {
                     VERSION,
                     "Jane Doe",
                     "john@example.com",
+                    null,
                     null);
 
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
@@ -483,7 +521,7 @@ class PatchClientHandlerTest {
             when(clientRepository.getById(clientId)).thenReturn(existingPerson);
             when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            patchClientHandler.execute(new PatchClient.Command(clientId, VERSION, "Jane Doe", null, null));
+            patchClientHandler.execute(new PatchClient.Command(clientId, VERSION, "Jane Doe", null, null, null));
 
             verify(clientRepository).ensureVersion(clientId, VERSION);
         }
@@ -498,6 +536,7 @@ class PatchClientHandlerTest {
             assertThatThrownBy(() -> patchClientHandler.execute(new PatchClient.Command(clientId,
                     VERSION,
                     "Jane Doe",
+                    null,
                     null,
                     null)))
                     .isInstanceOf(VersionMismatchException.class);
@@ -515,9 +554,72 @@ class PatchClientHandlerTest {
                     VERSION,
                     null,
                     "not-an-email",
+                    null,
                     null)))
                     .isInstanceOf(VersionMismatchException.class);
             verify(clientRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("Residence")
+    class ResidenceChange {
+
+        private final UUID clientId = UUID.randomUUID();
+
+        private PatchClient.Command movingTo(final Residence residence) {
+            return new PatchClient.Command(clientId, VERSION, null, null, null, residence);
+        }
+
+        @Test
+        @DisplayName("GIVEN a person living in Switzerland WHEN moving to Italy THEN the person is saved with the new residence")
+        void shouldMoveToBorderingCountry() {
+            when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId, Residence.CH));
+            when(lamalAffiliationRepository.loadForUpdate(clientId)).thenReturn(
+                    LamalAffiliationFixtures.loadedFor(clientId, List.of(), null));
+
+            patchClientHandler.execute(movingTo(Residence.IT));
+
+            verify(clientRepository).save(ClientFixtures.existingPerson(clientId, Residence.IT));
+        }
+
+        @Test
+        @DisplayName("GIVEN a cross-border worker exempted from LAMal WHEN moving to Switzerland THEN it is refused and nothing is saved")
+        void shouldRefuseMoveToSwitzerlandDuringExemption() {
+            when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId, Residence.IT));
+            when(lamalAffiliationRepository.loadForUpdate(clientId)).thenReturn(
+                    LamalAffiliationFixtures.loadedFor(clientId,
+                            List.of(),
+                            LamalExemption.of(LocalDate.of(2026, 1, 1),
+                                    null,
+                                    ContractHolder.person(LocalDate.of(1990, 5, 14), Residence.IT))));
+
+            assertThatThrownBy(() -> patchClientHandler.execute(movingTo(Residence.CH)))
+                    .isInstanceOf(OngoingLamalExemptionException.class);
+            verify(clientRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("GIVEN a person WHEN patching another field THEN the LAMal affiliation is not loaded, as loading it bumps its version")
+        void shouldNotLoadAffiliationWhenResidenceIsNotPatched() {
+            when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId, Residence.IT));
+
+            patchClientHandler.execute(new PatchClient.Command(clientId, VERSION, "Jane Martin", null, null, null));
+
+            verifyNoInteractions(lamalAffiliationRepository);
+        }
+
+        @Test
+        @DisplayName("GIVEN a company WHEN patching a residence THEN the residence is ignored, as a company has none, and nothing is saved")
+        void shouldIgnoreResidenceOfCompany() {
+            Company company = ClientFixtures.existingCompany(clientId);
+            when(clientRepository.getById(clientId)).thenReturn(company);
+
+            Client result = patchClientHandler.execute(movingTo(Residence.CH));
+
+            assertThat(result).isSameAs(company);
+            verify(clientRepository, never()).save(any());
+            verifyNoInteractions(lamalAffiliationRepository);
         }
     }
 }

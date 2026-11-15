@@ -19,4 +19,6 @@ public final class ClientEndpoints {
 
     // Composed paths
     public static final String CLIENT_BY_ID = CLIENTS_BASE + PATH_VAR_ID;
+    public static final String LAMAL_EXEMPTION = PATH_VAR_ID + "/lamal-exemption";
+    public static final String CLIENT_LAMAL_EXEMPTION = CLIENTS_BASE + LAMAL_EXEMPTION;
 }

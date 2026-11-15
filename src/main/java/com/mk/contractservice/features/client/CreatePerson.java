@@ -7,6 +7,7 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 
@@ -21,13 +22,15 @@ public interface CreatePerson {
             String name,
             String email,
             String phoneNumber,
-            LocalDate birthDate
+            LocalDate birthDate,
+            Residence residence
     ) {
         public Command {
             Objects.requireNonNull(name, "Name cannot be null");
             Objects.requireNonNull(email, "Email cannot be null");
             Objects.requireNonNull(phoneNumber, "Phone number cannot be null");
             Objects.requireNonNull(birthDate, "Birth date cannot be null");
+            Objects.requireNonNull(residence, "Residence cannot be null");
         }
     }
 
@@ -46,7 +49,8 @@ public interface CreatePerson {
                     ClientName.of(command.name()),
                     ClientEmail.of(command.email()),
                     ClientPhoneNumber.of(command.phoneNumber()),
-                    PersonBirthDate.of(command.birthDate(), LocalDate.now(clock))
+                    PersonBirthDate.of(command.birthDate(), LocalDate.now(clock)),
+                    command.residence()
             );
             return clientRepository.save(person);
         }

@@ -1,6 +1,8 @@
 package com.mk.contractservice.domain.client;
 
+import com.mk.contractservice.domain.client.exception.InvalidClientResidenceException;
 import com.mk.contractservice.domain.shared.ContractHolder;
+import com.mk.contractservice.domain.shared.Residence;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,29 +18,38 @@ import static com.mk.contractservice.domain.shared.Assert.notNull;
 public final class Person extends Client {
 
     private final PersonBirthDate birthDate;
+    private final Residence residence;
+
+    @EqualsAndHashCode.Exclude
+    private final ContractHolder contractHolder;
 
     private Person(
             @Nullable final UUID id,
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
             @Nullable final ClientPhoneNumber phone,
-            @Nullable final PersonBirthDate birthDate
+            @Nullable final PersonBirthDate birthDate,
+            @Nullable final Residence residence
     ) {
         super(id, name, email, phone);
         this.birthDate = notNull(birthDate);
+        this.residence = notNull(residence);
+        this.contractHolder = ContractHolder.person(this.birthDate.value(), this.residence);
     }
 
     public static Person of(
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
             @Nullable final ClientPhoneNumber phone,
-            @Nullable final PersonBirthDate birthDate
+            @Nullable final PersonBirthDate birthDate,
+            @Nullable final Residence residence
     ) {
         return builder()
                 .name(notNull(name))
                 .email(notNull(email))
                 .phone(notNull(phone))
                 .birthDate(notNull(birthDate))
+                .residence(required(residence))
                 .build();
     }
 
@@ -47,7 +58,8 @@ public final class Person extends Client {
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
             @Nullable final ClientPhoneNumber phone,
-            @Nullable final PersonBirthDate birthDate
+            @Nullable final PersonBirthDate birthDate,
+            @Nullable final Residence residence
     ) {
         return builder()
                 .id(notNull(id))
@@ -55,12 +67,8 @@ public final class Person extends Client {
                 .email(notNull(email))
                 .phone(notNull(phone))
                 .birthDate(notNull(birthDate))
+                .residence(notNull(residence))
                 .build();
-    }
-
-    @Override
-    public ContractHolder contractHolder() {
-        return ContractHolder.person(birthDate.value());
     }
 
     @Override
@@ -108,6 +116,21 @@ public final class Person extends Client {
         return toBuilder().phone(newPhone).build();
     }
 
+    public Person changeResidence(@Nullable final Residence residence) {
+        final Residence newResidence = required(residence);
+        if (newResidence == this.residence) {
+            return this;
+        }
+        return toBuilder().residence(newResidence).build();
+    }
+
+    private static Residence required(@Nullable final Residence residence) {
+        if (residence == null) {
+            throw new InvalidClientResidenceException("A person must have a residence");
+        }
+        return residence;
+    }
+
     private static PersonBuilder builder() {
         return new PersonBuilder();
     }
@@ -118,7 +141,8 @@ public final class Person extends Client {
                 .name(name())
                 .email(email())
                 .phone(phone())
-                .birthDate(birthDate());
+                .birthDate(birthDate())
+                .residence(residence());
     }
 
     @NoArgsConstructor
@@ -129,6 +153,7 @@ public final class Person extends Client {
         private ClientEmail email;
         private ClientPhoneNumber phone;
         private PersonBirthDate birthDate;
+        private Residence residence;
 
         PersonBuilder id(final UUID id) {
             this.id = id;
@@ -155,8 +180,13 @@ public final class Person extends Client {
             return this;
         }
 
+        PersonBuilder residence(final Residence residence) {
+            this.residence = residence;
+            return this;
+        }
+
         Person build() {
-            return new Person(id, name, email, phone, birthDate);
+            return new Person(id, name, email, phone, birthDate, residence);
         }
     }
 }

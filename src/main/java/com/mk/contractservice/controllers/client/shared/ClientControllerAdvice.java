@@ -7,6 +7,7 @@ import com.mk.contractservice.controllers.client.SearchClientController;
 import com.mk.contractservice.controllers.client.UpdateClientController;
 import com.mk.contractservice.controllers.shared.BaseControllerAdvice;
 import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
+import com.mk.contractservice.domain.lamal.exception.OngoingLamalExemptionException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.DomainValidationException;
 import org.slf4j.Logger;
@@ -60,7 +61,10 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
             case null, default -> "Malformed JSON or invalid payload.";
         };
 
-        final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed", detail, "validationError");
+        final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT,
+                "Validation Failed",
+                detail,
+                "validationError");
         return respond(problemDetail);
     }
 
@@ -68,14 +72,21 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handleValidation(final MethodArgumentNotValidException ex) {
         log.debug("Validation failed for client request: {}", ex.getMessage());
 
-        final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Validation Failed",
-                "One or more fields are invalid or missing.", "validationError");
+        final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT,
+                "Validation Failed",
+                "One or more fields are invalid or missing.",
+                "validationError");
 
-        final List<Map<String, Object>> errors = ex.getBindingResult().getFieldErrors().stream()
+        final List<Map<String, Object>> errors = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
                 .map(fe -> Map.of(
-                        "field", fe.getField(),
-                        "message", messageOf(fe),
-                        "rejectedValue", Optional.ofNullable(fe.getRejectedValue()).orElse("null")))
+                        "field",
+                        fe.getField(),
+                        "message",
+                        messageOf(fe),
+                        "rejectedValue",
+                        Optional.ofNullable(fe.getRejectedValue()).orElse("null")))
                 .toList();
 
         problemDetail.setProperty("validations", errors);
@@ -86,18 +97,34 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handleDomainValidation(final DomainValidationException ex) {
         log.debug("Domain validation error for client: {}", ex.getMessage());
 
-        final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT, "Domain Validation Error",
-                ex.getMessage(), ex.code() != null ? ex.code() : "domainValidationError");
+        final ProblemDetail problemDetail = problem(HttpStatus.UNPROCESSABLE_CONTENT,
+                "Domain Validation Error",
+                ex.getMessage(),
+                ex.code() != null ? ex.code() : "domainValidationError");
         return respond(problemDetail);
     }
 
     @ExceptionHandler(CompanyIdentifierAlreadyExistsException.class)
-    public ResponseEntity<ProblemDetail> handleCompanyIdentifierAlreadyExists(final CompanyIdentifierAlreadyExistsException ex) {
+    public ResponseEntity<ProblemDetail> handleCompanyIdentifierAlreadyExists(
+            final CompanyIdentifierAlreadyExistsException ex) {
         log.debug("Company identifier already exists: {}", ex.getMessage());
 
-        final ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Company Identifier Already Exists",
-                ex.getMessage(), "companyIdentifierAlreadyExists");
+        final ProblemDetail problemDetail = problem(HttpStatus.CONFLICT,
+                "Company Identifier Already Exists",
+                ex.getMessage(),
+                "companyIdentifierAlreadyExists");
         problemDetail.setProperty("companyIdentifier", ex.companyIdentifier());
+        return respond(problemDetail);
+    }
+
+    @ExceptionHandler(OngoingLamalExemptionException.class)
+    public ResponseEntity<ProblemDetail> handleOngoingLamalExemption(final OngoingLamalExemptionException ex) {
+        log.debug("Residence change refused: {}", ex.getMessage());
+
+        final ProblemDetail problemDetail = problem(HttpStatus.CONFLICT,
+                "LAMal Exemption Ongoing",
+                ex.getMessage(),
+                "lamalExemptionOngoing");
         return respond(problemDetail);
     }
 
@@ -105,8 +132,10 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handleClientNotFound(final ClientNotFoundException ex) {
         log.debug("Client not found: {}", ex.getMessage());
 
-        final ProblemDetail problemDetail = problem(HttpStatus.NOT_FOUND, "Client Not Found",
-                ex.getMessage(), "clientNotFound");
+        final ProblemDetail problemDetail = problem(HttpStatus.NOT_FOUND,
+                "Client Not Found",
+                ex.getMessage(),
+                "clientNotFound");
         return respond(problemDetail);
     }
 
@@ -114,9 +143,10 @@ public class ClientControllerAdvice extends BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handleIllegalArgument(final IllegalArgumentException ex) {
         log.warn("Illegal argument in client operation: {}", ex.getMessage());
 
-        final ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Bad Request",
-                ex.getMessage(), "badRequest");
+        final ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST,
+                "Bad Request",
+                ex.getMessage(),
+                "badRequest");
         return respond(problemDetail);
     }
 }
-

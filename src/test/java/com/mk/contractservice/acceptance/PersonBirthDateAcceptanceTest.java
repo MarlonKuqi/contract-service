@@ -84,7 +84,8 @@ class PersonBirthDateAcceptanceTest {
                             "name": "Alice Martin",
                             "email": "%s",
                             "phone": "%s",
-                            "birthDate": "%s"
+                            "birthDate": "%s",
+                            "residence": "CH"
                         }
                         """.formatted(
                         TestDataHelper.uniqueEmail("birth.date"),

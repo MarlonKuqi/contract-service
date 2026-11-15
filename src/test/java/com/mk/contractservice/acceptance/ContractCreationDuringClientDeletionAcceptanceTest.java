@@ -11,6 +11,7 @@ import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractType;
+import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.features.client.DeleteClient;
 import com.mk.contractservice.features.contract.CreateContract;
@@ -80,8 +81,8 @@ class ContractCreationDuringClientDeletionAcceptanceTest {
                 ClientName.of("Creation Race"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("creation.race")),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate())
-        ));
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate()),
+                Residence.CH));
         return client.id();
     }
 

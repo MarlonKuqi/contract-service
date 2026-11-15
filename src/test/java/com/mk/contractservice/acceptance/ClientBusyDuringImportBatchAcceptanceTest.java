@@ -12,6 +12,7 @@ import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
+import com.mk.contractservice.domain.shared.Residence;
 import io.restassured.response.ValidatableResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -65,8 +66,8 @@ class ClientBusyDuringImportBatchAcceptanceTest {
                 ClientName.of("Busy Client"),
                 ClientEmail.of(TestDataHelper.uniqueEmail("busy.client")),
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
-                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate())
-        ));
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate()),
+                Residence.CH));
     }
 
     private ValidatableResponse whileAnImportBatchHoldsTheClient(final Supplier<ValidatableResponse> request) {

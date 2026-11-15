@@ -20,6 +20,7 @@ import com.mk.contractservice.domain.contract.exception.OverlappingContractExcep
 import com.mk.contractservice.domain.contract.importjob.exception.ContractImportJobNotFoundException;
 import com.mk.contractservice.domain.contract.importjob.exception.IdempotencyKeyReusedException;
 import com.mk.contractservice.domain.contract.importjob.exception.InvalidIdempotencyKeyException;
+import com.mk.contractservice.domain.lamal.exception.LamalExemptionConflictException;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
 import com.mk.contractservice.domain.shared.exception.DomainValidationException;
 import com.mk.contractservice.features.shared.InvalidImportFileException;
@@ -295,6 +296,15 @@ public class ContractControllerAdvice extends BaseControllerAdvice {
     public ResponseEntity<ProblemDetail> handleOverlappingContract(OverlappingContractException ex) {
         log.debug("Business rule violation: {}", ex.getMessage());
         return respond(problem(HttpStatus.CONFLICT, "Overlapping Contract", ex.getMessage(), CONTRACT_OVERLAP));
+    }
+
+    @ExceptionHandler(LamalExemptionConflictException.class)
+    public ResponseEntity<ProblemDetail> handleLamalExemptionConflict(LamalExemptionConflictException ex) {
+        log.debug("Business rule violation: {}", ex.getMessage());
+        return respond(problem(HttpStatus.CONFLICT,
+                "LAMal Exemption Conflict",
+                ex.getMessage(),
+                "lamalExemptionConflict"));
     }
 
     @ExceptionHandler(DomainValidationException.class)
