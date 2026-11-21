@@ -54,6 +54,12 @@ public class LamalAffiliation {
     }
 
     public LamalAffiliation admit(final Contract contract, final LocalDateTime now) {
+        ensureAdmits(contract, now);
+        final LamalTerm term = LamalTerm.of(contract);
+        return new LamalAffiliation(personId, Stream.concat(otherTerms(term), Stream.of(term)).toList(), exemption);
+    }
+
+    public void ensureAdmits(final Contract contract, final LocalDateTime now) {
         ensureIsALamalOfThePerson(notNull(contract));
         final LamalTerm term = LamalTerm.of(contract);
         otherTerms(term)
@@ -66,7 +72,6 @@ public class LamalAffiliation {
         if (exemption != null && exemption.covers(term.period())) {
             throw LamalExemptionConflictException.forLamal(personId, exemption);
         }
-        return new LamalAffiliation(personId, Stream.concat(otherTerms(term), Stream.of(term)).toList(), exemption);
     }
 
     public LamalAffiliation recordExemption(final LamalExemption newExemption, final LocalDateTime now) {
@@ -95,7 +100,7 @@ public class LamalAffiliation {
     }
 
     private void ensureIsALamalOfThePerson(final Contract contract) {
-        if (contract.type() != ContractType.LAMAL || !personId.equals(contract.clientId())) {
+        if (!contract.isLamal() || !personId.equals(contract.clientId())) {
             throw new InvalidDomainObjectError("A LAMal affiliation only holds the LAMal of its person");
         }
     }

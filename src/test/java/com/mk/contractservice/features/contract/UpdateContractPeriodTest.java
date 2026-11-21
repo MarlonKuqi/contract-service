@@ -27,13 +27,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -66,8 +64,10 @@ class UpdateContractPeriodTest {
 
     @BeforeEach
     void setUp() {
-        lenient().when(lamalAffiliationRepository.loadForAdmission(anySet()))
-                .thenAnswer(invocation -> LamalAffiliationFixtures.loadedFor(invocation.getArgument(0), List.of()));
+        lenient().when(lamalAffiliationRepository.loadForUpdate(any()))
+                .thenAnswer(invocation -> LamalAffiliationFixtures.loadedFor(invocation.getArgument(0),
+                        List.of(),
+                        null));
         handler = new UpdateContractPeriod.Handler(contractRepository,
                 clientRepository,
                 lamalAffiliationRepository,
@@ -122,8 +122,8 @@ class UpdateContractPeriodTest {
                 null,
                 new BigDecimal("500.00"),
                 CURRENT_START);
-        when(lamalAffiliationRepository.loadForAdmission(Set.of(clientId)))
-                .thenReturn(LamalAffiliationFixtures.loadedFor(Set.of(clientId), List.of(loaded, next)));
+        when(lamalAffiliationRepository.loadForUpdate(clientId))
+                .thenReturn(LamalAffiliationFixtures.loadedFor(clientId, List.of(loaded, next), null));
         UpdateContractPeriod.Command command = command(CURRENT_START, CURRENT_END.plusMonths(1));
 
         assertThatThrownBy(() -> handler.execute(command)).isInstanceOf(OverlappingContractException.class);
@@ -134,8 +134,8 @@ class UpdateContractPeriodTest {
     @DisplayName("GIVEN a LAMal WHEN its new period runs over its own previous period THEN saves it, the contract not overlapping itself")
     void shouldNotCompareTheContractWithItself() {
         Contract loaded = givenContract(CURRENT_START, CURRENT_END);
-        when(lamalAffiliationRepository.loadForAdmission(Set.of(clientId)))
-                .thenReturn(LamalAffiliationFixtures.loadedFor(Set.of(clientId), List.of(loaded)));
+        when(lamalAffiliationRepository.loadForUpdate(clientId))
+                .thenReturn(LamalAffiliationFixtures.loadedFor(clientId, List.of(loaded), null));
         givenSaveReturnsArgument();
 
         Contract result = handler.execute(command(CURRENT_START, CURRENT_END.plusMonths(1)));
@@ -219,6 +219,27 @@ class UpdateContractPeriodTest {
 
     private UpdateContractPeriod.Command command(final LocalDateTime startDate, final LocalDateTime endDate) {
         return new UpdateContractPeriod.Command(contractId, VERSION, startDate, endDate);
+    }
+
+    @Test
+    @DisplayName("GIVEN a LPP of a company WHEN its period changes THEN saves it without loading any LAMal affiliation")
+    void shouldNotLoadLamalAffiliationForCompanyContract() {
+        Contract lpp = ContractFixtures.existingContract(contractId,
+                clientId,
+                ContractType.LPP,
+                CURRENT_START,
+                CURRENT_END,
+                new BigDecimal("500.00"),
+                CURRENT_START);
+        when(contractRepository.getById(contractId)).thenReturn(lpp);
+        when(clientRepository.getContractHolderIncludingDeleted(clientId))
+                .thenReturn(ClientFixtures.existingCompany(clientId).contractHolder());
+        givenSaveReturnsArgument();
+
+        Contract result = handler.execute(command(CURRENT_START, CURRENT_END.plusMonths(1)));
+
+        verify(contractRepository).save(result);
+        verify(lamalAffiliationRepository, never()).loadForUpdate(any());
     }
 
     private Contract givenContract(final LocalDateTime startDate, final LocalDateTime endDate) {

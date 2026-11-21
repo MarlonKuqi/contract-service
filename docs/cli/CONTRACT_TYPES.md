@@ -32,6 +32,7 @@ La réponse, comme toutes les lectures de contrats (`GET /v2/contracts/{id}`, li
 | LAMal sans franchise, franchise sur une LAA ou une LPP, montant hors barème | 422 | `invalidContractFranchise` |
 | Franchise non autorisée pour l'âge de l'assuré, LAMal d'enfant sans fin ou qui finit après l'enfance | 422 | `invalidContractFranchise` |
 | `LAMAL` qui chevauche une autre LAMal de la même personne | 409 | `contractOverlap` |
+| `LAMAL` qui couvre l.exemption LAMal d.un frontalier, même passée (voir [LAMAL_EXEMPTION.md](LAMAL_EXEMPTION.md)) | 409 | `lamalExemptionConflict` |
 
 Exemple de refus :
 
@@ -68,7 +69,7 @@ La LAA et la LPP d'une entreprise ne sont pas concernées : une entreprise peut 
 }
 ```
 
-Deux créations simultanées pour la même personne sont traitées l'une après l'autre : la seconde attend la fin de la première, puis répond `409 contractOverlap` avec le message précis si les périodes se chevauchent. Si elle attend plus de 5 s (import en cours sur ce client, par exemple), elle répond `409 resourceBusy` : renvoyer la requête.
+Deux créations simultanées pour la même personne n’aboutissent pas toutes les deux si elles sont incompatibles : la seconde est rejouée automatiquement par le serveur, voit la première et répond `409 contractOverlap` (ou `409 lamalExemptionConflict`) avec le message précis. Si elle attend plus de 5 s (import en cours sur ce client, par exemple), elle répond `409 resourceBusy` : renvoyer la requête.
 
 ## Franchise LAMal
 
@@ -106,15 +107,15 @@ Une LAMal porte toujours une franchise annuelle en CHF (`franchise`, un entier).
 
 ## Imports
 
-- Import synchrone (`POST /v2/contracts/imports`) : `type` est obligatoire sur chaque ligne, `franchise` sur chaque ligne LAMal. Une franchise refusée rejette la ligne avec `invalidContractFranchise`. Un type non autorisé pour le client rejette la ligne avec `contractTypeNotAllowed`, une LAMal qui chevauche une LAMal existante ou une ligne précédente du même import avec `contractOverlap`, et donc tout l'import.
-- Import par fichier (`POST /v2/contracts/import-jobs`) : l'en-tête devient `clientId;type;franchise;startDate;endDate;costAmount` (franchise vide pour une LAA ou une LPP). Un type inconnu ou une franchise illisible rejette la ligne avec `invalidLineFormat`, une franchise refusée avec `invalidContractFranchise`, un type non autorisé avec `contractTypeNotAllowed`, une LAMal en chevauchement (avec la base, une ligne précédente du fichier) avec `contractOverlap` ; les autres lignes sont importées.
+- Import synchrone (`POST /v2/contracts/imports`) : `type` est obligatoire sur chaque ligne, `franchise` sur chaque ligne LAMal. Une franchise refusée rejette la ligne avec `invalidContractFranchise`. Un type non autorisé pour le client rejette la ligne avec `contractTypeNotAllowed`, une LAMal qui chevauche une LAMal existante ou une ligne précédente du même import avec `contractOverlap`, une LAMal qui couvre l’exemption de la personne avec `lamalExemptionConflict`, et donc tout l’import.
+- Import par fichier (`POST /v2/contracts/import-jobs`) : l'en-tête devient `clientId;type;franchise;startDate;endDate;costAmount` (franchise vide pour une LAA ou une LPP). Un type inconnu ou une franchise illisible rejette la ligne avec `invalidLineFormat`, une franchise refusée avec `invalidContractFranchise`, un type non autorisé avec `contractTypeNotAllowed`, une LAMal en chevauchement (avec la base, une ligne précédente du fichier) avec `contractOverlap`, une LAMal qui couvre l’exemption de la personne avec `lamalExemptionConflict` ; les autres lignes sont importées.
 
 ## Changements pour les appelants
 
 - `POST /v2/contracts` et `POST /v2/contracts/imports` sans `type` répondent 422.
 - Un fichier CSV avec un ancien en-tête (4 ou 5 colonnes) est refusé (`invalidImportFile`).
 - La base ne doit contenir aucun contrat avant la migration `V2.0.0.10` : la colonne `type` est `NOT NULL` sans valeur par défaut.
-- `POST /v2/contracts` peut répondre `409 contractOverlap`, et les imports rejettent une ligne avec ce code.
+- `POST /v2/contracts` peut répondre `409 contractOverlap`, et les imports rejettent une ligne avec ce code. Depuis l’incrément 4b, `409 lamalExemptionConflict` et le rejet de ligne `lamalExemptionConflict` s’y ajoutent pour une LAMal qui couvre une exemption.
 - Une LAMal sans `franchise` répond `422 invalidContractFranchise` (création et imports). La base ne doit contenir aucune LAMal avant la migration `V2.0.0.11` : la colonne `franchise` est obligatoire pour une LAMal, sans valeur par défaut.
 
 ## Hors périmètre

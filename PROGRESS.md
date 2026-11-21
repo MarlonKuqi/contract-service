@@ -29,6 +29,7 @@ Suivi des sujets en cours. Les décisions sont détaillées dans [ADR.md](docs/A
 | Accesseurs fluides Lombok (`lombok.config` racine), JavaBean conservé pour les entités JPA | `develop` (43bb8f6) | ADR-002 |
 | Types de contrats, incrément 1 : type obligatoire et immuable (`LAMAL`, `LAA`, `LPP`), éligibilité selon la nature du client, `type` dans l'API et les deux imports, migration `V2.0.0.10` | `develop` (358aa10) | ADR-024 |
 | Modification de la période d'un contrat : `PUT /v2/contracts/{id}/period` (remplacement de la période, `If-Match`), début modifiable même dans le passé, fin jamais dans le passé, `lastModified` mis à jour | `develop` (#88) | ADR-025 |
+| Types de contrats, incrément 4a : agrégat `LamalAffiliation` (table `lamal`, une racine par personne) qui porte la règle de non-chevauchement des LAMal, verrouillage optimiste forcé et réessai à la place du `FOR UPDATE` sur le client, migration `V2.0.0.12` | `feat/contract-types-increment-4` (1adfc97) | ADR-024 |
 | Types de contrats, incrément 4b : résidence obligatoire d'une personne (`CH`, `FR`, `DE`, `IT`, `AT`), exemption LAMal des frontaliers dans `LamalAffiliation` (`PUT`/`GET /v2/clients/{id}/lamal-exemption`), LAMal refusée pendant une exemption, passage en Suisse refusé pendant une exemption, migrations `V2.0.0.13` et `V2.0.0.14` | `feat/contract-types-increment-4` | ADR-024 |
 
 ## 1. Priorité moyenne
@@ -38,7 +39,7 @@ Suivi des sujets en cours. Les décisions sont détaillées dans [ADR.md](docs/A
   - Release notes 2.0.0 : à écrire dans `docs/cli/RELEASE_NOTES_2.0.0.md` (fichier absent de toutes les branches) :
     - `type` obligatoire sur les contrats (`POST /v2/contracts`, imports JSON et CSV), éligibilité selon la nature du client (ADR-024) ;
     - `franchise` obligatoire sur une LAMal, selon le barème légal et l'âge de l'assuré, LAMal d'enfant à durée limitée, nouvel en-tête CSV, base à recréer si elle contient des LAMal antérieures à `V2.0.0.11` (ADR-024, incrément 3) ;
-    - `residence` obligatoire à la création d'une personne, modifiable par `PATCH`, exemption LAMal des frontaliers, nouveau code de rejet `lamalExemptionConflict` dans les imports (ADR-024, incrément 4b) ;
+    - `residence` obligatoire à la création d'une personne, modifiable par `PATCH`, exemption LAMal des frontaliers (`PUT`/`GET /v2/clients/{id}/lamal-exemption`), `409 lamalExemptionConflict` à la création et au changement de période d’une LAMal et rejet de ligne du même code dans les imports (ADR-024, incrément 4b) ;
     - plus de 409 sur email / téléphone ;
     - `DELETE` d'un client inconnu ou déjà supprimé : 404 ;
     - soft delete ;
@@ -111,11 +112,11 @@ Non exigé par `docs/sujet.txt`, livré par incréments. Chaque incrément a sa 
   - `franchise` obligatoire pour une LAMal, interdite sinon (`422 invalidContractFranchise`, rejet `INVALID_FRANCHISE`) ; en-tête CSV `clientId;type;franchise;startDate;endDate;costAmount`.
   - Franchise immuable : `changeFranchise` (au 1er janvier) reporté à l'incrément 4.
 - [ ] **Incrément 4 : droit d'option des frontaliers.** Hypothèses validées le 12/11/2026 (ADR-024, « Incrément 4 ») : frontalier = résident d'un pays frontalier, pas de date d'emploi (délai contrôlé par le canton), exemption = décision cantonale enregistrée avec sa date d'effet, résidence modifiable sans historique, affiliation continue faite d'échéances annuelles. Famille hors périmètre.
-  - [x] **4a : agrégat `LamalAffiliation` (ex-`AssuranceMaladie`), sans changement de comportement** (`develop`, non commité au 13/11/2026). Table `lamal` (une racine par personne avec sa `version`, créée à la première LAMal, migration `V2.0.0.12`), règle de non-chevauchement déplacée dans la racine : verrouillage optimiste forcé à la place du `FOR UPDATE` sur le client (ADR-024, « Incrément 4a »).
-    - `LamalAffiliations` remplace `ContractOverlapPolicy` et son `Batch` ; `LamalAffiliationRepository.loadForAdmission` crée les racines manquantes et les charge en `OPTIMISTIC_FORCE_INCREMENT`.
-    - `@Retryable` sur `CreateContract`, `UpdateContractPeriod` et `ImportContracts` : une course sur une racine existante donne toujours `409 contractOverlap` (et pas `412` sur `PUT /period`). Test ajouté dans `LamalOverlapConcurrencyAcceptanceTest`.
+  - [x] **4a : agrégat `LamalAffiliation` (ex-`AssuranceMaladie`), sans changement de comportement** (`feat/contract-types-increment-4`, 1adfc97). Table `lamal` (une racine par personne avec sa `version`, créée à la première LAMal, migration `V2.0.0.12`), règle de non-chevauchement déplacée dans la racine : verrouillage optimiste forcé à la place du `FOR UPDATE` sur le client (ADR-024, « Incrément 4a »).
+    - `ContractOverlapPolicy` et son `Batch` supprimés : la création et le changement de période chargent la racine d’une LAMal (`loadForUpdate`), les imports gardent les racines par personne dans `ContractImportLineEvaluator` (la classe de domaine `LamalAffiliations`, sans sens métier, a été retirée ensuite). `LamalAffiliationRepository.loadForAdmission` crée les racines manquantes et les charge en `OPTIMISTIC_FORCE_INCREMENT`.
+    - `@Retryable` sur `CreateContract`, `UpdateContractPeriod` et `ImportContracts` : une course sur une racine existante donne toujours `409 contractOverlap` (et pas `412` sur `PUT /period`). Test ajouté dans `LamalAffiliationConcurrencyAcceptanceTest`.
     - Verrou de chunk de l'import par fichier conservé en `FOR UPDATE` (suppression du client pendant le lot) ; retour à `FOR SHARE` possible plus tard.
-  - [x] **4b : droit d'option.** Résidence sur le client (migration, API client), `residence` dans `ContractHolder.Person`, exemption dans `AssuranceMaladie`, LAMal refusée pendant une exemption, résidence suisse refusée pendant une exemption en cours.
+  - [x] **4b : droit d'option.** Résidence sur le client (migration, API client), `residence` dans `ContractHolder.Person`, exemption dans `LamalAffiliation`, LAMal refusée pendant une exemption, résidence suisse refusée pendant une exemption en cours.
   - [ ] **Ensuite** : continuité de l'affiliation (pas de trou entre deux échéances, reconduction annuelle) dans la racine.
   - Décider avec la racine du changement de franchise : `changeFranchise` effectif au 1er janvier (franchise à venir sur l'échéance, ou nouvelle échéance créée par la racine). Délais légaux à trancher : hausse jusqu'au 31 décembre, baisse avant le 30 novembre.
 

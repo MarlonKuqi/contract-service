@@ -71,7 +71,7 @@ Exemple de rejet (`lineNumber` est le numéro de ligne dans le fichier, l'en-tê
 }
 ```
 
-Codes d'une ligne rejetée : `invalidLineFormat` (y compris un type inconnu), `invalidContractCost`, `invalidContractPeriod`, `clientNotFound` (client inconnu ou supprimé), `contractTypeNotAllowed` (type réservé à une autre nature de client), `contractOverlap` (LAMal qui chevauche une LAMal de la même personne, en base ou plus haut dans le fichier).
+Codes d'une ligne rejetée : `invalidLineFormat` (y compris un type inconnu), `invalidContractCost`, `invalidContractPeriod`, `clientNotFound` (client inconnu ou supprimé), `contractTypeNotAllowed` (type réservé à une autre nature de client), `invalidContractFranchise` (franchise absente, interdite ou hors barème), `contractOverlap` (LAMal qui chevauche une LAMal de la même personne, en base ou plus haut dans le fichier), `lamalExemptionConflict` (LAMal qui couvre l’exemption de la personne).
 
 ## À savoir
 

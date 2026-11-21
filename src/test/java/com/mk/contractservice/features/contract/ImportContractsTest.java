@@ -12,11 +12,14 @@ import com.mk.contractservice.domain.contract.exception.ContractImportRejectedEx
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
 import com.mk.contractservice.domain.lamal.LamalAffiliationFixtures;
 import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
+import com.mk.contractservice.domain.lamal.LamalExemption;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -195,6 +198,20 @@ class ImportContractsTest {
                 assertThat(contract.lastModified()).isEqualTo(now);
             });
         }
+
+        @ParameterizedTest
+        @EnumSource(value = ContractType.class, names = {"LAA", "LPP"})
+        @DisplayName("GIVEN deux lignes d'une entreprise qui se chevauchent pour un type qui le permet WHEN execute THEN crée les deux contrats")
+        void shouldCreateOverlappingContractsOfTypesAllowingIt(final ContractType type) {
+            when(clientRepository.findAllByIds(Set.of(clientId)))
+                    .thenReturn(List.of(ClientFixtures.existingCompany(clientId)));
+            final ImportContracts.Line line = new ImportContracts.Line(clientId, type, null, null, null, VALID_COST);
+
+            handler.execute(commandOf(line, line));
+
+            verify(contractRepository).saveAll(insertedContracts.capture());
+            assertThat(insertedContracts.getValue()).extracting(Contract::type).containsExactly(type, type);
+        }
     }
 
     @Nested
@@ -321,6 +338,101 @@ class ImportContractsTest {
                     .extracting(ContractImportRejectedException.LineRejection::index,
                             ContractImportRejectedException.LineRejection::reason)
                     .containsExactly(tuple(2, ContractImportRejectionReason.OVERLAPPING_CONTRACT));
+            verify(contractRepository, never()).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("GIVEN une ligne LAMal rejetée WHEN une ligne suivante ne chevauche qu'elle THEN la ligne suivante n'est pas rejetée")
+        void shouldNotCoverWithRejectedLine() {
+            when(clientRepository.findAllByIds(Set.of(clientId)))
+                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
+            final ImportContracts.Command command = commandOf(
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, 300, null, null, NEGATIVE_COST),
+                    validLine()
+            );
+
+            final ContractImportRejectedException rejection = catchThrowableOfType(
+                    ContractImportRejectedException.class,
+                    () -> handler.execute(command));
+
+            assertThat(rejection.rejections())
+                    .extracting(ContractImportRejectedException.LineRejection::index,
+                            ContractImportRejectedException.LineRejection::reason)
+                    .containsExactly(tuple(0, ContractImportRejectionReason.INVALID_COST));
+            verify(contractRepository, never()).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("GIVEN des lignes violant plusieurs règles WHEN execute THEN chaque ligne ne rapporte que la première, dans l'ordre client, période, coût, puis franchise et type")
+        void shouldReportOnlyFirstViolatedRuleOfEachLine() {
+            final UUID unknownClientId = UUID.randomUUID();
+            final UUID companyId = UUID.randomUUID();
+            when(clientRepository.findAllByIds(Set.of(clientId, unknownClientId, companyId)))
+                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId),
+                            ClientFixtures.existingCompany(companyId)));
+            final ImportContracts.Command command = commandOf(
+                    new ImportContracts.Line(unknownClientId, ContractType.LAMAL, 300, null, null, NEGATIVE_COST),
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, 300, now, now.minusDays(1), NEGATIVE_COST),
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, null, null, null, NEGATIVE_COST),
+                    new ImportContracts.Line(companyId, ContractType.LAMAL, 300, null, null, NEGATIVE_COST)
+            );
+
+            final ContractImportRejectedException rejection = catchThrowableOfType(
+                    ContractImportRejectedException.class,
+                    () -> handler.execute(command));
+
+            assertThat(rejection.rejections())
+                    .extracting(ContractImportRejectedException.LineRejection::index,
+                            ContractImportRejectedException.LineRejection::reason)
+                    .containsExactly(
+                            tuple(0, ContractImportRejectionReason.CLIENT_NOT_FOUND),
+                            tuple(1, ContractImportRejectionReason.INVALID_PERIOD),
+                            tuple(2, ContractImportRejectionReason.INVALID_COST),
+                            tuple(3, ContractImportRejectionReason.INVALID_COST)
+                    );
+            verify(contractRepository, never()).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("GIVEN une ligne LAMal dont la franchise est hors barème WHEN execute THEN rejette la ligne pour sa franchise")
+        void shouldRejectLineWithInvalidFranchise() {
+            when(clientRepository.findAllByIds(Set.of(clientId)))
+                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
+            final ImportContracts.Command command = commandOf(
+                    new ImportContracts.Line(clientId, ContractType.LAMAL, 250, null, null, VALID_COST));
+
+            final ContractImportRejectedException rejection = catchThrowableOfType(
+                    ContractImportRejectedException.class,
+                    () -> handler.execute(command));
+
+            assertThat(rejection.rejections())
+                    .singleElement()
+                    .satisfies(line -> {
+                        assertThat(line.reason()).isEqualTo(ContractImportRejectionReason.INVALID_FRANCHISE);
+                        assertThat(line.message()).contains("250");
+                    });
+            verify(contractRepository, never()).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("GIVEN une personne exemptée de la LAMal WHEN une ligne lui ajoute une LAMal pendant l'exemption THEN rejette la ligne pour l'exemption")
+        void shouldRejectLamalLineDuringExemption() {
+            when(clientRepository.findAllByIds(Set.of(clientId)))
+                    .thenReturn(List.of(ClientFixtures.existingPerson(clientId)));
+            final LamalExemption exemption = LamalExemption.reconstituteFromDatabase(now.toLocalDate().minusYears(1),
+                    null);
+            when(lamalAffiliationRepository.loadForAdmission(Set.of(clientId)))
+                    .thenReturn(List.of(LamalAffiliationFixtures.loadedFor(clientId, List.of(), exemption)));
+            final ImportContracts.Command command = commandOf(validLine());
+
+            final ContractImportRejectedException rejection = catchThrowableOfType(
+                    ContractImportRejectedException.class,
+                    () -> handler.execute(command));
+
+            assertThat(rejection.rejections())
+                    .extracting(ContractImportRejectedException.LineRejection::index,
+                            ContractImportRejectedException.LineRejection::reason)
+                    .containsExactly(tuple(0, ContractImportRejectionReason.LAMAL_EXEMPTION_CONFLICT));
             verify(contractRepository, never()).saveAll(anyList());
         }
     }

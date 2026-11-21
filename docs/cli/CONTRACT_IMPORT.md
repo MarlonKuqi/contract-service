@@ -37,7 +37,7 @@ Exemple de rejet (`index` commence à 0) :
 }
 ```
 
-Codes d'une ligne rejetée : `invalidContractCost`, `invalidContractPeriod`, `clientNotFound` (client inconnu ou supprimé), `contractTypeNotAllowed` (type réservé à une autre nature de client, voir [CONTRACT_TYPES.md](CONTRACT_TYPES.md)), `contractOverlap` (LAMal qui chevauche une LAMal de la même personne, en base ou plus haut dans l'import).
+Codes d'une ligne rejetée : `invalidContractCost`, `invalidContractPeriod`, `clientNotFound` (client inconnu ou supprimé), `contractTypeNotAllowed` (type réservé à une autre nature de client, voir [CONTRACT_TYPES.md](CONTRACT_TYPES.md)), `invalidContractFranchise` (franchise absente, interdite ou hors barème), `contractOverlap` (LAMal qui chevauche une LAMal de la même personne, en base ou plus haut dans l’import), `lamalExemptionConflict` (LAMal qui couvre l’exemption de la personne, voir [LAMAL_EXEMPTION.md](LAMAL_EXEMPTION.md)).
 
 ## À savoir
 

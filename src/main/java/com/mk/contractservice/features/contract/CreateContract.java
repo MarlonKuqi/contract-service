@@ -9,7 +9,6 @@ import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
-import com.mk.contractservice.domain.lamal.LamalAffiliations;
 import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -20,7 +19,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 public interface CreateContract {
@@ -68,8 +66,9 @@ public interface CreateContract {
             final Client client = clientRepository.getById(command.clientId());
 
             final Contract contract = Contract.of(client.id(), client.contractHolder(), coverage, period, cost, now);
-            LamalAffiliations.of(lamalAffiliationRepository.loadForAdmission(Set.of(command.clientId())))
-                    .admit(contract, now);
+            if (contract.isLamal()) {
+                lamalAffiliationRepository.loadForUpdate(command.clientId()).ensureAdmits(contract, now);
+            }
             return contractRepository.save(contract);
         }
     }

@@ -80,10 +80,13 @@ curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:8080/v2/clients 
     "name": "Alice Martin",
     "email": "alice@example.com",
     "phone": "+41791234567",
-    "birthDate": "1990-05-15"
+    "birthDate": "1990-05-15",
+    "residence": "CH"
   }'
 ```
 ✅ **Response:** `201 Created` + `Location: /v2/clients/{id}`
+
+`residence` is required for a person: `CH`, or `FR`, `DE`, `IT`, `AT` for a cross-border worker, who may record a LAMal exemption (see [LAMAL_EXEMPTION.md](docs/cli/LAMAL_EXEMPTION.md)).
 
 **Create a Company Client:**
 ```bash
@@ -135,6 +138,7 @@ curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/v2/contracts/total
 ```bash
 curl -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/v2/contracts/{contract-uuid}/cost" \
   -H "Content-Type: application/json" \
+  -H 'If-Match: "{version}"' \
   -d '{"amount": 2000.00}'
 ```
 ✅ **Response:** `204 No Content`
@@ -201,8 +205,10 @@ Import from `api-collections/` for complete API examples:
 | POST | `/v2/clients` | Create client (Person or Company, discriminator: `type`) |
 | GET | `/v2/clients/{id}` | Get client details (all fields) |
 | PUT | `/v2/clients/{id}` | Update client (name, email, phone - NOT birthDate/companyIdentifier) |
-| PATCH | `/v2/clients/{id}` | Partial update (name, email, phone) |
+| PATCH | `/v2/clients/{id}` | Partial update (name, email, phone, residence of a person) |
 | DELETE | `/v2/clients/{id}` | Soft delete client & close its active contracts |
+| PUT | `/v2/clients/{id}/lamal-exemption` | Record or close the LAMal exemption of a cross-border worker |
+| GET | `/v2/clients/{id}/lamal-exemption` | Get the LAMal exemption of a person |
 
 ### Contracts
 | Method | Endpoint | Description |
@@ -211,6 +217,7 @@ Import from `api-collections/` for complete API examples:
 | GET | `/v2/contracts?clientId={id}` | Get active contracts (paginated, filter by updatedSince) |
 | GET | `/v2/contracts/{id}` | Get specific contract |
 | PATCH | `/v2/contracts/{id}/cost` | Update cost (updates the internal last modification date) |
+| PUT | `/v2/contracts/{id}/period` | Replace the start and end dates of an active contract |
 | GET | `/v2/contracts/total?clientId={id}` | Sum of active contracts |
 
 ---

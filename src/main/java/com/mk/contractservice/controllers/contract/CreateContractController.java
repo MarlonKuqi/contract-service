@@ -64,7 +64,7 @@ public class CreateContractController {
     )
     @ApiResponse(
             responseCode = "409",
-            description = "Code contractOverlap: the person already has a LAMAL contract overlapping this period that is still active, future ones included (the end date is exclusive: a LAMAL may start when the previous one ends; ended or closed LAMAL do not count)",
+            description = "Code contractOverlap: the person already has a LAMAL contract overlapping this period that is still active, future ones included (the end date is exclusive: a LAMAL may start when the previous one ends; ended or closed LAMAL do not count). Code lamalExemptionConflict: the LAMAL covers the LAMal exemption of the cross-border worker, even a past one",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )

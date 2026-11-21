@@ -666,6 +666,7 @@ class ContractTest {
             Contract contract = ContractFixtures.newContract(person, ContractType.LAMAL, NOW, null, COST, NOW);
 
             assertThat(contract.type()).isEqualTo(ContractType.LAMAL);
+            assertThat(contract.isLamal()).isTrue();
             assertThat(contract.clientId()).isEqualTo(testClientId);
         }
 
@@ -678,6 +679,7 @@ class ContractTest {
             Contract contract = ContractFixtures.newContract(company, type, NOW, null, COST, NOW);
 
             assertThat(contract.type()).isEqualTo(type);
+            assertThat(contract.isLamal()).isFalse();
             assertThat(contract.clientId()).isEqualTo(testClientId);
         }
 

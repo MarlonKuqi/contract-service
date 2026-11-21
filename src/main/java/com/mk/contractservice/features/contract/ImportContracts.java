@@ -1,6 +1,5 @@
 package com.mk.contractservice.features.contract;
 
-import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
@@ -10,7 +9,6 @@ import com.mk.contractservice.domain.contract.exception.ContractImportRejectedEx
 import com.mk.contractservice.domain.contract.exception.ContractImportRejectedException.LineRejection;
 import com.mk.contractservice.domain.contract.exception.InvalidImportSizeException;
 import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
-import com.mk.contractservice.domain.lamal.LamalAffiliations;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Accepted;
 import com.mk.contractservice.features.shared.ContractImportLineEvaluator.Rejected;
@@ -25,7 +23,6 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -107,21 +104,19 @@ public interface ImportContracts {
             final List<Contract> contracts = new ArrayList<>(command.lines().size());
             final List<LineRejection> rejections = new ArrayList<>();
 
-            final Map<UUID, Client> clientsById = ContractImportLineEvaluator.indexById(
-                    clientRepository.findAllByIds(clientRepository.lockAgainstDeletion(command.clientIds())));
-            final LamalAffiliations lamalAffiliations = LamalAffiliations.of(
-                    lamalAffiliationRepository.loadForAdmission(clientsById.keySet()));
+            final Set<UUID> clientIds = clientRepository.lockAgainstDeletion(command.clientIds());
+            final ContractImportLineEvaluator evaluator = ContractImportLineEvaluator.of(
+                    clientRepository.findAllByIds(clientIds),
+                    lamalAffiliationRepository.loadForAdmission(clientIds));
 
             for (int index = 0; index < command.lines().size(); index++) {
                 final Line line = command.lines().get(index);
-                switch (ContractImportLineEvaluator.evaluate(line.clientId(),
+                switch (evaluator.evaluate(line.clientId(),
                         line.type(),
                         line.franchise(),
                         line.startDate(),
                         line.endDate(),
                         line.costAmount(),
-                        clientsById,
-                        lamalAffiliations,
                         now)) {
                     case Accepted(Contract contract) -> contracts.add(contract);
                     case Rejected(ContractImportRejectionReason reason, String message) -> rejections.add(

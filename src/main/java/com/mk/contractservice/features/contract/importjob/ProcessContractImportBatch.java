@@ -1,6 +1,5 @@
 package com.mk.contractservice.features.contract.importjob;
 
-import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractImportRejectionReason;
@@ -9,7 +8,6 @@ import com.mk.contractservice.domain.contract.importjob.ContractImportJob;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobLine;
 import com.mk.contractservice.domain.contract.importjob.ContractImportJobRepository;
 import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
-import com.mk.contractservice.domain.lamal.LamalAffiliations;
 import com.mk.contractservice.features.shared.ContractImportCsv.MalformedLineException;
 import com.mk.contractservice.features.shared.ContractImportCsv.ParsedLine;
 import com.mk.contractservice.features.shared.ContractImportCsv.RawLine;
@@ -25,7 +23,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -76,15 +73,14 @@ public interface ProcessContractImportBatch {
             final UUID jobId = command.jobId();
             final ContractImportJob job = jobRepository.getById(jobId);
             final Set<UUID> lockedClientIds = clientRepository.lockExistingIds(command.clientIds());
-            final Map<UUID, Client> clientsById = ContractImportLineEvaluator.indexById(
-                    clientRepository.findAllByIds(lockedClientIds));
-            final LamalAffiliations lamalAffiliations = LamalAffiliations.of(
+            final ContractImportLineEvaluator evaluator = ContractImportLineEvaluator.of(
+                    clientRepository.findAllByIds(lockedClientIds),
                     lamalAffiliationRepository.loadForAdmission(lockedClientIds));
 
             final List<ImportedLine> imported = new ArrayList<>();
             final List<ContractImportJobLine> lines = new ArrayList<>(command.lines().size());
             for (final RawLine line : command.lines()) {
-                switch (evaluate(jobId, line, clientsById, lamalAffiliations, now)) {
+                switch (evaluate(jobId, line, evaluator, now)) {
                     case ImportedLine importedLine -> imported.add(importedLine);
                     case RejectedLine(ContractImportJobLine rejectedLine) -> lines.add(rejectedLine);
                 }
@@ -109,8 +105,7 @@ public interface ProcessContractImportBatch {
         private static LineOutcome evaluate(
                 final UUID jobId,
                 final RawLine line,
-                final Map<UUID, Client> clientsById,
-                final LamalAffiliations lamalAffiliations,
+                final ContractImportLineEvaluator evaluator,
                 final LocalDateTime now
         ) {
             final int number = line.lineNumber();
@@ -124,15 +119,13 @@ public interface ProcessContractImportBatch {
                         ContractImportRejectionReason.INVALID_LINE_FORMAT,
                         ex.getMessage());
             }
-            return switch (ContractImportLineEvaluator.evaluate(
+            return switch (evaluator.evaluate(
                     parsed.clientId(),
                     parsed.type(),
                     parsed.franchise(),
                     parsed.startDate(),
                     parsed.endDate(),
                     parsed.costAmount(),
-                    clientsById,
-                    lamalAffiliations,
                     now)) {
                 case Accepted(Contract contract) -> new ImportedLine(number, contract);
                 case Rejected(ContractImportRejectionReason reason, String message) -> rejected(jobId,

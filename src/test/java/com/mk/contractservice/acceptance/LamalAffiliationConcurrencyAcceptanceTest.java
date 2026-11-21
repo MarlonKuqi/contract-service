@@ -12,8 +12,10 @@ import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.ContractType;
 import com.mk.contractservice.domain.contract.exception.OverlappingContractException;
 import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
+import com.mk.contractservice.domain.lamal.exception.LamalExemptionConflictException;
 import com.mk.contractservice.domain.shared.Residence;
 import com.mk.contractservice.features.contract.CreateContract;
+import com.mk.contractservice.features.lamal.RecordLamalExemption;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,14 +44,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
-@DisplayName("LAMal overlap concurrency - Integration Tests")
-class LamalOverlapConcurrencyAcceptanceTest {
+@DisplayName("LAMal affiliation concurrency - Integration Tests")
+class LamalAffiliationConcurrencyAcceptanceTest {
 
     @Autowired
     private Clock clock;
@@ -62,6 +64,9 @@ class LamalOverlapConcurrencyAcceptanceTest {
 
     @Autowired
     private CreateContract createContract;
+
+    @Autowired
+    private RecordLamalExemption recordLamalExemption;
 
     @Autowired
     private PlatformTransactionManager transactionManager;
@@ -140,10 +145,55 @@ class LamalOverlapConcurrencyAcceptanceTest {
             }
             return staleRead;
         }).when(AopTestUtils.<LamalAffiliationRepository>getUltimateTargetObject(lamalAffiliationRepository))
-                .loadForAdmission(anySet());
+                .loadForUpdate(any());
 
         assertThatThrownBy(() -> createContract.execute(lamalNextYear))
                 .isInstanceOf(OverlappingContractException.class);
+        assertThat(contractJpaRepository.findAll())
+                .filteredOn(contract -> person.id().equals(contract.getClientId()))
+                .hasSize(2);
+    }
+
+    @Test
+    @DisplayName("GIVEN a cross-border worker with a LAMal WHEN another counselor commits a LAMal covering the exemption after its recording read the affiliation THEN the recording is retried, sees it and is refused")
+    void shouldRetryAndRefuseExemptionWhenLamalAdmittedConcurrently() {
+        LocalDateTime now = LocalDateTime.now(clock);
+        Client person = clientRepository.save(Person.of(
+                ClientName.of("Concurrent Exemption"),
+                ClientEmail.of(TestDataHelper.uniqueEmail("concurrent.exemption")),
+                ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
+                PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate()),
+                Residence.FR));
+        createContract.execute(new CreateContract.Command(person.id(),
+                ContractType.LAMAL,
+                300,
+                now,
+                now.plusYears(1),
+                new BigDecimal("300.00")));
+        CreateContract.Command lamalNextYear = new CreateContract.Command(person.id(),
+                ContractType.LAMAL,
+                300,
+                now.plusYears(1),
+                now.plusYears(2),
+                new BigDecimal("300.00"));
+        RecordLamalExemption.Command exemptionFromNextYear = new RecordLamalExemption.Command(person.id(),
+                now.toLocalDate().plusYears(1).plusDays(1),
+                null);
+        AtomicBoolean concurrentCreationDone = new AtomicBoolean(false);
+        doAnswer(invocation -> {
+            Object staleRead = invocation.callRealMethod();
+            if (concurrentCreationDone.compareAndSet(false, true)) {
+                TransactionTemplate otherCounselor = new TransactionTemplate(transactionManager);
+                otherCounselor.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+                otherCounselor.executeWithoutResult(status -> createContract.execute(lamalNextYear));
+            }
+            return staleRead;
+        }).when(AopTestUtils.<LamalAffiliationRepository>getUltimateTargetObject(lamalAffiliationRepository))
+                .loadForUpdate(any());
+
+        assertThatThrownBy(() -> recordLamalExemption.execute(exemptionFromNextYear))
+                .isInstanceOf(LamalExemptionConflictException.class);
+        assertThat(lamalAffiliationRepository.findExemption(person.id())).isEmpty();
         assertThat(contractJpaRepository.findAll())
                 .filteredOn(contract -> person.id().equals(contract.getClientId()))
                 .hasSize(2);

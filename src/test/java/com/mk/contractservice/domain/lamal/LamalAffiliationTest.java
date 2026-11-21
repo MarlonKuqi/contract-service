@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
@@ -26,8 +25,8 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-@DisplayName("LamalAffiliations")
-class LamalAffiliationsTest {
+@DisplayName("LamalAffiliation")
+class LamalAffiliationTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 10, 10, 0);
     private static final LocalDateTime Y2027 = LocalDateTime.of(2027, 1, 1, 0, 0);
@@ -39,7 +38,6 @@ class LamalAffiliationsTest {
     private static final BigDecimal COST = new BigDecimal("300.00");
     private static final UUID PERSON_ID = UUID.randomUUID();
     private static final UUID OTHER_PERSON_ID = UUID.randomUUID();
-    private static final UUID COMPANY_ID = UUID.randomUUID();
 
     private static Contract existingLamal(final UUID personId, final LocalDateTime start, final LocalDateTime end) {
         return ContractFixtures.existingContract(UUID.randomUUID(), personId, start, end, COST, NOW);
@@ -53,14 +51,8 @@ class LamalAffiliationsTest {
         return ContractFixtures.newContract(PERSON_ID, start, end, COST, NOW);
     }
 
-    private static Contract newCompanyContract(final ContractType type) {
-        return ContractFixtures.newContract(ClientFixtures.existingCompany(COMPANY_ID), type, Y2027, null, COST, NOW);
-    }
-
-    private static LamalAffiliations affiliationsWith(final Contract... terms) {
-        return LamalAffiliations.of(List.of(
-                LamalAffiliationFixtures.loadedFor(List.of(PERSON_ID), List.of(terms)).getFirst(),
-                LamalAffiliation.reconstituteFromDatabase(OTHER_PERSON_ID, List.of(), null)));
+    private static LamalAffiliation affiliationWith(final Contract... terms) {
+        return LamalAffiliationFixtures.loadedFor(PERSON_ID, List.of(terms), null);
     }
 
     @Nested
@@ -99,8 +91,8 @@ class LamalAffiliationsTest {
     }
 
     @Nested
-    @DisplayName("admit")
-    class Admit {
+    @DisplayName("ensureAdmits")
+    class EnsureAdmits {
 
         static Stream<Arguments> relativePositions() {
             return Stream.of(
@@ -130,31 +122,31 @@ class LamalAffiliationsTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("relativePositions")
-        @DisplayName("GIVEN an active LAMal WHEN admitting a LAMal at any relative position THEN only an overlap is refused")
+        @DisplayName("GIVEN an active LAMal WHEN checking a LAMal at any relative position THEN only an overlap is refused")
         void shouldRefuseOnlyOverlappingPositions(final String position,
                 final LocalDateTime existingStart,
                 final LocalDateTime existingEnd,
                 final LocalDateTime newStart,
                 final LocalDateTime newEnd,
                 final boolean overlaps) {
-            LamalAffiliations affiliations = affiliationsWith(existingLamal(existingStart, existingEnd));
+            LamalAffiliation affiliation = affiliationWith(existingLamal(existingStart, existingEnd));
             Contract candidate = newLamal(newStart, newEnd);
 
             if (overlaps) {
-                assertThatThrownBy(() -> affiliations.admit(candidate, NOW))
+                assertThatThrownBy(() -> affiliation.ensureAdmits(candidate, NOW))
                         .isInstanceOf(OverlappingContractException.class);
             } else {
-                assertThatCode(() -> affiliations.admit(candidate, NOW)).doesNotThrowAnyException();
+                assertThatCode(() -> affiliation.ensureAdmits(candidate, NOW)).doesNotThrowAnyException();
             }
         }
 
         @Test
-        @DisplayName("GIVEN a LAMal in 2027 WHEN admitting a LAMal starting during it THEN the refusal names the person, the type and the covered period")
+        @DisplayName("GIVEN a LAMal in 2027 WHEN checking a LAMal starting during it THEN the refusal names the person, the type and the covered period")
         void shouldDescribeTheOverlappedPeriod() {
-            LamalAffiliations affiliations = affiliationsWith(existingLamal(Y2027, Y2028));
+            LamalAffiliation affiliation = affiliationWith(existingLamal(Y2027, Y2028));
             Contract overlapping = newLamal(MID_2027, Y2029);
 
-            assertThatThrownBy(() -> affiliations.admit(overlapping, NOW))
+            assertThatThrownBy(() -> affiliation.ensureAdmits(overlapping, NOW))
                     .isInstanceOf(OverlappingContractException.class)
                     .hasMessageContaining(PERSON_ID.toString())
                     .hasMessageContaining("LAMAL")
@@ -162,148 +154,85 @@ class LamalAffiliationsTest {
         }
 
         @Test
-        @DisplayName("GIVEN an open-ended LAMal WHEN admitting a later LAMal THEN the refusal says the covered period has no end")
+        @DisplayName("GIVEN an open-ended LAMal WHEN checking a later LAMal THEN the refusal says the covered period has no end")
         void shouldDescribeAnOpenEndedPeriod() {
-            LamalAffiliations affiliations = affiliationsWith(existingLamal(Y2027, null));
+            LamalAffiliation affiliation = affiliationWith(existingLamal(Y2027, null));
 
-            assertThatThrownBy(() -> affiliations.admit(newLamal(Y2029, null), NOW))
+            assertThatThrownBy(() -> affiliation.ensureAdmits(newLamal(Y2029, null), NOW))
                     .isInstanceOf(OverlappingContractException.class)
                     .hasMessageContaining("no end date");
         }
 
         @Test
-        @DisplayName("GIVEN a LAMal ending one microsecond after now WHEN admitting a LAMal over its period THEN it is refused, the LAMal being still active")
+        @DisplayName("GIVEN a LAMal ending one microsecond after now WHEN checking a LAMal over its period THEN it is refused, the LAMal being still active")
         void shouldRefuseLamalOverlappingOneEndingJustAfterNow() {
             LocalDateTime start = NOW.minusMonths(10);
-            LamalAffiliations affiliations = affiliationsWith(existingLamal(start, NOW.plus(1, ChronoUnit.MICROS)));
+            LamalAffiliation affiliation = affiliationWith(existingLamal(start, NOW.plus(1, ChronoUnit.MICROS)));
 
-            assertThatThrownBy(() -> affiliations.admit(newLamal(start, null), NOW))
+            assertThatThrownBy(() -> affiliation.ensureAdmits(newLamal(start, null), NOW))
                     .isInstanceOf(OverlappingContractException.class);
         }
 
         @Test
-        @DisplayName("GIVEN a LAMal that already ended WHEN admitting a LAMal over its period THEN it is accepted, only active LAMal counting")
+        @DisplayName("GIVEN a LAMal that already ended WHEN checking a LAMal over its period THEN it is accepted, only active LAMal counting")
         void shouldAcceptLamalOverlappingEndedOne() {
-            LamalAffiliations affiliations = affiliationsWith(existingLamal(NOW.minusYears(2), NOW.minusYears(1)));
+            LamalAffiliation affiliation = affiliationWith(existingLamal(NOW.minusYears(2), NOW.minusYears(1)));
             Contract backdated = newLamal(NOW.minusYears(2).plusMonths(3), NOW.plusYears(1));
 
-            assertThatCode(() -> affiliations.admit(backdated, NOW)).doesNotThrowAnyException();
+            assertThatCode(() -> affiliation.ensureAdmits(backdated, NOW)).doesNotThrowAnyException();
         }
 
         @Test
-        @DisplayName("GIVEN a started LAMal closed now by a cancellation WHEN admitting the corrected LAMal from the same start THEN it is accepted")
+        @DisplayName("GIVEN a started LAMal closed now by a cancellation WHEN checking the corrected LAMal from the same start THEN it is accepted")
         void shouldAcceptLamalReplacingOneClosedNow() {
             LocalDateTime start = NOW.minusMonths(10);
-            LamalAffiliations affiliations = affiliationsWith(existingLamal(start, NOW));
+            LamalAffiliation affiliation = affiliationWith(existingLamal(start, NOW));
 
-            assertThatCode(() -> affiliations.admit(newLamal(start, null), NOW)).doesNotThrowAnyException();
+            assertThatCode(() -> affiliation.ensureAdmits(newLamal(start, null), NOW)).doesNotThrowAnyException();
         }
 
         @Test
-        @DisplayName("GIVEN a still active LAMal that started in the past WHEN admitting a LAMal over its past THEN it is refused")
+        @DisplayName("GIVEN a still active LAMal that started in the past WHEN checking a LAMal over its past THEN it is refused")
         void shouldRefuseLamalOverlappingThePastOfAnActiveOne() {
-            LamalAffiliations affiliations = affiliationsWith(existingLamal(NOW.minusYears(1), Y2027));
+            LamalAffiliation affiliation = affiliationWith(existingLamal(NOW.minusYears(1), Y2027));
             Contract overlapping = newLamal(NOW.minusYears(2), NOW.minusMonths(6));
 
-            assertThatThrownBy(() -> affiliations.admit(overlapping, NOW))
+            assertThatThrownBy(() -> affiliation.ensureAdmits(overlapping, NOW))
                     .isInstanceOf(OverlappingContractException.class);
         }
 
         @Test
-        @DisplayName("GIVEN a future LAMal closed before it started WHEN admitting a LAMal over its period THEN it is accepted, the closed one covering nothing")
+        @DisplayName("GIVEN a future LAMal closed before it started WHEN checking a LAMal over its period THEN it is accepted, the closed one covering nothing")
         void shouldIgnoreLamalClosedBeforeItStarted() {
-            LamalAffiliations affiliations = affiliationsWith(existingLamal(Y2028, Y2027));
+            LamalAffiliation affiliation = affiliationWith(existingLamal(Y2028, Y2027));
 
-            assertThatCode(() -> affiliations.admit(newLamal(Y2027, null), NOW)).doesNotThrowAnyException();
+            assertThatCode(() -> affiliation.ensureAdmits(newLamal(Y2027, null), NOW)).doesNotThrowAnyException();
         }
 
         @Test
-        @DisplayName("GIVEN a LAMal of another person WHEN admitting a LAMal over the same period THEN it is accepted")
-        void shouldAcceptLamalOfAnotherPerson() {
-            LamalAffiliations affiliations = LamalAffiliations.of(List.of(
-                    LamalAffiliation.reconstituteFromDatabase(PERSON_ID, List.of(), null),
-                    LamalAffiliationFixtures.loadedFor(List.of(OTHER_PERSON_ID),
-                            List.of(existingLamal(OTHER_PERSON_ID, Y2027, null))).getFirst()));
-
-            assertThatCode(() -> affiliations.admit(newLamal(Y2027, null), NOW)).doesNotThrowAnyException();
-        }
-
-        @ParameterizedTest
-        @EnumSource(value = ContractType.class, names = {"LAA", "LPP"})
-        @DisplayName("GIVEN a company without LAMal affiliation WHEN admitting several contracts of a type allowing overlaps THEN all are accepted")
-        void shouldAcceptOverlappingContractsOfTypesAllowingIt(final ContractType type) {
-            LamalAffiliations affiliations = affiliationsWith();
-
-            assertThatCode(() -> affiliations.admit(newCompanyContract(type), NOW)).doesNotThrowAnyException();
-            assertThatCode(() -> affiliations.admit(newCompanyContract(type), NOW)).doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("GIVEN an admitted LAMal WHEN admitting a LAMal overlapping it THEN the second one is refused")
-        void shouldBlockWithAdmittedLamal() {
-            LamalAffiliations affiliations = affiliationsWith();
-            affiliations.admit(newLamal(Y2027, null), NOW);
-
-            assertThatThrownBy(() -> affiliations.admit(newLamal(Y2028, Y2029), NOW))
-                    .isInstanceOf(OverlappingContractException.class);
-        }
-
-        @Test
-        @DisplayName("GIVEN a refused LAMal WHEN admitting a LAMal that only overlaps the refused one THEN it is accepted")
-        void shouldNotBlockWithRefusedLamal() {
-            LamalAffiliations affiliations = affiliationsWith(existingLamal(Y2027, Y2028));
-            assertThatThrownBy(() -> affiliations.admit(newLamal(Y2027, Y2029), NOW))
-                    .isInstanceOf(OverlappingContractException.class);
-
-            assertThatCode(() -> affiliations.admit(newLamal(Y2028, Y2029), NOW)).doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("GIVEN an admitted LAMal already ended WHEN admitting a LAMal over its period THEN it is accepted, the ended one not blocking")
-        void shouldNotBlockWithAdmittedLamalAlreadyEnded() {
-            LamalAffiliations affiliations = affiliationsWith();
-            affiliations.admit(newLamal(NOW.minusYears(2), NOW.minusYears(1)), NOW);
-
-            assertThatCode(() -> affiliations.admit(newLamal(NOW.minusYears(2), null), NOW))
-                    .doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("GIVEN a stored LAMal WHEN admitting its own new period over the previous one THEN it is accepted, a contract not overlapping itself")
+        @DisplayName("GIVEN a stored LAMal WHEN checking its own new period over the previous one THEN it is accepted, a contract not overlapping itself")
         void shouldNotCompareTheContractWithItself() {
             Contract stored = existingLamal(Y2027, Y2028);
-            LamalAffiliations affiliations = affiliationsWith(stored);
+            LamalAffiliation affiliation = affiliationWith(stored);
             Contract extended = stored.changePeriod(ContractPeriod.of(Y2027, Y2029, NOW),
                     ClientFixtures.existingPerson(PERSON_ID).contractHolder(),
                     NOW);
 
-            assertThatCode(() -> affiliations.admit(extended, NOW)).doesNotThrowAnyException();
+            assertThatCode(() -> affiliation.ensureAdmits(extended, NOW)).doesNotThrowAnyException();
         }
 
         @Test
-        @DisplayName("GIVEN a stored LAMal moved to a new period WHEN admitting a LAMal over its previous period THEN it is accepted, the previous period being replaced")
-        void shouldReplaceThePreviousPeriodOfAMovedContract() {
-            Contract stored = existingLamal(Y2027, Y2028);
-            LamalAffiliations affiliations = affiliationsWith(stored);
-            affiliations.admit(stored.changePeriod(ContractPeriod.of(Y2029, Y2030, NOW),
-                    ClientFixtures.existingPerson(PERSON_ID).contractHolder(),
-                    NOW), NOW);
-
-            assertThatCode(() -> affiliations.admit(newLamal(Y2027, Y2028), NOW)).doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("GIVEN the affiliation of a person WHEN admitting a LAMal of another person THEN it is refused")
+        @DisplayName("GIVEN the affiliation of a person WHEN checking a LAMal of another person THEN it is refused")
         void shouldRefuseTermOfAnotherPerson() {
             LamalAffiliation affiliation = LamalAffiliation.reconstituteFromDatabase(PERSON_ID, List.of(), null);
             Contract lamalOfAnotherPerson = existingLamal(OTHER_PERSON_ID, Y2027, null);
 
-            assertThatThrownBy(() -> affiliation.admit(lamalOfAnotherPerson, NOW))
+            assertThatThrownBy(() -> affiliation.ensureAdmits(lamalOfAnotherPerson, NOW))
                     .isInstanceOf(InvalidDomainObjectError.class);
         }
 
         @Test
-        @DisplayName("GIVEN the affiliation of a person WHEN admitting a contract other than a LAMal THEN it is refused, only LAMal being its terms")
+        @DisplayName("GIVEN the affiliation of a person WHEN checking a contract other than a LAMal THEN it is refused, only LAMal being its terms")
         void shouldRefuseTermOfAnotherType() {
             LamalAffiliation affiliation = LamalAffiliation.reconstituteFromDatabase(PERSON_ID, List.of(), null);
             Contract laa = ContractFixtures.existingContract(UUID.randomUUID(),
@@ -314,16 +243,62 @@ class LamalAffiliationsTest {
                     COST,
                     NOW);
 
-            assertThatThrownBy(() -> affiliation.admit(laa, NOW)).isInstanceOf(InvalidDomainObjectError.class);
+            assertThatThrownBy(() -> affiliation.ensureAdmits(laa, NOW)).isInstanceOf(InvalidDomainObjectError.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("admit")
+    class Admit {
+
+        @Test
+        @DisplayName("GIVEN an active LAMal WHEN admitting a LAMal overlapping it THEN it is refused like the check")
+        void shouldRefuseOverlappingLamal() {
+            LamalAffiliation affiliation = affiliationWith(existingLamal(Y2027, Y2028));
+
+            assertThatThrownBy(() -> affiliation.admit(newLamal(MID_2027, Y2029), NOW))
+                    .isInstanceOf(OverlappingContractException.class);
         }
 
         @Test
-        @DisplayName("GIVEN no affiliation loaded for the person WHEN admitting a LAMal THEN it fails, the affiliation being required to check the rule")
-        void shouldFailWithoutAffiliationOfThePerson() {
-            LamalAffiliations affiliations = LamalAffiliations.of(List.of());
+        @DisplayName("GIVEN an admitted LAMal WHEN checking a LAMal overlapping it THEN the second one is refused")
+        void shouldBlockWithAdmittedLamal() {
+            LamalAffiliation admitted = affiliationWith().admit(newLamal(Y2027, null), NOW);
 
-            assertThatThrownBy(() -> affiliations.admit(newLamal(Y2027, null), NOW))
-                    .isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> admitted.ensureAdmits(newLamal(Y2028, Y2029), NOW))
+                    .isInstanceOf(OverlappingContractException.class);
+        }
+
+        @Test
+        @DisplayName("GIVEN a refused LAMal WHEN checking a LAMal that only overlaps the refused one THEN it is accepted, the refused one not being kept")
+        void shouldNotBlockWithRefusedLamal() {
+            LamalAffiliation affiliation = affiliationWith(existingLamal(Y2027, Y2028));
+            assertThatThrownBy(() -> affiliation.admit(newLamal(Y2027, Y2029), NOW))
+                    .isInstanceOf(OverlappingContractException.class);
+
+            assertThatCode(() -> affiliation.ensureAdmits(newLamal(Y2028, Y2029), NOW)).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("GIVEN an admitted LAMal already ended WHEN checking a LAMal over its period THEN it is accepted, the ended one not blocking")
+        void shouldNotBlockWithAdmittedLamalAlreadyEnded() {
+            LamalAffiliation admitted = affiliationWith().admit(newLamal(NOW.minusYears(2), NOW.minusYears(1)), NOW);
+
+            assertThatCode(() -> admitted.ensureAdmits(newLamal(NOW.minusYears(2), null), NOW))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("GIVEN a stored LAMal moved to a new period WHEN checking a LAMal over its previous period THEN it is accepted, the previous period being replaced")
+        void shouldReplaceThePreviousPeriodOfAMovedContract() {
+            Contract stored = existingLamal(Y2027, Y2028);
+            LamalAffiliation moved = affiliationWith(stored).admit(stored.changePeriod(ContractPeriod.of(Y2029,
+                    Y2030,
+                    NOW),
+                    ClientFixtures.existingPerson(PERSON_ID).contractHolder(),
+                    NOW), NOW);
+
+            assertThatCode(() -> moved.ensureAdmits(newLamal(Y2027, Y2028), NOW)).doesNotThrowAnyException();
         }
     }
 }

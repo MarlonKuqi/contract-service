@@ -85,6 +85,10 @@ public class Contract {
         return coverage.type();
     }
 
+    public boolean isLamal() {
+        return coverage instanceof ContractCoverage.Lamal;
+    }
+
     public Optional<LamalFranchise> franchise() {
         return switch (coverage) {
             case ContractCoverage.Lamal lamal -> Optional.of(lamal.franchise());

@@ -28,13 +28,11 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -64,8 +62,10 @@ class CreateContractTest {
 
     @BeforeEach
     void setUp() {
-        lenient().when(lamalAffiliationRepository.loadForAdmission(anySet()))
-                .thenAnswer(invocation -> LamalAffiliationFixtures.loadedFor(invocation.getArgument(0), List.of()));
+        lenient().when(lamalAffiliationRepository.loadForUpdate(any()))
+                .thenAnswer(invocation -> LamalAffiliationFixtures.loadedFor(invocation.getArgument(0),
+                        List.of(),
+                        null));
         createContractHandler = new CreateContract.Handler(clientRepository,
                 contractRepository,
                 lamalAffiliationRepository,
@@ -122,17 +122,30 @@ class CreateContractTest {
     }
 
     @Test
+    @DisplayName("GIVEN une entreprise WHEN elle souscrit une LAA THEN aucune affiliation LAMal n'est chargée")
+    void shouldNotLoadLamalAffiliationForCompanyContract() {
+        when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingCompany(clientId));
+        when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Contract result = createContractHandler.execute(commandOf(ContractType.LAA, COST));
+
+        verify(contractRepository).save(result);
+        verify(lamalAffiliationRepository, never()).loadForUpdate(any());
+    }
+
+    @Test
     @DisplayName("GIVEN une personne avec une LAMal qui couvre la période WHEN elle souscrit une LAMal THEN refuse le contrat")
     void shouldRefuseLamalOverlappingExistingOne() {
         when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId));
-        when(lamalAffiliationRepository.loadForAdmission(Set.of(clientId)))
-                .thenReturn(LamalAffiliationFixtures.loadedFor(Set.of(clientId),
+        when(lamalAffiliationRepository.loadForUpdate(clientId))
+                .thenReturn(LamalAffiliationFixtures.loadedFor(clientId,
                         List.of(ContractFixtures.existingContract(UUID.randomUUID(),
                                 clientId,
                                 now.minusMonths(1),
                                 null,
                                 COST,
-                                now))));
+                                now)),
+                        null));
         CreateContract.Command command = commandOf(ContractType.LAMAL, COST);
 
         assertThatThrownBy(() -> createContractHandler.execute(command))
@@ -144,14 +157,15 @@ class CreateContractTest {
     @DisplayName("GIVEN une personne avec une LAMal qui finit au début de la nouvelle WHEN elle souscrit une LAMal THEN crée le contrat")
     void shouldCreateLamalStartingWhenPreviousOneEnds() {
         when(clientRepository.getById(clientId)).thenReturn(ClientFixtures.existingPerson(clientId));
-        when(lamalAffiliationRepository.loadForAdmission(Set.of(clientId)))
-                .thenReturn(LamalAffiliationFixtures.loadedFor(Set.of(clientId),
+        when(lamalAffiliationRepository.loadForUpdate(clientId))
+                .thenReturn(LamalAffiliationFixtures.loadedFor(clientId,
                         List.of(ContractFixtures.existingContract(UUID.randomUUID(),
                                 clientId,
                                 now.minusYears(1),
                                 now,
                                 COST,
-                                now))));
+                                now)),
+                        null));
         when(contractRepository.save(any(Contract.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Contract result = createContractHandler.execute(commandOf(ContractType.LAMAL, COST));

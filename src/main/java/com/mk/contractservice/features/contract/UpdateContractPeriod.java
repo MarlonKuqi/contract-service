@@ -5,7 +5,6 @@ import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractPeriod;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.lamal.LamalAffiliationRepository;
-import com.mk.contractservice.domain.lamal.LamalAffiliations;
 import com.mk.contractservice.domain.shared.ContractHolder;
 import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +15,6 @@ import org.springframework.resilience.annotation.Retryable;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 public interface UpdateContractPeriod {
@@ -67,9 +65,10 @@ public interface UpdateContractPeriod {
             if (updatedContract.equals(contract)) {
                 return contract;
             }
-            LamalAffiliations.of(lamalAffiliationRepository.loadForAdmission(Set.of(Objects.requireNonNull(
-                    updatedContract.clientId()))))
-                    .admit(updatedContract, now);
+            if (updatedContract.isLamal()) {
+                lamalAffiliationRepository.loadForUpdate(Objects.requireNonNull(updatedContract.clientId()))
+                        .ensureAdmits(updatedContract, now);
+            }
             return contractRepository.save(updatedContract);
         }
     }

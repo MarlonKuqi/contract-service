@@ -38,3 +38,4 @@ Réponse `204`, sans ETag : relire le contrat avant une autre modification.
 | Fin dans le passé, fin pas après le début, année hors limites | 422 | `invalidContractPeriod` |
 | Contrat expiré | 409 | `contractExpired` |
 | Nouvelle période d'une LAMal qui chevauche une autre LAMal active de la personne | 409 | `contractOverlap` |
+| Nouvelle période d’une LAMal qui couvre l’exemption LAMal de la personne | 409 | `lamalExemptionConflict` |

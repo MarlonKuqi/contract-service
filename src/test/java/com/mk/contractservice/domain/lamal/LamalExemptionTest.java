@@ -192,31 +192,31 @@ class LamalExemptionTest {
     class Admitting {
 
         @Test
-        @DisplayName("GIVEN an exemption WHEN admitting a LAMal over its period THEN it is refused")
+        @DisplayName("GIVEN an exemption WHEN checking a LAMal over its period THEN it is refused")
         void shouldRefuseLamalDuringExemption() {
             LamalAffiliation affiliation = affiliation(exemption(JAN_2026, JAN_2028));
 
-            assertThatThrownBy(() -> affiliation.admit(newLamal(JAN_2027, null), NOW))
+            assertThatThrownBy(() -> affiliation.ensureAdmits(newLamal(JAN_2027, null), NOW))
                     .isInstanceOf(LamalExemptionConflictException.class)
                     .hasMessage(
                             "Person " + PERSON_ID + " is exempted from LAMal from 2026-01-01 to 2028-01-01, a LAMal contract cannot cover this period");
         }
 
         @Test
-        @DisplayName("GIVEN a closed exemption WHEN admitting a LAMal over its past period THEN it is refused")
+        @DisplayName("GIVEN a closed exemption WHEN checking a LAMal over its past period THEN it is refused")
         void shouldRefuseLamalOverPastExemption() {
             LamalAffiliation affiliation = affiliation(exemption(LocalDate.of(2025, 1, 1), JAN_2026));
 
-            assertThatThrownBy(() -> affiliation.admit(newLamal(LocalDate.of(2025, 6, 1), JAN_2027), NOW))
+            assertThatThrownBy(() -> affiliation.ensureAdmits(newLamal(LocalDate.of(2025, 6, 1), JAN_2027), NOW))
                     .isInstanceOf(LamalExemptionConflictException.class);
         }
 
         @Test
-        @DisplayName("GIVEN an exemption WHEN admitting a LAMal starting when it ends THEN the LAMal is admitted")
+        @DisplayName("GIVEN an exemption WHEN checking a LAMal starting when it ends THEN it is accepted")
         void shouldAdmitLamalAfterExemption() {
             LamalAffiliation affiliation = affiliation(exemption(JAN_2026, JAN_2027));
 
-            assertThatCode(() -> affiliation.admit(newLamal(JAN_2027, null), NOW)).doesNotThrowAnyException();
+            assertThatCode(() -> affiliation.ensureAdmits(newLamal(JAN_2027, null), NOW)).doesNotThrowAnyException();
         }
 
         @Test
