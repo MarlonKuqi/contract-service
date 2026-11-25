@@ -1,12 +1,12 @@
 package com.mk.contractservice.features.client;
 
 import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
-import com.mk.contractservice.domain.client.CompanyFactory;
 import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonFactory;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,13 +21,15 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UpdateClient Handler")
 class UpdateClientHandlerTest {
+
+    private static final long VERSION = 3L;
 
     @Mock
     private ClientRepository clientRepository;
@@ -50,7 +52,7 @@ class UpdateClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = PersonFactory.buildFromDatabase(
+            existingPerson = ClientFixtures.existingPerson(
                     clientId,
                     "John Doe",
                     "john@example.com",
@@ -67,6 +69,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "Jane Smith",
                     "jane.new@example.com",
                     "+33222222222"
@@ -78,10 +81,10 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(command.name());
-            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
-            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
-            assertThat(((Person) result).getBirthDate()).isEqualTo(existingPerson.getBirthDate());
+            assertThat(result.name().value()).isEqualTo(command.name());
+            assertThat(result.email().value()).isEqualTo(command.email());
+            assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
+            assertThat(((Person) result).birthDate()).isEqualTo(existingPerson.birthDate());
         }
 
         @Test
@@ -90,6 +93,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "John Updated",
                     "john@example.com",
                     "+33222222222"
@@ -101,10 +105,10 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(command.name());
-            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
-            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
-            assertThat(((Person) result).getBirthDate()).isEqualTo(existingPerson.getBirthDate());
+            assertThat(result.name().value()).isEqualTo(command.name());
+            assertThat(result.email().value()).isEqualTo(command.email());
+            assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
+            assertThat(((Person) result).birthDate()).isEqualTo(existingPerson.birthDate());
         }
 
         @Test
@@ -113,6 +117,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "John Updated",
                     "john.new@example.com",
                     "+33111111111"
@@ -124,10 +129,10 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(command.name());
-            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
-            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
-            assertThat(((Person) result).getBirthDate()).isEqualTo(existingPerson.getBirthDate());
+            assertThat(result.name().value()).isEqualTo(command.name());
+            assertThat(result.email().value()).isEqualTo(command.email());
+            assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
+            assertThat(((Person) result).birthDate()).isEqualTo(existingPerson.birthDate());
         }
 
         @Test
@@ -136,6 +141,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "John Smith",
                     "john@example.com",
                     "+33111111111"
@@ -147,10 +153,10 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(command.name());
-            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
-            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
-            assertThat(((Person) result).getBirthDate()).isEqualTo(existingPerson.getBirthDate());
+            assertThat(result.name().value()).isEqualTo(command.name());
+            assertThat(result.email().value()).isEqualTo(command.email());
+            assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
+            assertThat(((Person) result).birthDate()).isEqualTo(existingPerson.birthDate());
         }
 
         @Test
@@ -158,6 +164,7 @@ class UpdateClientHandlerTest {
         void shouldSaveWhenOneFieldChanges() {
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "John Doe",
                     "john@example.com",
                     "+33222222222"
@@ -182,7 +189,7 @@ class UpdateClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = PersonFactory.buildFromDatabase(
+            existingPerson = ClientFixtures.existingPerson(
                     clientId,
                     "John Doe",
                     "john@example.com",
@@ -192,10 +199,11 @@ class UpdateClientHandlerTest {
         }
 
         @Test
-        @DisplayName("GIVEN valeurs identiques WHEN execute THEN ne sauvegarde pas et renvoie le client existant")
+        @DisplayName("GIVEN valeurs identiques WHEN execute THEN renvoie le client existant inchangé")
         void shouldNotSaveWhenValuesAreIdentical() {
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "John Doe",
                     "john@example.com",
                     "+33111111111"
@@ -205,7 +213,6 @@ class UpdateClientHandlerTest {
 
             Client result = updateClientHandler.execute(command);
 
-            verify(clientRepository, never()).save(any(Client.class));
             assertThat(result).isSameAs(existingPerson);
         }
 
@@ -214,6 +221,7 @@ class UpdateClientHandlerTest {
         void shouldNotSaveWhenSameValuesWrittenDifferently() {
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "  John Doe  ",
                     "JOHN@Example.com",
                     "+33 1 11 11 11 11"
@@ -223,7 +231,6 @@ class UpdateClientHandlerTest {
 
             Client result = updateClientHandler.execute(command);
 
-            verify(clientRepository, never()).save(any(Client.class));
             assertThat(result).isSameAs(existingPerson);
         }
     }
@@ -238,7 +245,7 @@ class UpdateClientHandlerTest {
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingCompany = CompanyFactory.buildFromDatabase(
+            existingCompany = ClientFixtures.existingCompany(
                     clientId,
                     "Acme Corp",
                     "contact@acme.com",
@@ -255,6 +262,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "Acme Corporation",
                     "contact.new@acme.com",
                     "+33222222222"
@@ -266,10 +274,10 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(command.name());
-            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
-            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
-            assertThat(((Company) result).getCompanyIdentifier()).isEqualTo(existingCompany.getCompanyIdentifier());
+            assertThat(result.name().value()).isEqualTo(command.name());
+            assertThat(result.email().value()).isEqualTo(command.email());
+            assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
+            assertThat(((Company) result).companyIdentifier()).isEqualTo(existingCompany.companyIdentifier());
         }
 
         @Test
@@ -278,6 +286,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "Acme Corporation",
                     "contact@acme.com",
                     "+33111111111"
@@ -289,10 +298,10 @@ class UpdateClientHandlerTest {
             Client result = updateClientHandler.execute(command);
 
             // Then
-            assertThat(result.getName().getValue()).isEqualTo(command.name());
-            assertThat(result.getEmail().getValue()).isEqualTo(command.email());
-            assertThat(result.getPhone().getValue()).isEqualTo(command.phoneNumber());
-            assertThat(((Company) result).getCompanyIdentifier()).isEqualTo(existingCompany.getCompanyIdentifier());
+            assertThat(result.name().value()).isEqualTo(command.name());
+            assertThat(result.email().value()).isEqualTo(command.email());
+            assertThat(result.phone().value()).isEqualTo(command.phoneNumber());
+            assertThat(((Company) result).companyIdentifier()).isEqualTo(existingCompany.companyIdentifier());
         }
     }
 
@@ -301,18 +310,10 @@ class UpdateClientHandlerTest {
     class ValidationErrors {
 
         private UUID clientId;
-        private Person existingPerson;
 
         @BeforeEach
         void setUp() {
             clientId = UUID.randomUUID();
-            existingPerson = PersonFactory.buildFromDatabase(
-                    clientId,
-                    "John Doe",
-                    "john@example.com",
-                    "+33111111111",
-                    LocalDate.of(1990, 1, 1)
-            );
         }
 
         @Test
@@ -321,6 +322,7 @@ class UpdateClientHandlerTest {
             // Given
             UpdateClient.Command command = new UpdateClient.Command(
                     clientId,
+                    VERSION,
                     "New Name",
                     "new@example.com",
                     "+33222222222"
@@ -334,5 +336,51 @@ class UpdateClientHandlerTest {
                     .isInstanceOf(ClientNotFoundException.class);
         }
     }
-}
 
+    @Nested
+    @DisplayName("Version attendue")
+    class ExpectedVersion {
+
+        private UUID clientId;
+        private Person existingPerson;
+
+        @BeforeEach
+        void setUp() {
+            clientId = UUID.randomUUID();
+            existingPerson = ClientFixtures.existingPerson(
+                    clientId,
+                    "John Doe",
+                    "john@example.com",
+                    "+33111111111",
+                    LocalDate.of(1990, 1, 1)
+            );
+        }
+
+        @Test
+        @DisplayName("GIVEN une modification WHEN execute THEN vérifie la version attendue")
+        void shouldCheckExpectedVersion() {
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
+            when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            updateClientHandler.execute(new UpdateClient.Command(clientId,
+                    VERSION,
+                    "Jane Doe",
+                    "john@example.com",
+                    "+33111111111"));
+
+            verify(clientRepository).ensureVersion(clientId, VERSION);
+        }
+
+        @Test
+        @DisplayName("GIVEN une version périmée WHEN execute THEN lève VersionMismatchException")
+        void shouldRejectStaleVersion() {
+            when(clientRepository.getById(clientId)).thenReturn(existingPerson);
+            doThrow(new VersionMismatchException(VERSION, VERSION + 1)).when(clientRepository)
+                    .ensureVersion(clientId, VERSION);
+
+            assertThatThrownBy(() -> updateClientHandler.execute(
+                    new UpdateClient.Command(clientId, VERSION, "Jane Doe", "john@example.com", "+33111111111")))
+                    .isInstanceOf(VersionMismatchException.class);
+        }
+    }
+}

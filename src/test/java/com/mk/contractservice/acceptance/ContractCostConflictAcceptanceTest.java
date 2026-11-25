@@ -2,6 +2,7 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
+import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -12,7 +13,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaEntity;
@@ -24,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -44,8 +46,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -92,47 +92,53 @@ class ContractCostConflictAcceptanceTest {
                 ClientPhoneNumber.of(TestDataHelper.randomSwissPhoneNumber()),
                 PersonBirthDate.of(LocalDate.of(1990, 5, 15), now.toLocalDate())
         ));
-        contract = contractRepository.save(ContractFactory.createFromCommand(
-                client.getId(), now.minusDays(1), null, new BigDecimal("1000.00"), now));
+        contract = contractRepository.save(ContractFixtures.newContract(
+                client.id(),
+                now.minusDays(1),
+                null,
+                new BigDecimal("1000.00"),
+                now));
     }
 
     @Test
-    @DisplayName("GIVEN another counselor changes the cost between the read and the write WHEN the cost is patched THEN the update is retried and the last cost wins")
-    void shouldRetryAndApplyCostWhenAnotherUpdateWasCommittedConcurrently() {
+    @DisplayName("GIVEN another counselor changes the cost between the read and the write WHEN the cost is patched THEN 412 and the concurrent cost is kept")
+    void shouldRejectUpdateWhenAnotherCostWasCommittedConcurrently() {
         injectConcurrentWriteAfterFirstRead(id -> {
             ContractJpaEntity entity = contractJpaRepository.findById(id).orElseThrow();
             entity.setCostAmount(new BigDecimal("1200.00"));
         });
 
         given()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
                 .body("""
                         {
                             "amount": "1500.00"
                         }
                         """)
-                .patch(ContractEndpoints.CONTRACT_COST, contract.getId())
+                .patch(ContractEndpoints.CONTRACT_COST, contract.id())
                 .then()
-                .statusCode(204);
+                .statusCode(412)
+                .body("code", equalTo("preconditionFailed"));
 
-        assertThat(persistedContract().getCostAmount()).isEqualByComparingTo("1500.00");
-        verify(contractRepository, times(2)).getById(contract.getId());
+        assertThat(persistedContract().getCostAmount()).isEqualByComparingTo("1200.00");
     }
 
     @Test
-    @DisplayName("GIVEN the contract is closed between the read and the write WHEN the cost is patched THEN the retry rejects it as expired and the contract stays closed")
-    void shouldRejectRetriedUpdateWhenContractWasClosedConcurrently() {
-        injectConcurrentWriteAfterFirstRead(id -> contractRepository.closeAllActiveByClientId(client.getId(), now));
+    @DisplayName("GIVEN the contract is closed between the read and the write WHEN the cost is patched THEN 412 and the contract stays closed")
+    void shouldRejectUpdateWhenContractWasClosedConcurrently() {
+        injectConcurrentWriteAfterFirstRead(id -> contractRepository.closeAllActiveByClientId(client.id(), now));
 
         given()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
                 .body("""
                         {
                             "amount": "1500.00"
                         }
                         """)
-                .patch(ContractEndpoints.CONTRACT_COST, contract.getId())
+                .patch(ContractEndpoints.CONTRACT_COST, contract.id())
                 .then()
-                .statusCode(409)
-                .body("code", equalTo("contractExpired"));
+                .statusCode(412)
+                .body("code", equalTo("preconditionFailed"));
 
         ContractJpaEntity persisted = persistedContract();
         assertThat(persisted.getEndDate()).isEqualTo(now);
@@ -154,6 +160,6 @@ class ContractCostConflictAcceptanceTest {
     }
 
     private ContractJpaEntity persistedContract() {
-        return contractJpaRepository.findById(contract.getId()).orElseThrow();
+        return contractJpaRepository.findById(contract.id()).orElseThrow();
     }
 }

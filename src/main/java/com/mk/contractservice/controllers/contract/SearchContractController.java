@@ -5,7 +5,9 @@ import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.controllers.contract.shared.ContractResponse;
 import com.mk.contractservice.controllers.contract.shared.ContractSwaggerTags;
 import com.mk.contractservice.controllers.contract.shared.PagedContractResponse;
+import com.mk.contractservice.controllers.shared.EntityTags;
 import com.mk.contractservice.domain.contract.Contract;
+import com.mk.contractservice.domain.contract.ContractDetails;
 import com.mk.contractservice.features.contract.GetContractById;
 import com.mk.contractservice.features.contract.GetTotalCostAmountOfActiveContractsByClient;
 import com.mk.contractservice.features.contract.ListActiveContractsByClient;
@@ -18,7 +20,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
@@ -41,6 +42,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SearchContractController {
 
+    private static final String DEFAULT_PAGE = "0";
+    private static final String DEFAULT_PAGE_SIZE = "20";
+
     private final GetContractById getContractById;
     private final ListActiveContractsByClient listActiveContractsByClient;
     private final GetTotalCostAmountOfActiveContractsByClient getTotalCostAmountOfActiveContractsByClient;
@@ -54,8 +58,15 @@ public class SearchContractController {
     @ApiResponse(
             responseCode = "200",
             description = "Contract found and returned successfully",
+            headers = {
+                    @Header(name = "ETag", description = "Strong entity tag of the contract, to send in If-Match when changing its cost")
+            },
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ContractResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "304",
+            description = "Contract not modified since the ETag sent in If-None-Match"
     )
     @ApiResponse(
             responseCode = "404",
@@ -74,9 +85,10 @@ public class SearchContractController {
             @PathVariable final UUID contractId,
             final Locale locale
     ) {
-        final Contract contract = getContractById.execute(new GetContractById.Query(contractId));
-        final ContractResponse response = contractMapper.toResponse(contract, LocalDateTime.now(clock));
+        final ContractDetails contract = getContractById.execute(new GetContractById.Query(contractId));
+        final ContractResponse response = contractMapper.toResponse(contract);
         return ResponseEntity.ok()
+                .eTag(EntityTags.of(contract.version()))
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
                 .body(response);
     }
@@ -85,8 +97,9 @@ public class SearchContractController {
             summary = "List all ACTIVE contracts for a client (paginated)",
             description = "Returns all active contracts (current date < end date or endDate = null). "
                     + "Can be filtered by lastModified >= updatedSince. "
-                    + "Supports pagination (default size: 20, max: 100). "
-                    + "Use query params: ?page=0&size=20&sort=lastModified,desc. "
+                    + "Supports pagination (default size: " + DEFAULT_PAGE_SIZE + ", max: " + ListActiveContractsByClient.MAX_PAGE_SIZE + "). "
+                    + "Use query params: ?page=0&size=20. "
+                    + "Results are always sorted by last modification, most recent first. "
                     + "Returns 200 OK if all resources are present, 206 Partial Content with Content-Range header if paginated."
     )
     @ApiResponse(
@@ -99,14 +112,15 @@ public class SearchContractController {
             responseCode = "206",
             description = "Partial list of active contracts (paginated)",
             headers = {
-                    @Header(name = "Content-Range", description = "Range of resources returned (e.g., contracts 0-19/50)")
+                    @Header(name = "Content-Range",
+                            description = "Range of resources returned (e.g., contracts 0-19/50)")
             },
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = PagedContractResponse.class))
     )
     @ApiResponse(
             responseCode = "400",
-            description = "Invalid query parameters (e.g., invalid date format)",
+            description = "Invalid query parameters (e.g., invalid date format, page < 0, size outside 1..max)",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class))
     )
@@ -126,12 +140,14 @@ public class SearchContractController {
     public ResponseEntity<PagedContractResponse> listActive(
             @RequestParam final UUID clientId,
             @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) @Nullable final LocalDateTime updatedSince,
-            final Pageable pageable,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            @Nullable final LocalDateTime updatedSince,
+            @RequestParam(defaultValue = DEFAULT_PAGE) final int page,
+            @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) final int size,
             final Locale locale
     ) {
         final Page<Contract> contracts = listActiveContractsByClient.execute(
-                new ListActiveContractsByClient.Query(clientId, updatedSince, pageable)
+                new ListActiveContractsByClient.Query(clientId, updatedSince, page, size)
         );
 
         final LocalDateTime now = LocalDateTime.now(clock);

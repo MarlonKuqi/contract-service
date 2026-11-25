@@ -1,12 +1,15 @@
 package com.mk.contractservice.features.client;
 
+import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientName;
+import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
-import com.mk.contractservice.domain.client.CompanyFactory;
+import com.mk.contractservice.domain.client.CompanyIdentifier;
 import com.mk.contractservice.domain.client.CompanyIdentifierUniqueness;
-import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
@@ -26,10 +29,9 @@ public interface CreateCompany {
         }
     }
 
-    Company execute(Command command);
+    Client execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements CreateCompany {
 
@@ -37,18 +39,17 @@ public interface CreateCompany {
         private final CompanyIdentifierUniqueness companyIdentifierUniqueness;
 
         @Override
-        public Company execute(final Command command) {
-            final Company company = CompanyFactory.createFromCommand(
-                    command.name(),
-                    command.email(),
-                    command.phoneNumber(),
-                    command.companyIdentifier()
+        public Client execute(final Command command) {
+            final Company company = Company.of(
+                    ClientName.of(command.name()),
+                    ClientEmail.of(command.email()),
+                    ClientPhoneNumber.of(command.phoneNumber()),
+                    CompanyIdentifier.of(command.companyIdentifier())
             );
 
-            companyIdentifierUniqueness.ensureIsUnique(company.getCompanyIdentifier());
+            companyIdentifierUniqueness.ensureIsUnique(company.companyIdentifier());
 
-            return (Company) clientRepository.save(company);
+            return clientRepository.save(company);
         }
     }
 }
-

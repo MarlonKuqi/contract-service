@@ -1,8 +1,11 @@
 package com.mk.contractservice.infrastructure.persistence.contract;
 
 import com.mk.contractservice.domain.contract.ContractCost;
+import com.mk.contractservice.domain.contract.ContractType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -32,11 +35,19 @@ public class ContractJpaEntity {
 
     @Version
     @Column(name = "version", nullable = false)
-    private Long version = 0L;
+    private Long version;
 
     @Nullable
     @Column(name = "client_id")
     private UUID clientId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false, updatable = false, length = 16)
+    private ContractType type;
+
+    @Nullable
+    @Column(name = "franchise", updatable = false)
+    private Integer franchise;
 
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
@@ -57,12 +68,16 @@ public class ContractJpaEntity {
 
     public ContractJpaEntity(
             @Nullable final UUID clientId,
+            final ContractType type,
+            @Nullable final Integer franchise,
             final LocalDateTime startDate,
             @Nullable final LocalDateTime endDate,
             final BigDecimal costAmount,
             final LocalDateTime lastModified
     ) {
         this.clientId = clientId;
+        this.type = type;
+        this.franchise = franchise;
         this.startDate = startDate;
         this.endDate = endDate;
         this.costAmount = costAmount;

@@ -4,9 +4,11 @@ import com.mk.contractservice.controllers.client.shared.ClientDtoMapper;
 import com.mk.contractservice.controllers.client.shared.ClientEndpoints;
 import com.mk.contractservice.controllers.client.shared.ClientResponse;
 import com.mk.contractservice.controllers.client.shared.ClientSwaggerTags;
-import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.controllers.shared.EntityTags;
+import com.mk.contractservice.domain.client.ClientDetails;
 import com.mk.contractservice.features.client.GetClientById;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -40,8 +42,15 @@ public class SearchClientController {
     @ApiResponse(
             responseCode = "200",
             description = "Client found and returned successfully",
+            headers = {
+                    @Header(name = "ETag", description = "Strong entity tag of the client, to send in If-Match when modifying it")
+            },
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ClientResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "304",
+            description = "Client not modified since the ETag sent in If-None-Match"
     )
     @ApiResponse(
             responseCode = "404",
@@ -60,10 +69,11 @@ public class SearchClientController {
             @PathVariable final UUID id,
             final Locale locale
     ) {
-        final Client client = getClientById.execute(new GetClientById.Query(id));
+        final ClientDetails client = getClientById.execute(new GetClientById.Query(id));
         final ClientResponse response = clientDtoMapper.toResponse(client);
 
         return ResponseEntity.ok()
+                .eTag(EntityTags.of(client.version()))
                 .header(HttpHeaders.CONTENT_LANGUAGE, locale.toLanguageTag())
                 .body(response);
     }

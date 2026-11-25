@@ -1,11 +1,14 @@
 package com.mk.contractservice.features.client;
 
+import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientName;
+import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
-import com.mk.contractservice.domain.client.PersonFactory;
-import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.domain.client.PersonBirthDate;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -28,10 +31,9 @@ public interface CreatePerson {
         }
     }
 
-    Person execute(Command command);
+    Client execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements CreatePerson {
 
@@ -39,16 +41,14 @@ public interface CreatePerson {
         private final Clock clock;
 
         @Override
-        public Person execute(final Command command) {
-            final Person person = PersonFactory.createFromCommand(
-                    command.name(),
-                    command.email(),
-                    command.phoneNumber(),
-                    command.birthDate(),
-                    LocalDate.now(clock)
+        public Client execute(final Command command) {
+            final Person person = Person.of(
+                    ClientName.of(command.name()),
+                    ClientEmail.of(command.email()),
+                    ClientPhoneNumber.of(command.phoneNumber()),
+                    PersonBirthDate.of(command.birthDate(), LocalDate.now(clock))
             );
-            return (Person) clientRepository.save(person);
+            return clientRepository.save(person);
         }
     }
 }
-

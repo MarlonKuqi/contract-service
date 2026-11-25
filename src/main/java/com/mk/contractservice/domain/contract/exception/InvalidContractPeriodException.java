@@ -1,8 +1,6 @@
 package com.mk.contractservice.domain.contract.exception;
 
-import com.mk.contractservice.domain.shared.exception.DomainValidationException;
-
-public class InvalidContractPeriodException extends DomainValidationException {
+public final class InvalidContractPeriodException extends ContractValidationException {
 
     private static final String DEFAULT_CODE = "CONTRACT_PERIOD_INVALID";
 
@@ -10,4 +8,3 @@ public class InvalidContractPeriodException extends DomainValidationException {
         super(message, DEFAULT_CODE);
     }
 }
-

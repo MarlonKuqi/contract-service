@@ -22,3 +22,10 @@ spring:
           issuer-uri: https://keycloak.test/realms/contract-service
           jwk-set-uri: https://keycloak.test/realms/contract-service/protocol/openid-connect/certs
           audiences: contract-service
+
+app:
+  database:
+    lock-timeout: 2s
+  contract-import:
+    worker-enabled: false
+    poll-delay: PT0.2S

@@ -59,7 +59,7 @@ class PersonTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidNames")
             @DisplayName("GIVEN invalid name WHEN creating Person THEN throw exception")
             void shouldRejectInvalidName(String name) {
-                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newPerson(
                         name,
                         "john@example.com",
                         "+33123456789",
@@ -72,7 +72,7 @@ class PersonTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidEmails")
             @DisplayName("GIVEN invalid email WHEN creating Person THEN throw exception")
             void shouldRejectInvalidEmail(String email) {
-                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newPerson(
                         "John Doe",
                         email,
                         "+33123456789",
@@ -85,7 +85,7 @@ class PersonTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#validEmails")
             @DisplayName("GIVEN valid email with subdomains, apostrophe or punycode WHEN creating Person THEN email is kept")
             void shouldAcceptValidEmail(String email) {
-                final Person person = PersonFactory.createFromCommand(
+                final Person person = ClientFixtures.newPerson(
                         "John Doe",
                         email,
                         "+33123456789",
@@ -93,27 +93,28 @@ class PersonTest {
                         TODAY
                 );
 
-                assertThat(person.getEmail().getValue()).isEqualTo(email);
+                assertThat(person.email().value()).isEqualTo(email);
             }
 
             @Test
             @DisplayName("GIVEN email with invalid format WHEN creating Person THEN error message does not disclose the address")
             void shouldNotDiscloseInvalidEmailInMessage() {
-                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newPerson(
                         "John Doe",
                         "jean..dupont@example.ch",
                         "+33123456789",
                         LocalDate.of(1990, 5, 15),
                         TODAY
                 )).isInstanceOf(InvalidClientEmailException.class)
-                        .message().doesNotContain("jean..dupont");
+                        .message()
+                        .doesNotContain("jean..dupont");
             }
 
             @ParameterizedTest
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidPhones")
             @DisplayName("GIVEN invalid phone WHEN creating Person THEN throw exception")
             void shouldRejectInvalidPhone(String phone) {
-                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newPerson(
                         "John Doe",
                         "john@example.com",
                         phone,
@@ -126,7 +127,7 @@ class PersonTest {
             @ValueSource(strings = {"", "   "})
             @DisplayName("GIVEN blank name WHEN creating Person THEN throw exception explaining the value is blank")
             void shouldExplainBlankName(String name) {
-                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newPerson(
                         name,
                         "john@example.com",
                         "+33123456789",
@@ -140,7 +141,7 @@ class PersonTest {
             @ValueSource(strings = {"", "   "})
             @DisplayName("GIVEN blank email WHEN creating Person THEN throw exception explaining the value is blank")
             void shouldExplainBlankEmail(String email) {
-                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newPerson(
                         "John Doe",
                         email,
                         "+33123456789",
@@ -154,7 +155,7 @@ class PersonTest {
             @ValueSource(strings = {"", "   "})
             @DisplayName("GIVEN blank phone WHEN creating Person THEN throw exception explaining the value is blank")
             void shouldExplainBlankPhone(String phone) {
-                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newPerson(
                         "John Doe",
                         "john@example.com",
                         phone,
@@ -168,7 +169,7 @@ class PersonTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#acceptedPhoneFormats")
             @DisplayName("GIVEN phone in accepted format WHEN creating Person THEN phone is normalized to E.164")
             void shouldNormalizePhoneToE164(ClientTestData.PhoneFormat format) {
-                final Person person = PersonFactory.createFromCommand(
+                final Person person = ClientFixtures.newPerson(
                         "John Doe",
                         "john@example.com",
                         format.raw(),
@@ -176,22 +177,30 @@ class PersonTest {
                         TODAY
                 );
 
-                assertThat(person.getPhone().getValue()).isEqualTo(format.expectedE164());
+                assertThat(person.phone().value()).isEqualTo(format.expectedE164());
             }
 
             @Test
             @DisplayName("GIVEN same phone in different formats WHEN creating Persons THEN phones are equal")
             void shouldConsiderDifferentlyFormattedPhonesEqual() {
-                final Person first = PersonFactory.createFromCommand("John Doe", "john@example.com", "+41 79 123 45 67", LocalDate.of(1990, 5, 15), TODAY);
-                final Person second = PersonFactory.createFromCommand("Jane Doe", "jane@example.com", "+41791234567", LocalDate.of(1985, 1, 1), TODAY);
+                final Person first = ClientFixtures.newPerson("John Doe",
+                        "john@example.com",
+                        "+41 79 123 45 67",
+                        LocalDate.of(1990, 5, 15),
+                        TODAY);
+                final Person second = ClientFixtures.newPerson("Jane Doe",
+                        "jane@example.com",
+                        "+41791234567",
+                        LocalDate.of(1985, 1, 1),
+                        TODAY);
 
-                assertThat(first.getPhone()).isEqualTo(second.getPhone());
+                assertThat(first.phone()).isEqualTo(second.phone());
             }
 
             @Test
             @DisplayName("GIVEN null birthDate WHEN creating Person THEN throw InvalidPersonBirthDateException")
             void shouldRejectNullPersonBirthDate() {
-                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newPerson(
                         "John Doe",
                         "john@example.com",
                         "+33123456789",
@@ -204,7 +213,7 @@ class PersonTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#validPersons")
             @DisplayName("GIVEN various valid combinations of fields WHEN creating Person THEN person is created with all correct values")
             void shouldCreatePersonWithValidCombinations(ClientTestData.ValidPersonData data) {
-                Person person = PersonFactory.createFromCommand(
+                Person person = ClientFixtures.newPerson(
                         data.name(),
                         data.email(),
                         data.phone(),
@@ -212,10 +221,10 @@ class PersonTest {
                         TODAY
                 );
 
-                assertThat(person.getName().getValue()).isEqualTo(data.name());
-                assertThat(person.getEmail().getValue()).isEqualTo(data.email());
-                assertThat(person.getPhone().getValue()).isEqualTo(data.expectedPhone());
-                assertThat(person.getBirthDate().getValue()).isEqualTo(data.birthDate());
+                assertThat(person.name().value()).isEqualTo(data.name());
+                assertThat(person.email().value()).isEqualTo(data.email());
+                assertThat(person.phone().value()).isEqualTo(data.expectedPhone());
+                assertThat(person.birthDate().value()).isEqualTo(data.birthDate());
             }
         }
 
@@ -227,7 +236,7 @@ class PersonTest {
             @MethodSource("com.mk.contractservice.domain.client.PersonTest#validBirthDates")
             @DisplayName("GIVEN various valid birth dates WHEN creating Person THEN person is created")
             void shouldAcceptValidBirthDates(LocalDate birthDate) {
-                final Person person = PersonFactory.createFromCommand(
+                final Person person = ClientFixtures.newPerson(
                         "John Doe",
                         "john@example.com",
                         "+33123456789",
@@ -235,14 +244,14 @@ class PersonTest {
                         TODAY
                 );
 
-                assertThat(person.getBirthDate().getValue()).isEqualTo(birthDate);
+                assertThat(person.birthDate().value()).isEqualTo(birthDate);
             }
 
             @ParameterizedTest
             @MethodSource("com.mk.contractservice.domain.client.PersonTest#invalidBirthDates")
             @DisplayName("GIVEN various valid birth dates WHEN creating Person THEN throw InvalidPersonBirthDateException")
             void shouldRejectInvalidBirthDates(LocalDate birthDate) {
-                assertThatThrownBy(() -> PersonFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newPerson(
                         "John Doe",
                         "john@example.com",
                         "+33123456789",
@@ -259,7 +268,7 @@ class PersonTest {
             @Test
             @DisplayName("GIVEN stored E.164 phone WHEN rebuilding Person THEN phone is kept as is")
             void shouldRebuildPersonWithStoredPhone() {
-                final Person person = PersonFactory.buildFromDatabase(
+                final Person person = ClientFixtures.existingPerson(
                         UUID.randomUUID(),
                         "John Doe",
                         "john@example.com",
@@ -267,14 +276,14 @@ class PersonTest {
                         LocalDate.of(1990, 5, 15)
                 );
 
-                assertThat(person.getPhone().getValue()).isEqualTo("+41791234567");
+                assertThat(person.phone().value()).isEqualTo("+41791234567");
             }
 
             @ParameterizedTest
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#corruptedStoredPhones")
             @DisplayName("GIVEN corrupted stored phone WHEN rebuilding Person THEN throw InvalidDomainObjectError")
             void shouldRejectCorruptedStoredPhone(String phone) {
-                assertThatThrownBy(() -> PersonFactory.buildFromDatabase(
+                assertThatThrownBy(() -> ClientFixtures.existingPerson(
                         UUID.randomUUID(),
                         "John Doe",
                         "john@example.com",
@@ -306,19 +315,19 @@ class PersonTest {
                     ClientPhoneNumber.of("+33987654321")
             );
 
-            assertThat(updated.getName().getValue()).isEqualTo("Jane Doe");
-            assertThat(updated.getEmail().getValue()).isEqualTo("jane.doe@example.com");
-            assertThat(updated.getPhone().getValue()).isEqualTo("+33987654321");
-            assertThat(updated.getBirthDate()).isEqualTo(originalBirthDate);
+            assertThat(updated.name().value()).isEqualTo("Jane Doe");
+            assertThat(updated.email().value()).isEqualTo("jane.doe@example.com");
+            assertThat(updated.phone().value()).isEqualTo("+33987654321");
+            assertThat(updated.birthDate()).isEqualTo(originalBirthDate);
 
-            assertThat(person.getName().getValue()).isEqualTo("John Doe");
-            assertThat(person.getBirthDate()).isEqualTo(originalBirthDate);
+            assertThat(person.name().value()).isEqualTo("John Doe");
+            assertThat(person.birthDate()).isEqualTo(originalBirthDate);
         }
 
         @Test
         @DisplayName("GIVEN person WHEN updating with same values THEN returns the same instance")
         void shouldReturnSameInstanceWhenValuesAreIdentical() {
-            Person person = PersonFactory.createFromCommand(
+            Person person = ClientFixtures.newPerson(
                     "John Doe",
                     "john@example.com",
                     "+33123456789",
@@ -333,15 +342,15 @@ class PersonTest {
             );
 
             assertThat(updated).isSameAs(person);
-            assertThat(updated.getName().getValue()).isEqualTo(person.getName().getValue());
-            assertThat(updated.getEmail().getValue()).isEqualTo(person.getEmail().getValue());
-            assertThat(updated.getPhone().getValue()).isEqualTo(person.getPhone().getValue());
+            assertThat(updated.name().value()).isEqualTo(person.name().value());
+            assertThat(updated.email().value()).isEqualTo(person.email().value());
+            assertThat(updated.phone().value()).isEqualTo(person.phone().value());
         }
 
         @Test
         @DisplayName("GIVEN person WHEN updating only name THEN only name changes")
         void shouldUpdateOnlyName() {
-            Person person = PersonFactory.createFromCommand(
+            Person person = ClientFixtures.newPerson(
                     "John Doe",
                     "john@example.com",
                     "+33123456789",
@@ -351,20 +360,20 @@ class PersonTest {
 
             Person updated = person.changeCoreFields(
                     ClientName.of("Jane Doe"),
-                    person.getEmail(),
-                    person.getPhone()
+                    person.email(),
+                    person.phone()
             );
 
-            assertThat(updated.getName().getValue()).isEqualTo("Jane Doe");
-            assertThat(updated.getEmail()).isEqualTo(person.getEmail());
-            assertThat(updated.getPhone()).isEqualTo(person.getPhone());
-            assertThat(updated.getBirthDate()).isEqualTo(person.getBirthDate());
+            assertThat(updated.name().value()).isEqualTo("Jane Doe");
+            assertThat(updated.email()).isEqualTo(person.email());
+            assertThat(updated.phone()).isEqualTo(person.phone());
+            assertThat(updated.birthDate()).isEqualTo(person.birthDate());
         }
 
         @Test
         @DisplayName("GIVEN person WHEN updating only email THEN only email changes")
         void shouldUpdateOnlyEmail() {
-            Person person = PersonFactory.createFromCommand(
+            Person person = ClientFixtures.newPerson(
                     "John Doe",
                     "john@example.com",
                     "+33123456789",
@@ -373,20 +382,20 @@ class PersonTest {
             );
 
             Person updated = person.changeCoreFields(
-                    person.getName(),
+                    person.name(),
                     ClientEmail.of("newemail@example.com"),
-                    person.getPhone()
+                    person.phone()
             );
 
-            assertThat(updated.getName()).isEqualTo(person.getName());
-            assertThat(updated.getEmail().getValue()).isEqualTo("newemail@example.com");
-            assertThat(updated.getPhone()).isEqualTo(person.getPhone());
+            assertThat(updated.name()).isEqualTo(person.name());
+            assertThat(updated.email().value()).isEqualTo("newemail@example.com");
+            assertThat(updated.phone()).isEqualTo(person.phone());
         }
 
         @Test
         @DisplayName("GIVEN person WHEN updating only phone THEN only phone changes")
         void shouldUpdateOnlyPhone() {
-            Person person = PersonFactory.createFromCommand(
+            Person person = ClientFixtures.newPerson(
                     "John Doe",
                     "john@example.com",
                     "+33123456789",
@@ -395,14 +404,14 @@ class PersonTest {
             );
 
             Person updated = person.changeCoreFields(
-                    person.getName(),
-                    person.getEmail(),
+                    person.name(),
+                    person.email(),
                     ClientPhoneNumber.of("+33999999999")
             );
 
-            assertThat(updated.getName()).isEqualTo(person.getName());
-            assertThat(updated.getEmail()).isEqualTo(person.getEmail());
-            assertThat(updated.getPhone().getValue()).isEqualTo("+33999999999");
+            assertThat(updated.name()).isEqualTo(person.name());
+            assertThat(updated.email()).isEqualTo(person.email());
+            assertThat(updated.phone().value()).isEqualTo("+33999999999");
         }
     }
 }

@@ -6,6 +6,7 @@ import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientEmail;
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
@@ -16,18 +17,22 @@ import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRep
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -79,11 +84,13 @@ class CreateContractAcceptanceTest {
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "5000.00"
                 }
-                """, testClient.getId(), now, now.plusMonths(12));
+                """, testClient.id(), now, now.plusMonths(12));
 
         String contractId = given()
                 .body(createPayload)
@@ -94,10 +101,12 @@ class CreateContractAcceptanceTest {
                 .header("Location", containsString(ContractEndpoints.CONTRACTS_BASE + "/"))
                 .header("Content-Language", equalTo("fr-CH"))
                 .body("id", notNullValue())
+                .body("type", equalTo("LAMAL"))
                 .body("costAmount", equalTo(5000.00f))
                 .body("startDate", notNullValue())
                 .body("endDate", notNullValue())
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // Verify persistence
         given()
@@ -116,11 +125,13 @@ class CreateContractAcceptanceTest {
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": null,
                     "costAmount": "1000.00"
                 }
-                """, testClient.getId(), now);
+                """, testClient.id(), now);
 
         String contractId = given()
                 .body(createPayload)
@@ -132,7 +143,8 @@ class CreateContractAcceptanceTest {
                 .body("id", notNullValue())
                 .body("costAmount", equalTo(1000.00f))
                 .body("startDate", notNullValue())
-                .extract().path("id");
+                .extract()
+                .path("id");
 
         // Verify persistence
         given()
@@ -151,19 +163,22 @@ class CreateContractAcceptanceTest {
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "999999.99"
                 }
-                """, testClient.getId(), now, now.plusYears(5));
+                """, testClient.id(), now, now.plusYears(5));
 
         given()
+                .config(AcceptanceRestAssured.exactNumbers())
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
                 .statusCode(201)
-                .body("costAmount", equalTo(999999.99f));
+                .body("costAmount", comparesEqualTo(new BigDecimal("999999.99")));
     }
 
     @Test
@@ -173,11 +188,13 @@ class CreateContractAcceptanceTest {
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "10000000000.00"
                 }
-                """, testClient.getId(), now, now.plusMonths(6));
+                """, testClient.id(), now, now.plusMonths(6));
 
         given()
                 .body(createPayload)
@@ -194,18 +211,32 @@ class CreateContractAcceptanceTest {
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "0.00"
                 }
-                """, testClient.getId(), now, now.plusMonths(6));
+                """, testClient.id(), now, now.plusMonths(6));
 
         given()
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("invalidContractCost"));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create contract without a body fails with 422 validationError")
+    void shouldRejectContractWithoutBody() {
+        given()
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("validationError"));
     }
 
     @Test
@@ -216,6 +247,8 @@ class CreateContractAcceptanceTest {
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "1000.00"
@@ -237,18 +270,21 @@ class CreateContractAcceptanceTest {
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "-100.00"
                 }
-                """, testClient.getId(), now, now.plusMonths(12));
+                """, testClient.id(), now, now.plusMonths(12));
 
         given()
                 .body(createPayload)
                 .when()
                 .post(ContractEndpoints.CONTRACTS_BASE)
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("invalidContractCost"));
     }
 
     @Test
@@ -258,11 +294,13 @@ class CreateContractAcceptanceTest {
         String createPayload = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s",
                     "costAmount": "1000.00"
                 }
-                """, testClient.getId(), now, now.minusDays(10));
+                """, testClient.id(), now, now.minusDays(10));
 
         given()
                 .body(createPayload)
@@ -297,10 +335,12 @@ class CreateContractAcceptanceTest {
         String payloadWithoutCost = String.format("""
                 {
                     "clientId": "%s",
+                    "type": "LAMAL",
+                    "franchise": 300,
                     "startDate": "%s",
                     "endDate": "%s"
                 }
-                """, testClient.getId(), now, now.plusMonths(12));
+                """, testClient.id(), now, now.plusMonths(12));
 
         given()
                 .body(payloadWithoutCost)
@@ -311,47 +351,242 @@ class CreateContractAcceptanceTest {
     }
 
     @Test
-    @DisplayName("SCENARIO: Create multiple contracts for same client succeeds")
+    @DisplayName("SCENARIO: A company takes out several overlapping employer contracts")
     void shouldCreateMultipleContractsForSameClient() {
         LocalDateTime now = LocalDateTime.now(clock);
+        Client company = aCompany();
 
-        String contract1 = String.format("""
-                {
-                    "clientId": "%s",
-                    "startDate": "%s",
-                    "endDate": null,
-                    "costAmount": "1000.00"
-                }
-                """, testClient.getId(), now.minusDays(10));
+        given().body(contractOf(company, "LAA", now.minusDays(10), null))
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+        given().body(contractOf(company, "LAA", now.minusDays(5), now.plusMonths(6)))
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+        given().body(contractOf(company, "LPP", now.minusDays(3), now.plusMonths(3)))
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
 
-        String contract2 = String.format("""
-                {
-                    "clientId": "%s",
-                    "startDate": "%s",
-                    "endDate": "%s",
-                    "costAmount": "2500.00"
-                }
-                """, testClient.getId(), now.minusDays(5), now.plusMonths(6));
-
-        String contract3 = String.format("""
-                {
-                    "clientId": "%s",
-                    "startDate": "%s",
-                    "endDate": "%s",
-                    "costAmount": "750.50"
-                }
-                """, testClient.getId(), now.minusDays(3), now.plusMonths(3));
-
-        given().body(contract1).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
-        given().body(contract2).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
-        given().body(contract3).post(ContractEndpoints.CONTRACTS_BASE).then().statusCode(201);
-
-        // Verify all contracts are created
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.getId())
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", company.id())
                 .then()
                 .statusCode(200)
                 .body("content.size()", equalTo(3));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: A person cannot take out a LAMal overlapping one already held")
+    void shouldRefuseOverlappingLamal() {
+        LocalDateTime nextYear = LocalDateTime.now(clock).plusYears(1).withDayOfYear(1).toLocalDate().atStartOfDay();
+        given().body(contractOf(testClient, "LAMAL", nextYear, nextYear.plusYears(1)))
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+
+        given()
+                .body(contractOf(testClient, "LAMAL", nextYear.plusMonths(6), null))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(409)
+                .contentType("application/problem+json")
+                .body("code", equalTo("contractOverlap"))
+                .body("detail", containsString(testClient.id().toString()))
+                .body("detail", containsString(nextYear.toString()));
+
+        given()
+                .when()
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
+                .then()
+                .statusCode(200)
+                .body("content.size()", equalTo(1));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: A person takes out next year's LAMal while the current one is still running")
+    void shouldCreateLamalStartingWhenCurrentOneEnds() {
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime nextYear = now.plusYears(1).withDayOfYear(1).toLocalDate().atStartOfDay();
+        given().body(contractOf(testClient, "LAMAL", now.minusMonths(3), nextYear))
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+
+        given()
+                .body(contractOf(testClient, "LAMAL", nextYear, null))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+
+        given()
+                .when()
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", testClient.id())
+                .then()
+                .statusCode(200)
+                .body("content.size()", equalTo(2));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: A LAMal starting when the previous one ends is accepted even when the end has nanoseconds")
+    void shouldCreateLamalStartingWhenPreviousOneEndsWithNanoseconds() {
+        LocalDateTime handover = LocalDateTime.now(clock).plusYears(1).withNano(123_456_789);
+        given().body(contractOf(testClient, "LAMAL", handover.minusYears(1), handover))
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+
+        given()
+                .body(contractOf(testClient, "LAMAL", handover, null))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201);
+    }
+
+    private static String contractOf(final Client client,
+            final String type,
+            final LocalDateTime startDate,
+            final LocalDateTime endDate) {
+        return """
+                {
+                    "clientId": "%s",
+                    "type": "%s",
+                    "franchise": %s,
+                    "startDate": "%s",
+                    "endDate": %s,
+                    "costAmount": "1200.00"
+                }
+                """.formatted(client.id(),
+                type,
+                franchiseOf(type),
+                startDate,
+                endDate == null ? "null" : "\"" + endDate + "\"");
+    }
+
+    private Client aCompany() {
+        return clientRepository.save(ClientFixtures.newCompany(
+                "Acme SA",
+                TestDataHelper.uniqueEmail("acme"),
+                TestDataHelper.randomSwissPhoneNumber(),
+                TestDataHelper.uniqueCompanyIdentifier("CHE")));
+    }
+
+    private static String franchiseOf(final String type) {
+        return "LAMAL".equals(type) ? "300" : "null";
+    }
+
+    private static String contractOf(final Client client, final String type) {
+        return """
+                {
+                    "clientId": "%s",
+                    "type": "%s",
+                    "franchise": %s,
+                    "costAmount": "1200.00"
+                }
+                """.formatted(client.id(), type, franchiseOf(type));
+    }
+
+    private void assertHasNoContract(final Client client) {
+        given()
+                .when()
+                .get(ContractEndpoints.CONTRACTS_BASE + "?clientId={clientId}", client.id())
+                .then()
+                .statusCode(200)
+                .body("content.size()", equalTo(0));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"LAA", "LPP"})
+    @DisplayName("SCENARIO: A company takes out an accident insurance (LAA) or an occupational pension (LPP)")
+    void shouldCreateEmployerContractForCompany(final String type) {
+        final Client company = aCompany();
+
+        final String contractId = given()
+                .body(contractOf(company, type))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(201)
+                .body("type", equalTo(type))
+                .extract()
+                .path("id");
+
+        given()
+                .when()
+                .get(ContractEndpoints.CONTRACT_BY_ID, contractId)
+                .then()
+                .statusCode(200)
+                .body("type", equalTo(type));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: A company cannot take out a health insurance (LAMal), reserved to persons")
+    void shouldRefuseLamalForCompany() {
+        final Client company = aCompany();
+
+        given()
+                .body(contractOf(company, "LAMAL"))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(422)
+                .contentType("application/problem+json")
+                .body("code", equalTo("contractTypeNotAllowed"))
+                .body("detail", containsString("LAMAL"))
+                .body("detail", containsString("company"));
+
+        assertHasNoContract(company);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"LAA", "LPP"})
+    @DisplayName("SCENARIO: A person cannot take out an employer insurance (LAA, LPP)")
+    void shouldRefuseEmployerContractForPerson(final String type) {
+        given()
+                .body(contractOf(testClient, type))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("contractTypeNotAllowed"))
+                .body("detail", containsString("person"));
+
+        assertHasNoContract(testClient);
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create contract without a type fails")
+    void shouldRejectContractWithoutType() {
+        given()
+                .body("""
+                        { "clientId": "%s", "costAmount": "1200.00" }
+                        """.formatted(testClient.id()))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("validationError"))
+                .body("validations[0].field", equalTo("type"));
+
+        assertHasNoContract(testClient);
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Create contract with an unknown type fails")
+    void shouldRejectContractWithUnknownType() {
+        given()
+                .body(contractOf(testClient, "CASCO"))
+                .when()
+                .post(ContractEndpoints.CONTRACTS_BASE)
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("validationError"))
+                .body("detail", containsString("type"));
+
+        assertHasNoContract(testClient);
     }
 }

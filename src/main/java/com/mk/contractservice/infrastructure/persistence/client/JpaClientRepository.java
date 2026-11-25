@@ -4,12 +4,19 @@ import com.mk.contractservice.domain.client.Client;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
 import com.mk.contractservice.domain.client.Person;
+import com.mk.contractservice.domain.shared.ContractHolder;
 import com.mk.contractservice.domain.shared.exception.ClientNotFoundException;
+import com.mk.contractservice.domain.shared.exception.VersionMismatchException;
 import com.mk.contractservice.infrastructure.persistence.client.entities.ClientJpaEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -29,16 +36,17 @@ public class JpaClientRepository implements ClientRepository {
     @Override
     public Client save(final Client client) {
         final ClientJpaEntity entity;
-        final UUID clientId = client.getId();
+        final UUID clientId = client.id();
         if (clientId == null) {
             entity = switch (client) {
                 case Person person -> ClientJpaMapper.toNewPersonEntity(person);
                 case Company company -> ClientJpaMapper.toNewCompanyEntity(company);
             };
         } else {
-            entity = jpa.findById(clientId).orElseThrow(
-                    () -> new IllegalStateException("Client with id " + clientId + " not found in database")
-            );
+            entity = jpa.findById(clientId)
+                    .orElseThrow(
+                            () -> new IllegalStateException("Client with id " + clientId + " not found in database")
+                    );
             ClientJpaMapper.mergeIntoExisting(client, entity);
         }
         return ClientJpaMapper.toDomain(jpa.save(entity));
@@ -46,16 +54,47 @@ public class JpaClientRepository implements ClientRepository {
 
     @Override
     public void delete(final UUID id, final LocalDateTime deletedAt) {
-        final ClientJpaEntity entity = jpa.findById(id).orElseThrow(
-                () -> new IllegalStateException("Client with id " + id + " not found in database")
-        );
+        final ClientJpaEntity entity = jpa.findById(id)
+                .orElseThrow(
+                        () -> new IllegalStateException("Client with id " + id + " not found in database")
+                );
         entity.setDeletedAt(deletedAt);
+        jpa.flush();
     }
 
     @Override
     public void ensureExists(final UUID id) {
         if (!jpa.existsById(id)) {
             throw ClientNotFoundException.forId(id);
+        }
+    }
+
+    @Override
+    public List<Client> findAllByIds(final Set<UUID> ids) {
+        return ids.isEmpty() ? List.of() : jpa.findAllById(ids).stream().map(ClientJpaMapper::toDomain).toList();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Set<UUID> lockExistingIds(final Set<UUID> ids) {
+        return ids.isEmpty() ? Set.of() : jpa.lockExistingIds(ids);
+    }
+
+    @Override
+    public ContractHolder getContractHolderIncludingDeleted(final UUID id) {
+        return jpa.findPersonBirthDateIncludingDeleted(id)
+                .<ContractHolder>map(ContractHolder::person)
+                .or(() -> jpa.existsCompanyIncludingDeleted(id) ? Optional.of(ContractHolder.company()) : Optional
+                        .empty())
+                .orElseThrow(() -> ClientNotFoundException.forId(id));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void ensureVersion(final UUID id, final long expectedVersion) {
+        final ClientJpaEntity entity = jpa.findById(id).orElseThrow(() -> ClientNotFoundException.forId(id));
+        if (entity.getVersion() != expectedVersion) {
+            throw new VersionMismatchException(expectedVersion, entity.getVersion());
         }
     }
 

@@ -44,7 +44,7 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidEmails")
             @DisplayName("GIVEN invalid email WHEN creating Company THEN throw exception")
             void shouldRejectInvalidEmail(String email) {
-                assertThatThrownBy(() -> CompanyFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newCompany(
                         "ACME Corp",
                         email,
                         "+33123456789",
@@ -56,21 +56,21 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#validEmails")
             @DisplayName("GIVEN valid email with subdomains, apostrophe or punycode WHEN creating Company THEN email is kept")
             void shouldAcceptValidEmail(String email) {
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         "ACME Corp",
                         email,
                         "+33123456789",
                         "acme-123"
                 );
 
-                assertThat(company.getEmail().getValue()).isEqualTo(email);
+                assertThat(company.email().value()).isEqualTo(email);
             }
 
             @ParameterizedTest
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidNames")
             @DisplayName("GIVEN invalid name WHEN creating Company THEN throw exception")
             void shouldRejectInvalidName(String name) {
-                assertThatThrownBy(() -> CompanyFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newCompany(
                         name,
                         "contact@acme.com",
                         "+33123456789",
@@ -82,7 +82,7 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#invalidPhones")
             @DisplayName("GIVEN invalid phone WHEN creating Company THEN throw exception")
             void shouldRejectInvalidPhone(String phone) {
-                assertThatThrownBy(() -> CompanyFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newCompany(
                         "ACME Corp",
                         "contact@acme.com",
                         phone,
@@ -94,21 +94,21 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#acceptedPhoneFormats")
             @DisplayName("GIVEN phone in accepted format WHEN creating Company THEN phone is normalized to E.164")
             void shouldNormalizePhoneToE164(ClientTestData.PhoneFormat format) {
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         "ACME Corp",
                         "contact@acme.com",
                         format.raw(),
                         "acme-123"
                 );
 
-                assertThat(company.getPhone().getValue()).isEqualTo(format.expectedE164());
+                assertThat(company.phone().value()).isEqualTo(format.expectedE164());
             }
 
             @ParameterizedTest
             @MethodSource("com.mk.contractservice.domain.client.CompanyTest#invalidCompanyIdentifiers")
             @DisplayName("GIVEN invalid company identifier WHEN creating Company THEN throw exception")
             void shouldRejectInvalidCompanyIdentifier(String identifier) {
-                assertThatThrownBy(() -> CompanyFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newCompany(
                         "ACME Corp",
                         "contact@acme.com",
                         "+33123456789",
@@ -120,7 +120,7 @@ class CompanyTest {
             @ValueSource(strings = {"", "   "})
             @DisplayName("GIVEN blank company identifier WHEN creating Company THEN throw exception explaining the value is blank")
             void shouldExplainBlankCompanyIdentifier(String identifier) {
-                assertThatThrownBy(() -> CompanyFactory.createFromCommand(
+                assertThatThrownBy(() -> ClientFixtures.newCompany(
                         "ACME Corp",
                         "contact@acme.com",
                         "+33123456789",
@@ -134,17 +134,18 @@ class CompanyTest {
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#validCompanies")
             @DisplayName("GIVEN various valid combinations of fields WHEN creating Company THEN company is created with all correct values")
             void shouldCreateCompanyWithValidCombinations(ClientTestData.ValidCompanyData data) {
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         data.name(),
                         data.email(),
                         data.phone(),
                         data.companyIdentifier()
                 );
 
-                assertThat(company.getName().getValue()).isEqualTo(data.name());
-                assertThat(company.getEmail().getValue()).isEqualTo(data.email());
-                assertThat(company.getPhone().getValue()).isEqualTo(data.expectedPhone());
-                assertThat(company.getCompanyIdentifier().getValue()).isEqualTo(data.companyIdentifier().toUpperCase(Locale.ROOT));
+                assertThat(company.name().value()).isEqualTo(data.name());
+                assertThat(company.email().value()).isEqualTo(data.email());
+                assertThat(company.phone().value()).isEqualTo(data.expectedPhone());
+                assertThat(company.companyIdentifier().value()).isEqualTo(data.companyIdentifier()
+                        .toUpperCase(Locale.ROOT));
             }
 
             @ParameterizedTest
@@ -155,14 +156,14 @@ class CompanyTest {
             })
             @DisplayName("GIVEN company identifier in any case WHEN creating Company THEN identifier is stored in upper case")
             void shouldNormalizeCompanyIdentifierToUpperCase(String identifier, String expected) {
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         "ACME Corp",
                         "contact@acme.com",
                         "+33123456789",
                         identifier
                 );
 
-                assertThat(company.getCompanyIdentifier().getValue()).isEqualTo(expected);
+                assertThat(company.companyIdentifier().value()).isEqualTo(expected);
             }
 
             @Test
@@ -170,14 +171,14 @@ class CompanyTest {
             void shouldCreateCompanyWithMaxLengthIdentifier() {
                 final String maxLengthIdentifier = "a".repeat(CompanyIdentifier.MAX_LENGTH);
 
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         "Max Length Corp",
                         "max@length.com",
                         "+33123456789",
                         maxLengthIdentifier
                 );
 
-                assertThat(company.getCompanyIdentifier().getValue()).hasSize(CompanyIdentifier.MAX_LENGTH);
+                assertThat(company.companyIdentifier().value()).hasSize(CompanyIdentifier.MAX_LENGTH);
             }
 
             @Test
@@ -185,14 +186,14 @@ class CompanyTest {
             void shouldCreateCompanyWithMaxLengthName() {
                 final String maxLengthName = "a".repeat(ClientName.MAX_LENGTH);
 
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         maxLengthName,
                         "max@length.com",
                         "+33123456789",
                         "acme-123"
                 );
 
-                assertThat(company.getName().getValue()).hasSize(ClientName.MAX_LENGTH);
+                assertThat(company.name().value()).hasSize(ClientName.MAX_LENGTH);
             }
 
             @Test
@@ -200,14 +201,14 @@ class CompanyTest {
             void shouldCreateCompanyWithMaxLengthEmail() {
                 final String maxLengthEmail = ClientTestData.maxLengthEmail();
 
-                final Company company = CompanyFactory.createFromCommand(
+                final Company company = ClientFixtures.newCompany(
                         "Max Length Corp",
                         maxLengthEmail,
                         "+33123456789",
                         "acme-123"
                 );
 
-                assertThat(company.getEmail().getValue()).hasSize(ClientEmail.MAX_LENGTH);
+                assertThat(company.email().value()).hasSize(ClientEmail.MAX_LENGTH);
             }
         }
 
@@ -218,7 +219,7 @@ class CompanyTest {
             @Test
             @DisplayName("GIVEN stored E.164 phone WHEN rebuilding Company THEN phone is kept as is")
             void shouldRebuildCompanyWithStoredPhone() {
-                final Company company = CompanyFactory.buildFromDatabase(
+                final Company company = ClientFixtures.existingCompany(
                         UUID.randomUUID(),
                         "ACME Corp",
                         "contact@acme.com",
@@ -226,13 +227,13 @@ class CompanyTest {
                         "acme-123"
                 );
 
-                assertThat(company.getPhone().getValue()).isEqualTo("+41791234567");
+                assertThat(company.phone().value()).isEqualTo("+41791234567");
             }
 
             @Test
             @DisplayName("GIVEN identifier stored in lower case before normalization WHEN rebuilding Company THEN identifier is kept as is")
             void shouldRebuildCompanyWithLegacyLowerCaseIdentifier() {
-                final Company company = CompanyFactory.buildFromDatabase(
+                final Company company = ClientFixtures.existingCompany(
                         UUID.randomUUID(),
                         "ACME Corp",
                         "contact@acme.com",
@@ -240,14 +241,14 @@ class CompanyTest {
                         "acme-123"
                 );
 
-                assertThat(company.getCompanyIdentifier().getValue()).isEqualTo("acme-123");
+                assertThat(company.companyIdentifier().value()).isEqualTo("acme-123");
             }
 
             @ParameterizedTest
             @MethodSource("com.mk.contractservice.domain.client.ClientTestData#corruptedStoredPhones")
             @DisplayName("GIVEN corrupted stored phone WHEN rebuilding Company THEN throw InvalidDomainObjectError")
             void shouldRejectCorruptedStoredPhone(String phone) {
-                assertThatThrownBy(() -> CompanyFactory.buildFromDatabase(
+                assertThatThrownBy(() -> ClientFixtures.existingCompany(
                         UUID.randomUUID(),
                         "ACME Corp",
                         "contact@acme.com",
@@ -279,19 +280,19 @@ class CompanyTest {
                     ClientPhoneNumber.of("+33987654321")
             );
 
-            assertThat(updated.getName().getValue()).isEqualTo("ACME Corporation");
-            assertThat(updated.getEmail().getValue()).isEqualTo("info@acme.com");
-            assertThat(updated.getPhone().getValue()).isEqualTo("+33987654321");
-            assertThat(updated.getCompanyIdentifier()).isEqualTo(originalIdentifier);
+            assertThat(updated.name().value()).isEqualTo("ACME Corporation");
+            assertThat(updated.email().value()).isEqualTo("info@acme.com");
+            assertThat(updated.phone().value()).isEqualTo("+33987654321");
+            assertThat(updated.companyIdentifier()).isEqualTo(originalIdentifier);
 
-            assertThat(company.getName().getValue()).isEqualTo("ACME Corp");
-            assertThat(company.getCompanyIdentifier()).isEqualTo(originalIdentifier);
+            assertThat(company.name().value()).isEqualTo("ACME Corp");
+            assertThat(company.companyIdentifier()).isEqualTo(originalIdentifier);
         }
 
         @Test
         @DisplayName("GIVEN company WHEN updating with same values THEN returns the same instance")
         void shouldReturnSameInstanceWhenValuesAreIdentical() {
-            final Company company = CompanyFactory.createFromCommand(
+            final Company company = ClientFixtures.newCompany(
                     "ACME Corp",
                     "contact@acme.com",
                     "+33123456789",
@@ -305,15 +306,15 @@ class CompanyTest {
             );
 
             assertThat(updated).isSameAs(company);
-            assertThat(updated.getName().getValue()).isEqualTo(company.getName().getValue());
-            assertThat(updated.getEmail().getValue()).isEqualTo(company.getEmail().getValue());
-            assertThat(updated.getPhone().getValue()).isEqualTo(company.getPhone().getValue());
+            assertThat(updated.name().value()).isEqualTo(company.name().value());
+            assertThat(updated.email().value()).isEqualTo(company.email().value());
+            assertThat(updated.phone().value()).isEqualTo(company.phone().value());
         }
 
         @Test
         @DisplayName("GIVEN company WHEN updating only name THEN only name changes")
         void shouldUpdateOnlyName() {
-            final Company company = CompanyFactory.createFromCommand(
+            final Company company = ClientFixtures.newCompany(
                     "ACME Corp",
                     "contact@acme.com",
                     "+33123456789",
@@ -322,20 +323,20 @@ class CompanyTest {
 
             final Company updated = company.changeCoreFields(
                     ClientName.of("New ACME Name"),
-                    company.getEmail(),
-                    company.getPhone()
+                    company.email(),
+                    company.phone()
             );
 
-            assertThat(updated.getName().getValue()).isEqualTo("New ACME Name");
-            assertThat(updated.getEmail()).isEqualTo(company.getEmail());
-            assertThat(updated.getPhone()).isEqualTo(company.getPhone());
-            assertThat(updated.getCompanyIdentifier()).isEqualTo(company.getCompanyIdentifier());
+            assertThat(updated.name().value()).isEqualTo("New ACME Name");
+            assertThat(updated.email()).isEqualTo(company.email());
+            assertThat(updated.phone()).isEqualTo(company.phone());
+            assertThat(updated.companyIdentifier()).isEqualTo(company.companyIdentifier());
         }
 
         @Test
         @DisplayName("GIVEN company WHEN updating only email THEN only email changes")
         void shouldUpdateOnlyEmail() {
-            final Company company = CompanyFactory.createFromCommand(
+            final Company company = ClientFixtures.newCompany(
                     "ACME Corp",
                     "contact@acme.com",
                     "+33123456789",
@@ -343,20 +344,20 @@ class CompanyTest {
             );
 
             final Company updated = company.changeCoreFields(
-                    company.getName(),
+                    company.name(),
                     ClientEmail.of("newemail@acme.com"),
-                    company.getPhone()
+                    company.phone()
             );
 
-            assertThat(updated.getName()).isEqualTo(company.getName());
-            assertThat(updated.getEmail().getValue()).isEqualTo("newemail@acme.com");
-            assertThat(updated.getPhone()).isEqualTo(company.getPhone());
+            assertThat(updated.name()).isEqualTo(company.name());
+            assertThat(updated.email().value()).isEqualTo("newemail@acme.com");
+            assertThat(updated.phone()).isEqualTo(company.phone());
         }
 
         @Test
         @DisplayName("GIVEN company WHEN updating only phone THEN only phone changes")
         void shouldUpdateOnlyPhone() {
-            final Company company = CompanyFactory.createFromCommand(
+            final Company company = ClientFixtures.newCompany(
                     "ACME Corp",
                     "contact@acme.com",
                     "+33123456789",
@@ -364,15 +365,14 @@ class CompanyTest {
             );
 
             final Company updated = company.changeCoreFields(
-                    company.getName(),
-                    company.getEmail(),
+                    company.name(),
+                    company.email(),
                     ClientPhoneNumber.of("+33999999999")
             );
 
-            assertThat(updated.getName()).isEqualTo(company.getName());
-            assertThat(updated.getEmail()).isEqualTo(company.getEmail());
-            assertThat(updated.getPhone().getValue()).isEqualTo("+33999999999");
+            assertThat(updated.name()).isEqualTo(company.name());
+            assertThat(updated.email()).isEqualTo(company.email());
+            assertThat(updated.phone().value()).isEqualTo("+33999999999");
         }
     }
 }
-

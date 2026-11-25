@@ -2,6 +2,8 @@ package com.mk.contractservice.domain.shared;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
+
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -10,7 +12,7 @@ import java.util.function.Function;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ValueObjectUtils {
 
-    public static <T, V, N> T validateAndCreate(
+    public static <T, V extends @Nullable Object, N> T validateAndCreate(
             final V rawValue,
             final Function<V, N> normalizer,
             final Consumer<N> validator,
@@ -22,7 +24,7 @@ public final class ValueObjectUtils {
     }
 
 
-    public static <T, V1, V2, N> T validateAndCreate(
+    public static <T, V1 extends @Nullable Object, V2 extends @Nullable Object, N> T validateAndCreate(
             final V1 rawValue,
             final V2 optionalValue,
             final Function<V1, N> normalizer,
@@ -34,4 +36,3 @@ public final class ValueObjectUtils {
         return factory.apply(normalized, optionalValue);
     }
 }
-

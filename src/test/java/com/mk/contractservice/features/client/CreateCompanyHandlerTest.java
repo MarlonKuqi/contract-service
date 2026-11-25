@@ -1,9 +1,10 @@
 package com.mk.contractservice.features.client;
 
 
+import com.mk.contractservice.domain.client.Client;
+import com.mk.contractservice.domain.client.ClientFixtures;
 import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Company;
-import com.mk.contractservice.domain.client.CompanyFactory;
 import com.mk.contractservice.domain.client.CompanyIdentifierUniqueness;
 import com.mk.contractservice.domain.client.exception.CompanyIdentifierAlreadyExistsException;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +54,7 @@ class CreateCompanyHandlerTest {
         // When & Then
         assertThatThrownBy(() -> createCompanyHandler.execute(command))
                 .isInstanceOf(CompanyIdentifierAlreadyExistsException.class)
-                .extracting(ex -> ((CompanyIdentifierAlreadyExistsException) ex).getCompanyIdentifier())
+                .extracting(ex -> ((CompanyIdentifierAlreadyExistsException) ex).companyIdentifier())
                 .isEqualTo(duplicateIdentifier);
     }
 
@@ -67,7 +68,7 @@ class CreateCompanyHandlerTest {
                 "+33123456789",
                 "123456789"
         );
-        Company saved = CompanyFactory.buildFromDatabase(
+        Company saved = ClientFixtures.existingCompany(
                 UUID.randomUUID(),
                 "Tech Corp",
                 "contact@techcorp.com",
@@ -78,10 +79,9 @@ class CreateCompanyHandlerTest {
         when(clientRepository.save(any(Company.class))).thenReturn(saved);
 
         // When
-        Company result = createCompanyHandler.execute(command);
+        Client result = createCompanyHandler.execute(command);
 
         // Then
         assertThat(result).isSameAs(saved);
     }
 }
-

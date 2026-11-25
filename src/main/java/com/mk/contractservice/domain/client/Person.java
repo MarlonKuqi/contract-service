@@ -1,5 +1,6 @@
 package com.mk.contractservice.domain.client;
 
+import com.mk.contractservice.domain.shared.ContractHolder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -58,6 +59,11 @@ public final class Person extends Client {
     }
 
     @Override
+    public ContractHolder contractHolder() {
+        return ContractHolder.person(birthDate.value());
+    }
+
+    @Override
     public Person changeCoreFields(
             @Nullable final ClientName name,
             @Nullable final ClientEmail email,
@@ -108,11 +114,11 @@ public final class Person extends Client {
 
     private PersonBuilder toBuilder() {
         return builder()
-                .id(getId())
-                .name(getName())
-                .email(getEmail())
-                .phone(getPhone())
-                .birthDate(getBirthDate());
+                .id(id())
+                .name(name())
+                .email(email())
+                .phone(phone())
+                .birthDate(birthDate());
     }
 
     @NoArgsConstructor
@@ -124,34 +130,33 @@ public final class Person extends Client {
         private ClientPhoneNumber phone;
         private PersonBirthDate birthDate;
 
-        public PersonBuilder id(final UUID id) {
+        PersonBuilder id(final UUID id) {
             this.id = id;
             return this;
         }
 
-        public PersonBuilder name(final ClientName name) {
+        PersonBuilder name(final ClientName name) {
             this.name = name;
             return this;
         }
 
-        public PersonBuilder email(final ClientEmail email) {
+        PersonBuilder email(final ClientEmail email) {
             this.email = email;
             return this;
         }
 
-        public PersonBuilder phone(final ClientPhoneNumber phone) {
+        PersonBuilder phone(final ClientPhoneNumber phone) {
             this.phone = phone;
             return this;
         }
 
-        public PersonBuilder birthDate(final PersonBirthDate birthDate) {
+        PersonBuilder birthDate(final PersonBirthDate birthDate) {
             this.birthDate = birthDate;
             return this;
         }
 
-        public Person build() {
+        Person build() {
             return new Person(id, name, email, phone, birthDate);
         }
     }
 }
-

@@ -11,7 +11,7 @@ public class CompanyIdentifierUniqueness {
     private final ClientRepository clientRepository;
 
     public void ensureIsUnique(final CompanyIdentifier identifier) {
-        final String value = identifier.getValue();
+        final String value = identifier.value();
         if (clientRepository.existsByCompanyIdentifier(value)) {
             throw new CompanyIdentifierAlreadyExistsException(
                     "A company with identifier '" + value + "' already exists",

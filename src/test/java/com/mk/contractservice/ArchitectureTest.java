@@ -3,8 +3,13 @@ package com.mk.contractservice;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaPackage;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.lang.ArchCondition;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
+import org.jspecify.annotations.NullMarked;
 import org.junit.jupiter.api.Test;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
@@ -42,8 +47,11 @@ class ArchitectureTest {
 
     private final DescribedPredicate<JavaClass> areFeatures = resideInAnyPackage("com.mk.contractservice.features..");
 
-    private final DescribedPredicate<JavaClass> areInfrastructure = resideInAnyPackage("com.mk.contractservice.infrastructure..");
-    private final DescribedPredicate<JavaClass> areControllers = resideInAnyPackage("com.mk.contractservice.controllers..");
+    private final DescribedPredicate<JavaClass> areInfrastructure = resideInAnyPackage(
+            "com.mk.contractservice.infrastructure..");
+    private final DescribedPredicate<JavaClass> areControllers = resideInAnyPackage(
+            "com.mk.contractservice.controllers..");
+    private final DescribedPredicate<JavaClass> areBatch = resideInAnyPackage("com.mk.contractservice.batch..");
 
     @Test
     void domain_should_not_depend_on_infrastructure() {
@@ -76,21 +84,34 @@ class ArchitectureTest {
     }
 
     @Test
+    void domain_should_not_depend_on_batch() {
+        noClasses()
+                .that(areCore)
+                .should()
+                .dependOnClassesThat(areBatch)
+                .because("Domain must not depend on inbound adapters: batch is one, like controllers")
+                .check(classes);
+    }
+
+    @Test
     void domain_should_only_depend_on_itself_and_standard_classes() {
         classes()
                 .that(areCore)
                 .should()
                 .onlyDependOnClassesThat(areCore.or(areStandard).or(areAllowedSpringInDomain))
-                .because("Domain must be framework-agnostic. Only standard Java/Jakarta APIs and " +
-                        "Spring Data pagination types (Page, Pageable) are tolerated as a documented compromise.")
+                .because(
+                        "Domain must be framework-agnostic. Only standard Java/Jakarta APIs and " + "Spring Data pagination types (Page, Pageable) are tolerated as a documented compromise.")
                 .check(classes);
     }
 
     @Test
     void client_aggregate_should_not_depend_on_contract_aggregate() {
         noClasses()
-                .that().resideInAPackage("com.mk.contractservice.domain.client..")
-                .should().dependOnClassesThat().resideInAPackage("com.mk.contractservice.domain.contract..")
+                .that()
+                .resideInAPackage("com.mk.contractservice.domain.client..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("com.mk.contractservice.domain.contract..")
                 .because("Aggregates stay independent in the domain; use cases coordinate them")
                 .check(classes);
     }
@@ -98,8 +119,11 @@ class ArchitectureTest {
     @Test
     void contract_aggregate_should_not_depend_on_client_aggregate() {
         noClasses()
-                .that().resideInAPackage("com.mk.contractservice.domain.contract..")
-                .should().dependOnClassesThat().resideInAPackage("com.mk.contractservice.domain.client..")
+                .that()
+                .resideInAPackage("com.mk.contractservice.domain.contract..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("com.mk.contractservice.domain.client..")
                 .because("A contract references its client by id only; use cases coordinate the aggregates")
                 .check(classes);
     }
@@ -111,6 +135,39 @@ class ArchitectureTest {
                 .should()
                 .dependOnClassesThat(areControllers)
                 .because("Features (application layer) must not depend on presentation layer (controllers)")
+                .check(classes);
+    }
+
+    @Test
+    void every_package_should_be_null_marked() {
+        classes()
+                .should(beInANullMarkedPackage())
+                .because(
+                        "JSpecify @NullMarked does not apply to subpackages: each package declares it so the IDE and NullAway agree (ADR-023)")
+                .check(classes);
+    }
+
+    private static ArchCondition<JavaClass> beInANullMarkedPackage() {
+        return new ArchCondition<>("be in a package annotated with @NullMarked") {
+            @Override
+            public void check(final JavaClass javaClass, final ConditionEvents events) {
+                final JavaPackage javaPackage = javaClass.getPackage();
+                if (!javaPackage.isAnnotatedWith(NullMarked.class)) {
+                    events.add(SimpleConditionEvent.violated(javaClass,
+                            javaPackage.getName() + " has no package-info.java annotated with @NullMarked"));
+                }
+            }
+        };
+    }
+
+    @Test
+    void features_should_not_depend_on_batch() {
+        noClasses()
+                .that(areFeatures)
+                .should()
+                .dependOnClassesThat(areBatch)
+                .because(
+                        "Features (application layer) must not depend on inbound adapters: batch is one, like controllers")
                 .check(classes);
     }
 }

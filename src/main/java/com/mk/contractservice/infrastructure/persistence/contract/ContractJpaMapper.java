@@ -1,7 +1,10 @@
 package com.mk.contractservice.infrastructure.persistence.contract;
 
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractCost;
+import com.mk.contractservice.domain.contract.ContractCoverage;
+import com.mk.contractservice.domain.contract.ContractPeriod;
+import com.mk.contractservice.domain.contract.LamalFranchise;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -9,32 +12,33 @@ import lombok.NoArgsConstructor;
 public final class ContractJpaMapper {
 
     public static Contract toDomain(final ContractJpaEntity entity) {
-        return ContractFactory.buildFromDatabase(
+        return Contract.reconstituteFromDatabase(
                 entity.getId(),
                 entity.getClientId(),
-                entity.getStartDate(),
-                entity.getEndDate(),
-                entity.getCostAmount(),
+                ContractCoverage.reconstituteFromDatabase(entity.getType(), entity.getFranchise()),
+                ContractPeriod.reconstituteFromDatabase(entity.getStartDate(), entity.getEndDate()),
+                ContractCost.reconstituteFromDatabase(entity.getCostAmount()),
                 entity.getLastModified()
         );
     }
 
     public static ContractJpaEntity toNewEntity(final Contract domain) {
         return new ContractJpaEntity(
-                domain.getClientId(),
-                domain.getPeriod().getStartDate(),
-                domain.getPeriod().getEndDate(),
-                domain.getCostAmount().getValue(),
-                domain.getLastModified()
+                domain.clientId(),
+                domain.type(),
+                domain.franchise().map(LamalFranchise::value).orElse(null),
+                domain.period().startDate(),
+                domain.period().endDate(),
+                domain.costAmount().value(),
+                domain.lastModified()
         );
     }
 
     public static void mergeIntoExisting(final Contract domain, final ContractJpaEntity existing) {
-        existing.setClientId(domain.getClientId());
-        existing.setStartDate(domain.getPeriod().getStartDate());
-        existing.setEndDate(domain.getPeriod().getEndDate());
-        existing.setCostAmount(domain.getCostAmount().getValue());
-        existing.setLastModified(domain.getLastModified());
+        existing.setClientId(domain.clientId());
+        existing.setStartDate(domain.period().startDate());
+        existing.setEndDate(domain.period().endDate());
+        existing.setCostAmount(domain.costAmount().value());
+        existing.setLastModified(domain.lastModified());
     }
 }
-

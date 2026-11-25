@@ -4,12 +4,14 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.contract.Contract;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.domain.contract.ContractSearchCriteria;
-import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.features.shared.PageBounds;
+import com.mk.contractservice.features.shared.QueryUseCase;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Sort;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -18,21 +20,30 @@ import java.util.UUID;
 
 public interface ListActiveContractsByClient {
 
+    int MAX_PAGE_SIZE = 100;
+
+    Sort MOST_RECENTLY_MODIFIED_FIRST = Sort.by(Sort.Direction.DESC, "lastModified");
+
     record Query(
             UUID clientId,
             @Nullable LocalDateTime updatedSince,
-            Pageable pageable
+            int page,
+            int size
     ) {
         public Query {
             Objects.requireNonNull(clientId, "Client ID cannot be null");
-            Objects.requireNonNull(pageable, "Pageable cannot be null");
+            PageBounds.requireValidPage(page);
+            PageBounds.requireValidSize(size, MAX_PAGE_SIZE);
+        }
+
+        Pageable pageable() {
+            return PageRequest.of(page, size, MOST_RECENTLY_MODIFIED_FIRST);
         }
     }
 
     Page<Contract> execute(Query query);
 
-    @UseCase
-    @Transactional(readOnly = true)
+    @QueryUseCase
     @RequiredArgsConstructor
     class Handler implements ListActiveContractsByClient {
 

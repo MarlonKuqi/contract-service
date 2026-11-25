@@ -5,9 +5,8 @@ import com.mk.contractservice.domain.client.ClientEmail;
 import com.mk.contractservice.domain.client.ClientName;
 import com.mk.contractservice.domain.client.ClientPhoneNumber;
 import com.mk.contractservice.domain.client.ClientRepository;
-import com.mk.contractservice.domain.shared.UseCase;
+import com.mk.contractservice.features.shared.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -16,6 +15,7 @@ public interface UpdateClient {
 
     record Command(
             UUID clientId,
+            long expectedVersion,
             String name,
             String email,
             String phoneNumber
@@ -31,7 +31,6 @@ public interface UpdateClient {
     Client execute(Command command);
 
     @UseCase
-    @Transactional
     @RequiredArgsConstructor
     class Handler implements UpdateClient {
 
@@ -40,12 +39,12 @@ public interface UpdateClient {
         @Override
         public Client execute(final Command command) {
             final Client client = clientRepository.getById(command.clientId());
+            clientRepository.ensureVersion(command.clientId(), command.expectedVersion());
             final ClientEmail email = ClientEmail.of(command.email());
             final ClientPhoneNumber phone = ClientPhoneNumber.of(command.phoneNumber());
             final ClientName name = ClientName.of(command.name());
             final Client updatedClient = client.changeCoreFields(name, email, phone);
-            return updatedClient == client ? client : clientRepository.save(updatedClient);
+            return updatedClient.equals(client) ? client : clientRepository.save(updatedClient);
         }
     }
 }
-

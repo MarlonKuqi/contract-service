@@ -27,7 +27,7 @@ class ClientTest {
         @DisplayName("GIVEN valid fields WHEN creating updated person instance THEN new instance has updated fields and original is unchanged")
         void shouldCreateNewPersonInstanceWithUpdatedFields(ClientTestData.CommonClientData updatedData) {
             UUID personId = UUID.randomUUID();
-            final Person original = PersonFactory.buildFromDatabase(
+            final Person original = ClientFixtures.existingPerson(
                     personId,
                     "John Doe",
                     "john.doe@example.com",
@@ -41,15 +41,15 @@ class ClientTest {
                     ClientPhoneNumber.of(updatedData.phone())
             );
 
-            assertThat(updated.getName().getValue()).isEqualTo(updatedData.name());
-            assertThat(updated.getEmail().getValue()).isEqualTo(updatedData.email());
-            assertThat(updated.getPhone().getValue()).isEqualTo(updatedData.expectedPhone());
+            assertThat(updated.name().value()).isEqualTo(updatedData.name());
+            assertThat(updated.email().value()).isEqualTo(updatedData.email());
+            assertThat(updated.phone().value()).isEqualTo(updatedData.expectedPhone());
 
-            assertThat(updated.getId()).isNotNull();
-            assertThat(updated.getId()).isEqualTo(original.getId());
-            assertThat(updated.getId()).isEqualTo(personId);
+            assertThat(updated.id()).isNotNull();
+            assertThat(updated.id()).isEqualTo(original.id());
+            assertThat(updated.id()).isEqualTo(personId);
 
-            assertThat(updated.getBirthDate()).isEqualTo(original.getBirthDate());
+            assertThat(updated.birthDate()).isEqualTo(original.birthDate());
         }
 
         static Stream<Object[]> personUpdateCombinations() {
@@ -63,7 +63,7 @@ class ClientTest {
             UUID companyId = UUID.randomUUID();
             String companyIdentifier = "company-123";
 
-            Company originalCompany = CompanyFactory.buildFromDatabase(
+            Company originalCompany = ClientFixtures.existingCompany(
                     companyId,
                     "ACME Corp",
                     "contact@acme.com",
@@ -77,16 +77,16 @@ class ClientTest {
                     ClientPhoneNumber.of(updatedData.phone())
             );
 
-            assertThat(updatedCompany.getName().getValue()).isEqualTo(updatedData.name());
-            assertThat(updatedCompany.getEmail().getValue()).isEqualTo(updatedData.email());
-            assertThat(updatedCompany.getPhone().getValue()).isEqualTo(updatedData.expectedPhone());
+            assertThat(updatedCompany.name().value()).isEqualTo(updatedData.name());
+            assertThat(updatedCompany.email().value()).isEqualTo(updatedData.email());
+            assertThat(updatedCompany.phone().value()).isEqualTo(updatedData.expectedPhone());
 
-            assertThat(updatedCompany.getId()).isNotNull();
-            assertThat(updatedCompany.getId()).isEqualTo(originalCompany.getId());
-            assertThat(updatedCompany.getId()).isEqualTo(companyId);
+            assertThat(updatedCompany.id()).isNotNull();
+            assertThat(updatedCompany.id()).isEqualTo(originalCompany.id());
+            assertThat(updatedCompany.id()).isEqualTo(companyId);
 
-            assertThat(updatedCompany.getCompanyIdentifier()).isEqualTo(originalCompany.getCompanyIdentifier());
-            assertThat(updatedCompany.getCompanyIdentifier().getValue()).isEqualTo(companyIdentifier);
+            assertThat(updatedCompany.companyIdentifier()).isEqualTo(originalCompany.companyIdentifier());
+            assertThat(updatedCompany.companyIdentifier().value()).isEqualTo(companyIdentifier);
         }
 
         static Stream<Object[]> companyUpdateCombinations() {
@@ -97,7 +97,7 @@ class ClientTest {
         @MethodSource("nullFieldCombinationsForPerson")
         @DisplayName("GIVEN null fields WHEN updating person THEN throw InvalidDomainObjectError")
         void shouldRejectNullFieldsOnPersonCoreUpdate(ClientName name, ClientEmail email, ClientPhoneNumber phone) {
-            Person person = PersonFactory.createFromCommand(
+            Person person = ClientFixtures.newPerson(
                     "Test User",
                     "test@example.com",
                     "+33123456789",
@@ -121,7 +121,7 @@ class ClientTest {
         @MethodSource("nullFieldCombinationsForCompany")
         @DisplayName("GIVEN null fields WHEN updating company THEN throw InvalidDomainObjectError")
         void shouldRejectNullFieldsOnCompanyCoreUpdate(ClientName name, ClientEmail email, ClientPhoneNumber phone) {
-            Company company = CompanyFactory.createFromCommand(
+            Company company = ClientFixtures.newCompany(
                     "Test Company",
                     "test@example.com",
                     "+33123456789",
@@ -148,8 +148,12 @@ class ClientTest {
 
         static Stream<Client> clients() {
             return Stream.of(
-                    PersonFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", LocalDate.of(1990, 1, 1), TODAY),
-                    CompanyFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", "acme-123")
+                    ClientFixtures.newPerson("John Doe",
+                            "john.doe@example.com",
+                            "+33123456789",
+                            LocalDate.of(1990, 1, 1),
+                            TODAY),
+                    ClientFixtures.newCompany("John Doe", "john.doe@example.com", "+33123456789", "acme-123")
             );
         }
 
@@ -178,8 +182,12 @@ class ClientTest {
 
         static Stream<Client> clients() {
             return Stream.of(
-                    PersonFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", LocalDate.of(1990, 1, 1), TODAY),
-                    CompanyFactory.createFromCommand("John Doe", "john.doe@example.com", "+33123456789", "acme-123")
+                    ClientFixtures.newPerson("John Doe",
+                            "john.doe@example.com",
+                            "+33123456789",
+                            LocalDate.of(1990, 1, 1),
+                            TODAY),
+                    ClientFixtures.newCompany("John Doe", "john.doe@example.com", "+33123456789", "acme-123")
             );
         }
 
@@ -224,8 +232,8 @@ class ClientTest {
             final Client result = client.changeName(ClientName.of("Jane Doe"));
 
             assertThat(result).isNotSameAs(client);
-            assertThat(result.getName().getValue()).isEqualTo("Jane Doe");
-            assertThat(client.getName().getValue()).isEqualTo("John Doe");
+            assertThat(result.name().value()).isEqualTo("Jane Doe");
+            assertThat(client.name().value()).isEqualTo("John Doe");
         }
 
         @ParameterizedTest
@@ -235,8 +243,8 @@ class ClientTest {
             final Client result = client.changeEmail(ClientEmail.of("jane.doe@example.com"));
 
             assertThat(result).isNotSameAs(client);
-            assertThat(result.getEmail().getValue()).isEqualTo("jane.doe@example.com");
-            assertThat(client.getEmail().getValue()).isEqualTo("john.doe@example.com");
+            assertThat(result.email().value()).isEqualTo("jane.doe@example.com");
+            assertThat(client.email().value()).isEqualTo("john.doe@example.com");
         }
 
         @ParameterizedTest
@@ -246,8 +254,8 @@ class ClientTest {
             final Client result = client.changePhone(ClientPhoneNumber.of("+33987654321"));
 
             assertThat(result).isNotSameAs(client);
-            assertThat(result.getPhone().getValue()).isEqualTo("+33987654321");
-            assertThat(client.getPhone().getValue()).isEqualTo("+33123456789");
+            assertThat(result.phone().value()).isEqualTo("+33987654321");
+            assertThat(client.phone().value()).isEqualTo("+33123456789");
         }
 
         @ParameterizedTest
@@ -255,13 +263,13 @@ class ClientTest {
         @DisplayName("GIVEN only one core field differs WHEN changeCoreFields THEN returns a new instance")
         void shouldReturnNewInstanceWhenOneCoreFieldDiffers(Client client) {
             final Client result = client.changeCoreFields(
-                    client.getName(),
-                    client.getEmail(),
+                    client.name(),
+                    client.email(),
                     ClientPhoneNumber.of("+33987654321")
             );
 
             assertThat(result).isNotSameAs(client);
-            assertThat(result.getPhone().getValue()).isEqualTo("+33987654321");
+            assertThat(result.phone().value()).isEqualTo("+33987654321");
         }
 
         @ParameterizedTest
@@ -275,4 +283,3 @@ class ClientTest {
     }
 
 }
-

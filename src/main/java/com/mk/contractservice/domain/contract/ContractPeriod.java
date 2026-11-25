@@ -8,7 +8,7 @@ import lombok.Value;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDateTime;
-import java.util.function.BiPredicate;
+import java.time.temporal.ChronoUnit;
 
 import static com.mk.contractservice.domain.shared.Assert.notNull;
 
@@ -21,11 +21,21 @@ public class ContractPeriod {
     @Nullable
     LocalDateTime endDate;
 
-    private static final BiPredicate<LocalDateTime, @Nullable LocalDateTime> START_IS_AFTER_END =
-            (start, end) -> end != null && !end.isAfter(start);
+    private static final int MIN_YEAR = 1;
+    private static final int MAX_YEAR = 9999;
+
 
     public boolean isEffectiveAt(final LocalDateTime referenceDate) {
         return endDate == null || referenceDate.isBefore(endDate);
+    }
+
+    public boolean endsBefore(final LocalDateTime referenceDate) {
+        return endDate != null && endDate.isBefore(referenceDate);
+    }
+
+    public boolean overlaps(final ContractPeriod other) {
+        final LocalDateTime latestStart = startDate.isAfter(other.startDate) ? startDate : other.startDate;
+        return isEffectiveAt(latestStart) && other.isEffectiveAt(latestStart);
     }
 
     public static ContractPeriod of(
@@ -34,25 +44,35 @@ public class ContractPeriod {
             final LocalDateTime now
     ) {
         notNull(now);
-        return ValueObjectUtils.validateAndCreate(
-                startDate,
-                endDate,
-                start -> start == null ? now : start,
-                ContractPeriod::validate,
-                ContractPeriod::new
-        );
+        return ValueObjectUtils
+                .<ContractPeriod, @Nullable LocalDateTime, @Nullable LocalDateTime, LocalDateTime>validateAndCreate(
+                        startDate,
+                        endDate == null ? null : endDate.truncatedTo(ChronoUnit.MICROS),
+                        start -> (start == null ? now : start).truncatedTo(ChronoUnit.MICROS),
+                        ContractPeriod::validate,
+                        ContractPeriod::new
+                );
     }
 
-    public static ContractPeriod reconstituteFromDatabase(final LocalDateTime startDate, @Nullable final LocalDateTime endDate) {
+    public static ContractPeriod reconstituteFromDatabase(final LocalDateTime startDate,
+            @Nullable final LocalDateTime endDate) {
         return new ContractPeriod(notNull(startDate), endDate);
     }
 
     private static void validate(final LocalDateTime normalizedStart, @Nullable final LocalDateTime endDate) {
-        if (START_IS_AFTER_END.test(normalizedStart, endDate)) {
+        if (isYearOutOfRange(normalizedStart) || (endDate != null && isYearOutOfRange(endDate))) {
             throw new InvalidContractPeriodException(
-                    "Contract end date must be after start date. " +
-                            "Start: " + normalizedStart + ", End: " + endDate
+                    "Contract dates must be between years " + MIN_YEAR + " and " + MAX_YEAR + ". " + "Start: " + normalizedStart + ", End: " + endDate
             );
         }
+        if (endDate != null && !endDate.isAfter(normalizedStart)) {
+            throw new InvalidContractPeriodException(
+                    "Contract end date must be after start date. " + "Start: " + normalizedStart + ", End: " + endDate
+            );
+        }
+    }
+
+    private static boolean isYearOutOfRange(final LocalDateTime date) {
+        return date.getYear() < MIN_YEAR || date.getYear() > MAX_YEAR;
     }
 }

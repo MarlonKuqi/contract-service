@@ -2,6 +2,7 @@ package com.mk.contractservice.acceptance;
 
 import com.mk.contractservice.acceptance.config.TestcontainersConfiguration;
 import com.mk.contractservice.acceptance.helper.AcceptanceRestAssured;
+import com.mk.contractservice.acceptance.helper.ETags;
 import com.mk.contractservice.acceptance.helper.TestDataHelper;
 import com.mk.contractservice.controllers.contract.shared.ContractEndpoints;
 import com.mk.contractservice.domain.client.Client;
@@ -12,7 +13,7 @@ import com.mk.contractservice.domain.client.ClientRepository;
 import com.mk.contractservice.domain.client.Person;
 import com.mk.contractservice.domain.client.PersonBirthDate;
 import com.mk.contractservice.domain.contract.Contract;
-import com.mk.contractservice.domain.contract.ContractFactory;
+import com.mk.contractservice.domain.contract.ContractFixtures;
 import com.mk.contractservice.domain.contract.ContractRepository;
 import com.mk.contractservice.infrastructure.persistence.client.ClientJpaRepository;
 import com.mk.contractservice.infrastructure.persistence.contract.ContractJpaRepository;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
@@ -81,7 +83,11 @@ class UpdateContractCostAcceptanceTest {
     @DisplayName("SCENARIO: Update contract cost succeeds and persists changes")
     void shouldUpdateContractCost() {
         LocalDateTime now = LocalDateTime.now(clock);
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("5000.00"), LocalDateTime.now(clock));
+        Contract contract = ContractFixtures.newContract(testClient.id(),
+                now,
+                now.plusMonths(12),
+                new BigDecimal("5000.00"),
+                LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -93,14 +99,15 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
-                .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.id()))
+                .patch(ContractEndpoints.CONTRACT_COST, savedContract.id())
                 .then()
                 .statusCode(204);
 
         // Verify the cost was updated
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId())
+                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.id())
                 .then()
                 .statusCode(200)
                 .body("costAmount", equalTo(7500.50f));
@@ -110,7 +117,11 @@ class UpdateContractCostAcceptanceTest {
     @DisplayName("SCENARIO: Increase contract cost succeeds")
     void shouldIncreaseContractCost() {
         LocalDateTime now = LocalDateTime.now(clock);
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("1000.00"), LocalDateTime.now(clock));
+        Contract contract = ContractFixtures.newContract(testClient.id(),
+                now,
+                now.plusMonths(12),
+                new BigDecimal("1000.00"),
+                LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -122,13 +133,14 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
-                .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.id()))
+                .patch(ContractEndpoints.CONTRACT_COST, savedContract.id())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId())
+                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.id())
                 .then()
                 .statusCode(200)
                 .body("costAmount", equalTo(2000.00f));
@@ -138,7 +150,11 @@ class UpdateContractCostAcceptanceTest {
     @DisplayName("SCENARIO: Decrease contract cost succeeds")
     void shouldDecreaseContractCost() {
         LocalDateTime now = LocalDateTime.now(clock);
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("5000.00"), LocalDateTime.now(clock));
+        Contract contract = ContractFixtures.newContract(testClient.id(),
+                now,
+                now.plusMonths(12),
+                new BigDecimal("5000.00"),
+                LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -150,13 +166,14 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
-                .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.id()))
+                .patch(ContractEndpoints.CONTRACT_COST, savedContract.id())
                 .then()
                 .statusCode(204);
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId())
+                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.id())
                 .then()
                 .statusCode(200)
                 .body("costAmount", equalTo(3000.00f));
@@ -166,7 +183,11 @@ class UpdateContractCostAcceptanceTest {
     @DisplayName("SCENARIO: Update contract cost to zero fails (must be positive non zero)")
     void shouldRejectZeroCost() {
         LocalDateTime now = LocalDateTime.now(clock);
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("1000.00"), LocalDateTime.now(clock));
+        Contract contract = ContractFixtures.newContract(testClient.id(),
+                now,
+                now.plusMonths(12),
+                new BigDecimal("1000.00"),
+                LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -178,16 +199,22 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
-                .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.id()))
+                .patch(ContractEndpoints.CONTRACT_COST, savedContract.id())
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("invalidContractCost"));
     }
 
     @Test
     @DisplayName("SCENARIO: Update cost of an expired contract returns 409 contractExpired and keeps the cost")
     void shouldRejectCostChangeOnExpiredContract() {
         LocalDateTime now = LocalDateTime.now(clock);
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now.minusMonths(12), now.minusDays(1), new BigDecimal("1000.00"), now);
+        Contract contract = ContractFixtures.newContract(testClient.id(),
+                now.minusMonths(12),
+                now.minusDays(1),
+                new BigDecimal("1000.00"),
+                now);
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -199,17 +226,30 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
-                .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.id()))
+                .patch(ContractEndpoints.CONTRACT_COST, savedContract.id())
                 .then()
                 .statusCode(409)
                 .body("code", equalTo("contractExpired"));
 
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId())
+                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.id())
                 .then()
                 .statusCode(200)
                 .body("costAmount", equalTo(1000.00f));
+    }
+
+    @Test
+    @DisplayName("SCENARIO: Update contract cost without a body fails with 422 validationError")
+    void shouldRejectCostUpdateWithoutBody() {
+        given()
+                .when()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
+                .patch(ContractEndpoints.CONTRACT_COST, UUID.randomUUID())
+                .then()
+                .statusCode(422)
+                .body("code", equalTo("validationError"));
     }
 
     @Test
@@ -226,6 +266,7 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
+                .header(HttpHeaders.IF_MATCH, ETags.ofVersion(0))
                 .patch(ContractEndpoints.CONTRACT_COST, fakeId)
                 .then()
                 .statusCode(404);
@@ -235,7 +276,11 @@ class UpdateContractCostAcceptanceTest {
     @DisplayName("SCENARIO: Update contract cost with negative amount fails")
     void shouldRejectNegativeAmount() {
         LocalDateTime now = LocalDateTime.now(clock);
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("1000.00"), LocalDateTime.now(clock));
+        Contract contract = ContractFixtures.newContract(testClient.id(),
+                now,
+                now.plusMonths(12),
+                new BigDecimal("1000.00"),
+                LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -247,16 +292,22 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
-                .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.id()))
+                .patch(ContractEndpoints.CONTRACT_COST, savedContract.id())
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("invalidContractCost"));
     }
 
     @Test
     @DisplayName("SCENARIO: Update contract cost with invalid format fails")
     void shouldRejectInvalidCostFormat() {
         LocalDateTime now = LocalDateTime.now(clock);
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("1000.00"), LocalDateTime.now(clock));
+        Contract contract = ContractFixtures.newContract(testClient.id(),
+                now,
+                now.plusMonths(12),
+                new BigDecimal("1000.00"),
+                LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         String updatePayload = """
@@ -268,16 +319,23 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(updatePayload)
                 .when()
-                .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.id()))
+                .patch(ContractEndpoints.CONTRACT_COST, savedContract.id())
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("code", equalTo("validationError"))
+                .body("detail", equalTo("Invalid value 'invalid' for field 'amount'. Expected type: BigDecimal"));
     }
 
     @Test
     @DisplayName("SCENARIO: Update contract cost multiple times succeeds")
     void shouldAllowMultipleUpdates() {
         LocalDateTime now = LocalDateTime.now(clock);
-        Contract contract = ContractFactory.createFromCommand(testClient.getId(), now, now.plusMonths(12), new BigDecimal("1000.00"), LocalDateTime.now(clock));
+        Contract contract = ContractFixtures.newContract(testClient.id(),
+                now,
+                now.plusMonths(12),
+                new BigDecimal("1000.00"),
+                LocalDateTime.now(clock));
         Contract savedContract = contractRepository.save(contract);
 
         // First update
@@ -289,7 +347,8 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(update1)
                 .when()
-                .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.id()))
+                .patch(ContractEndpoints.CONTRACT_COST, savedContract.id())
                 .then()
                 .statusCode(204);
 
@@ -302,7 +361,8 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(update2)
                 .when()
-                .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.id()))
+                .patch(ContractEndpoints.CONTRACT_COST, savedContract.id())
                 .then()
                 .statusCode(204);
 
@@ -315,14 +375,15 @@ class UpdateContractCostAcceptanceTest {
         given()
                 .body(update3)
                 .when()
-                .patch(ContractEndpoints.CONTRACT_COST, savedContract.getId())
+                .header(HttpHeaders.IF_MATCH, ETags.current(ContractEndpoints.CONTRACT_BY_ID, savedContract.id()))
+                .patch(ContractEndpoints.CONTRACT_COST, savedContract.id())
                 .then()
                 .statusCode(204);
 
         // Verify final cost
         given()
                 .when()
-                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.getId())
+                .get(ContractEndpoints.CONTRACT_BY_ID, savedContract.id())
                 .then()
                 .statusCode(200)
                 .body("costAmount", equalTo(1500.00f));

@@ -105,10 +105,14 @@ curl -H "Authorization: Bearer $TOKEN" -X POST http://localhost:8080/v2/contract
   -H "Content-Type: application/json" \
   -d '{
     "clientId": "{client-uuid}",
+    "type": "LAMAL",
+    "franchise": 300,
     "costAmount": 1500.00
   }'
 ```
 ✅ **Response:** `201 Created` (startDate = now(), endDate = null)
+
+`type` is `LAMAL` for a person, `LAA` or `LPP` for a company. `franchise` is required for a `LAMAL` and forbidden otherwise: 300, 500, 1000, 1500, 2000 or 2500 for an adult, 0 to 600 by steps of 100 for a child, whose contract must end at the latest on January 1st of the year they turn 19.
 
 **Get Active Contracts** (paginated, only active):
 ```bash
@@ -167,10 +171,19 @@ Current result: 269 unit tests and 130 acceptance tests, 0 failure.
 Also run by the build:
 - **Unit tests** of domain objects and use case handlers (mocked ports, fixed clock);
 - **`ArchitectureTest`** (ArchUnit): dependency rules between layers;
-- **JaCoCo**: the build fails below 70% line and branch coverage on domain and features, currently 94% (report: `target/site/jacoco/index.html`).
+- **JaCoCo**: coverage report on domain and features, without threshold (report: `target/site/jacoco/index.html`).
+- **Error Prone + NullAway** at compile time (ADR-023).
+
+Formatting (Spotless, profile `config/formatter/eclipse-java-formatter.xml`), on the files changed since `origin/develop`:
+
+```bash
+./mvnw spotless:apply
+```
+
+The CI runs `spotless:check` against the pull request's target branch.
 
 Mutation testing (separate profile and CI job, ADR-016):
-- **PIT** mutates the bytecode of domain and features and checks that the unit tests detect each mutant: `./mvnw test -Pmutation` (report: `target/pit-reports/index.html`). Current score: 97% test strength (killed among mutants covered by unit tests, minimum enforced: 95%) and 96% of all mutants killed (minimum enforced: 90%). The remaining mutants are equivalent mutants or plumbing covered by acceptance tests, documented in ADR-016.
+- **PIT** mutates the bytecode of domain and features and checks that the unit tests detect each mutant: `./mvnw test -Pmutation` (report: `target/pit-reports/index.html`). Current score: 97% test strength (killed among mutants covered by unit tests, minimum enforced: 95%) and 96% of all mutants killed (minimum enforced: 90%). The remaining mutants are equivalent mutants or plumbing covered by acceptance tests, documented in ADR-016. On a pull request, the build also fails if a mutant is not detected on a line the pull request adds or changes.
 
 ### 4. Postman Collections
 
@@ -194,7 +207,7 @@ Import from `api-collections/` for complete API examples:
 ### Contracts
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/v2/contracts` | Create contract (`clientId` in the body, startDate defaults to now) |
+| POST | `/v2/contracts` | Create contract (`clientId` and `type` in the body: `LAMAL` for a person, `LAA` or `LPP` for a company; `franchise` required for a `LAMAL`; startDate defaults to now) |
 | GET | `/v2/contracts?clientId={id}` | Get active contracts (paginated, filter by updatedSince) |
 | GET | `/v2/contracts/{id}` | Get specific contract |
 | PATCH | `/v2/contracts/{id}/cost` | Update cost (updates the internal last modification date) |
@@ -237,7 +250,6 @@ Import from `api-collections/` for complete API examples:
 ```
 
 **Test Statistics:**
-- 94% line and branch coverage on domain and features (minimum enforced: 70%)
 - Unit and acceptance tests
 - Testcontainers for real database
 
@@ -285,6 +297,113 @@ The `Content-Language` response header echoes the resolved locale. Error message
 - **No cache on the sum**: the active set changes with time (a contract expires without any write), so the sum is always computed from the database
 - **Indexes**: On clientId, end date (partial covering index for the sum), last modified date, companyIdentifier
 - **UUID v7 identifiers**: time-ordered, so inserts append to the primary key index
+
+---
+
+## 🔍 Profiling with Java Flight Recorder (JFR)
+
+### Enable JFR in IntelliJ
+
+1. Open **Run > Edit Configurations...** and select the application configuration.
+2. If the **VM options** field is hidden, click **Modify options > Add VM options**.
+3. Add the following option, then start the application:
+
+```
+-XX:StartFlightRecording=name=continuous
+```
+
+The console displays `Started recording 1.` when JFR is running.
+
+Options can be combined, separated by commas:
+
+| Option | Description | Example |
+|---|---|---|
+| `name` | Recording name, used by the `jcmd` commands | `name=continuous` |
+| `maxage` | Maximum age of the data kept | `maxage=6h` |
+| `maxsize` | Maximum size of the data kept | `maxsize=500m` |
+| `duration` | Stops the recording after this time | `duration=5m` |
+| `filename` | File written when the recording ends | `filename=recording.jfr` |
+| `settings` | Event configuration: `default` (low overhead) or `profile` (more detail, higher overhead) | `settings=profile` |
+
+For example, to keep at most the last 6 hours and 500 MB of data:
+
+```
+-XX:StartFlightRecording=name=continuous,maxage=6h,maxsize=500m
+```
+
+### Dump a recording
+
+The dump does not stop the application or the recording. Send the requests to analyze first, then find the PID of the application:
+
+```bash
+jps -l
+```
+
+Write the recording to a timestamped file (Bash or Git Bash syntax):
+
+```bash
+jcmd <PID> JFR.dump name=continuous filename=recording-$(date +%Y%m%d-%H%M%S).jfr
+```
+
+A relative path is resolved from the working directory of the application. Open the file with JDK Mission Control, or with IntelliJ IDEA Ultimate through **Run > Open Profiler Snapshot**.
+
+---
+
+## 📦 Load Testing the CSV Import
+
+Generate a realistic data set to try `POST /v2/contracts/import-jobs` locally: 10,000 clients and a CSV file of 500,000 contracts (33 MB, within the limits of 500,000 lines and 50 MB). File format, statuses and error codes are described in [docs/cli/CONTRACT_IMPORT_JOBS.md](docs/cli/CONTRACT_IMPORT_JOBS.md).
+
+Run the commands below in Git Bash, from the project root, with the `postgres` service started. Use them on a local database only: the clients are inserted directly in SQL, without the API validation, and running the first command again adds 10,000 more clients.
+
+**1. Create the clients:**
+
+```bash
+docker compose exec -T postgres psql -U postgres -d contract -v ON_ERROR_STOP=1 <<'SQL'
+WITH new_clients AS (
+    INSERT INTO contracts.client (type, name, email, phone)
+    SELECT 'COMPANY', 'Load Test ' || n, 'load.test.' || n || '@example.com', '+4179' || lpad(n::text, 7, '0')
+    FROM generate_series(1, 10000) AS n
+    RETURNING id
+)
+INSERT INTO contracts.company (id, company_identifier)
+SELECT id, 'CHE-LOAD-' || id FROM new_clients;
+SQL
+```
+
+**2. Generate the file.** It only uses companies that exist when it runs, so create them first. Their `LAA` and `LPP` contracts may overlap, unlike the `LAMAL` contracts of a person, so every line is imported:
+
+```bash
+docker compose exec -T postgres psql -U postgres -d contract -q > contracts-500k.csv <<'SQL'
+COPY (
+    WITH c AS (SELECT array_agg(id) AS ids FROM contracts.client WHERE deleted_at IS NULL AND type = 'COMPANY')
+    SELECT ids[1 + n % cardinality(ids)] AS "clientId",
+           CASE WHEN n % 2 = 0 THEN 'LAA' ELSE 'LPP' END AS "type",
+           NULL AS "franchise",
+           CASE WHEN n % 2 = 0 THEN to_char(DATE '2027-01-01' + n % 365, 'YYYY-MM-DD"T"00:00:00') END AS "startDate",
+           CASE WHEN n % 2 = 0 THEN to_char(DATE '2028-01-01' + n % 365, 'YYYY-MM-DD"T"00:00:00') END AS "endDate",
+           (100 + n % 9900)::numeric(12,2) AS "costAmount"
+    FROM c, generate_series(1, 500000) AS n
+) TO STDOUT WITH (FORMAT csv, HEADER, DELIMITER ';');
+SQL
+```
+
+Do not commit this file. Run it from Git Bash rather than PowerShell 5.1, whose `>` redirection can change the encoding.
+
+**3. Submit the file**, with the application running and `$TOKEN` set as described in [Quick Test Examples](#2-quick-test-examples):
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" -F "file=@contracts-500k.csv;type=text/csv" http://localhost:8080/v2/contracts/import-jobs
+```
+
+✅ **Response:** `202 Accepted` + `Location: /v2/contracts/import-jobs/{jobId}`
+
+**4. Follow the job:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/v2/contracts/import-jobs/{jobId}"
+```
+
+The job ends `COMPLETED` with `importedCount` at 500,000. Stopping the application during the import puts the job back in `PENDING`, and it resumes without duplicates at the next start. The contracts stay in the database afterwards.
 
 ---
 
